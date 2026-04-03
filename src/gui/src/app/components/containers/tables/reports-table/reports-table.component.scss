@@ -1,0 +1,45 @@
+@use "sass:color";
+
+@use "../../../../../styles/variables";
+@use "../../../../../styles/custom-table";
+
+$table-row-selected-color: variables.$table-selected-row-background-color;
+
+.reports-table-wrapper {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-gap: 5px;
+    grid-template-areas:
+        'inputs-section'
+        'table-section';
+}
+
+.inputs-section {
+    grid-area: inputs-section;
+}
+
+.table-section {
+    grid-area: table-section;
+}
+
+.reports-container {
+    @extend .table-container;
+
+    // selected row styles
+    .selected-row {
+        background: $table-row-selected-color !important;
+
+        &:hover {
+            background: color.adjust($table-row-selected-color, $lightness: 5%, $space: hsl) !important;
+        }
+    }
+}
+
+.filter {
+    padding: 10px 10px 10px 0;
+    font-size: 11px !important;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+}

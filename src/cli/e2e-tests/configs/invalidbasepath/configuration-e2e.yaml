@@ -1,0 +1,17 @@
+general:
+protocols:
+    s3:
+        chunk_size: 25
+        max_active_transfers: 5
+        max_active_checksums: 6
+        threads: 10
+        transfer_profiles:
+            e2e-test:
+                accelerated: true
+                profile: e2e-test
+                bucket: gitlab-ci-tests
+                prefix: e2e-test
+                region: us-west-2
+                daemon_mode:
+                    enabled: true
+                    base_path: /this/path/does/not/exist

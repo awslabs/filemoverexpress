@@ -1,0 +1,192 @@
+<div class="file-browser-container"
+     [class.table-dragged-over]="dragOverData.overTable &&
+     !(dragOverData.overPreviousDirectory || dragOverData.overRow)">
+    <div (dragenter)="onDragEnterTable()"
+         (dragleave)="onDragLeaveTable()"
+         class="table-wrapper">
+        <table mat-table matSort
+               [dataSource]="datasource"
+               [id]="fileBrowserID"
+               [class.dragging]="dragging"
+               [class.dragging-over]="(fileBrowser.dragOriginID && fileBrowser.dragOriginID !== fileBrowserID) || dragOverData.overTable">
+            <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                <td mat-cell *matCellDef="let element">
+                    <div class="file-name">
+                        <div class="row-icon-wrapper">
+                            <mat-icon fontSet="material-icons" [class.folder-icon]="element.type === FileBrowserObjectType.FOLDER">
+                                {{ element | fileBrowserIcon }}
+                            </mat-icon>
+                        </div>
+                        <!-- to modify the max length of truncateString, add a number to truncateString i.e.{{ truncateString : 60 }}  -->
+                        <div class="file-name-string">{{ element.name | basename | truncateString }}</div>
+                        @if (element.isFavorite) {
+                            <div class="row-icon-wrapper">
+                                <mat-icon fontSet="material-icons"
+                                          class="favorite-icon"
+                                          matTooltip="Favorite path"
+                                          matTooltipPosition="above">
+                                    star
+                                </mat-icon>
+                            </div>
+                        }
+                        @if (element.isHotFolder) {
+                            <div class="row-icon-wrapper">
+                                <mat-icon fontSet="material-icons"
+                                          class="hot-folder-icon"
+                                          matTooltip="Hot folder"
+                                          matTooltipPosition="above">
+                                    whatshot
+                                </mat-icon>
+                            </div>
+                        }
+                        @if (element.isStartingPath) {
+                            <div class="row-icon-wrapper">
+                                <mat-icon fontSet="material-icons"
+                                          class="starting-path-icon"
+                                          matTooltip="Navigation starting path"
+                                          matTooltipPosition="above">
+                                    input
+                                </mat-icon>
+                            </div>
+                        }
+                        @if (element.storageClass?.toLowerCase().match(rgxGlacier)) {
+                            <div class="row-icon-wrapper">
+                                <mat-icon fontSet="material-icons" class="glacier-icon"
+                                          matTooltip="Stored in Glacier, cannot be downloaded">
+                                    severe_cold
+                                </mat-icon>
+                            </div>
+                        }
+                    </div>
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="size">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Size</th>
+                <td mat-cell *matCellDef="let element">
+                    {{ element.size === null ? '' : (element.size | formatBytes) }}
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="dateModified">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Date Modified</th>
+                <td mat-cell *matCellDef="let element">{{ element.dateModified | date : "MMM dd, yyyy 'at' hh:mm a" }}</td>
+            </ng-container>
+            <tr mat-header-row
+                *matHeaderRowDef="COLUMNS; sticky: true"
+                (dragover)="onDragOverTable($event)"
+                (drop)="onDropTable($event)">
+            </tr>
+            <tr mat-row
+                *matRowDef="let row; columns: COLUMNS;"
+                [class.disabled-row]="row.storageClass?.toLowerCase().match(rgxGlacier)"
+                [class.selected-row]="isSelected(row)"
+                [class.row-dragged-over]="dragOverData.overRow?.name === row.name && dragOverData.overRow?.type === FileBrowserObjectType.FOLDER"
+                [draggable]="!isDraggable(row)"
+                (click)="clickFileBrowserRow($event, row)"
+                (dblclick)="doubleClickRow(row)"
+                (dragstart)="onDragStart($event, row)"
+                (dragover)="onDragOverRow($event, row)"
+                (drop)="onDropRow($event, row)"
+                (dragend)="onDragEnd()"
+                (dragenter)="onDragEnterRow(row)"
+                (dragleave)="onDragLeaveRow(row)"
+                (contextmenu)="rightClickFileBrowserRow($event, row)">
+            </tr>
+        </table>
+
+        <!-- Show loading display if state is LOADING -->
+        @if (fileBrowserData.state === FileBrowserState.LOADING) {
+            <div class="file-browser-loading">
+                <div class="file-browser-loading-title">
+                    Loading File Browser
+                </div>
+                <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+            </div>
+        } @else {
+            @if (fileBrowserData.state === FileBrowserState.ERROR) {
+                <div class="file-browser-error">
+                    <div class="file-browser-error-title">
+                        {{ fileBrowserData.error ? fileBrowserData.error.title : FILE_BROWSER_GENERIC_ERROR.title }}
+                    </div>
+                    <div class="file-browser-error-message">
+                        {{ fileBrowserData.error ? fileBrowserData.error.message : FILE_BROWSER_GENERIC_ERROR.message }}
+                    </div>
+                    @if (fileBrowserData.error) {
+                        <div class="file-browser-error-buttons">
+                            @for (button of fileBrowserData.error.actionButtons; track button) {
+                                <fme-button [type]="'stroked'"
+                                            [icon]="button.buttonIcon ? button.buttonIcon : null"
+                                            [text]="button.buttonText"
+                                            [onClick]="button.buttonClickHandler">
+                                </fme-button>
+                            }
+                        </div>
+                    }
+                </div>
+            } @else {
+                <div class="remaining-table-space"
+                     (click)="clickEmptySpace()"
+                     (dragover)="onDragOverTable($event)"
+                     (drop)="onDropTable($event)"
+                     (contextmenu)="rightClickEmptySpace($event)"
+                >
+                </div>
+            }
+        }
+
+        <!-- Hidden div that will help position the right click context menu based on mouse click position-->
+        <div style="visibility: hidden; position: fixed"
+             [style.left]="contextMenuPosition.x"
+             [style.top]="contextMenuPosition.y"
+             [matMenuTriggerFor]="fileBrowserContextMenu">
+        </div>
+    </div>
+</div>
+
+<!-- Drag preview source html that is hidden off page -->
+<div #dragPreviewContainer [hidden]="!dragging" class="drag-preview-container">
+    @if (dragData.dragSourceObject) {
+        <div class="drag-preview-content-wrapper">
+            @if (dragData.numDraggedObjects > 1) {
+                <div class="dragged-item-preview dragged-item-preview-back"></div>
+            }
+            <div class="dragged-item-preview dragged-item-preview-front">
+                <mat-icon fontSet="material-icons" class="drag-preview-icon">
+                    {{ dragData.dragSourceObject | fileBrowserIcon }}
+                </mat-icon>
+                {{ dragData.dragSourceObject.name | basename }}
+            </div>
+            @if (dragData.numDraggedObjects > 1) {
+                <div class="dragged-item-number">
+                    {{ dragData.numDraggedObjects }}
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<mat-menu #fileBrowserContextMenu="matMenu">
+    <ng-template matMenuContent>
+        @for (menuRow of contextMenuToRender.rows; track menuRow; let rowIndex = $index) {
+            <button mat-menu-item
+                    (click)="menuRow.action(contextMenuToRender.triggerType, contextMenuToRender.triggerObject, currentDirectory)">
+                <div class="context-menu-row">
+                    @if (menuRow.icon) {
+                        <div class="context-menu-row-icon">
+                            <mat-icon fontSet="material-icons"
+                                      [ngClass]="(menuRow.iconColor && menuRow.iconColor !== 'inherit') ? 'icon-color-' + menuRow.iconColor : ''">
+                                {{ menuRow.icon }}
+                            </mat-icon>
+                        </div>
+                    }
+                    <div class="context-menu-row-label">
+                        {{ menuRow.label }}
+                    </div>
+                </div>
+            </button>
+            @if (menuRow.hasTrailingSeparator && rowIndex < contextMenuToRender.rows.length - 1) {
+                <mat-divider></mat-divider>
+            }
+        }
+    </ng-template>
+</mat-menu>

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package fme.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+message InventoryReportStartedEvent {
+    string report_id = 1;
+    string transfer_profile = 2;
+    string bucket = 3;
+    string prefix = 4;
+    google.protobuf.Timestamp start_time = 5;
+}
+
+message InventoryReportCompletedEvent {
+    string report_id = 1;
+    string transfer_profile = 2;
+    string bucket = 3;
+    string prefix = 4;
+    string output_file = 5;
+    google.protobuf.Timestamp complete_time = 6;
+}
+
+message InventoryReportErrorEvent {
+    string report_id = 1;
+    string transfer_profile = 2;
+    string bucket = 3;
+    string prefix = 4;
+    string error = 5;
+}
+
+message InventoryReportRequest {
+    string transfer_profile = 1;
+    string prefix = 2;
+    string output_format = 3;
+    bool pretty = 4;
+    bool include_checksums = 5;
+}
+
+message InventoryReportResponse {
+    bool success = 1;
+    string message = 2;
+}

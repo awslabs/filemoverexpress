@@ -1,0 +1,499 @@
+@if (mode === 'general-settings') {
+    <div>
+        <section>
+            <h2>Retry count</h2>
+            <p>
+                Maximum number of retry attempts if a non-fatal error occurs during a transfer.
+            </p>
+        </section>
+        <section>
+            <h2>Max active transfers</h2>
+            <p>
+                The number of individual files that can be transferred at the same time.
+                We recommend you increase the value of max active transfers as the file size decreases.
+            </p>
+        </section>
+        <section>
+            <h2>Max active checksums</h2>
+            <p>
+                The number of individual files that can be checksummed at the same time.
+                This value can't exceed the number of available CPU cores in your machine.
+                We recommend setting this to the number of CPU cores in your machine minus 1.
+            </p>
+        </section>
+        <section>
+            <h2>Disable sleep (macOS)</h2>
+            <p>
+                When turned on, this stops your Mac from sleeping while you have ongoing transfers.
+                If this is turned off and your machine goes to sleep, your ongoing transfers will be interrupted.
+            </p>
+        </section>
+        <section>
+            <h2> Target Bandwidth (MB) </h2>
+            <p>
+                The target network bandwidth (in MB) that File Transfer will use when transferring files. File Transfer
+                attempts to slow down transfers so that the <b>average</b> speed will approach the target bandwidth, so
+                speeds may still go above or below the target bandwidth. A default value of 0 means that File Transfer
+                will
+                not throttle transfers.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'logging-settings') {
+    <div>
+        <section>
+            <h2>Severity</h2>
+            <p>
+                Determines which level of messages to output to the defined log file.
+                Only events with the same, or higher, severity level will be logged to the log file. Example: If the
+                severity is set to
+                <code>Warn</code>, only <code>Warn</code>, <code>Error</code>, and <code>Fatal</code> events are
+                written to the log file.
+            </p>
+            <ol>
+                <li>Info</li>
+                <li>Warn</li>
+                <li>Error</li>
+                <li>Fatal</li>
+            </ol>
+        </section>
+        <section>
+            <h2>Directory</h2>
+            <p>
+                Defines a directory to write logs to.
+                The files are named according to the date that they were generated.
+            </p>
+            <ul>
+                <li>
+                    Windows example: <code>C:\Users\user\Desktop\filetransfer-logs</code>
+                </li>
+                <li>
+                    Mac example: <code>/Users/user/Desktop/filetransfer-logs</code>
+                </li>
+            </ul>
+        </section>
+        <section>
+            <h2>Max size</h2>
+            <p>
+                Specifies the maximum size (in megabytes) of the log files before the log files are replaced.
+            </p>
+        </section>
+        <section>
+            <h2>Max age</h2>
+            <p>
+                Specifies the maximum age, in days, of archived log files retained in the logs folder.
+                Any files that are older than this number of days are automatically removed.
+            </p>
+        </section>
+        <section>
+            <h2>Compress</h2>
+            <p>
+                Enable to compress archived log files. This saves disk space.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'reports-settings') {
+    <div>
+        <section>
+            <h2>Bucket Reports directory</h2>
+            <p>
+                Defines a directory to write bucket reports to.
+                The bucket report files are named according to the date that they were generated.
+                For example, a bucket report generated with the JSON format would look like
+                <code>bucket-report-&lt;date&gt;-&lt;time&gt;.json</code>.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'transfer-profile-general') {
+    <div>
+        <section>
+            <h2>Remote Configuration name</h2>
+            <p>
+                A name for your Remote Configuration. This can be anything, but cannot be changed later.
+            </p>
+        </section>
+        <section>
+            <h2>S3 bucket</h2>
+            <p>
+                The name of the S3 bucket that you want to upload to and download from.
+            </p>
+            <ng-container *ngTemplateOutlet="extraBucketHelp"></ng-container>
+        </section>
+        <section>
+            <h2>AWS Region</h2>
+            <p>
+                The AWS Region that your S3 bucket is located in.
+            </p>
+        </section>
+        <section>
+            <h2>AWS named profile</h2>
+            <p>
+                An AWS named profile to use for S3 access. If you choose to use an AWS Access Key or an AWS Secret Key
+                instead, you can leave this field blank.
+            </p>
+            <ng-container *ngTemplateOutlet="extraProfileHelp"></ng-container>
+        </section>
+    </div>
+}
+@if (mode === 'transfer-profile-general-bucket') {
+    <div>
+        <section>
+            <h2>S3 bucket</h2>
+            <ng-container *ngTemplateOutlet="extraBucketHelp"></ng-container>
+        </section>
+    </div>
+}
+@if (mode === 'transfer-profile-general-profile') {
+    <div>
+        <section>
+            <h2>AWS named profile</h2>
+            <ng-container *ngTemplateOutlet="extraProfileHelp"></ng-container>
+        </section>
+    </div>
+}
+
+<ng-template #extraBucketHelp>
+    <p>
+        If you do not have an S3 bucket, you can follow
+        <a (click)="openExternalLink($event,'https://docs.aws.amazon.com/nimble-studio/latest/filetransfer-guide/setting-up.html#setting-up-bucket')"
+           class="link-with-icon">
+            these instructions
+            <mat-icon class="inline-icon">open_in_new</mat-icon>
+        </a> to create one.
+    </p>
+</ng-template>
+
+<ng-template #extraProfileHelp>
+    <p>
+        If you do not have an AWS named profile, you can follow the
+        <a (click)="openExternalLink($event,'https://docs.aws.amazon.com/nimble-studio/latest/filetransfer-guide/setting-up.html#setting-up-iam-access-policy')"
+           class="link-with-icon">
+            IAM Access Policy
+            <mat-icon class="inline-icon">open_in_new</mat-icon>
+        </a> and
+        <a (click)="openExternalLink($event,'https://docs.aws.amazon.com/nimble-studio/latest/filetransfer-guide/setting-up.html#setting-up-cli')"
+           class="link-with-icon">
+            Set up the AWS CLI
+            <mat-icon class="inline-icon">open_in_new</mat-icon>
+        </a> instructions.
+    </p>
+</ng-template>
+
+@if (mode === 'transfer-profile-advanced') {
+    <div>
+        <section>
+            <h2>Storage class</h2>
+            <p>
+                The storage class to upload to. For more information about storage classes, please visit the
+                <a (click)="openExternalLink($event,'https://aws.amazon.com/s3/storage-classes/')"
+                   class="link-with-icon">
+                    S3 documentation
+                    <mat-icon class="inline-icon">open_in_new</mat-icon>
+                </a>.
+            </p>
+        </section>
+        <section>
+            <h2>Checksum algorithm</h2>
+            <p>
+                Determines which checksum algorithm is used for the checksum computations. If checksums are disabled
+                then only the file name, size, and last modified will be compared when deciding whether or not to
+                upload.
+            </p>
+        </section>
+        <section>
+            <h2>Local directory</h2>
+            <p>
+                The default directory to start browsing in on your machine.
+            </p>
+        </section>
+        <section>
+            <h2>S3 bucket prefix</h2>
+            <p>
+                The default S3 directory to start browsing in.
+            </p>
+        </section>
+        <section>
+            <h2>Filter</h2>
+            <p>
+                Filter files being uploaded or downloaded based on format. The filter field accepts valid regular
+                expressions. Example: "^.*\.(mov)$" only uploads files ending in .mov
+            </p>
+        </section>
+        <section>
+            <h2>Max age</h2>
+            <p>
+                Defines maximum time period for uploading or downloading files. Acceptable units are m, h, d, and w,
+                where m=minutes, h=hours, d=days, and w=weeks. If no units are supplied, the maximum age will be in
+                seconds.
+                Example: “2d” will download files from the last 2 days, "3500" will download from the last 3500 seconds.
+            </p>
+        </section>
+        <section>
+            <h2>File order list</h2>
+            <p>
+                Type a file extension and press &lt;enter&gt; to define a priority of files to transfer. Any file
+                extensions
+                that you don't list
+                are transferred last.
+            </p>
+        </section>
+        <section>
+            <h2>S3 Access Point / VPC Endpoint</h2>
+            <p>
+                The endpoint used by the S3 client. This field can be used to integrate with
+                <a (click)="openExternalLink($event,'https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html')"
+                   class="link-with-icon">
+                    AWS Private Link
+                    <mat-icon class="inline-icon">open_in_new</mat-icon>
+                </a>,
+                <a (click)="openExternalLink($event,'https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html')"
+                   class="link-with-icon">
+                    Gateway Endpoints
+                    <mat-icon class="inline-icon">open_in_new</mat-icon>
+                </a>, etc. This is also known as an S3 access point.
+            </p>
+        </section>
+        <section>
+            <h2>Transfer autotuning</h2>
+            <p>
+                By default, Transfer autotuning is enabled and dynamically sets number of threads and chunk size.
+                We recommend you keep it enabled.
+            </p>
+        </section>
+        <section>
+            <h2>Number of threads</h2>
+            <p>
+                Number of individual threads that are used to transfer each individual file.
+            </p>
+        </section>
+        <section>
+            <h2>Chunk size</h2>
+            <p>
+                Size of the chunk (in megabytes) that is delivered by each thread.
+            </p>
+        </section>
+        <section>
+            <h2>S3 Transfer Acceleration</h2>
+            <p>
+                When enabled, transfers will use S3 Transfer Acceleration.
+                For more information, please visit the
+                <a (click)="openExternalLink($event,'https://aws.amazon.com/s3/transfer-acceleration/')"
+                   class="link-with-icon">
+                    S3 documentation
+                    <mat-icon class="inline-icon">open_in_new</mat-icon>
+                </a>.
+            </p>
+        </section>
+        <section>
+            <h2>Metadata filter</h2>
+            <p>
+                When used, File Transfer automatically filters system metadata files.
+                These files include files that start with <b>._</b> and <b>thumbs.db</b>, and <b>.DS_Store</b>.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'daemon-editor-modal') {
+    <div>
+        <section>
+            <h2>Name</h2>
+            <p>
+                A name for your daemon. This can be anything, but cannot be changed later.
+            </p>
+        </section>
+        <section>
+            <h2>Host</h2>
+            <p>
+                The host address of the daemon. This cannot be changed later.
+            </p>
+        </section>
+        <section>
+            <h2>Port number</h2>
+            <p>
+                The port number that you want to connect to. When starting a daemon, this is default set to port 50006.
+            </p>
+        </section>
+        <section>
+            <h2>Key</h2>
+            <p>
+                The key used to connect to the daemon. It must match the key set for <code>api_server.remote.key</code>
+                in the configuration file on the daemon's machine.
+            </p>
+        </section>
+        <section>
+            <h2>Use encryption (TLS)</h2>
+            <p>
+                This must be enabled to connect to a daemon running on a machine with
+                <code>api_server.tls_enabled</code>
+                set to true in its configuration file, which indicates that the daemon is running using TLS instead of
+                HTTPS.
+                This must be enabled for all remote daemons, but is not required for the local daemon.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'bucket-report-modal') {
+    <div>
+        <section>
+            <h2>Remote Configuration</h2>
+            <p>
+                The Remote Configuration to generate a bucket report for. The contents of the S3 bucket defined in the
+                Remote Configuration will be listed in the bucket report.
+            </p>
+        </section>
+        <section>
+            <h2>Output format</h2>
+            <p>
+                The file output format of the bucket report. Can be one of four options: <code>JSON</code>,
+                <code>YAML</code>, <code>XML</code>, or <code>CSV</code>.
+            </p>
+        </section>
+        <section>
+            <h2>Include Checksums</h2>
+            <p>
+                Include the checksum values set by File Transfer when uploading files
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'hot-folder-settings') {
+    <div>
+        <section>
+            <h2>General settings</h2>
+            <section>
+                <h4>Name</h4>
+                <p>
+                    Each Hot Folder configuration requires that you provide a name. If you have multiple Hot Folder
+                    configurations, each configuration must have a unique name.
+                </p>
+            </section>
+            <section>
+                <h4>Local Source Folder</h4>
+                <p>
+                    This is the absolute path to the folder that you would like to become an upload hot folder.
+                </p>
+            </section>
+        </section>
+        <section>
+            <h2>Destinations</h2>
+            <p>
+                It is required that you configure at least one Destination. You can set a hot folder to upload to
+                multiple Destinations by selecting the (+) icon.
+            </p>
+            <p>
+                If multiple Destinations are defined, File Transfer will initiate an upload for each of the
+                destinations.
+            </p>
+            <section>
+                <h4>Remote Configuration</h4>
+                <p>
+                    Select a Remote Configuration from the dropdown. If the list is empty, you will need to setup a
+                    Remote Configuration prior to configuring a Hot Folder. It is required that you specify a Remote
+                    Configuration.
+                </p>
+            </section>
+            <section>
+                <h4>S3 Destination Folder</h4>
+                <p>
+                    You can specify the folder where all files will be uploaded. If you leave the S3 Destination
+                    Folder blank, the files will be uploaded to the root of the S3 bucket.
+                </p>
+            </section>
+        </section>
+    </div>
+}
+@if (mode === 'local-starting-path-info') {
+    <div>
+        <section>
+            <h2>Local directory</h2>
+            <p>
+                The default directory to start browsing in on your machine.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'remote-starting-path-info') {
+    <div>
+        <section>
+            <h2>S3 bucket prefix</h2>
+            <p>
+                The default S3 directory to start browsing in.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'delete-s3-prefix') {
+    <div>
+        <section>
+            <h2>Deleting S3 Prefix</h2>
+            <p>
+                After an S3 prefix deletion is requested, the deletion goes through two stages.
+            </p>
+            <p>
+                First, all versions of child objects in the prefix are discovered. During this stage, if any new objects
+                are
+                added to the prefix through transfers or external tools, they will be added to the list of object
+                versions
+                discovered for deletion.
+                Next, all discovered object versions are deleted.
+                If any new objects are added to the prefix in this stage, they will be not be deleted.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'rename-s3-prefix') {
+    <div>
+        <section>
+            <h2>Renaming S3 Prefix</h2>
+            <p>
+                Renaming an S3 prefix can take a long time since a rename can only be achieved by copying all child
+                objects
+                to the new prefix, then deleting all objects in the original prefix. While renaming is in progress, file
+                browsers cannot be reloaded until the rename is complete to prevent new transfers from starting while a
+                rename is in progress.
+            </p>
+            <p>
+                After an S3 prefix rename is requested, the rename goes through two stages.
+            </p>
+            <p>
+                First, all child objects in the prefix are discovered. During this stage, if any new objects are
+                added to the prefix through transfers or external tools, they will be added to the list of objects
+                discovered for renaming.
+            </p>
+            <p>
+                Next, for each discovered object, the latest version is first copied to the new name. If this is
+                successfully,
+                then all versions of the original object with the original name are discovered and permanently deleted.
+                If the copy fails, then the deletion step doesn't happen, and the error is logged. If a new object is
+                added
+                to the original S3 prefix with the same name as an object to be copied, this new object will be the
+                version
+                of the object copied over to the new prefix. If a new object is added to the new S3 prefix with the same
+                name as an object to be deleted before deletion is complete, it will be deleted.
+            </p>
+        </section>
+    </div>
+}
+@if (mode === 'rename-s3-object') {
+    <div>
+        <section>
+            <h2>Renaming S3 Object</h2>
+            <p>
+                Renaming an S3 object can take a long time since a rename can only be achieved by copying the object
+                to the new prefix, then deleting the object in the original prefix. While renaming is in progress, file
+                browsers cannot be reloaded until the rename is complete to prevent new transfers from starting while a
+                rename is in progress.
+            </p>
+            <p>
+                After an S3 object rename is requested, the latest version of the object is first copied to the new
+                name.
+                If this is successfully, then all versions of the original object with the original name are discovered
+                and
+                permanently deleted. If the copy fails, then the deletion step doesn't happen, and the error is logged.
+            </p>
+        </section>
+    </div>
+}

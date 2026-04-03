@@ -1,0 +1,173 @@
+@use "variables";
+
+// region variables
+$form-field-height: 28px;
+$form-field-vertical-padding: 5px;
+$form-field-padding: $form-field-vertical-padding 6px $form-field-vertical-padding 12px;
+$form-field-border-radius: 4px;
+$form-field-border-color: variables.$container-border;
+$form-field-border-color-focused: variables.$active;
+
+$form-field-font-size: 15px;
+$form-field-icon-size: 20px;
+$form-field-icon-weight: 500;
+
+$regular-text-color: variables.$text;
+$header-text-color: variables.$text-light-header;
+$placeholder-text-color: variables.$text-disabled-form-field;
+$disabled-text-color: variables.$text-disabled-form-field;
+
+$regular-background-color: variables.$background-content;
+$hover-background-color: variables.$background-menu-hover;
+$disabled-background-color: variables.$background-disabled-form-field;
+
+$menu-font-size: 13px;
+$menu-row-height: 23px;
+// endregion variables
+
+// region base form field
+@mixin custom-form-field {
+    display: flex;
+    gap: 2px;
+    background: $regular-background-color;
+    border: solid 2px $form-field-border-color;
+    border-radius: $form-field-border-radius;
+    padding: $form-field-padding;
+    height: $form-field-height;
+    line-height: $form-field-height;
+    font-size: $form-field-font-size;
+}
+
+.custom-form-field-focused {
+    @include custom-form-field;
+    border: solid 2px $form-field-border-color-focused;
+}
+
+.custom-form-field-disabled {
+    @include custom-form-field;
+    border: solid 2px $disabled-background-color;
+    background: $disabled-background-color;
+
+    &:hover {
+        cursor: default;
+    }
+}
+
+// endregion
+
+// region form field content styles
+.custom-form-field-text-content {
+    display: flex;
+    gap: 2px;
+    vertical-align: middle;
+    flex-grow: 1;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    color: $regular-text-color;
+}
+
+.disabled-custom-form-field-text-content {
+    @extend .custom-form-field-text-content;
+    color: variables.$text-disabled-form-field;
+}
+
+.custom-form-field-dropdown-arrow {
+    color: variables.$text-disabled-form-field;
+    font-size: 32px;
+}
+
+.focused-form-field-dropdown-arrow {
+    color: $form-field-border-color-focused;
+    font-size: 32px;
+}
+
+.disabled-custom-form-field-dropdown-arrow {
+    color: variables.$text-disabled-form-field;
+    font-size: 32px;
+}
+
+// endregion
+
+// region form field and menu icon styles
+.custom-form-field-icon-spacer {
+    height: 100%;
+    width: $form-field-icon-size;
+    margin-right: 3px;
+    position: relative;
+    flex-shrink: 0;
+
+    .custom-form-field-icon {
+        font-weight: $form-field-icon-weight;
+        font-size: $form-field-icon-size;
+        height: $form-field-icon-size;
+        width: $form-field-icon-size;
+        position: absolute;
+        top: 50%;
+        transform: translate(0, -50%);
+    }
+}
+
+.custom-form-field-clickable-icon:hover {
+    filter: saturate(1.15) brightness(1.3);
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+//endregion
+
+// region menu/dropdown styles
+.custom-menu-row {
+    display: flex;
+    height: $menu-row-height;
+    line-height: $menu-row-height;
+    padding: 5px 8px;
+    gap: 6px;
+
+    &:hover {
+        cursor: default;
+    }
+}
+
+.custom-clickable-menu-row {
+    @extend .custom-menu-row;
+
+    &:hover {
+        background: variables.$background-menu-hover;
+        cursor: pointer;
+    }
+}
+
+.custom-header-text {
+    font-weight: bolder;
+    font-size: $menu-font-size;
+    color: $header-text-color;
+}
+
+.custom-row-text {
+    font-size: $menu-font-size;
+    color: variables.$text;
+}
+
+// apply this to <hr> tags that divide custom menu rows
+.custom-row-divider {
+    height: 1px;
+    border-width: 0;
+    color: $form-field-border-color;
+    background-color: $form-field-border-color;
+    margin: 0;
+}
+
+// apply this to <hr> tags that divide custom menu sections
+.custom-section-row-divider {
+    @extend .custom-row-divider;
+    height: 2px;
+}
+
+// endregion
+
+
+
+

@@ -1,0 +1,378 @@
+<div class="transfer-profile-form">
+    <form [formGroup]="transferProfileForm">
+        <section>
+            @if (!tutorialMode()) {
+                <mat-accordion displayMode="flat">
+                    <mat-expansion-panel togglePosition="before" expanded>
+                        <mat-expansion-panel-header>
+                            <mat-panel-title class="section-header">General</mat-panel-title>
+                            <mat-panel-description class="section-description">
+                                <a (click)="toggleHint($event, 'transfer-profile-general')">Info</a>
+                            </mat-panel-description>
+                        </mat-expansion-panel-header>
+                        <ng-container *ngTemplateOutlet="generalSection"></ng-container>
+                    </mat-expansion-panel>
+                </mat-accordion>
+            } @else {
+                <mat-form-field color="accent">
+                    <mat-label>Remote Configuration name</mat-label>
+                    <input matInput type="text" formControlName="name">
+                    @if (tutorialMode()) {
+                        <mat-hint>A name to identify your Remote Configuration. This can't be changed
+                            later.
+                        </mat-hint>
+                    }
+                    @if (transferProfileForm.controls['name'].hasError('required')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileName.required }}
+                        </mat-error>
+                    }
+                    @if (transferProfileForm.controls['name'].hasError('hasSpaces')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileName.hasSpaces }}
+                        </mat-error>
+                    }
+                </mat-form-field>
+                <mat-form-field color="accent">
+                    <mat-label>S3 bucket</mat-label>
+                    <input matInput type="text" formControlName="bucket" placeholder="myawsbucket"
+                           (paste)="onBucketPaste($event)" (blur)="onBucketBlur($event)">
+                    <mat-hint #bucketHint [hidden]="!tutorialMode() && (bucketHint.innerHTML === getOriginalHint(bucketHint.innerHTML))">
+                        @if (tutorialMode()) {
+                            <span>The name of the S3 bucket that you want to upload to and download from.
+                                <a (click)="toggleHint($event, 'transfer-profile-general-bucket')">Info</a></span>
+                        }
+                    </mat-hint>
+                    @if (transferProfileForm.controls['bucket'].hasError('required')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileBucket.required }}
+                        </mat-error>
+                    }
+                    @if (transferProfileForm.controls['bucket'].hasError('invalidBucket')) {
+                        <mat-error
+                                [innerHTML]="getBucketError()">
+                        </mat-error>
+                    }
+                </mat-form-field>
+                <mat-form-field color="accent">
+                    <mat-label>AWS Region</mat-label>
+                    <mat-select formControlName="region">
+                        @for (rgn of regions; track rgn) {
+                            <mat-option [value]="rgn">
+                                {{ rgn }}
+                            </mat-option>
+                        }
+                    </mat-select>
+                    @if (tutorialMode()) {
+                        <mat-hint>The AWS Region that your S3 bucket is located in.</mat-hint>
+                    }
+                    @if (transferProfileForm.controls['region'].hasError('required')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileRegion.required }}
+                        </mat-error>
+                    }
+                </mat-form-field>
+                <mat-form-field color="accent">
+                    <mat-label>AWS named profile</mat-label>
+                    <input matInput
+                           [matAutocomplete]="auto"
+                           type="text"
+                           formControlName="profile"
+                           placeholder="myawsprofile">
+                    <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete">
+                        @for (profile of awsProfiles; track profile) {
+                            <mat-option [value]="profile">{{ profile }}</mat-option>
+                        }
+                    </mat-autocomplete>
+                    @if (tutorialMode()) {
+                        <mat-hint>
+                            An AWS named profile to use for S3 access. If you choose to use an AWS Access Key or an AWS
+                            Secret Key instead, you can leave this field blank.
+                            <a (click)="toggleHint($event, 'transfer-profile-general-profile')">Info</a>
+                        </mat-hint>
+                    }
+                </mat-form-field>
+            }
+
+            <ng-template #generalSection>
+                <mat-form-field color="accent">
+                    <mat-label>Remote Configuration name</mat-label>
+                    <input matInput type="text" formControlName="name">
+                    @if (tutorialMode()) {
+                        <mat-hint>A name to identify your Remote Configuration. This can't be changed
+                            later.
+                        </mat-hint>
+                    }
+                    @if (transferProfileForm.controls['name'].hasError('required')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileName.required }}
+                        </mat-error>
+                    }
+                    @if (transferProfileForm.controls['name'].hasError('hasSpaces')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileName.hasSpaces }}
+                        </mat-error>
+                    }
+                </mat-form-field>
+
+                <mat-form-field color="accent">
+                    <mat-label>S3 bucket</mat-label>
+                    <input matInput type="text" formControlName="bucket" placeholder="myawsbucket"
+                           (paste)="onBucketPaste($event)" (blur)="onBucketBlur($event)">
+                    <mat-hint #bucketHint
+                              [hidden]="!tutorialMode() && (bucketHint.innerHTML === getOriginalHint(bucketHint.innerHTML))">
+                        @if (tutorialMode()) {
+                            <span>The name of the S3 bucket that you want to upload to and download from. <a
+                                    (click)="toggleHint($event, 'transfer-profile-general-bucket')">Info</a></span>
+                        }
+                    </mat-hint>
+                    @if (transferProfileForm.controls['bucket'].hasError('required')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileBucket.required }}
+                        </mat-error>
+                    }
+                    @if (transferProfileForm.controls['bucket'].hasError('invalidBucket')) {
+                        <mat-error
+                                [innerHTML]="getBucketError()">
+                        </mat-error>
+                    }
+                </mat-form-field>
+
+                <mat-form-field color="accent">
+                    <mat-label>AWS Region</mat-label>
+                    <mat-select formControlName="region">
+                        @for (rgn of regions; track rgn) {
+                            <mat-option [value]="rgn">
+                                {{ rgn }}
+                            </mat-option>
+                        }
+                    </mat-select>
+                    @if (tutorialMode()) {
+                        <mat-hint>The AWS Region that your S3 bucket is located in.</mat-hint>
+                    }
+                    @if (transferProfileForm.controls['region'].hasError('required')) {
+                        <mat-error>
+                            {{ errorMessages.transferProfileRegion.required }}
+                        </mat-error>
+                    }
+                </mat-form-field>
+
+                <mat-form-field color="accent">
+                    <mat-label>AWS named profile</mat-label>
+                    <input matInput
+                           [matAutocomplete]="auto"
+                           type="text"
+                           formControlName="profile"
+                           placeholder="myawsprofile">
+                    <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete">
+                        @for (profile of awsProfiles; track profile) {
+                            <mat-option [value]="profile">{{ profile }}</mat-option>
+                        }
+                    </mat-autocomplete>
+                    @if (tutorialMode()) {
+                        <mat-hint>
+                            An AWS named profile to use for S3 access. If you choose to use an AWS Access Key or an AWS
+                            Secret Key instead, you can leave this field blank.
+                            <a (click)="toggleHint($event, 'transfer-profile-general-profile')">Info</a>
+                        </mat-hint>
+                    }
+                </mat-form-field>
+            </ng-template>
+        </section>
+
+        <section>
+            <mat-accordion displayMode="flat">
+                <mat-expansion-panel togglePosition="before">
+                    <mat-expansion-panel-header>
+                        <mat-panel-title class="section-header">Advanced</mat-panel-title>
+                        <mat-panel-description class="section-description">
+                            <a (click)="toggleHint($event, 'transfer-profile-advanced')">Info</a>
+                        </mat-panel-description>
+                    </mat-expansion-panel-header>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Storage class</mat-label>
+                        <mat-select formControlName="storageClass">
+                            @for (sc of storageClasses | objectSort: 'key'; track sc) {
+                                <mat-option [value]="sc['key']">
+                                    {{ sc['value'] }}
+                                </mat-option>
+                            }
+                        </mat-select>
+                        @if (transferProfileForm.controls['storageClass'].hasError('oneOf')) {
+                            <mat-error>
+                                Invalid storage class
+                            </mat-error>
+                        }
+                    </mat-form-field>
+
+                    <ng-container formGroupName="checksums">
+                        <mat-form-field color="accent">
+                            <mat-label>Checksum Algorithm</mat-label>
+                            <mat-select [formControl]="checksumSelector">
+                                @for (alg of checksumAlgorithms; track alg) {
+                                    <mat-option [value]="alg.value">
+                                        {{ alg.viewValue }}
+                                    </mat-option>
+                                }
+                            </mat-select>
+                            @if (transferProfileForm.get('checksumAlgorithm')?.hasError('oneOf')) {
+                                <mat-error>
+                                    {{ formErrorMessages.checksumAlgorithm.oneOf }}
+                                </mat-error>
+                            }
+                        </mat-form-field>
+                    </ng-container>
+
+
+                    <ng-container formGroupName="paths">
+                        <mat-form-field color="accent">
+                            <mat-label>Local directory</mat-label>
+                            <input matInput type="text" formControlName="local" placeholder="/path/to/start">
+                            <mat-hint>Optional directory to start browsing in for the Local file browser.</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field color="accent">
+                            <mat-label>S3 bucket prefix</mat-label>
+                            <input matInput type="text" formControlName="remote" placeholder="my/s3/path">
+                            <mat-hint>Optional prefix to start browsing in for the S3 Bucket file browser.</mat-hint>
+                        </mat-form-field>
+                    </ng-container>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Filter</mat-label>
+                        <input matInput type="text" formControlName="filter">
+                        <mat-hint>Optional</mat-hint>
+                    </mat-form-field>
+                    <mat-form-field color="accent">
+                        <mat-label>Max age</mat-label>
+                        <input matInput type="text" formControlName="maxAge">
+                        <mat-hint>Optional</mat-hint>
+                        @if (transferProfileForm.get('maxAge')?.hasError('pattern')) {
+                            <mat-error>
+                                {{ formErrorMessages.s3MaxAge.pattern }}
+                            </mat-error>
+                        }
+                    </mat-form-field>
+                    <mat-form-field color="accent">
+                        <mat-label>File order list</mat-label>
+                        <mat-chip-grid
+                                #fileOrderChipList
+                                cdkDropList
+                                cdkDropListOrientation="horizontal"
+                                (cdkDropListDropped)="chipListMovement($event)"
+                        >
+                            @for (ext of transferProfileForm.controls['fileOrder'].value; track ext) {
+                                <mat-chip-row
+                                        cdkDrag
+                                        [ngClass]="{'warning': !ext?.startsWith('.') }"
+                                        [value]="ext"
+                                        [removable]="true"
+                                        (removed)="removeFileOrderChip(ext)">
+                                    {{ ext }}
+                                    <button matChipRemove>
+                                        <mat-icon>cancel</mat-icon>
+                                    </button>
+                                </mat-chip-row>
+                            }
+                            <input placeholder=".ext"
+                                   [matChipInputFor]="fileOrderChipList"
+                                   [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                                   [matChipInputAddOnBlur]="true"
+                                   (matChipInputTokenEnd)="addFileOrderChip($event)">
+                        </mat-chip-grid>
+                        @if (transferProfileForm.controls['fileOrder'].hasError('invalidFileOrder')) {
+                            <mat-error>
+                                {{ errorMessages.transferProfileFileOrderList.invalidFileOrder }}
+                                <br> {{ getFileOrderErrors() }}
+                            </mat-error>
+                        }
+                        <mat-hint>Optional</mat-hint>
+                    </mat-form-field>
+                    <mat-form-field color="accent">
+                        <mat-label>S3 Access Point / VPC Endpoint</mat-label>
+                        <input matInput type="text" formControlName="endpoint">
+                        <mat-hint>Optional</mat-hint>
+                    </mat-form-field>
+
+                    <div class="form-field">
+                        <mat-slide-toggle formControlName="autoTuning">
+                            Transfer autotuning
+                        </mat-slide-toggle>
+                    </div>
+
+                    @if (!transferProfileForm.get('autoTuning')?.value) {
+                        <mat-form-field color="accent"
+                        >
+                            <mat-label>Number of threads</mat-label>
+                            <input matInput type="number" formControlName="threads" required step="1">
+                            @if (transferProfileForm.get('threads')?.hasError('autotuningFieldsRequired')) {
+                                <mat-error>
+                                    {{ formErrorMessages.threads.required }}
+                                </mat-error>
+                            }
+                            @if (transferProfileForm.get('threads')?.hasError('autotuningFieldsIsInteger')) {
+                                <mat-error>
+                                    {{ formErrorMessages.threads.integer }}
+                                </mat-error>
+                            }
+                            @if (transferProfileForm.get('threads')?.hasError('threadsTooSmall')) {
+                                <mat-error>
+                                    {{ formErrorMessages.threads.minValue }}
+                                </mat-error>
+                            }
+                        </mat-form-field>
+                    }
+                    @if (!transferProfileForm.get('autoTuning')?.value) {
+                        <mat-form-field color="accent">
+                            <mat-label>Chunk size</mat-label>
+                            <input matInput type="number" formControlName="chunkSize" required step="1">
+                            @if (transferProfileForm.get('chunkSize')?.hasError('autotuningFieldsRequired')) {
+                                <mat-error>
+                                    {{ formErrorMessages.chunkSize.required }}
+                                </mat-error>
+                            }
+                            @if (transferProfileForm.get('chunkSize')?.hasError('autotuningFieldsIsInteger')) {
+                                <mat-error>
+                                    {{ formErrorMessages.chunkSize.integer }}
+                                </mat-error>
+                            }
+                            @if (transferProfileForm.get('chunkSize')?.hasError('chunksizeTooSmall')) {
+                                <mat-error>
+                                    {{ formErrorMessages.chunkSize.minValue }}
+                                </mat-error>
+                            }
+                        </mat-form-field>
+                    }
+
+                    <div class="form-field">
+                        <mat-slide-toggle formControlName="accelerated">
+                            Use S3 Transfer Acceleration feature
+                        </mat-slide-toggle>
+                        <br>
+                        <mat-hint>
+                            Additional fees will apply. See
+                            <a href=""
+                               (click)="openExternalLink($event,'https://aws.amazon.com/s3/pricing/')">
+                                https://aws.amazon.com/s3/pricing/
+                            </a>
+                            for more details.
+                        </mat-hint>
+                        @if (transferProfileForm.controls['bucket'].hasError('acceleratedWithPeriods')) {
+                            <mat-error>
+                                {{ errorMessages.transferProfileAccelerated.bucketWithPeriods }}
+                            </mat-error>
+                        }
+                    </div>
+
+                    <div class="form-field">
+                        <mat-slide-toggle formControlName="enableMetadataFilter">
+                            Enable metadata filter
+                        </mat-slide-toggle>
+                    </div>
+
+                </mat-expansion-panel>
+            </mat-accordion>
+        </section>
+    </form>
+</div>

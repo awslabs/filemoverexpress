@@ -1,0 +1,27 @@
+version: v2
+managed:
+    enabled: true
+    override:
+        -   file_option: go_package_prefix
+            value: github.com/awslabs/filemoverexpress/types/pbtypes
+
+plugins:
+    # Go plugins for ConnectRPC
+    -   local: protoc-gen-go
+        out: ../../src/cli/types/pbtypes/
+        opt: paths=source_relative
+    -   local: protoc-gen-connect-go
+        out: ../../src/cli/types/pbtypes/
+        opt: paths=source_relative
+
+    # TypeScript plugins for ConnectRPC
+    -   local: protoc-gen-es
+        out: ../../src/gui/src/gen/es
+        opt:
+            - target=ts
+            - import_extension=none
+    -   local: protoc-gen-connect-es
+        out: ../../src/gui/src/gen/connect
+        opt:
+            - target=ts
+            - import_extension=none

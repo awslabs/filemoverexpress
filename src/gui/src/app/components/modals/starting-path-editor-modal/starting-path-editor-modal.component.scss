@@ -1,0 +1,38 @@
+@use '../../../../styles/modal';
+@use '../../../../styles/fonts';
+@use '../../../../styles/variables';
+
+.dialog-title {
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .spacer {
+        flex: 1 auto;
+    }
+
+    a {
+        font-weight: 500;
+        font-family: fonts.$font-family-heavy;
+        font-size: 16px;
+        color: variables.$text-link;
+        cursor: pointer;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.modal-text {
+    overflow-wrap: break-word;
+}
+
+.monospace-style {
+    font-family: fonts.$monospace-font-family;
+}
+
+.full-width-form-field {
+    width: 100%;
+}

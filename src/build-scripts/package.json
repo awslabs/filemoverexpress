@@ -1,0 +1,23 @@
+{
+    "name": "@filemoverexpress/build-scripts",
+    "version": "1.0.0",
+    "private": true,
+    "description": "TypeScript build system for FileMoverExpress",
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "test:ui": "vitest --ui"
+    },
+    "devDependencies": {
+        "@electron/packager": "19.0.2",
+        "@types/node": "22.7.7",
+        "@vitest/coverage-v8": "^4.0.18",
+        "commander": "14.0.2",
+        "fast-check": "^4.5.3",
+        "shlex": "3.0.0",
+        "ts-node": "^10.9.0",
+        "typescript": "5.9.3",
+        "vitest": "4.0.18"
+    }
+}

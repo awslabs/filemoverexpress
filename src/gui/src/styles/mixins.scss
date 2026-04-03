@@ -1,0 +1,34 @@
+@use '@angular/material' as mat;
+@use 'sass:map';
+
+@function define-fme-dark-theme($config, $foreground, $background) {
+    $theme: mat.m2-define-dark-theme($config);
+    $color: mat.m2-get-color-config($theme);
+    $color: map.merge($color, (foreground: $foreground, background: $background));
+    @return map.merge($theme, (color: $color));
+}
+
+@mixin progress-bar-color($bar-color, $text-color) {
+    mat-progress-bar {
+        @include mat.progress-bar-overrides((
+                active-indicator-color: $bar-color,
+        ));
+    }
+
+    div {
+        color: $text-color;
+        font-weight: bold;
+    }
+}
+
+@mixin fixed-height($height) {
+    min-height: $height;
+    height: $height;
+    max-height: $height;
+}
+
+@mixin fixed-width($width) {
+    min-width: $width;
+    width: $width;
+    max-width: $width;
+}

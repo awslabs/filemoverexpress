@@ -1,0 +1,204 @@
+<form [formGroup]="configForm" (ngSubmit)="onSubmit()">
+    <div class="container-grid">
+        <div class="config-grid-left">
+            <h1>Settings</h1>
+            <div>
+                <mat-accordion displayMode="flat">
+                    <mat-expansion-panel formGroupName="general" togglePosition="before" expanded>
+                        <mat-expansion-panel-header>
+                            <mat-panel-title class="section-header">General</mat-panel-title>
+                            <mat-panel-description class="section-description">
+                                <a (click)="toggleHint($event, 'general-settings')"
+                                   (keydown.enter)="toggleHint($event, 'general-settings')">
+                                    Info
+                                </a>
+                            </mat-panel-description>
+                        </mat-expansion-panel-header>
+
+                        <div class="general-settings">
+                            <mat-form-field color="accent">
+                                <mat-label>Retry Count</mat-label>
+                                <input matInput type="number" formControlName="retryCount" step="1">
+                                @if (configForm.get('general')?.get('retryCount')?.hasError('required')) {
+                                    <mat-error>{{ formErrorMessages.retryCount.required }}</mat-error>
+                                }
+                                @if (configForm.get('general')?.get('retryCount')?.hasError('min')) {
+                                    <mat-error>{{ formErrorMessages.retryCount.minValue }}</mat-error>
+                                }
+                            </mat-form-field>
+                            <mat-form-field color="accent" data-multi-hint>
+                                <mat-label>Max Active Transfers</mat-label>
+                                <input matInput type="number" formControlName="maxActiveTransfers" step="1">
+                                @if (configForm.get('general')?.get('maxActiveTransfers')?.hasError('required')) {
+                                    <mat-error>{{ formErrorMessages.maxActiveTransfer.required }}</mat-error>
+                                }
+                                @if (configForm.get('general')?.get('maxActiveTransfers')?.hasError('min')) {
+                                    <mat-error>{{ formErrorMessages.maxActiveTransfer.minValue }}</mat-error>
+                                }
+                                @if (configForm.get('general')?.get('maxActiveTransfers')?.value > 200) {
+                                    <mat-hint>Value higher than 200 can cause problems</mat-hint>
+                                }
+                                @if (originalConfig && configForm.get('general')?.get('maxActiveTransfers')?.value !== originalConfig.general.maxActiveTransfers) {
+                                    <mat-hint>These changes will not take effect until you restart the app</mat-hint>
+                                }
+                            </mat-form-field>
+                            <mat-form-field color="accent">
+                                <mat-label>Max Active Checksums</mat-label>
+                                <input matInput type="number" formControlName="maxActiveChecksums" step="1">
+                                @if (configForm.get('general')?.get('maxActiveChecksums')?.hasError('required')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.maxActiveChecksums.required }}
+                                    </mat-error>
+                                }
+                                @if (configForm.get('general')?.get('maxActiveChecksums')?.hasError('min')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.maxActiveChecksums.minValue }}
+                                    </mat-error>
+                                }
+                                @if (configForm.get('general')?.get('maxActiveChecksums')?.hasError('invalidChecksum')) {
+                                    <mat-error class="text-error">
+                                        {{ formErrorMessages.maxActiveChecksums.maxValue }} CPU cores: {{ cpuCoreCount }}
+                                    </mat-error>
+                                }
+                            </mat-form-field>
+
+                            <mat-form-field color="accent">
+                                <mat-label>Target Bandwidth (in MB)</mat-label>
+                                <input matInput type="number" formControlName="targetBandwidth" step="1">
+                                @if (configForm.get('general')?.get('targetBandwidth')?.hasError('required')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.targetBandwidth.required }}
+                                    </mat-error>
+                                }
+                                @if (configForm.get('general')?.get('targetBandwidth')?.hasError('min')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.targetBandwidth.minValue }}
+                                    </mat-error>
+                                }
+                                @if (configForm.get('general')?.get('targetBandwidth')?.hasError('max')) {
+                                    <mat-error class="text-error">
+                                        {{ formErrorMessages.targetBandwidth.maxValue }}
+                                    </mat-error>
+                                }
+                            </mat-form-field>
+
+
+                            <div class="form-field">
+                                <mat-slide-toggle formControlName="noSleep" color="accent">
+                                    Disable Sleep (macOS only)
+                                </mat-slide-toggle>
+                            </div>
+                        </div>
+                    </mat-expansion-panel>
+                </mat-accordion>
+            </div>
+
+            <div>
+                <mat-accordion displayMode="flat">
+                    <mat-expansion-panel formGroupName="reports" togglePosition="before" expanded>
+                        <mat-expansion-panel-header>
+                            <mat-panel-title class="section-header">
+                                Bucket Reports
+                            </mat-panel-title>
+                            <mat-panel-description class="section-description">
+                                <a (click)="toggleHint($event, 'reports-settings')">Info</a>
+                            </mat-panel-description>
+                        </mat-expansion-panel-header>
+
+                        <div class="general-settings">
+                            <mat-form-field color="accent">
+                                <mat-label>Bucket Reports Directory</mat-label>
+                                <input matInput type="text" formControlName="directory">
+                            </mat-form-field>
+                        </div>
+                    </mat-expansion-panel>
+                </mat-accordion>
+            </div>
+            <div>
+                <mat-accordion displayMode="flat">
+                    <mat-expansion-panel formGroupName="logging" togglePosition="before" expanded>
+                        <mat-expansion-panel-header>
+                            <mat-panel-title class="section-header">
+                                Logging
+                            </mat-panel-title>
+                            <mat-panel-description class="section-description">
+                                <a (click)="toggleHint($event, 'logging-settings')">Info</a>
+                            </mat-panel-description>
+                        </mat-expansion-panel-header>
+
+                        <div class="general-settings">
+                            <mat-form-field color="accent">
+                                <mat-label>Severity</mat-label>
+                                <mat-select formControlName="severity">
+                                    @for (ls of logSeverities; track ls) {
+                                        <mat-option [value]="ls.value">
+                                            {{ ls.viewValue }}
+                                        </mat-option>
+                                    }
+                                </mat-select>
+                                @if (configForm.get('logging')?.get('severity')?.hasError('required')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.severity.required }}
+                                    </mat-error>
+                                }
+                                @if (configForm.get('logging')?.get('severity')?.hasError('oneOf')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.severity.oneOf }}
+                                    </mat-error>
+                                }
+                            </mat-form-field>
+
+                            <mat-form-field color="accent">
+                                <mat-label>Directory</mat-label>
+                                <input matInput type="text" formControlName="directory">
+                            </mat-form-field>
+
+                            <mat-form-field color="accent">
+                                <mat-label>Max size (in MB)</mat-label>
+                                <input matInput type="number" formControlName="maxSize" step="1">
+                                @if (configForm.get('logging')?.get('maxSize')?.hasError('min')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.loggingMaxSize.minValue }}
+                                    </mat-error>
+                                }
+                            </mat-form-field>
+
+                            <mat-form-field color="accent">
+                                <mat-label>Max age</mat-label>
+                                <input matInput type="number" formControlName="maxAge" step="1">
+                                @if (configForm.get('logging')?.get('maxAge')?.hasError('min')) {
+                                    <mat-error>
+                                        {{ formErrorMessages.loggingMaxAge.minValue }}
+                                    </mat-error>
+                                }
+                            </mat-form-field>
+
+                            <div class="form-field">
+                                <mat-slide-toggle formControlName="compress">
+                                    Compress
+                                </mat-slide-toggle>
+                            </div>
+                        </div>
+                    </mat-expansion-panel>
+                </mat-accordion>
+            </div>
+        </div>
+
+
+        <div class="config-grid-right">
+            <h1>
+                Hot Folders
+                <a (click)="toggleHint($event, 'hot-folder-settings')"
+                   style="float: right; padding-right: 20px; font-size: 14px">Info</a>
+            </h1>
+            <fme-hot-folder-form [hotFolders]="hotFolders" (hotFoldersEdited)="updateHotFolderForm($event)"></fme-hot-folder-form>
+        </div>
+    </div>
+</form>
+
+<div class="settings-buttons">
+    <fme-button type="stroked" text="Cancel" [onClick]="onCancel()"></fme-button>
+    <fme-button type="filled" text="Save" [onClick]="onSubmit()"
+                [disabled]="configForm.invalid || hotFolderForm?.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED">
+    </fme-button>
+</div>

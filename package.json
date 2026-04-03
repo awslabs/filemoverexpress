@@ -1,0 +1,53 @@
+{
+	"name": "@filemoverexpress/root",
+	"version": "1.0.0",
+	"private": true,
+	"keywords": [
+		"aws",
+		"file-mover-express",
+		"filemoverexpress",
+		"file-transfer",
+		"s3"
+	],
+	"author": "Amazon Web Services",
+	"license": "MIT",
+	"workspaces": [
+		"src/*"
+	],
+	"scripts": {
+		"build:cli": "cd src/build-scripts && ts-node build.ts cli",
+		"build:gui": "cd src/build-scripts && ts-node build.ts gui",
+		"build:all": "npm-run-all --parallel --aggregate-output --print-label build:cli build:gui",
+		"electron": "cd src/build-scripts && ts-node build.ts electron",
+		"install:local": "cd src/build-scripts && ts-node build.ts install local",
+		"package": "cd src/build-scripts && ts-node build.ts package",
+		"proto": "cd src/build-scripts && ts-node build.ts proto",
+		"test:build-scripts": "npm run --prefix src/build-scripts test",
+		"test:cli": "npm run --prefix src/cli test",
+		"test:gui": "npm run --prefix src/gui test",
+		"test:all": "npm-run-all --parallel --aggregate-output --print-label test:build-scripts test:cli test:gui",
+		"lint:cli": "npm run --prefix src/cli lint",
+		"lint:gui": "npm run --prefix src/gui lint",
+		"lint:all": "npm-run-all --parallel --aggregate-output --print-label lint:cli lint:gui"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.2",
+		"@stylistic/eslint-plugin": "^5.7.0",
+		"@types/jest": "^29.5.0",
+		"@types/node": "^20.0.0",
+		"cross-env": "^7.0.3",
+		"fast-check": "^3.15.0",
+		"jest": "^29.7.0",
+		"npm-run-all": "^4.1.5",
+		"prettier": "^3.8.1",
+		"ts-jest": "^29.1.0",
+		"ts-node": "^10.9.0",
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"hono": "^4.11.7"
+	},
+	"overrides": {
+		"tar": "^7.5.7"
+	}
+}

@@ -1,0 +1,59 @@
+<header>
+    <h1 mat-dialog-title>Notification History</h1>
+</header>
+<mat-dialog-content>
+    <div class="notifications-container">
+        <table mat-table [dataSource]="dataSource" matSort>
+            <ng-container matColumnDef="timestamp">
+                <th mat-header-cell mat-sort-header="timestamp" *matHeaderCellDef>
+                    Timestamp
+                </th>
+
+                <td mat-cell *matCellDef="let row; dataSource: dataSource">
+                    {{ row.timestamp | date : 'HH:mm:ss' }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="level">
+                <th mat-header-cell mat-sort-header="level" *matHeaderCellDef>
+                    Level
+                </th>
+
+                <td mat-cell *matCellDef="let row; dataSource: dataSource">
+                    {{ row.level | titlecase }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="message">
+                <th mat-header-cell *matHeaderCellDef>
+                    Message
+                </th>
+
+                <td mat-cell *matCellDef="let row; dataSource: dataSource">
+                    {{ row.message }}
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let _row; columns: columns;"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+                <td class="mat-cell no-data" [attr.colspan]="columns.length">
+                    No notifications at this time.
+                </td>
+            </tr>
+        </table>
+    </div>
+</mat-dialog-content>
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked"
+                color="warn"
+                text="Clear All"
+                [onClick]="clear()"
+                [disabled]="dataSource.data.length === 0">
+    </fme-button>
+    <fme-button type="filled"
+                text="Close"
+                [onClick]="close()">
+    </fme-button>
+</div>

@@ -1,0 +1,5 @@
+@if (!ignore && !skip && (updatesAvailable || currentVersionUnsupported)) {
+    <button mat-icon-button (click)="openDownloadModal()">
+        <mat-icon class="update" [matTooltip]="tooltipText()">system_update</mat-icon>
+    </button>
+}

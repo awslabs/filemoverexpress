@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package fme.v1;
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+enum ChecksumAlgorithm {
+    CHECKSUM_ALGORITHM_UNSPECIFIED = 0;
+    CHECKSUM_ALGORITHM_MD5HEX = 1;
+    CHECKSUM_ALGORITHM_XXHASH = 3;
+    CHECKSUM_ALGORITHM_XXHASH64 = 4;
+    CHECKSUM_ALGORITHM_XXH3 = 5;
+}
+
+enum ShutdownResult {
+    SHUTDOWN_RESULT_UNSPECIFIED = 0;
+    SHUTDOWN_RESULT_SUCCEEDED = 1;
+    SHUTDOWN_RESULT_RESTRICTED = 2;
+    SHUTDOWN_RESULT_FAILED = 3;
+}
+
+message ShutdownRequest {}
+
+message ShutdownResponse {
+    ShutdownResult result = 1;
+}

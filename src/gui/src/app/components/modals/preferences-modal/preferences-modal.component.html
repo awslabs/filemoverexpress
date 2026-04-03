@@ -1,0 +1,94 @@
+<h1 mat-dialog-title>UI Preferences</h1>
+<mat-dialog-content>
+    <table class="prefsTable">
+        <tbody>
+        <tr>
+            <td class="desc">
+                Notifications position
+            </td>
+            <td>
+                <mat-form-field color="accent">
+                    <mat-select [(value)]="selectedNotificationPosition"
+                                (selectionChange)="notificationPositionChanged($event)">
+                        @for (pos of notificationPositions; track pos) {
+                            <mat-option [value]="pos.name">
+                                {{ pos.name }}
+                            </mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </td>
+        </tr>
+        <tr>
+            <td class="desc">
+                Notification auto hide delay
+            </td>
+            <td>
+                <mat-form-field color="accent">
+                    <mat-select [(value)]="notificationDelay" (selectionChange)="notificationAutoHideChanged($event)">
+                        @for (delay of autoHideOptions; track delay) {
+                            <mat-option [value]="delay.value">
+                                {{ delay.name }}
+                            </mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </td>
+        </tr>
+        <tr>
+            <td class="desc">
+                Stop daemon after closing application
+            </td>
+            <td>
+                <mat-form-field color="accent">
+                    <mat-select [(value)]="selectedDaemonClose" (selectionChange)="daemonCloseChanged($event)">
+                        @for (daemonClose of daemonCloseOptions; track daemonClose) {
+                            <mat-option [value]="daemonClose.value">
+                                {{ daemonClose.name }}
+                            </mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </td>
+        </tr>
+        <!--
+        <tr>
+          <td class="desc">
+            Export transfer data on exit
+          </td>
+          <td>
+            <mat-form-field color="accent">
+              <mat-select [(value)]="transferExport" (selectionChange)="transferExportChanged($event)">
+                <mat-option [value]="'ask'">Ask each time</mat-option>
+                <mat-option [value]="'always'">Always save</mat-option>
+                <mat-option [value]="'never'">Never save, just exit</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </td>
+        </tr>
+        -->
+        <!-- TODO: re-enable this if we decide to paginate the transfer table. Comment out since we have scrollable tables at the moment.
+        <tr>
+          <td class="desc">
+            Default transfer items per page
+          </td>
+          <td>
+            <mat-form-field color="accent">
+              <mat-select [(value)]="transferPageSize" (selectionChange)="transferPageSizeChanged($event)">
+                <mat-option [value]="10">10</mat-option>
+                <mat-option [value]="15">15</mat-option>
+                <mat-option [value]="30">30</mat-option>
+                <mat-option [value]="50">50</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </td>
+        </tr>
+        -->
+        </tbody>
+    </table>
+
+</mat-dialog-content>
+
+<mat-dialog-actions class="modal-buttons">
+    <fme-button type="filled" text="Close" [onClick]="close()"></fme-button>
+</mat-dialog-actions>

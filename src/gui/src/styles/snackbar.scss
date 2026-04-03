@@ -1,0 +1,51 @@
+@use "variables";
+@use "material-icons";
+
+.snackbar {
+    --snackbar-background: #{variables.$snackbar-default-background};
+    --snackbar-border: #{variables.$snackbar-default-border};
+    --snackbar-foreground: #{variables.$snackbar-default-color};
+    --mat-snack-bar-button-color: #{variables.$snackbar-default-color};
+
+    &.info {
+        --snackbar-background: #{variables.$snackbar-info-background};
+        --snackbar-border: #{variables.$snackbar-info-border};
+        --snackbar-foreground: #{variables.$snackbar-info-color};
+        --mat-snack-bar-button-color: #{variables.$snackbar-info-color};
+    }
+
+    &.success {
+        --snackbar-background: #{variables.$snackbar-success-background};
+        --snackbar-border: #{variables.$snackbar-success-border};
+        --snackbar-foreground: #{variables.$snackbar-success-color};
+        --mat-snack-bar-button-color: #{variables.$snackbar-success-color};
+    }
+
+    &.warning {
+        --snackbar-background: #{variables.$snackbar-warning-background};
+        --snackbar-border: #{variables.$snackbar-warning-border};
+        --snackbar-foreground: #{variables.$snackbar-warning-color};
+        --mat-snack-bar-button-color: #{variables.$snackbar-warning-color};
+    }
+
+    &.error {
+        --snackbar-background: #{variables.$snackbar-error-background};
+        --snackbar-border: #{variables.$snackbar-error-border};
+        --snackbar-foreground: #{variables.$snackbar-error-color};
+        --mat-snack-bar-button-color: #{variables.$snackbar-error-color};
+    }
+}
+
+.mdc-snackbar__surface {
+    border-radius: 12px !important;
+    border: 2px solid var(--snackbar-border) !important;
+    background-color: var(--snackbar-background) !important;
+
+    .mdc-snackbar__label, .mdc-snackbar__actions {
+        color: var(--snackbar-foreground) !important;
+    }
+
+    .mdc-button__label {
+        @extend .material-icons;
+    }
+}

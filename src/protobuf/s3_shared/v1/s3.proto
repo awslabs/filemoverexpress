@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package s3_shared.v1;
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+import "google/protobuf/timestamp.proto";
+
+enum S3DownloadPathStatusCode {
+    S3_DOWNLOAD_PATH_STATUS_CODE_DOWNLOAD_STATUS_UNSPECIFIED = 0;
+    S3_DOWNLOAD_PATH_STATUS_CODE_QUEUED_DOWNLOAD_SUCCESS = 1;
+    S3_DOWNLOAD_PATH_STATUS_CODE_QUEUED_DOWNLOAD_FAILURE = 2;
+    S3_DOWNLOAD_PATH_STATUS_CODE_DOWNLOAD_AUTH_ERROR = 3;
+}
+
+enum UploadPrefixStatusCode {
+	UPLOAD_PREFIX_STATUS_CODE_UPLOAD_STATUS_UNSPECIFIED = 0;
+    UPLOAD_PREFIX_STATUS_CODE_QUEUED_UPLOAD_SUCCESS = 1;
+    UPLOAD_PREFIX_STATUS_CODE_QUEUED_UPLOAD_FAILURE = 2;
+    UPLOAD_PREFIX_STATUS_CODE_UPLOAD_AUTH_ERROR = 3;
+}
+
+enum SkippedState {
+    SKIPPED_STATE_UNSPECIFIED = 0;
+	SKIPPED_STATE_ALREADY_EXISTS = 1;
+    SKIPPED_STATE_MAX_AGE = 2;
+    SKIPPED_STATE_INCLUSION_FILTER = 3;
+    SKIPPED_STATE_METADATA = 4;
+    SKIPPED_STATE_BLOCKED_PATH = 5;
+}
+
+// Listing S3 bucket contents
+message S3Object {
+	string key = 1;
+	int64 size = 2;
+	google.protobuf.Timestamp last_modified = 3;
+	string storage_class = 4;
+}
+
+message S3ListPrefixRequest {
+	string transfer_profile = 1;
+	string prefix = 2;
+}
+
+message S3ListPrefixResponse {
+	string prefix = 1;
+	repeated string prefixes = 2;
+	repeated S3Object objects = 3;
+}
+
+// Downloading
+message DownloadPrefixesRequest {
+	repeated string prefixes = 1;
+	string destination = 2;
+	string transfer_profile = 3;
+	bool force = 4;
+	string job_name = 5;
+	string s3_current_directory = 6;
+}
+
+message DownloadPrefixesResponse {
+	S3DownloadPathStatusCode status_code = 1;
+	string job_id = 2;
+}
+
+// Uploading
+enum UploadType {
+	UPLOAD_TYPE_UNSPECIFIED = 0;
+    UPLOAD_TYPE_FILE = 1;
+    UPLOAD_TYPE_DIRECTORY = 2;
+}
+
+// New Uploading
+message UploadPrefixRequest {
+	string transfer_profile = 1;
+	string base_path = 2;
+	string destination = 3;
+	repeated string prefixes = 4;
+	bool force = 5;
+	string job_name = 6;
+}
+
+message UploadPrefixResponse {
+	bool success = 1;
+	string response = 2;
+	UploadPrefixStatusCode status = 3;
+	string job_id = 4;
+}
+
+message CreateS3PrefixRequest {
+	string transfer_profile = 1;
+	string prefix_key = 2;
+}
+
+message CreateS3PrefixResponse {
+	bool success = 1;
+	string message = 2;
+}
+
+message DeleteS3PathRequest {
+	string transfer_profile = 1;
+	string path_to_delete = 2;
+	string path_type = 3;
+}
+
+message DeleteS3PathResponse {
+	bool success = 1;
+	string message = 2;
+}
+
+message RenameS3PathRequest {
+	string transfer_profile = 1;
+	string old_name = 2;
+	string new_name = 3;
+	string path_type = 4;
+}
+
+message RenameS3PathResponse {
+	bool success = 1;
+	string message = 2;
+}

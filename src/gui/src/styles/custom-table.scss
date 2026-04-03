@@ -1,0 +1,83 @@
+@use "@angular/material" as mat;
+@use "./mixins";
+@use "variables";
+@use "fonts";
+
+$table-row-height: 32px;
+$table-text-line-height: 20px;
+
+$table-row-hovered-color: variables.$table-row-background-color-hovered;
+
+$table-header-font: fonts.$font-family-heavy;
+$table-header-font-size: 14px;
+$table-header-font-weight: 500;
+$table-header-font-color: variables.$text-table-header;
+
+// apply this class to a div that wraps a mat table
+// its height and width are determined by its wrapping parent component
+.table-container {
+    display: flex;
+    flex-direction: column;
+    @include mixins.fixed-height(100%);
+    width: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+    border: 2px solid variables.$table-border-color;
+    border-radius: 10px;
+
+    // column dividers
+    th:not(:first-child)::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 25%;
+        height: 50%;
+        border-left: 2px solid variables.$table-border-color;
+    }
+
+    // table cell rows
+    .mdc-data-table__row {
+        &:hover {
+            background: $table-row-hovered-color;
+        }
+    }
+
+    // header cells
+    .mdc-data-table__header-cell {
+        border-bottom: 2px solid variables.$table-border-color !important;
+        font-size: $table-header-font-size !important;
+        font-family: $table-header-font;
+        font-weight: $table-header-font-weight;
+        color: $table-header-font-color;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // regular cells
+    .mdc-data-table__cell {
+        height: 100%;
+        border-bottom-color: variables.$table-border-color !important;
+        border-bottom-width: 1px !important;
+        font-size: 12px !important;
+    }
+
+    @include mat.sort-overrides((
+            arrow-color: variables.$text-table-header,
+    ));
+
+    @include mat.table-overrides((
+            background-color: variables.$background-content,
+            header-container-height: $table-row-height,
+            header-headline-line-height: $table-row-height,
+            row-item-container-height: $table-row-height,
+            row-item-label-text-line-height: $table-text-line-height,
+    ))
+}
+
+@mixin clamp-width($width) {
+    min-width: $width;
+    width: $width;
+    max-width: $width;
+    white-space: nowrap;
+}

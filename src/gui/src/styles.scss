@@ -1,0 +1,210 @@
+@use "@angular/material" as mat;
+@use "styles/fonts";
+@use "styles/snackbar";
+@use "styles/angular-material";
+@use "styles/custom-theme";
+@use "styles/variables";
+
+html,
+body {
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: fonts.$font-family;
+    -webkit-font-smoothing: antialiased;
+    font-size: 12px;
+    background-color: variables.$background-content;
+    color: variables.$text;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat, repeat;
+}
+
+// add this class when you want to use a monospace font
+.monospace {
+    font-family: fonts.$monospace-font-family;
+    white-space: pre;
+}
+
+// region Typography
+
+h1 {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 900 !important;
+    font-size: 24px !important;
+    line-height: 30px !important;
+    color: variables.$text-heading-element;
+}
+
+h2 {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 900 !important;
+    font-size: 20px !important;
+    line-height: 24px !important;
+    color: variables.$text-heading-element;
+}
+
+h3 {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 900 !important;
+    font-size: 18px !important;
+    line-height: 22px !important;
+    color: variables.$text-heading-element;
+}
+
+h4 {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 900 !important;
+    font-size: 16px !important;
+    line-height: 20px !important;
+    color: variables.$text-heading-element;
+}
+
+h5 {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 900 !important;
+    font-size: 14px !important;
+    line-height: 18px !important;
+    color: variables.$text-heading-element;
+}
+
+h6 {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 900 !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+    color: variables.$text-heading-element;
+}
+
+p {
+    font-weight: normal !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    color: variables.$text;
+}
+
+small {
+    font-weight: normal !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+    color: variables.$text-form-field-hint;
+}
+
+// Displaying code or computer output
+code {
+    font-family: fonts.$monospace-font-family;
+    font-weight: normal !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+}
+
+// Displaying preformatted blocks of code
+pre {
+    font-family: fonts.$monospace-font-family;
+    font-weight: normal !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+}
+
+// endregion
+
+
+.mat-sort-header-content {
+    text-align: left !important;
+}
+
+.mat-mdc-slide-toggle.mat-checked .mat-slide-toggle-bar,
+.mat-slide-toggle.mat-checked .mat-slide-toggle-thumb {
+    background-color: #ff9900 !important;
+}
+
+.mat-mdc-dialog-container {
+    .action-btn-container {
+        display: flex !important;
+        justify-content: space-between !important;
+    }
+
+    .mat-toolbar-single-row {
+        background: variables.$background-header !important;
+        color: variables.$text !important;
+    }
+
+    .mat-mdc-dialog-actions {
+        justify-content: flex-end;
+    }
+}
+
+.label-font-size {
+    font-size: calc(clamp(0.625rem, 0.5239rem + 0.4494vw, 0.875rem));
+}
+
+.full-screen-modal {
+    max-width: unset !important;
+    width: 100%;
+    height: 100%;
+
+    .mat-mdc-dialog-container {
+        max-width: 100vw;
+        max-height: 100vh;
+        height: 100%;
+        width: 100%;
+        background-color: transparent !important;
+
+        .mat-mdc-dialog-content {
+            max-height: unset !important;
+        }
+    }
+}
+
+/* TODO(mdc-migration): The following rule targets internal classes of card that may no longer apply for the MDC version. */
+mat-card-title {
+    font-size: 16px !important;
+}
+
+.bottom-sheet-hints {
+    max-width: 800px !important;
+    min-height: 150px;
+    max-height: 50vh;
+}
+
+/* TODO(mdc-migration): The following rule targets internal classes of chips that may no longer apply for the MDC version. */
+mat-chip.warning {
+    background-color: variables.$snackbar-error-background !important;
+    color: variables.$snackbar-error-color !important;
+}
+
+.mdc-dialog__content, .mdc-dialog__actions {
+    padding: 0 24px 24px 24px !important;
+}
+
+// region scrollbar styles
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+    background: transparent;
+}
+
+::-webkit-scrollbar-track {
+    border-radius: 10px;
+}
+
+// using box shadow to set thumb color to imitate padding in scrollbar track
+::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 10px 10px variables.$grey-550;
+    border: solid 3px transparent;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    box-shadow: inset 0 0 10px 10px variables.$grey-500;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+// endregion

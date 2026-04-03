@@ -1,0 +1,57 @@
+<h1 mat-dialog-title>Delete {{ data.pathType.toString() | titlecase }}</h1>
+<div mat-dialog-content>
+    <div class="modal-text">
+        <div>
+            {{ data.pathType.toString() | titlecase }} to delete@if (data.transferProfile) {
+            for remote configuration <i>{{ data.transferProfile }}</i>
+        }
+        </div>
+        <p class="path-string">
+            {{ pathToDeleteDisplayPath }}
+        </p>
+        <p>
+            To confirm deletion, type <i>{{ DELETE_CONFIRMATION_STRING }}</i> in the text input field.
+        </p>
+        <div class="warning-message">
+            <div class="warning-message-icon-wrapper">
+                <mat-icon fontSet="material-icons">warning</mat-icon>
+            </div>
+            <div class="warning-message-text">
+                @switch (data.pathType) {
+                    @case (PathType.S3_PREFIX) {
+                        After the S3 prefix is confirmed for deletion, all versions of objects in the prefix will be permanently deleted, including object delete markers.
+                                Any new objects added while the delete action is in progress might also be deleted. <a
+                                (click)="toggleHint($event, 'delete-s3-prefix')">Info</a>
+                    }
+                    @case (PathType.S3_OBJECT) {
+                        After the S3 object is confirmed for deletion, all versions of the object will be permanently deleted, including object delete markers.
+                    }
+                    @case (PathType.FOLDER) {
+                        After the folder is confirmed for deletion, all files and folders in the folder will be permanently deleted.
+                    }
+                    @default {
+                        After the deletion is confirmed, this action cannot be undone.
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <form [formGroup]="deletePathForm">
+        <div>
+            <mat-form-field color="accent" class="modal-form-field">
+                <input matInput type="text" formControlName="confirmDelete" [placeholder]="DELETE_CONFIRMATION_STRING">
+                @if (deletePathForm.get('confirmDelete')?.hasError('required')) {
+                    <mat-error>Deletion confirmation is required</mat-error>
+                } @else {
+                    <mat-error>
+                        You must type the exact text <i>{{ DELETE_CONFIRMATION_STRING }}</i> confirm the deletion
+                    </mat-error>
+                }
+            </mat-form-field>
+        </div>
+    </form>
+</div>
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled" text="Delete" [disabled]="deletePathForm.invalid" [onClick]="submit()"></fme-button>
+</div>

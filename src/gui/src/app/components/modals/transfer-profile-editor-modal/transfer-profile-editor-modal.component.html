@@ -1,0 +1,17 @@
+<h1 mat-dialog-title>{{ data.mode | titlecase }} Remote Configuration</h1>
+<div mat-dialog-content>
+    <fme-transfer-profile-form [tutorialMode]="false"
+                               [mode]="data.mode"
+                               [transferProfile]="transferProfile"
+                               (transferProfileEdited)="updateTransferProfileForm($event)">
+    </fme-transfer-profile-form>
+</div>
+
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Close" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled"
+                [text]="data.mode | titlecase"
+                [onClick]="save()"
+                [disabled]="transferProfileForm.invalid">
+    </fme-button>
+</div>

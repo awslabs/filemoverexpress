@@ -1,0 +1,188 @@
+@use "sass:color";
+
+@use "../../../../../styles/mixins";
+@use "../../../../../styles/variables";
+@use "../../../../../styles/fonts";
+@use "../../../../../styles/custom-table";
+@use "../../../../../styles/material-icons";
+
+$table-row-selected-color: variables.$table-selected-row-background-color;
+
+.jobs-table-wrapper {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-gap: 5px;
+    grid-template-areas:
+        'inputs-section'
+        'table-section';
+    min-width: 0;
+}
+
+.inputs-section {
+    grid-area: inputs-section;
+    min-width: 0;
+}
+
+.table-section {
+    grid-area: table-section;
+    min-width: 0;
+}
+
+.jobs-container {
+    @extend .table-container;
+
+    .selected-row {
+        background: $table-row-selected-color !important;
+
+        &:hover {
+            background: color.adjust($table-row-selected-color, $lightness: 5%, $space: hsl) !important;
+        }
+    }
+
+    .file-name {
+        display: flex;
+        gap: 6px;
+
+        .file-name-string {
+            width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .mat-column-type {
+        @include custom-table.clamp-width(72px);
+    }
+
+    .mat-column-startTime {
+        @include custom-table.clamp-width(170px);
+    }
+
+    .mat-column-duration, .mat-column-speed {
+        @include custom-table.clamp-width(150px);
+    }
+
+    .mat-column-progress {
+        min-width: 190px;
+        width: 190px;
+        white-space: nowrap;
+    }
+
+    .mat-column-status {
+        @include custom-table.clamp-width(170px);
+    }
+}
+
+.remaining-table-space {
+    flex: 1 100%;
+}
+
+.filter {
+    padding: 10px 10px 10px 0;
+    font-size: 11px !important;
+    display: flex;
+    flex-direction: row;
+
+    .spacer {
+        flex: 1 auto;
+    }
+
+    .divider {
+        background: linear-gradient(variables.$vertical-divider-color, variables.$vertical-divider-color) no-repeat center/2px 100%;
+    }
+}
+
+.stats {
+    display: flex;
+    flex-direction: row;
+
+    div {
+        display: block;
+        text-align: center;
+        padding: 0 10px 0 10px;
+        color: variables.$text;
+    }
+
+    .stat-name {
+        color: variables.$text-heading-element;
+        font-weight: bolder;
+    }
+
+    .icons {
+        display: flex;
+        align-items: center;
+        color: variables.$pg-blue;
+    }
+}
+
+.status-progress-bar {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+
+    mat-progress-bar {
+        margin-top: 15px;
+    }
+
+    &.status-in-progress {
+        @include mixins.progress-bar-color(variables.$pg-blue, color.adjust(whitesmoke, $lightness: -10%, $space: hsl));
+    }
+
+    &.status-discovering, &.status-checksumming {
+        @include mixins.progress-bar-color(variables.$pg-yellow, variables.$pg-yellow)
+    }
+
+    &.status-cancelled {
+        @include mixins.progress-bar-color(variables.$pg-orange, inherit);
+    }
+
+    &.status-paused {
+        @include mixins.progress-bar-color(variables.$pg-green, grey);
+    }
+
+    &.status-completed {
+        @include mixins.progress-bar-color(variables.$pg-blue, variables.$pg-green);
+    }
+
+    &.status-completed-with-errors {
+        @include mixins.progress-bar-color(variables.$pg-orange, inherit);
+    }
+
+    &.status-skipped {
+        @include mixins.progress-bar-color(variables.$pg-blue, variables.$pg-green);
+    }
+
+    &.status-error {
+        @include mixins.progress-bar-color(variables.$pg-red, variables.$pg-red);
+    }
+}
+
+.jobs-container .icon {
+    display: flex;
+    align-items: center;
+    color: #0096FF;
+}
+
+.highlighted {
+    background-color: color.adjust(#0096FF, $lightness: 10%, $space: hsl) !important;
+}
+
+.mat-column-action {
+    @include custom-table.clamp-width(80px);
+}
+
+
+// TODO: Disabled until we figure out how to pass the folder type out
+//.nameType {
+//    display: flex !important;
+//    justify-content: flex-start !important;
+//    padding-bottom: 10px;
+//    padding-top: 5px;
+//
+//    mat-icon {
+//        padding-right: 5px;
+//    }
+//}
+

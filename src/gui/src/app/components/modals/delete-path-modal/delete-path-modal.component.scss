@@ -1,0 +1,9 @@
+@use '../../../../styles/modal';
+
+.modal-form-field {
+    width: 100%;
+
+    ::placeholder {
+        font-style: italic;
+    }
+}

@@ -1,0 +1,82 @@
+@use "../../../../styles/variables";
+@use "../../../../styles/modal";
+
+$font-size: 14px;
+$icon-size: 18px;
+$list-row-height: 26px;
+$max-num-rows-showing: 5;
+$list-height: #{($max-num-rows-showing + 0.5)*$list-row-height};
+
+.transfer-description {
+    margin-bottom: 15px;
+    font-size: $font-size;
+    word-break: break-word;
+}
+
+.transfer-object-list-wrapper {
+    margin-bottom: 25px;
+    font-size: $font-size;
+}
+
+.transfer-settings {
+    margin-bottom: 25px;
+    font-size: $font-size;
+
+    mat-form-field {
+        width: 100%;
+    }
+
+    mat-slide-toggle {
+        display: block;
+    }
+
+    > :not(:last-child) {
+        margin-bottom: 20px;
+    }
+}
+
+.transfer-object-list-rows {
+    overflow: scroll;
+}
+
+.virtual-scroll {
+    height: $list-height;
+}
+
+.transfer-object {
+    display: grid;
+    grid-gap: 5px;
+    grid-template-columns: $icon-size 1fr;
+    height: $list-row-height;
+    line-height: $list-row-height;
+    width: 100%;
+
+    .transfer-object-icon-wrapper {
+        width: $icon-size;
+        position: relative;
+
+        mat-icon {
+            font-size: $icon-size;
+            height: $icon-size;
+            width: $icon-size;
+            position: absolute;
+            display: inline-block;
+            top: 50%;
+            transform: translate(0, -50%);
+        }
+    }
+
+    .transfer-object-name {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+}
+
+.folder-icon {
+    color: variables.$folder-icon-color;
+}
+
+mat-hint {
+    font-size: 12px;
+}

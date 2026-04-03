@@ -1,0 +1,24 @@
+<h1 mat-dialog-title>Rename job</h1>
+<div mat-dialog-content>
+    <div>
+        <p>
+            Set a descriptive name for your job
+        </p>
+        <mat-form-field color="accent" class="modal-form-field">
+            <mat-label>
+                Job name
+            </mat-label>
+            <input matInput type="text" [formControl]="jobName">
+            @if (jobName.hasError('required')) {
+                <mat-error>
+                    A job must have a name
+                </mat-error>
+            }
+        </mat-form-field>
+    </div>
+</div>
+
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled" text="Update" [disabled]="jobName.invalid" [onClick]="save()"></fme-button>
+</div>

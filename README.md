@@ -1,17 +1,317 @@
-## My Project
+# File Mover Express for AWS
 
-TODO: Fill this README out!
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org/)
+[![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
 
-Be sure to:
+File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
 
-* Change the title in this README
-* Edit your repository description on GitHub
+## Key Features
+
+- **High-Performance Transfers**: Auto-tuned parallel processing for optimal throughput
+- **Multipart Upload Optimization**: Intelligent chunking and parallelized multipart uploads for large files with automatic retry and resume capabilities
+- **Drag & Drop GUI**: Intuitive graphical interface for easy file management
+- **Command-Line Interface**: Powerful CLI for scripting and automation
+- **Hot Folders**: Automatic monitoring and upload of new files
+- **Secure**: End-to-end encryption with AWS IAM integration
+- **Checksumming & MHL Support**: Multiple checksum algorithms (MD5, SHA1, SHA256) with Media Hash List (MHL) format support for professional media workflows
+- **Cross-Platform**: Support for macOS, Windows, and Linux
+- **Multi-Region**: Works with any AWS region where S3 is available
+
+## Quick Start
+
+### Prerequisites
+
+**Required Tools:**
+- **Node.js** 22 or higher with npm/yarn
+- **Go** 1.24 or higher
+- **golangci-lint** - Go linter ([installation guide](https://golangci-lint.run/usage/install/))
+- **AWS Account** with S3 access
+
+**Optional Tools:**
+- **Electron** - For building desktop packages (installed via npm)
+
+### Installation
+
+#### macOS
+
+[//]: # (**Option 1: Download Installer &#40;Recommended&#41;**)
+[//]: # (- Download the latest `.pkg` installer from [Releases]&#40;https://github.com/awslabs/filemoverexpress/releases&#41;)
+[//]: # (- Supports both Intel x64 and Apple Silicon ARM64 architectures)
+[//]: # (- Double-click to run the installer and follow the setup wizard)
+[//]: # ()
+[//]: # (**Option 2: Build from Source**)
+```bash
+# Install dependencies
+brew install go node git golangci-lint
+
+# Clone repository
+git clone https://github.com/awslabs/filemoverexpress.git
+cd filemoverexpress
+
+# Install npm dependencies
+npm install
+
+# Generate protobuf code
+npm run proto:generate
+
+# Build CLI for macOS
+npm run --prefix src/cli build:mac
+
+# Build GUI
+npm run --prefix src/gui build:prod
+
+# Run the CLI application
+./src/cli/dist/filemoverexpress-darwin-amd64
+```
+
+#### Windows
+
+[//]: # (**Option 1: Download Installer &#40;Recommended&#41;**)
+[//]: # (- Download the latest `.msi` installer from [Releases]&#40;https://github.com/awslabs/filemoverexpress/releases&#41;)
+[//]: # (- Supports Windows x64 architecture)
+[//]: # (- Run the installer and follow the setup wizard)
+[//]: # ()
+[//]: # (**Option 2: Build from Source**)
+```bash
+# Clone repository
+git clone https://github.com/awslabs/filemoverexpress.git
+cd filemoverexpress
+
+# Install npm dependencies
+npm install
+
+# Generate protobuf code
+npm run proto:generate
+
+# Build CLI for Windows
+npm run --prefix src/cli build:win
+
+# Build GUI
+npm run --prefix src/gui build:prod
+
+# Run the application
+.\src\cli\dist\filemoverexpress-windows-amd64.exe
+```
+
+#### Linux
+```bash
+# Install dependencies
+sudo apt update
+sudo apt install -y golang-go nodejs npm git
+
+# Install golangci-lint (follow official installation guides)
+
+# Clone repository
+git clone https://github.com/awslabs/filemoverexpress.git
+cd filemoverexpress
+
+# Install npm dependencies
+npm install
+
+# Generate protobuf code
+npm run proto:generate
+
+# Build CLI for Linux
+npm run --prefix src/cli build:linux
+
+# Build GUI
+npm run --prefix src/gui build:prod
+
+# Run the application
+./src/cli/dist/filemoverexpress-linux-amd64
+```
+
+### AWS Configuration
+
+1. Create an S3 bucket with appropriate permissions
+2. Configure IAM policy with required S3 access permissions
+3. Set up AWS credentials using `aws configure`
+
+For detailed setup instructions, see the [Setup Guide](https://github.com/awslabs/filemoverexpress/wiki/Setup).
+
+## Documentation
+
+Comprehensive documentation is available in the [GitHub Wiki](https://github.com/awslabs/filemoverexpress/wiki):
+
+- [Getting Started](https://github.com/awslabs/filemoverexpress/wiki/Getting-Started) - Quick start guide and basic usage
+- [Installation](https://github.com/awslabs/filemoverexpress/wiki/Installation) - Detailed installation instructions for all platforms
+- [Configuration](https://github.com/awslabs/filemoverexpress/wiki/Configuration) - Setup and configuration options
+- [Using the GUI](https://github.com/awslabs/filemoverexpress/wiki/Using-the-GUI) - Graphical interface guide
+- [Using the CLI](https://github.com/awslabs/filemoverexpress/wiki/Using-the-CLI) - Command-line usage and scripting
+- [Best Practices](https://github.com/awslabs/filemoverexpress/wiki/Best-Practices) - Performance optimization and security recommendations
+- [Troubleshooting](https://github.com/awslabs/filemoverexpress/wiki/Troubleshooting) - Common issues and solutions
+
+## Architecture
+
+File Mover Express consists of several components:
+
+```
+filemoverexpress/
+├── src/
+│   ├── cli/                    # Go CLI daemon and backend services
+│   ├── gui/                    # Angular GUI application
+│   ├── electron/               # Electron wrapper for desktop deployment
+│   ├── protobuf/               # Protocol buffer definitions for communication
+│   ├── installers/             # Platform-specific installer packages
+│   └── userguide/              # Sphinx-based documentation source
+├── tools/                      # Build and deployment automation scripts
+├── CONTRIBUTING.md             # Guidelines for contributing to the project
+├── SECURITY.md                 # Security policy and vulnerability reporting
+└── README.md                   # Project overview and setup instructions
+```
+
+## Development
+
+### Building from Source
+
+**Prerequisites**: Go 1.24+, Node.js 22+, Angular CLI, golangci-lint
+
+```bash
+# Install dependencies
+npm install
+
+# Generate protobuf code
+npm run proto:generate
+
+# Build for all supported platforms
+npm run build:all
+
+# Build CLI for specific platforms
+npm run build:cli           # All CLI platforms
+npm run --prefix src/cli build:mac      # macOS (Intel x64 and Apple Silicon ARM64)
+npm run --prefix src/cli build:linux    # Linux (x64 and ARM64)
+npm run --prefix src/cli build:win      # Windows (x64)
+
+# Build GUI
+npm run build:gui           # Production GUI build
+
+# Run tests
+npm run test:all            # Run all tests
+npm run test:cli            # Run CLI tests only
+npm run test:gui            # Run GUI tests only
+
+# Run linting
+npm run lint:all            # Lint all code
+npm run lint:cli            # Lint CLI code only
+npm run lint:gui            # Lint GUI code only
+
+# Clean build artifacts
+npm run clean:all           # Clean all build artifacts
+npm run clean:cli           # Clean CLI artifacts only
+npm run clean:gui           # Clean GUI artifacts only
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run proto:generate` | Generate protobuf code for CLI and GUI |
+| `npm run build:all` | Build both CLI and GUI components |
+| `npm run build:cli` | Build CLI for all platforms (macOS, Linux, Windows) |
+| `npm run build:gui` | Build GUI production bundle |
+| `npm run test:all` | Run all tests (CLI and GUI) |
+| `npm run test:cli` | Run CLI unit and integration tests |
+| `npm run test:gui` | Run GUI unit tests via Karma |
+| `npm run lint:all` | Lint all code (CLI and GUI) |
+| `npm run lint:cli` | Run golangci-lint on Go code |
+| `npm run lint:gui` | Run ESLint on TypeScript/Angular code |
+| `npm run clean:all` | Remove all build artifacts |
+| `npm run clean:cli` | Remove CLI build artifacts |
+| `npm run clean:gui` | Remove GUI build artifacts |
+| `npm run userguide` | Build user guide documentation |
+
+### Environment Variables
+
+You can customize builds using environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VERSION` | Override version number | Value from package.json |
+| `PRODUCT_NAME` | Override product name | `filemoverexpress` |
+| `BUILD_MODE` | Set to `dev` for development builds | `release` |
+
+**Examples:**
+
+```bash
+# Build with custom version
+VERSION=2.0.0 npm run build:cli
+
+# Build with custom product name
+PRODUCT_NAME=myapp npm run build:cli
+
+# Build in development mode (includes debug symbols, adds "dev" suffix)
+BUILD_MODE=dev npm run --prefix src/cli build:mac
+```
+
+### Platform-Specific Builds
+
+Build CLI binaries for specific platforms:
+
+```bash
+# macOS only (both Intel x64 and Apple Silicon ARM64)
+npm run --prefix src/cli build:mac
+
+# Linux only (both x64 and ARM64)
+npm run --prefix src/cli build:linux
+
+# Windows only (x64)
+npm run --prefix src/cli build:win
+
+# All platforms in parallel
+npm run --prefix src/cli build:all
+```
+
+Built binaries are placed in `src/cli/dist/` with platform-specific naming:
+- macOS: `filemoverexpress-darwin-amd64`, `filemoverexpress-darwin-arm64`
+- Linux: `filemoverexpress-linux-amd64`, `filemoverexpress-linux-arm64`
+- Windows: `filemoverexpress-windows-amd64.exe`
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch following the naming convention: `type/description`
+3. Make changes and ensure all tests pass
+4. Follow the guidelines in [CONTRIBUTING.md](CONTRIBUTING.md)
+5. Submit a pull request with a clear description of changes
 
 ## Security
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+Security is a top priority for this project. Please review the [Security Policy](SECURITY.md) for information on:
+
+- Vulnerability reporting process
+- Security best practices
+- Supported versions and security updates
+
+**Important**: Do not report security vulnerabilities through public GitHub issues. Follow the responsible disclosure process outlined in the security policy.
+
+## Contributing
+
+We welcome contributions from the community. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
+
+- Code of conduct and community guidelines
+- Development process and coding standards
+- Pull request submission process
+- Testing requirements
 
 ## License
 
-This project is licensed under the Apache-2.0 License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Support
+
+File Mover Express is maintained by AWS Labs on a best-effort basis. For support and assistance:
+
+- **Documentation**: Consult the [GitHub Wiki](https://github.com/awslabs/filemoverexpress/wiki) for comprehensive guides
+- **Bug Reports**: Submit issues via [GitHub Issues](https://github.com/awslabs/filemoverexpress/issues)
+- **Feature Requests**: Use [GitHub Issues](https://github.com/awslabs/filemoverexpress/issues) with appropriate labels
+- **Questions**: Ask questions in [GitHub Discussions](https://github.com/awslabs/filemoverexpress/discussions)
+
+## Project Status
+
+- **Current Version**: 1.0.x
+- **Development Status**: Active
+- **Platform Support**: macOS (Intel x64 and Apple Silicon ARM64), Windows (x64), Linux (x64 and ARM64)
+- **AWS Region Support**: All regions where Amazon S3 is available
+
+File Mover Express accelerates media workflows by providing reliable, high-performance file transfers between local systems and Amazon S3.

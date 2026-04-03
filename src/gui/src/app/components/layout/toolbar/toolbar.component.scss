@@ -1,0 +1,17 @@
+@use "../../../../styles/variables";
+
+.mat-toolbar {
+    min-height: 100% !important;
+    height: 100% !important;
+    margin-bottom: 8px;
+    background: variables.$background-header;
+}
+
+.spacer {
+    flex: 1 1 auto;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: row;
+}

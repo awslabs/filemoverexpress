@@ -1,0 +1,137 @@
+<div class="dialog-wrapper">
+    <div mat-dialog-title class="dialog-title">
+        <h1>Job Details</h1>
+        <div class="spacer"></div>
+        <button mat-icon-button aria-label="close dialog" mat-dialog-close>
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <div class="job-details" mat-dialog-content>
+        <div class="info">
+            <div class="info-section">
+                <div [matTooltip]="jobDetails.jobName"
+                     [matTooltipDisabled]="jobDetails.jobName.length <= MAX_INFO_STRING_LENGTH"
+                     matTooltipPosition="above"
+                     class="info-field"
+                >
+                    <h5>Job Name</h5>
+                    {{ jobDetails.jobName | textEllipses : MAX_INFO_STRING_LENGTH }}
+                </div>
+                <div [matTooltip]="jobDetails.destination"
+                     [matTooltipDisabled]="jobDetails.destination.length <= MAX_INFO_STRING_LENGTH"
+                     matTooltipPosition="below"
+                     class="info-field"
+                >
+                    <h5>Destination</h5>
+                    {{ jobDetails.destination | textEllipses : MAX_INFO_STRING_LENGTH }}
+                </div>
+            </div>
+            <div class="vertical-line"></div>
+            <div class="info-section">
+                <div [matTooltip]="jobDetails.remoteConfiguration"
+                     [matTooltipDisabled]="jobDetails.remoteConfiguration.length <= MAX_INFO_STRING_LENGTH"
+                     matTooltipPosition="above"
+                     class="info-field"
+                >
+                    <h5>Remote Configuration</h5>
+                    {{ jobDetails.remoteConfiguration | textEllipses : MAX_INFO_STRING_LENGTH }}
+                </div>
+                <div>
+                    <!-- TODO: Removing source as this is not a property we're tracking -->
+                </div>
+            </div>
+        </div>
+
+        <mat-tab-group mat-stretch-tabs="false"
+                       mat-align-tabs="start"
+                       color="accent"
+                       (selectedTabChange)="onTabClick($event)"
+                       animationDuration="0ms"
+                       class="table-group-wrapper"
+        >
+            <mat-tab label="Show All ({{counts.total}})">
+                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+            </mat-tab>
+            <mat-tab label="Pending ({{counts.pending}})">
+                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+            </mat-tab>
+            <mat-tab label="Completed ({{counts.completed}})">
+                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+            </mat-tab>
+            <mat-tab label="Skipped ({{counts.skipped}})">
+                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+            </mat-tab>
+            <mat-tab label="Failed ({{counts.failed}})">
+                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+
+            </mat-tab>
+        </mat-tab-group>
+        <mat-paginator [pageSizeOptions]="[25, 50, 100]"
+                       showFirstLastButtons
+                       aria-label="Select number of tasks to display">
+        </mat-paginator>
+    </div>
+</div>
+
+<ng-template #taskTableTemplate>
+    <div class="tasks-table-wrapper">
+        <div class="inputs-section">
+            <div class="card-title" [formGroup]="filterForm">
+                <mat-form-field class="search" color="accent" appearance="outline">
+                    <mat-label>Search</mat-label>
+                    <input matInput type="text" formControlName="term">
+                </mat-form-field>
+            </div>
+        </div>
+        <div class="tasks-table-section">
+            <div class="tasks-container">
+                <table mat-table [dataSource]="dataSource">
+                    <ng-container matColumnDef="name">
+                        <th mat-header-cell *matHeaderCellDef> Name</th>
+                        <td mat-cell *matCellDef="let element; dataSource: dataSource">
+                            <!-- TODO: Disabling these icons for now
+                            <mat-icon class="icon" *ngIf="element.type">folder</mat-icon>
+                            <mat-icon *ngIf="!element.type">description</mat-icon>
+                            -->
+                            <span [matTooltip]="element.name"
+                                  [matTooltipDisabled]="element.name.length <= MAX_TABLE_STRING_LENGTH"
+                                  matTooltipPosition="right">
+                                {{ element.name | textEllipses : MAX_TABLE_STRING_LENGTH }}
+                            </span>
+                        </td>
+                    </ng-container>
+                    <ng-container matColumnDef="progress">
+                        <th mat-header-cell *matHeaderCellDef> Progress</th>
+                        <td mat-cell *matCellDef="let element; dataSource: dataSource">
+                            <div class="status-progress-bar" [ngClass]="[element.status | taskClass]">
+                                <mat-progress-bar mode="determinate" [value]="element.progress"></mat-progress-bar>
+                                <div>
+                                    {{ element.progress }}%
+                                </div>
+                            </div>
+                        </td>
+                    </ng-container>
+                    <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef> Status</th>
+                        <td mat-cell *matCellDef="let element; dataSource: dataSource">
+                            {{ element.status | taskStatus }}
+                        </td>
+                    </ng-container>
+                    <tr class="mat-row" *matNoDataRow>
+                        <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
+                            @if (!tasksLoaded) {
+                                Please wait while tasks are loading
+                            } @else {
+                                No tasks to display
+                            }
+                        </td>
+                    </tr>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let _row; columns: displayedColumns;"></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</ng-template>

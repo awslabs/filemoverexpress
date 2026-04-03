@@ -1,0 +1,29 @@
+@use "../../../../styles/variables";
+
+div {
+    padding: 12px 0;
+}
+
+section {
+    h2 {
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+
+    a {
+        font-weight: bold;
+        color: variables.$text-link;
+        cursor: pointer;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    .inline-icon {
+        display: inline-flex;
+        vertical-align: middle;
+        transform: scale(0.8);
+        cursor: pointer;
+    }
+}

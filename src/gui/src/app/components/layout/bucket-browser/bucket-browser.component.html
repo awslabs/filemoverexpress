@@ -1,0 +1,44 @@
+<div class="browser-wrapper">
+    <div class="breadcrumbs">
+        <fme-breadcrumbs [breadcrumbPath]="currentDirectory" [root]="'S3'"
+                         (navigate)="navigateToPath($event)"></fme-breadcrumbs>
+    </div>
+    <h1 class="title">S3 Bucket</h1>
+    <div class="inputs-row">
+        <fme-text-input #filterField
+                        [disabled]="connectionState !== ConnectionState.CONNECTED"
+                        class="inputs-row-form-field"
+                        label="Search"
+                        (textChange)="updateFilter($event)">
+        </fme-text-input>
+        <fme-transfer-profile-selector-dropdown class="inputs-row-form-field"></fme-transfer-profile-selector-dropdown>
+        <div class="spacer"></div>
+        <fme-bucket-report-button [disabled]="connectionState !== ConnectionState.CONNECTED"></fme-bucket-report-button>
+        <fme-button type="icon"
+                    icon="create_new_folder"
+                    [onClick]="createS3Prefix()"
+                    [disabled]="connectionState !== ConnectionState.CONNECTED"
+        ></fme-button>
+        <fme-refresh-button [disabled]="connectionState !== ConnectionState.CONNECTED"
+                            [refreshTooltipMessage]="REFRESH_BUTTON_TOOLTIP"
+                            [showRefreshNotificationBadge]="shouldManualRefresh"
+                            (refresh)="refreshFileBrowser()">
+        </fme-refresh-button>
+    </div>
+    <div class="file-browser">
+        <fme-file-browser
+                fileBrowserType="s3"
+                [fileBrowserID]="fileBrowserID"
+                [allowExternalDragOver]="selectedBookmark?.name === DEFAULT_BOOKMARK_NAME"
+                [currentDirectory]="currentDirectory"
+                [isRoot]="isRoot"
+                [filter]="filter"
+                [fileBrowserData]="fileBrowserData"
+                [contextMenuData]="fileBrowserContextMenuData"
+                (fileBrowserDrop)="dragDropUpload($event)"
+                (fileBrowserNavigate)="navigateToPath($event)"
+                (fileBrowserHasChanges)="shouldManualRefresh = $event"
+                (fileBrowserAutoRefresh)="refreshFileBrowser(true)">
+        </fme-file-browser>
+    </div>
+</div>

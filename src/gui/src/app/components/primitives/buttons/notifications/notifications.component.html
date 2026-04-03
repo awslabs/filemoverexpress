@@ -1,0 +1,5 @@
+@if ((notifications$ | async); as notifications) {
+    <button mat-icon-button (click)="showNotifications()">
+        <mat-icon>{{ notifications.length > 0 ? 'notifications_active' : 'notifications' }}</mat-icon>
+    </button>
+}

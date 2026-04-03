@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package fme.v1;
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+message CreateSupportFileRequest {}
+
+message CreateSupportFileResponse {
+    bool success = 1;
+    string filename = 2;
+    string error = 3;
+    string data = 4;
+    string output_dir = 5;
+}

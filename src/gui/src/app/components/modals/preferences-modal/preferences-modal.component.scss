@@ -1,0 +1,31 @@
+@use "../../../../styles/modal";
+
+table.prefsTable {
+    width: 100%;
+    padding: 4px 8px;
+    border-collapse: collapse;
+}
+
+td {
+    padding: 4px 8px;
+    line-height: 2.5em;
+
+    &.desc {
+        font-weight: bold;
+        width: 50%;
+        font-size: 14px;
+    }
+}
+
+.top-align {
+    vertical-align: top;
+}
+
+.with-hint {
+    display: flex;
+    flex-direction: column;
+}
+
+mat-form-field {
+    width: 100%;
+}

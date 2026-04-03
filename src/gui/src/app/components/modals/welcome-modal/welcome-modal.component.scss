@@ -1,0 +1,18 @@
+@use "../../../../styles/variables";
+
+.dialog-title {
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .spacer {
+        flex: 1 auto;
+    }
+
+    button {
+        mat-icon {
+            color: variables.$pg-blue;
+        }
+    }
+}

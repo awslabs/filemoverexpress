@@ -1,0 +1,85 @@
+<h1 mat-dialog-title>{{ transferDirection | titlecase }} Files</h1>
+<div mat-dialog-content>
+    <div class="transfer-description">
+        {{ (transferDirection | titlecase) + 'ing' }}
+        <!--    Number of folders-->
+        @if (totalObjectCounts.numFolders) {
+            <span>
+                {{ totalObjectCounts.numFolders }} {{ totalObjectCounts.numFolders > 1 ? 'folders' : 'folder' }}
+                @if (totalObjectCounts.numFiles) {
+                    <span>and</span>
+                }
+            </span>
+        }
+        <!--    Number of files-->
+        @if (totalObjectCounts.numFiles) {
+            <span>
+                {{ totalObjectCounts.numFiles }} {{ totalObjectCounts.numFiles > 1 ? 'files' : 'file' }}
+            </span>
+        }
+        <!--    Destination-->
+        @if (data.destinationPath) {
+            <span>to {{ data.destinationPath }}</span>
+        }
+    </div>
+
+    <div class="transfer-object-list-wrapper">
+        @if (displayedObjects.length > 5) {
+            <cdk-virtual-scroll-viewport itemSize="26" class="transfer-object-list-rows virtual-scroll">
+                <div *cdkVirtualFor="let item of displayedObjects">
+                    <ng-container *ngTemplateOutlet="transferObject;context:{fileBrowserObject:item}"></ng-container>
+                </div>
+            </cdk-virtual-scroll-viewport>
+        } @else {
+            <div class="transfer-object-list-rows">
+                @for (item of displayedObjects; track item) {
+                    <div>
+                        <ng-container *ngTemplateOutlet="transferObject;context:{fileBrowserObject:item}"></ng-container>
+                    </div>
+                }
+            </div>
+        }
+
+        <ng-template #transferObject let-fileBrowserObject="fileBrowserObject">
+            <div class="transfer-object">
+                <div class="transfer-object-icon-wrapper">
+                    <mat-icon fontSet="material-icons"
+                              [class.folder-icon]="fileBrowserObject.type === FileBrowserObjectType.FOLDER"
+                    >
+                        {{ fileBrowserObject | fileBrowserIcon }}
+                    </mat-icon>
+                </div>
+                <div class="transfer-object-name">
+                    {{ fileBrowserObject.name | basename }}
+                </div>
+            </div>
+        </ng-template>
+    </div>
+
+    <div class="transfer-settings">
+        <mat-form-field color="accent" appearance="outline">
+            <mat-label>Job name</mat-label>
+            <input matInput type="text" [formControl]="jobName">
+        </mat-form-field>
+
+        <div>
+            <mat-slide-toggle [formControl]="forceTransfers">
+                Force transfers
+            </mat-slide-toggle>
+
+            <mat-hint>
+                By default, File Mover Express will skip previously transferred files if they meet certain conditions. To
+                overwrite these files, enable 'Force Transfers'.
+            </mat-hint>
+        </div>
+    </div>
+</div>
+
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled"
+                [text]="transferDirection | titlecase"
+                [onClick]="transfer()"
+                [disabled]="!jobName.valid">
+    </fme-button>
+</div>

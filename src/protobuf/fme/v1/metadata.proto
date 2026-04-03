@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package fme.v1;
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+message MetadataTransferProfile {
+    string local = 1;
+    string remote = 2;
+}
+
+message MetadataEvent {
+    bool daemon_mode = 1;
+    map<string,MetadataTransferProfile> transfer_profiles = 2;
+    int32 cpu_core_count = 3;
+    string version = 4;
+    string home_path = 6;
+    string daemon_os = 7;
+    bool connection_event = 8;
+    repeated string aws_profiles = 9;
+    repeated string hot_folder_source_directories = 10;
+    map<string,bool> permissions = 11;
+}

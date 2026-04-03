@@ -1,0 +1,49 @@
+@use "../../../../styles/mixins";
+
+.browser-wrapper {
+    @include mixins.fixed-height(100%);
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-rows: auto 30px auto minmax(0, 1fr);
+    grid-gap: 10px;
+    grid-template-areas:
+        'breadcrumbs'
+        'title'
+        'inputs-row'
+        'file-browser';
+    min-width: 0;
+}
+
+.breadcrumbs {
+    grid-area: breadcrumbs;
+    min-width: 0;
+}
+
+.inputs-row {
+    grid-area: inputs-row;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.inputs-row-form-field {
+    min-width: 160px;
+    width: 30%;
+    max-width: 300px;
+}
+
+.spacer {
+    flex: 1 auto;
+}
+
+.title {
+    grid-area: title;
+    min-width: 0;
+}
+
+.file-browser {
+    grid-area: file-browser;
+    min-width: 0;
+}

@@ -1,0 +1,84 @@
+@use 'sass:color';
+@use '../../../../../styles/variables';
+
+$button-color: variables.$theme-accent-main;
+$button-hover-color: color.adjust(variables.$theme-accent-main, $lightness: 12%, $space: hsl);
+
+.mat-mdc-form-field {
+    width: 100%;
+    display: block;
+}
+
+div.form-field {
+    width: 100%;
+    display: block;
+    margin-bottom: 14px;
+    margin-top: 4px;
+}
+
+mat-expansion-panel {
+    border: 2px solid variables.$container-border;
+}
+
+form > div {
+    margin-bottom: 20px;
+}
+
+mat-form-field:not(:last-child) {
+    margin-bottom: 12px;
+}
+
+.mat-expansion-panel-header-description {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.padding {
+    padding: 10px;
+}
+
+.hftxp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    grid-template-areas: 'general txp';
+    grid-gap: 16px;
+}
+
+.hftxp-general {
+    grid-area: general;
+}
+
+.hftxp-txp {
+    grid-area: txp;
+}
+
+.hftxp-txp-list {
+    margin-bottom: 35px !important;
+
+    &:last-child {
+        margin-bottom: 0 !important;
+    }
+}
+
+.add-button {
+    float: right;
+    color: $button-color;
+
+    &:hover {
+        cursor: pointer;
+        color: $button-hover-color;
+    }
+}
+
+.error {
+    color: variables.$theme-warn-main;
+}
+
+.panel-title-icon {
+    font-size: 20px;
+}
+
+.hot-folder-form-fields-container {
+    padding-bottom: 12px;
+}

@@ -1,0 +1,12 @@
+{
+    "name": "@filemoverexpress/windows-daemon-launcher",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Windows service launcher for FileMoverExpress daemon",
+    "author": "Amazon Web Services",
+    "license": "MIT",
+    "scripts": {},
+    "devDependencies": {
+        "cross-env": "10.1.0"
+    }
+}

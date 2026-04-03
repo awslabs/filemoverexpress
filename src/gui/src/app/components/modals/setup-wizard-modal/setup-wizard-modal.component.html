@@ -1,0 +1,175 @@
+<div class="mat-dialog-wrapper">
+    <div class="heading-with-logo">
+        <img src="/assets/logo.svg" class="logo" alt="File Mover Express logo"/>
+        <h1 class="heading">{{ title }}</h1>
+    </div>
+    <mat-stepper color="accent" #wizardStepper>
+        @if (!firstLaunchComplete) {
+            <mat-step>
+                <ng-template matStepLabel>Welcome</ng-template>
+                <div class="wizard-text">
+                    <div>
+                        Welcome to File Mover Express. These steps will instruct you how to set up the required
+                        configuration settings to get started with File Mover Express.
+                    </div>
+                    <div>
+                        For more prerequisites and information, go to the
+                        <a (click)="openExternalLink(docsLinks.GETTING_STARTED_PAGE_URL)" class="link-with-icon">
+                            Getting Started page
+                            <mat-icon class="inline-icon">open_in_new</mat-icon>
+                        </a>
+                    </div>
+                </div>
+                <div class="stepper-buttons">
+                    <button mat-stroked-button class="stroked-button" (click)="onWelcomeSkip()">Skip to end</button>
+                    <button mat-raised-button color="primary" (click)="onWelcomeNext()" matStepperNext>Next</button>
+                </div>
+            </mat-step>
+        }
+        <mat-step #transferProfileStep>
+            <ng-template matStepLabel>Remote Configuration</ng-template>
+            @if (wizardStepStates.transferProfile.needHelp) {
+                <div class="wizard-text">
+                    <div>
+                        Your configuration didn't have any valid Remote Configurations.
+                        A Remote Configuration is a set of configurations that defines how files are transferred to and
+                        from a specific file directory and an AWS S3 bucket.
+                        You must have at least one Remote Configuration to use File Mover Express.
+                    </div>
+                    <div>
+                        If you skip this step, you can add a Remote Configuration later by choosing
+                        <b>{{ sectionTitles.CONFIGURATION }}</b> from the toolbar dropdown.
+                    </div>
+                </div>
+                <div class="icon-with-content">
+                    <div class="icon-column">
+                        <img src="/assets/transfer-profile-icon.svg" class="side-icon"
+                             alt="Remote Configuration icon">
+                    </div>
+                    <div class="content-column">
+                        <div class="small-heading">Create Remote Configuration</div>
+                        <fme-transfer-profile-form [tutorialMode]="true" mode="add"
+                                                   (transferProfileEdited)="updateTransferProfileForm($event)"></fme-transfer-profile-form>
+                    </div>
+                </div>
+                <div class="stepper-buttons">
+                    <button mat-stroked-button class="stroked-button" matStepperPrevious>Previous</button>
+                    <button mat-stroked-button class="stroked-button" matStepperNext (click)="onTransferProfileSkip()">
+                        Skip for now
+                    </button>
+                    <button mat-raised-button color="primary" matStepperNext (click)="onTransferProfileSubmit()"
+                            [disabled]="transferProfileForm.invalid">
+                        Next
+                    </button>
+                </div>
+            } @else {
+                <div class="wizard-text">
+                    <div>
+                        The following Remote Configurations were found in your configuration.
+                        A Remote Configuration is a set of configurations to transfer files to and from a specific file
+                        system directory and AWS S3 bucket.
+                        At least one Remote Configuration is required to use File Mover Express.
+                    </div>
+                    <div>
+                        @if (transferProfilesHaveErrors) {
+                            <span>File Mover Express detected errors in your Remote Configurations.</span>
+                        }
+                        If you want to add more Remote Configurations or edit existing Remote Configurations,
+                        you can do so later by choosing <b>{{ sectionTitles.CONFIGURATION }}</b> in the toolbar dropdown.
+                    </div>
+                </div>
+                <div class="icon-with-content">
+                    <div class="icon-column">
+                        <img src="/assets/transfer-profile-icon.svg" class="side-icon"
+                             alt="Remote Configuration icon">
+                    </div>
+                    <div class="content-column">
+                        <div class="small-heading">Remote Configurations</div>
+                        @for (txProfile of validatedTransferProfiles | keyvalue; track txProfile) {
+                            <div class="transfer-profile-list">
+                                <section>
+                                    <mat-accordion displayMode="flat">
+                                        <mat-expansion-panel togglePosition="before">
+                                            <mat-expansion-panel-header>
+                                                <mat-panel-title [ngClass]="{'error-color': txProfile.value.hasError}">
+                                                    {{ txProfile.key }}
+                                                    @if (txProfile.value.hasError) {
+                                                        <mat-icon color="warn" matTooltip="There are errors in this Remote Configuration">
+                                                            error_outline
+                                                        </mat-icon>
+                                                    }
+                                                </mat-panel-title>
+                                            </mat-expansion-panel-header>
+                                            <div class="transfer-profile-grid">
+                                                @for (field of Object.values(txProfile.value.fields); track field) {
+                                                    <div [ngClass]="field.error ? 'error-color transfer-profile-row' : 'transfer-profile-row'">
+                                                        <div class="grid-name">
+                                                            {{ field.title }}:
+                                                        </div>
+                                                        @if (field.value) {
+                                                            <div class="grid-value">
+                                                                {{ field.value }}
+                                                            </div>
+                                                        }
+                                                        @if (!field.value) {
+                                                            <div [ngClass]="field.error ? 'grid-value' : 'grid-value grid-empty'">
+                                                                <i>empty</i>
+                                                            </div>
+                                                        }
+                                                        @if (field.error) {
+                                                            <div class="grid-error">
+                                                                <i>{{ field.error }}</i>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        </mat-expansion-panel>
+                                    </mat-accordion>
+                                </section>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="stepper-buttons">
+                    <button mat-stroked-button class="stroked-button" matStepperPrevious>Previous</button>
+                    <button mat-raised-button color="primary" matStepperNext>Next</button>
+                </div>
+            }
+        </mat-step>
+
+        <mat-step>
+            <ng-template matStepLabel>Done</ng-template>
+            <div class="wizard-text">
+                <div>
+                    {{ doneText() }}
+                    To edit any of your settings, choose <b>{{ sectionTitles.CONFIGURATION }}</b> in the toolbar dropdown.
+                </div>
+
+                <div>
+                    For additional help and information, visit the
+                    <a (click)="openExternalLink(docsLinks.USER_GUIDE_PAGE_URL)" class="link-with-icon">
+                        File Mover Express User Guide
+                        <mat-icon class="inline-icon">open_in_new</mat-icon>
+                    </a>
+                </div>
+            </div>
+            <div class="wizard-text">
+                <div class="preferences-checkbox">
+                    <mat-checkbox [(ngModel)]="stopShowingWizard"></mat-checkbox>
+                    Don't show me again
+                    <div class="hint-text">
+                        If checked, this window won’t appear anymore if File Mover Express detects that you’re missing
+                        required settings when a session is connected.
+                        You can change this setting at any time by choosing <b>{{ sectionTitles.PREFERENCES }}</b> in
+                        the toolbar dropdown.
+                    </div>
+                </div>
+            </div>
+            <div class="stepper-buttons">
+                <button mat-stroked-button class="stroked-button" (click)="onFinalStepPrevious()">Previous</button>
+                <button mat-raised-button color="primary" (click)="completeSetup()">Done</button>
+            </div>
+        </mat-step>
+    </mat-stepper>
+</div>

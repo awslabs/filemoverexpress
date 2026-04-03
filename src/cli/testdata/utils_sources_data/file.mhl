@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hashlist version="1.0">
+    <creatorinfo>
+        <name>John Doe</name>
+        <username>jdoe</username>
+        <hostname>jdoes computer</hostname>
+        <startdate>2020-06-09T11:41:12.949659</startdate>
+        <finishdate>2020-06-09T11:41:12.949670</finishdate>
+    </creatorinfo>
+    <hash>
+        <file>file1</file>
+        <md5>9b0dd74a941c716cfc7c8a76e25da9ef</md5>
+        <size>81653</size>
+        <lastmodificationdate>2020-04-29T15:58:44.499984</lastmodificationdate>
+        <hashdate>2020-06-09T11:41:12.951457</hashdate>
+    </hash>
+</hashlist>

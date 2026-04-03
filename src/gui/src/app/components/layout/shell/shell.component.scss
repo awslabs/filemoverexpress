@@ -1,0 +1,42 @@
+@use "../../../../styles/mixins";
+
+$nav-height: 48px;
+$min-main-height: 730px;
+$footer-height: 20px;
+
+.app-wrapper {
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-rows: $nav-height minmax($min-main-height, 1fr) $footer-height;
+    grid-gap: 0;
+    grid-template-areas:
+        'nav'
+        'main'
+        'footer';
+}
+
+.nav {
+    grid-area: nav;
+    max-width: 100%;
+    width: 100%;
+    min-width: 0;
+}
+
+.main {
+    grid-area: main;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 10px 15px;
+}
+
+.footer {
+    grid-area: footer;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+}

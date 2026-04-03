@@ -1,0 +1,24 @@
+@use "../../../../styles/mixins";
+
+.main-wrapper {
+    @include mixins.fixed-height(100%);
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+    display: grid;
+    grid-template-rows: minmax(400px, 1fr) minmax(300px, 40%);
+    grid-gap: 16px;
+    grid-template-areas:
+        'file-browser-section'
+        'table-group-section';
+}
+
+.file-browser-section {
+    grid-area: file-browser-section;
+    min-width: 0;
+}
+
+.table-group-section {
+    grid-area: table-group-section;
+    min-width: 0;
+}

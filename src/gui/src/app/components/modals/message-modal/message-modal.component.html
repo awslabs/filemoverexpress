@@ -1,0 +1,12 @@
+<div>
+    <h1 mat-dialog-title>{{ config.title }}</h1>
+</div>
+<div mat-dialog-content>
+    <div class="modal-text" [innerHTML]="config.message"></div>
+</div>
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="filled"
+                [text]="config.buttonText"
+                [onClick]="close">
+    </fme-button>
+</div>

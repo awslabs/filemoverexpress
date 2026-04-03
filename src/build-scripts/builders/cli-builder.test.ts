@@ -1,0 +1,1093 @@
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {cleanupMocks} from '../test-utils';
+import {BuildOptions} from '../types/build-target';
+import {CLIBuildConfig} from '../types/config';
+import {Architecture, Platform} from '../types/platform';
+import {CLIBuilder} from './cli-builder';
+
+// Mock dependencies
+vi.mock('node:fs', () => ({
+    default: {
+        existsSync: vi.fn(),
+    },
+    existsSync: vi.fn(),
+}));
+
+vi.mock('../utils/command-runner', () => ({
+    CommandRunner: {
+        run: vi.fn(),
+    },
+}));
+
+vi.mock('../utils/logger', () => ({
+    Logger: {
+        debug: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        success: vi.fn(),
+    },
+}));
+
+vi.mock('../utils/path-resolver', () => ({
+    PathResolver: {
+        getProjectRoot: vi.fn(() => '/mock/project/root'),
+        getCLIDir: vi.fn(() => '/mock/project/root/src/cli'),
+    },
+}));
+
+describe('CLIBuilder', () => {
+    let mockConfig: CLIBuildConfig;
+
+    beforeEach(async () => {
+        // Reset all mocks before each test
+        const fs = await import('node:fs');
+        const {CommandRunner} = await import('../utils/command-runner');
+        const {Logger} = await import('../utils/logger');
+
+        vi.mocked(fs.existsSync).mockReset();
+        vi.mocked(CommandRunner.run).mockReset();
+        vi.mocked(Logger.debug).mockReset();
+        vi.mocked(Logger.error).mockReset();
+        vi.mocked(Logger.warn).mockReset();
+        vi.mocked(Logger.success).mockReset();
+
+        // Default mock config
+        mockConfig = {
+            outputDir: 'dist/cli',
+            sourceDir: 'src/cli',
+            goVersion: '1.21',
+            buildFlags: ['-trimpath'],
+            ldFlags: ['-s', '-w'],
+            platforms: [
+                {platform: Platform.Darwin, arch: Architecture.X64},
+                {platform: Platform.Linux, arch: Architecture.X64},
+                {platform: Platform.Windows, arch: Architecture.X64},
+            ],
+        };
+    });
+
+    afterEach(() => {
+        cleanupMocks();
+    });
+
+    describe('build', () => {
+        describe('successful builds', () => {
+            it('should build for all configured platforms when no options provided', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+                const options: BuildOptions = {};
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: 'Build successful',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(3); // 3 platforms
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining(['build']),
+                    expect.objectContaining({
+                        cwd: '/mock/project/root/src/cli',
+                        env: expect.objectContaining({
+                            GOOS: Platform.Darwin,
+                            GOARCH: 'amd64',
+                            CGO_ENABLED: '0',
+                        }),
+                    }),
+                );
+            });
+
+            it('should use provided configuration for build flags', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const customConfig = {
+                    ...mockConfig,
+                    buildFlags: ['-trimpath', '-race'],
+                    ldFlags: ['-s', '-w', '-X main.version=1.0.0'],
+                };
+                const builder = new CLIBuilder(customConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining(['-trimpath', '-race']),
+                    expect.any(Object),
+                );
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining(['-ldflags', expect.stringContaining('-s -w -X main.version=1.0.0')]),
+                    expect.any(Object),
+                );
+            });
+
+            it('should create artifacts in correct output directory', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining([
+                        '-o',
+                        expect.stringContaining('dist/cli'),
+                    ]),
+                    expect.any(Object),
+                );
+            });
+
+            it('should set verbose mode from build options', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({verbose: true});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        verbose: true,
+                    }),
+                );
+            });
+
+            it('should generate correct output filenames for each platform', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining([expect.stringContaining('filemoverexpress-darwin')]),
+                    expect.any(Object),
+                );
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining([expect.stringContaining('filemoverexpress-linux')]),
+                    expect.any(Object),
+                );
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining([expect.stringContaining('filemoverexpress.exe')]),
+                    expect.any(Object),
+                );
+            });
+
+            it('should generate correct output filename for ARM64 architecture', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const arm64Config = {
+                    ...mockConfig,
+                    platforms: [
+                        {platform: Platform.Darwin, arch: Architecture.ARM64},
+                    ],
+                };
+                const builder = new CLIBuilder(arm64Config);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining([expect.stringContaining('filemoverexpress-darwin-arm64')]),
+                    expect.any(Object),
+                );
+            });
+        });
+
+        describe('platform filtering', () => {
+            it('should filter platforms based on BuildOptions.platforms', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+                const options: BuildOptions = {
+                    platforms: [Platform.Linux],
+                };
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(1);
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        env: expect.objectContaining({
+                            GOOS: Platform.Linux,
+                        }),
+                    }),
+                );
+            });
+
+            it('should filter platforms for multiple specified platforms', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+                const options: BuildOptions = {
+                    platforms: [Platform.Darwin, Platform.Windows],
+                };
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(2);
+                const calls = vi.mocked(CommandRunner.run).mock.calls;
+                const platforms = calls.map(call => call[2]?.env?.GOOS);
+                expect(platforms).toContain(Platform.Darwin);
+                expect(platforms).toContain(Platform.Windows);
+                expect(platforms).not.toContain(Platform.Linux);
+            });
+
+            it('should warn and return early when no platforms match filter', async () => {
+                // Arrange
+                const {Logger} = await import('../utils/logger');
+
+                const singlePlatformConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Darwin, arch: Architecture.X64}],
+                };
+                const builder = new CLIBuilder(singlePlatformConfig);
+                const options: BuildOptions = {
+                    platforms: [Platform.Linux], // Not in config
+                };
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(Logger.warn).toHaveBeenCalledWith('No platforms to build');
+            });
+        });
+
+        describe('architecture filtering', () => {
+            it('should filter architectures based on BuildOptions.archs', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const multiArchConfig = {
+                    ...mockConfig,
+                    platforms: [
+                        {platform: Platform.Darwin, arch: Architecture.X64},
+                        {platform: Platform.Darwin, arch: Architecture.ARM64},
+                    ],
+                };
+                const builder = new CLIBuilder(multiArchConfig);
+                const options: BuildOptions = {
+                    archs: [Architecture.ARM64],
+                };
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(1);
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        env: expect.objectContaining({
+                            GOARCH: 'arm64',
+                        }),
+                    }),
+                );
+            });
+
+            it('should filter for multiple architectures', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const multiArchConfig = {
+                    ...mockConfig,
+                    platforms: [
+                        {platform: Platform.Linux, arch: Architecture.X64},
+                        {platform: Platform.Linux, arch: Architecture.ARM64},
+                    ],
+                };
+                const builder = new CLIBuilder(multiArchConfig);
+                const options: BuildOptions = {
+                    archs: [Architecture.X64, Architecture.ARM64],
+                };
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(2);
+            });
+
+            it('should combine platform and architecture filters', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const multiConfig = {
+                    ...mockConfig,
+                    platforms: [
+                        {platform: Platform.Darwin, arch: Architecture.X64},
+                        {platform: Platform.Darwin, arch: Architecture.ARM64},
+                        {platform: Platform.Linux, arch: Architecture.X64},
+                        {platform: Platform.Linux, arch: Architecture.ARM64},
+                    ],
+                };
+                const builder = new CLIBuilder(multiConfig);
+                const options: BuildOptions = {
+                    platforms: [Platform.Darwin],
+                    archs: [Architecture.ARM64],
+                };
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build(options);
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(1);
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        env: expect.objectContaining({
+                            GOOS: Platform.Darwin,
+                            GOARCH: 'arm64',
+                        }),
+                    }),
+                );
+            });
+
+            it('should map x64 architecture to amd64 for Go', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        env: expect.objectContaining({
+                            GOARCH: 'amd64',
+                        }),
+                    }),
+                );
+            });
+
+            it('should map arm64 architecture correctly for Go', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const arm64Config = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Linux, arch: Architecture.ARM64}],
+                };
+                const builder = new CLIBuilder(arm64Config);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        env: expect.objectContaining({
+                            GOARCH: 'arm64',
+                        }),
+                    }),
+                );
+            });
+        });
+
+        describe('Windows daemon launcher build', () => {
+            it('should build Windows daemon launcher when building for Windows', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(2); // Main build + launcher
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining([expect.stringContaining('filemoverexpress-launcher.exe')]),
+                    expect.objectContaining({
+                        cwd: expect.stringContaining('launcher'),
+                    }),
+                );
+            });
+
+            it('should skip Windows daemon launcher when path not configured', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+                const {Logger} = await import('../utils/logger');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    // No windowsDaemonLauncherPath
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(1); // Only main build
+                expect(Logger.warn).toHaveBeenCalledWith(
+                    'Windows daemon launcher path not configured, skipping',
+                );
+            });
+
+            it('should skip Windows daemon launcher when directory does not exist', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+                const {Logger} = await import('../utils/logger');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                // First call for main build artifact check, second for launcher dir check
+                vi.mocked(fs.existsSync)
+                    .mockReturnValueOnce(true)  // Main build artifact exists
+                    .mockReturnValueOnce(false); // Launcher dir doesn't exist
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(1); // Only main build
+                expect(Logger.warn).toHaveBeenCalledWith(
+                    expect.stringContaining('Windows daemon launcher directory not found'),
+                );
+            });
+
+            it('should not build Windows daemon launcher for non-Windows platforms', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const nonWindowsConfig = {
+                    ...mockConfig,
+                    platforms: [
+                        {platform: Platform.Darwin, arch: Architecture.X64},
+                        {platform: Platform.Linux, arch: Architecture.X64},
+                    ],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(nonWindowsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledTimes(2); // Only main builds, no launcher
+                const calls = vi.mocked(CommandRunner.run).mock.calls;
+                const hasLauncherCall = calls.some(call =>
+                    call[1].some(arg => typeof arg === 'string' && arg.includes('launcher')),
+                );
+                expect(hasLauncherCall).toBe(false);
+            });
+
+            it('should use correct environment variables for Windows daemon launcher', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                const launcherCall = vi.mocked(CommandRunner.run).mock.calls.find(call =>
+                    call[2]?.cwd?.includes('launcher'),
+                );
+                expect(launcherCall).toBeDefined();
+                expect(launcherCall![2]).toMatchObject({
+                    env: {
+                        GOOS: Platform.Windows,
+                        GOARCH: 'amd64',
+                        CGO_ENABLED: '0',
+                    },
+                });
+            });
+        });
+
+        describe('build failures', () => {
+            it('should throw error when build command returns non-zero exit code', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 1,
+                    stdout: '',
+                    stderr: 'compilation error: undefined reference',
+                });
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow(
+                    'Go build failed with exit code 1',
+                );
+            });
+
+            it('should include stderr in error message when build fails', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 2,
+                    stdout: '',
+                    stderr: 'fatal error: cannot find package',
+                });
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow(
+                    'fatal error: cannot find package',
+                );
+            });
+
+            it('should include command in error message when build fails', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 1,
+                    stdout: '',
+                    stderr: 'build error',
+                });
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow(/Command: go/);
+            });
+
+            it('should log error message when build fails', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+                const {Logger} = await import('../utils/logger');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 1,
+                    stdout: '',
+                    stderr: 'error',
+                });
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow();
+                expect(Logger.error).toHaveBeenCalledWith(
+                    expect.stringContaining('Build failed'),
+                );
+            });
+
+            it('should throw error when build artifact is not created', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(false); // Artifact not found
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow(
+                    'Build artifact not found at expected path',
+                );
+            });
+
+            it('should throw error when Windows daemon launcher build fails', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                // Main build succeeds, launcher build fails
+                vi.mocked(CommandRunner.run)
+                    .mockResolvedValueOnce({
+                        exitCode: 0,
+                        stdout: '',
+                        stderr: '',
+                    })
+                    .mockResolvedValueOnce({
+                        exitCode: 1,
+                        stdout: '',
+                        stderr: 'launcher build error',
+                    });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow(
+                    'Go build failed with exit code 1',
+                );
+            });
+
+            it('should log error when Windows daemon launcher build fails', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+                const {Logger} = await import('../utils/logger');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                vi.mocked(CommandRunner.run)
+                    .mockResolvedValueOnce({
+                        exitCode: 0,
+                        stdout: '',
+                        stderr: '',
+                    })
+                    .mockResolvedValueOnce({
+                        exitCode: 1,
+                        stdout: '',
+                        stderr: 'error',
+                    });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow();
+                expect(Logger.error).toHaveBeenCalledWith(
+                    'Windows daemon launcher build failed',
+                );
+            });
+
+            it('should throw error when Windows daemon launcher artifact not found', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const windowsConfig = {
+                    ...mockConfig,
+                    platforms: [{platform: Platform.Windows, arch: Architecture.X64}],
+                    windowsDaemonLauncherPath: 'src/cli/launcher',
+                };
+                const builder = new CLIBuilder(windowsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                // Main artifact exists, launcher dir exists, but launcher artifact doesn't
+                vi.mocked(fs.existsSync)
+                    .mockReturnValueOnce(true)  // Main artifact
+                    .mockReturnValueOnce(true)  // Launcher dir
+                    .mockReturnValueOnce(false); // Launcher artifact
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow(
+                    'Build artifact not found at expected path',
+                );
+            });
+
+            it('should stop building remaining platforms when one fails', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig); // 3 platforms
+
+                // First build succeeds (with artifact check), second fails
+                vi.mocked(CommandRunner.run)
+                    .mockResolvedValueOnce({
+                        exitCode: 0,
+                        stdout: '',
+                        stderr: '',
+                    })
+                    .mockResolvedValueOnce({
+                        exitCode: 1,
+                        stdout: '',
+                        stderr: 'error',
+                    });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow();
+                // Should only be called twice (first success, second failure)
+                expect(CommandRunner.run).toHaveBeenCalledTimes(2);
+            });
+
+            it('should handle promise rejection in build operations', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockRejectedValue(new Error('Command execution failed'));
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow('Command execution failed');
+            });
+
+            it('should handle EACCES permission errors during build', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                const eaccesError: any = new Error('Permission denied');
+                eaccesError.code = 'EACCES';
+                vi.mocked(CommandRunner.run).mockRejectedValue(eaccesError);
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow('Permission denied');
+            });
+
+            it('should handle ENOENT missing file errors during build', async () => {
+                // Arrange
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                const enoentError: any = new Error('File not found');
+                enoentError.code = 'ENOENT';
+                vi.mocked(CommandRunner.run).mockRejectedValue(enoentError);
+
+                // Act & Assert
+                await expect(builder.build({})).rejects.toThrow('File not found');
+            });
+        });
+
+        describe('edge cases', () => {
+            it('should handle empty build flags array', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const noBuildFlagsConfig = {
+                    ...mockConfig,
+                    buildFlags: [],
+                };
+                const builder = new CLIBuilder(noBuildFlagsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.arrayContaining(['build']),
+                    expect.any(Object),
+                );
+            });
+
+            it('should handle empty ldFlags array', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const noLdFlagsConfig = {
+                    ...mockConfig,
+                    ldFlags: [],
+                };
+                const builder = new CLIBuilder(noLdFlagsConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                const call = vi.mocked(CommandRunner.run).mock.calls[0];
+                const args = call[1];
+                expect(args).not.toContain('-ldflags');
+            });
+
+            it('should handle verbose: false option', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({verbose: false});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        verbose: false,
+                    }),
+                );
+            });
+
+            it('should handle undefined verbose option', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                expect(CommandRunner.run).toHaveBeenCalledWith(
+                    'go',
+                    expect.any(Array),
+                    expect.objectContaining({
+                        verbose: false,
+                    }),
+                );
+            });
+        });
+    });
+
+    describe('cleanupPaths', () => {
+        it('should return correct cleanup paths', () => {
+            // Arrange
+            const builder = new CLIBuilder(mockConfig);
+
+            // Act
+            const paths = builder.cleanupPaths;
+
+            // Assert
+            expect(paths).toEqual(['/mock/project/root/src/cli/dist/cli']);
+        });
+
+        it('should use config outputDir in cleanup paths', () => {
+            // Arrange
+            const customConfig = {
+                ...mockConfig,
+                outputDir: 'custom/output',
+            };
+            const builder = new CLIBuilder(customConfig);
+
+            // Act
+            const paths = builder.cleanupPaths;
+
+            // Assert
+            expect(paths).toEqual(['/mock/project/root/src/cli/custom/output']);
+        });
+    });
+});

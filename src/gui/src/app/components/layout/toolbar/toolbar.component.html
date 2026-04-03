@@ -1,0 +1,15 @@
+<mat-toolbar>
+    <span class="spacer"></span>
+    <div class="buttons">
+        <fme-version-update></fme-version-update>
+        <button mat-icon-button (click)="openWelcomeModal()">
+            <mat-icon>info</mat-icon>
+        </button>
+        <fme-notifications></fme-notifications>
+        <fme-toolbar-dropdown
+                [connected]="connected"
+                [allowUiConfiguration]="allowUiConfiguration"
+                [version]="version"
+        ></fme-toolbar-dropdown>
+    </div>
+</mat-toolbar>

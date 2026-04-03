@@ -1,0 +1,250 @@
+@use "sass:color";
+
+@use "@angular/material" as mat;
+@use "mixins";
+@use "variables";
+@use "fonts";
+@use "material-icons";
+
+// region Font Config
+$fontConfig: (
+        display-4: mat.m2-define-typography-level(112px, 112px, 300, fonts.$font-family, -0.0134em),
+        display-3: mat.m2-define-typography-level(56px, 56px, 400, fonts.$font-family, -0.0089em),
+        display-2: mat.m2-define-typography-level(45px, 48px, 400, fonts.$font-family, 0.0000em),
+        display-1: mat.m2-define-typography-level(34px, 40px, 400, fonts.$font-family, 0.0074em),
+        headline: mat.m2-define-typography-level(24px, 30px, 900, fonts.$font-family-heavy, 0.0000em),
+        title: mat.m2-define-typography-level(20px, 24px, 900, fonts.$font-family-heavy, 0.0075em),
+        subheading-2: mat.m2-define-typography-level(18px, 22px, 900, fonts.$font-family-heavy, 0.0094em),
+        subheading-1: mat.m2-define-typography-level(16px, 20px, 500, fonts.$font-family, 0.0067em),
+        body-2: mat.m2-define-typography-level(14px, 24px, 500, fonts.$font-family, 0.0179em),
+        body-1: mat.m2-define-typography-level(14px, 20px, 400, fonts.$font-family, 0.0179em),
+        caption: mat.m2-define-typography-level(12px, 20px, 400, fonts.$font-family, 0.0333em),
+        button: mat.m2-define-typography-level(14px, 14px, 500, fonts.$font-family, 0.0893em),
+        input: mat.m2-define-typography-level(inherit, 1.125, 400, fonts.$font-family, normal)
+);
+
+@include mat.all-component-typographies($fontConfig);
+@include mat.elevation-classes();
+@include mat.app-background();
+// endregion
+
+// region Foreground Elements
+$mat-theme-foreground: (
+        base: variables.$theme-primary-text,
+        divider: variables.$theme-dividers,
+        dividers: variables.$theme-dividers,
+        disabled: variables.$theme-disabled-text,
+        disabled-button: rgba(variables.$theme-text, 0.26),
+        disabled-text: variables.$theme-disabled-text,
+        elevation: black,
+        secondary-text: variables.$theme-accent-text,
+        hint-text: variables.$theme-hint-text,
+        accent-text: variables.$theme-accent-text,
+        icon: variables.$theme-accent-text,
+        icons: variables.$theme-accent-text,
+        text: variables.$theme-primary-text,
+        slider-min: variables.$theme-primary-text,
+        slider-off: rgba(variables.$theme-text, 0.26),
+        slider-off-active: variables.$theme-disabled-text,
+        color: variables.$white,
+);
+// endregion
+
+// region Background config
+$mat-theme-background: (
+        background: variables.$theme-background,
+        status-bar: variables.$theme-bg-darker-20,
+        app-bar: variables.$theme-bg-bar,
+        hover: variables.$theme-bg-alpha-4,
+        card: variables.$theme-background,
+        dialog: variables.$theme-background,
+        tooltip: variables.$theme-bg-tooltip,
+        disabled-button: variables.$theme-bg-alpha-12,
+        raised-button: variables.$theme-bg-lighter-5,
+        focused-button: variables.$theme-focused,
+        selected-button: variables.$theme-bg-darker-20,
+        selected-disabled-button: variables.$theme-bg-darker-30,
+        disabled-button-toggle: variables.$theme-bg-darker-10,
+        unselected-chip: variables.$theme-bg-darker-10,
+        disabled-list-option: variables.$theme-bg-darker-10,
+);
+// endregion
+
+// region Themes
+// Primary Theme
+$theme-primary-config: (
+        main: variables.$theme-primary-main,
+        lighter: variables.$theme-primary-lighter,
+        darker: variables.$theme-primary-darker,
+        50: variables.$theme-primary-50,
+        100: variables.$theme-primary-100,
+        200: variables.$theme-primary-200,
+        300: variables.$theme-primary-300,
+        400: variables.$theme-primary-400,
+        500: variables.$theme-primary-500,
+        600: variables.$theme-primary-600,
+        700: variables.$theme-primary-700,
+        800: variables.$theme-primary-800,
+        900: variables.$theme-primary-900,
+        contrast : (
+                main: variables.$theme-primary-text,
+                lighter: variables.$theme-primary-text,
+                darker: variables.$theme-primary-text,
+        )
+);
+$theme-primary: mat.m2-define-palette($theme-primary-config, main, lighter, darker);
+
+$theme-accent-config: (
+        main: variables.$theme-accent-main,
+        lighter: variables.$theme-accent-lighter,
+        darker: variables.$theme-accent-darker,
+        50: variables.$theme-accent-50,
+        100: variables.$theme-accent-100,
+        200: variables.$theme-accent-200,
+        300: variables.$theme-accent-300,
+        400: variables.$theme-accent-400,
+        500: variables.$theme-accent-500,
+        600: variables.$theme-accent-600,
+        700: variables.$theme-accent-700,
+        800: variables.$theme-accent-800,
+        900: variables.$theme-accent-900,
+        contrast : (
+                main: variables.$theme-accent-text,
+                lighter: variables.$theme-accent-text,
+                darker: variables.$theme-accent-text,
+        )
+);
+$theme-accent: mat.m2-define-palette($theme-accent-config);
+
+$theme-warn-config: (
+        main: variables.$theme-warn-main,
+        lighter: variables.$theme-warn-lighter,
+        darker: variables.$theme-warn-darker,
+        50: variables.$theme-warn-50,
+        100: variables.$theme-warn-100,
+        200: variables.$theme-warn-200,
+        300: variables.$theme-warn-300,
+        400: variables.$theme-warn-400,
+        500: variables.$theme-warn-500,
+        600: variables.$theme-warn-600,
+        700: variables.$theme-warn-700,
+        800: variables.$theme-warn-800,
+        900: variables.$theme-warn-900,
+        contrast : (
+                main: variables.$theme-primary-text,
+                lighter: variables.$theme-primary-text,
+                darker: variables.$theme-primary-text,
+        )
+);
+$theme-warn: mat.m2-define-palette($theme-warn-config, main, lighter, darker);
+// endregion
+
+$theme: mixins.define-fme-dark-theme(
+        (
+                color: (
+                        primary: $theme-primary,
+                        accent: $theme-accent,
+                        warn: $theme-warn,
+                ),
+                typography: $fontConfig,
+                is-dark: true,
+                density: 0,
+        ),
+        $mat-theme-foreground,
+        $mat-theme-background
+);
+
+@include mat.all-component-themes($theme);
+// mat expansion panel overrides
+@include mat.expansion-overrides((
+        container-background-color: variables.$theme-background,
+        header-indicator-color: variables.$text-expandable-section-header,
+));
+// mat tooltip overrides
+@include mat.tooltip-overrides((
+        container-color: variables.$theme-bg-tooltip,
+        supporting-text-color: variables.$theme-primary-text,
+));
+// mat dialog overrides
+@include mat.dialog-overrides((
+        container-color: variables.$theme-background,
+));
+// mat bottom sheet overrides
+@include mat.bottom-sheet-overrides((
+        container-background-color: variables.$theme-background,
+));
+// mat paginator overrides
+@include mat.paginator-overrides((
+        container-background-color: variables.$theme-background,
+));
+
+// Theme Init
+body {
+
+    --primary-color: #{variables.$theme-primary-main};
+    --primary-lighter-color: #{variables.$theme-primary-lighter};
+    --primary-darker-color: #{variables.$theme-primary-darker};
+    --text-primary-color: #{variables.$theme-primary-text};
+    --text-primary-lighter-color: #{variables.$theme-primary-text};
+    --text-primary-darker-color: #{variables.$theme-primary-text};
+    --accent-color: #{variables.$theme-primary-main};
+    --accent-lighter-color: #{variables.$theme-accent-lighter};
+    --accent-darker-color: #ff7c00;
+    --text-accent-color: #{variables.$theme-accent-text};
+    --text-accent-lighter-color: #{variables.$theme-accent-text};
+    --text-accent-darker-color: #{variables.$theme-accent-text};
+    --warn-color: #ff4f00;
+    --warn-lighter-color: #ffcab3;
+    --warn-darker-color: #ff3600;
+    --text-warn-color: #{variables.$theme-primary-text};
+    --text-warn-lighter-color: #{variables.$theme-primary-text};
+    --text-warn-darker-color: #{variables.$theme-primary-text};
+
+    input, select {
+        &.mat-focused {
+            color: variables.$theme-accent-main;
+        }
+    }
+}
+
+a {
+    color: variables.$text-link;
+}
+
+.mat-mdc-progress-bar {
+    $pg-background: color.adjust(whitesmoke, $lightness: -10%, $space: hsl);
+    $pg-buffer-animation: color.adjust(mat.m2-get-color-from-palette($theme-primary, 200), $alpha: -.75);
+    $pg-bar-color: mat.m2-get-color-from-palette($theme-primary, 400);
+
+    // Unfilled part of the progress bar
+    .mdc-linear-progress__buffer-bar {
+        background-color: $pg-background !important;
+    }
+
+    // Unfilled part with crawling animation for buffering (in progress transfers) mode
+    .mdc-linear-progress__buffer-dots {
+        fill: $pg-buffer-animation;
+        background: $pg-background !important;
+    }
+
+    // Main filled part of the progress bar
+    .mat-progress-bar-primary::after {
+        background-color: $pg-bar-color;
+    }
+}
+
+mat-form-field {
+    @include mat.form-field-density(-4);
+}
+
+.progress .mat-mdc-progress-bar {
+    .mdc-linear-progress__buffer-bar {
+        background-color: variables.$green-500 !important;
+    }
+}
+
+.failed .mat-mdc-progress-bar {
+    .mdc-linear-progress__buffer-bar {
+        background-color: #d91515 !important;
+    }
+}

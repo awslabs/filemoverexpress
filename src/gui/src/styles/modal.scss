@@ -1,0 +1,75 @@
+@use './variables' as variables;
+@use './fonts' as fonts;
+
+$icon-size: 18px;
+$list-row-height: 26px;
+
+// apply to text blocks in modals
+.modal-text {
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: variables.$text;
+}
+
+// apply to container holding mat-dialog-actions buttons
+.modal-buttons {
+    padding-top: 12px;
+
+    :not(:last-child) {
+        margin-right: 12px;
+    }
+}
+
+// apply to non inline block display string that is a file/folder path
+.path-string {
+    font-family: fonts.$monospace-font-family;
+    color: variables.$grey-450;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+// apply to container with warning icon and text
+.warning-message {
+    display: grid;
+    grid-gap: 5px;
+    grid-template-columns: $icon-size 1fr;
+    line-height: $icon-size;
+    width: 100%;
+    box-sizing: border-box;
+    background: variables.$yellow-900;
+    border: variables.$yellow-700 1px solid;
+    border-radius: 6px;
+    color: variables.$text;
+    padding: 10px;
+    margin-bottom: 16px;
+
+    .warning-message-icon-wrapper {
+        width: $icon-size;
+        position: relative;
+
+        mat-icon {
+            font-size: $icon-size;
+            height: $icon-size;
+            width: $icon-size;
+            position: absolute;
+            display: inline-block;
+        }
+    }
+
+    .warning-message-text {
+        font-style: italic;
+    }
+}
+
+a {
+    font-weight: 500;
+    font-family: fonts.$font-family-heavy;
+    font-style: normal;
+    color: variables.$text-link;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

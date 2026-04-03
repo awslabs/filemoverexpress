@@ -1,0 +1,86 @@
+<header mat-dialog-title class="dialog-title">
+    <h1>{{ mode | titlecase }} Daemon</h1>
+    <div class="spacer"></div>
+    <a (click)="toggleHint($event, 'daemon-editor-modal')">Info</a>
+</header>
+<div mat-dialog-content>
+    @if (mode === 'add') {
+        <div class="modal-text">
+            The remote daemon feature enables you to control file transfers to or from S3 on a remote computer.
+        </div>
+    }
+
+    <form [formGroup]="bookmarkForm">
+        <div class="bookmark-form">
+            <mat-form-field color="accent">
+                <mat-label>
+                    Name
+                </mat-label>
+                <input matInput type="text" formControlName="name">
+                @if (bookmarkForm.get('name')?.hasError('required')) {
+                    <mat-error>
+                        {{ bookmarkFormMessages.name.required }}
+                    </mat-error>
+                }
+            </mat-form-field>
+            <mat-form-field color="accent">
+                <mat-label>
+                    Host
+                </mat-label>
+                <input matInput type="text" formControlName="host">
+                @if (bookmarkForm.get('host')?.hasError('required')) {
+                    <mat-error>
+                        {{ bookmarkFormMessages.host.required }}
+                    </mat-error>
+                }
+            </mat-form-field>
+            <mat-form-field color="accent">
+                <mat-label>
+                    Port number
+                </mat-label>
+                <input matInput type="number" formControlName="port">
+                @if (bookmarkForm.get('port')?.hasError('required')) {
+                    <mat-error>
+                        {{ bookmarkFormMessages.portNumber.required }}
+                    </mat-error>
+                }
+            </mat-form-field>
+            <mat-form-field color="accent">
+                <mat-label>
+                    Key
+                </mat-label>
+                <input matInput type="string" formControlName="pre_shared_key">
+                @if (bookmarkForm.get('pre_shared_key')?.hasError('required')) {
+                    <mat-error>
+                        {{ bookmarkFormMessages.preSharedKey.required }}
+                    </mat-error>
+                }
+            </mat-form-field>
+        </div>
+        <div class="form-field">
+            <mat-slide-toggle formControlName="encryption">
+                Use encryption (TLS)
+            </mat-slide-toggle>
+            @if (this.bookmarkForm.controls['encryption'].disabled) {
+                <div class="slide-toggle-label">
+                    {{ bookmarkFormMessages.encryption.hint }}
+                </div>
+            }
+        </div>
+    </form>
+    @if (remote) {
+        <p>
+            See
+            <a (click)="openExternalLink($event,'https://docs.aws.amazon.com/nimble-studio/latest/filetransfer-guide/remote-daemon.html')"
+               class="link-with-icon">
+                documentation
+                <mat-icon class="inline-icon">open_in_new</mat-icon>
+            </a> for more details.
+        </p>
+    }
+</div>
+
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Close" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled" text="Save" [disabled]="bookmarkForm.invalid" [onClick]="save()"></fme-button>
+</div>

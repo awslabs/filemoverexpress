@@ -1,0 +1,143 @@
+import { Component, inject, OnDestroy } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
+import { MatError, MatFormField, MatLabel } from '@angular/material/input';
+import { MatOption, MatSelect } from '@angular/material/select';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { BucketReportForm } from '@app/components/modals/bucket-report-modal/bucket-report-modal.interfaces';
+import { concatLatestFrom } from '@ngrx/operators';
+import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { BookmarksService } from '@services/bookmarks/bookmarks.service';
+import { isLocalDaemon } from '@services/bookmarks/bookmarks.utils';
+import { NotificationsService } from '@services/notifications/notifications.service';
+import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { TransferProfileState } from '@services/transfer-profile/transfer-profile.interfaces';
+import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
+import { ConnectionState } from '@state/models/connection-state-model';
+import { BehaviorSubject, Subscription } from 'rxjs';
+
+@Component({
+    selector: 'fme-bucket-report-modal',
+    templateUrl: './bucket-report-modal.component.html',
+    styleUrls: ['./bucket-report-modal.component.scss'],
+    imports: [
+        MatDialogTitle,
+        MatDialogContent,
+        MatFormField,
+        MatLabel,
+        ReactiveFormsModule,
+        MatSelect,
+        MatOption,
+        MatError,
+        MatSlideToggle,
+        MatDialogActions,
+        ButtonComponent,
+    ],
+})
+export class BucketReportModalComponent implements OnDestroy {
+    private fmeClientService = inject(FmeClientService);
+    private notifications = inject(NotificationsService);
+    private transferProfileService = inject(TransferProfileService);
+    dialogRef = inject<MatDialogRef<BucketReportModalComponent>>(MatDialogRef);
+    private bottomSheet = inject(MatBottomSheet);
+    private bookmarks = inject(BookmarksService);
+
+    outputFormats: string[] = [
+        'JSON',
+        'YAML',
+        'XML',
+        'CSV',
+    ];
+    transferProfiles: string[] = [];
+    exportForm: FormGroup<BucketReportForm>;
+    canDownloadReport = new BehaviorSubject<boolean>(false);
+    private subscriptions: Subscription[] = [];
+
+    constructor() {
+        this.fmeClientService.connectionState.pipe(concatLatestFrom(() => this.bookmarks.current)).subscribe(
+            ([state, currentBookmark]) => {
+                if (state === ConnectionState.CONNECTED) {
+                    this.canDownloadReport.next(isLocalDaemon(currentBookmark));
+                } else {
+                    this.canDownloadReport.next(false);
+                }
+            },
+        );
+        this.exportForm = this.setupForm();
+
+        this.subscriptions.push(this.transferProfileService.transferProfileState.subscribe({
+            next: (transferProfileState: TransferProfileState) => {
+                if (transferProfileState.transferProfileList) {
+                    this.transferProfiles = transferProfileState.transferProfileList;
+                    this.exportForm.controls.remoteConfiguration.setValue(this.transferProfiles[0]);
+                }
+            },
+        }));
+    }
+
+    ngOnDestroy() {
+        this.subscriptions.map((sub) => sub.unsubscribe());
+        this.subscriptions = [];
+    }
+
+    close() {
+        return () => {
+            this.dialogRef.close();
+        };
+    }
+
+    generateReport() {
+        return () => {
+            if (this.exportForm.valid) {
+                this.fmeClientService.generateInventoryReport(
+                    this.exportForm.controls.remoteConfiguration.value,
+                    this.exportForm.controls.format.value,
+                    true,
+                    this.exportForm.controls.includeChecksums.value,
+                ).subscribe((data) => {
+                    if (!data.success) {
+                        this.notifications.error(data.message);
+                    }
+                });
+                this.dialogRef.close();
+            }
+        };
+    }
+
+    toggleHint(event: MouseEvent, message: string) {
+        event.stopPropagation();
+        event.preventDefault();
+
+        this.bottomSheet.open(HintsPanelComponent, {
+            data: message,
+            panelClass: 'bottom-sheet-hints',
+        });
+    }
+
+    private setupForm(): FormGroup<BucketReportForm> {
+        return new FormGroup<BucketReportForm>({
+            remoteConfiguration: new FormControl<string>(
+                '',
+                {
+                    validators: [Validators.required],
+                    nonNullable: true,
+                },
+            ),
+            format: new FormControl<string>(
+                'JSON',
+                {
+                    validators: Validators.required,
+                    nonNullable: true,
+                },
+            ),
+            includeChecksums: new FormControl<boolean>(
+                false,
+                {
+                    nonNullable: true,
+                },
+            ),
+        });
+    }
+}

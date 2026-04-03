@@ -1,0 +1,48 @@
+<h1 mat-dialog-title>
+    @if (data.type === CreatePrefixFolderType.S3) {
+        Create S3 folder
+    }
+    @if (data.type === CreatePrefixFolderType.Local) {
+        Create local folder
+    }
+</h1>
+<div mat-dialog-content>
+    <div>
+        @if (data.type === CreatePrefixFolderType.S3) {
+            <p>
+                @if (data.parent !== '') {
+                    Creating new folder in the <b>{{ data.transferProfile }}</b> remote configuration, in the {{ data.parent }} folder.
+                }
+                @if (data.parent === '') {
+                    Creating new folder in the <b>{{ data.transferProfile }}</b> remote configuration, in the root of the bucket.
+                }
+            </p>
+        }
+        @if (data.type === CreatePrefixFolderType.Local) {
+            <p>
+                Creating new folder on the local file system, in the {{ data.parent }} folder.
+            </p>
+        }
+        <mat-form-field color="accent" class="modal-form-field">
+            <mat-label>
+                Folder name
+            </mat-label>
+            <input matInput type="text" [formControl]="folder">
+            @if (folder.hasError('required')) {
+                <mat-error>
+                    Folder name is required
+                </mat-error>
+            }
+            @if (folder.hasError('pattern')) {
+                <mat-error>
+                    Invalid characters in name
+                </mat-error>
+            }
+        </mat-form-field>
+    </div>
+</div>
+
+<div mat-dialog-actions>
+    <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled" text="Create" [disabled]="folder.invalid" [onClick]="save()"></fme-button>
+</div>

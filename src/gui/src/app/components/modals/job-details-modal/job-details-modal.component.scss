@@ -1,0 +1,178 @@
+@use "sass:color";
+
+@use "../../../../styles/mixins";
+@use "../../../../styles/variables";
+@use "../../../../styles/fonts";
+@use "../../../../styles/custom-table";
+
+$table-row-selected-color: variables.$table-selected-row-background-color;
+
+.dialog-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.dialog-title {
+    height: auto;
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    button {
+        background-color: variables.$background-content;
+
+        mat-icon {
+            color: #0096FF;
+        }
+    }
+}
+
+.job-details {
+    flex: 1;
+    display: grid;
+    grid-template-rows: auto minmax(200px, 1fr);
+    grid-template-areas:
+        'info'
+        'table-group-wrapper';
+    grid-gap: 10px;
+}
+
+.info {
+    grid-area: info;
+    display: flex;
+    flex-direction: row;
+
+    .info-section {
+        padding: 10px;
+        width: 50%;
+    }
+
+    .info-field:not(:last-child) {
+        padding-bottom: 16px;
+    }
+
+    .vertical-line {
+        content: "";
+        height: 100%;
+        border-left: 2px solid variables.$vertical-divider-color;
+    }
+}
+
+.table-group-wrapper {
+    grid-area: table-group-wrapper;
+    min-height: 0;
+}
+
+.tasks-table-wrapper {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+        'inputs-section'
+        'tasks-table-section';
+    grid-gap: 5px;
+
+    .inputs-section {
+        grid-area: inputs-section;
+    }
+
+    .tasks-table-section {
+        grid-area: tasks-table-section;
+    }
+}
+
+.tasks-container {
+    @extend .table-container;
+
+    th {
+        position: relative;
+    }
+
+    // selected row styles
+    .selected-row {
+        background: $table-row-selected-color !important;
+
+        &:hover {
+            background: color.adjust($table-row-selected-color, $lightness: 5%, $space: hsl) !important;
+        }
+    }
+
+    // file name cell
+    .file-name {
+        display: flex;
+        gap: 6px;
+
+        .file-name-string {
+            width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .mat-column-progress {
+        @include custom-table.clamp-width(220px);
+    }
+}
+
+.spacer {
+    flex: 1 auto;
+}
+
+.job-details .tasks-container .icon {
+    color: #0096FF !important;
+}
+
+.nameType mat-icon {
+    padding-right: 5px;
+}
+
+.status-progress-bar {
+    display: flex;
+    flex-direction: row;
+
+    div {
+        padding-left: 10px !important;
+    }
+}
+
+.card-title .search {
+    padding: 10px 0;
+}
+
+.status-progress-bar {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+
+    mat-progress-bar {
+        margin-top: 15px;
+    }
+
+    &.status-in-progress {
+        @include mixins.progress-bar-color(variables.$pg-blue, color.adjust(whitesmoke, $lightness: -10%, $space: hsl));
+    }
+
+    &.status-cancelled {
+        @include mixins.progress-bar-color(variables.$pg-orange, inherit);
+    }
+
+    &.status-paused {
+        @include mixins.progress-bar-color(variables.$pg-green, grey);
+    }
+
+    &.status-completed {
+        @include mixins.progress-bar-color(variables.$pg-blue, variables.$pg-green);
+    }
+
+    &.status-error {
+        @include mixins.progress-bar-color(variables.$pg-red, variables.$pg-red);
+    }
+}
+
+.no-data {
+    text-align: center;
+    padding-top: 6px;
+}

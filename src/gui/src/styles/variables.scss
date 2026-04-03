@@ -1,0 +1,182 @@
+@use "sass:color";
+
+// region Cloudscape Design System dark mode color palette
+$yellow-900: #1d1906;
+$yellow-800: #906806;
+$yellow-700: #e0ca57;
+$yellow-600: #ffe457;
+
+$white: #ffffff;
+
+$red-900: #1a0000;
+$red-600: #d91515;
+$red-500: #eb6f6f;
+
+$grey-900: #000716;
+$grey-800: #0f1b2a;
+$grey-750: #192534;
+$grey-700: #232f3e;
+$grey-650: #354150;
+$grey-600: #414d5c;
+$grey-550: #5f6b7a;
+$grey-500: #7d8998;
+$grey-450: #8d99a8;
+$grey-300: #d1d5db;
+$grey-200: #e9ebed;
+$grey-100: #fbfbfb;
+
+$green-900: #001a02;
+$green-600: #037f0c;
+$green-500: #29ad32;
+
+$blue-900: #00142b;
+$blue-800: #033160;
+$blue-600: #0972d3;
+$blue-500: #539fe5;
+$blue-400: #89bdee;
+// endregion
+
+// region other colors
+$orange-accent: #ff9900;
+$dark-orange-accent: #ff9500;
+$yellow-accent: #ffbd44;
+$blue-selected: #1871c3;
+// endregion
+
+// region element color definitions
+$background-header: $grey-900;
+$background-content: $grey-800;
+$background-disabled-form-field: $grey-750;
+$background-menu: $grey-750;
+$background-menu-hover: $grey-700;
+$background-disabled-button: $grey-650;
+
+$active: $blue-500;
+
+$text-header: $white;
+$text-heading-element: $grey-200;
+$text: $grey-300;
+$text-light-header: $grey-450;
+$text-on-light-background: $grey-900;
+$text-link: $blue-500;
+$text-disabled-form-field: $grey-500;
+$text-form-field-hint: $grey-450;
+$text-table-header: $grey-500;
+$text-disabled-button: $grey-550;
+
+$text-expandable-section-header: $grey-100;
+$container-border: $grey-550;
+$container-border-hovered: $grey-750;
+$vertical-divider-color: $grey-500;
+
+$table-border-color: $grey-600;
+$table-row-background-color-hovered: $grey-750;
+$table-selected-row-background-color: $blue-selected;
+
+$folder-icon-color: $blue-500;
+// endregion
+
+// region snackbar color palette (toasts/popups)
+$snackbar-default-background: $blue-900;
+$snackbar-info-background: $blue-900;
+$snackbar-success-background: $green-900;
+$snackbar-warning-background: $yellow-900;
+$snackbar-error-background: $red-900;
+
+$snackbar-default-border: $blue-500;
+$snackbar-info-border: $blue-500;
+$snackbar-success-border: $green-500;
+$snackbar-warning-border: $yellow-700;
+$snackbar-error-border: $red-500;
+
+$snackbar-default-color: $grey-100;
+$snackbar-success-color: $grey-100;
+$snackbar-info-color: $grey-100;
+$snackbar-warning-color: $grey-100;
+$snackbar-error-color: $grey-100;
+// endregion
+
+// region Material Theme settings
+// region Primary Theme Colors
+$theme-primary-main: $background-content;
+$theme-primary-lighter: color.adjust($theme-primary-main, $lightness: 35%, $space: hsl);
+$theme-primary-darker: color.adjust($theme-primary-main, $lightness: -20%, $space: hsl);
+$theme-primary-50: color.adjust($theme-primary-main, $lightness: 50%, $space: hsl);
+$theme-primary-100: color.adjust($theme-primary-main, $lightness: 40%, $space: hsl);
+$theme-primary-200: color.adjust($theme-primary-main, $lightness: 30%, $space: hsl);
+$theme-primary-300: color.adjust($theme-primary-main, $lightness: 20%, $space: hsl);
+$theme-primary-400: color.adjust($theme-primary-main, $lightness: 10%, $space: hsl);
+$theme-primary-500: $theme-primary-main;
+$theme-primary-600: color.adjust($theme-primary-main, $lightness: -10%, $space: hsl);
+$theme-primary-700: color.adjust($theme-primary-main, $lightness: -20%, $space: hsl);
+$theme-primary-800: color.adjust($theme-primary-main, $lightness: -30%, $space: hsl);
+$theme-primary-900: color.adjust($theme-primary-main, $lightness: -50%, $space: hsl);
+// endregion
+
+// region Accent Theme Colors
+$theme-accent-main: $blue-500;
+$theme-accent-lighter: color.adjust($theme-accent-main, $lightness: 20%, $space: hsl);
+$theme-accent-darker: color.adjust($theme-accent-main, $lightness: -20%, $space: hsl);
+$theme-accent-50: color.adjust($theme-accent-main, $lightness: 85%, $space: hsl);
+$theme-accent-100: color.adjust($theme-accent-main, $lightness: 75%, $space: hsl);
+$theme-accent-200: color.adjust($theme-accent-main, $lightness: 50%, $space: hsl);
+$theme-accent-300: color.adjust($theme-accent-main, $lightness: 25%, $space: hsl);
+$theme-accent-400: color.adjust($theme-accent-main, $lightness: 15%, $space: hsl);
+$theme-accent-500: $theme-accent-main;
+$theme-accent-600: color.adjust($theme-accent-main, $lightness: -15%, $space: hsl);
+$theme-accent-700: color.adjust($theme-accent-main, $lightness: -25%, $space: hsl);
+$theme-accent-800: color.adjust($theme-accent-main, $lightness: -50%, $space: hsl);
+$theme-accent-900: color.adjust($theme-accent-main, $lightness: -75%, $space: hsl);
+// endregion
+
+// region Warn Theme Colors
+$theme-warn-main: $red-600;
+$theme-warn-lighter: color.adjust($theme-warn-main, $lightness: 20%, $space: hsl);
+$theme-warn-darker: color.adjust($theme-warn-main, $lightness: -20%, $space: hsl);
+$theme-warn-50: color.adjust($theme-warn-main, $lightness: 85%, $space: hsl);
+$theme-warn-100: color.adjust($theme-warn-main, $lightness: 75%, $space: hsl);
+$theme-warn-200: color.adjust($theme-warn-main, $lightness: 50%, $space: hsl);
+$theme-warn-300: color.adjust($theme-warn-main, $lightness: 25%, $space: hsl);
+$theme-warn-400: color.adjust($theme-warn-main, $lightness: 15%, $space: hsl);
+$theme-warn-500: $theme-warn-main;
+$theme-warn-600: color.adjust($theme-warn-main, $lightness: -15%, $space: hsl);
+$theme-warn-700: color.adjust($theme-warn-main, $lightness: -25%, $space: hsl);
+$theme-warn-800: color.adjust($theme-warn-main, $lightness: -50%, $space: hsl);
+$theme-warn-900: color.adjust($theme-warn-main, $lightness: -75%, $space: hsl);
+// endregion
+
+// region Theme Text Colors
+$theme-text: $text;
+$theme-primary-text: $theme-text;
+$theme-disabled-text: rgba($theme-primary-text, 0.38);
+$theme-accent-text: $text-on-light-background;
+$theme-hint-text: $text-form-field-hint;
+$theme-dividers: rgba($theme-primary-text, 0.12);
+$theme-focused: rgba($theme-primary-text, 0.12);
+// endregion
+
+// region Background Colors
+$theme-background: $background-content;
+$theme-bg-darker-5: color.adjust($theme-background, $lightness: -5%, $space: hsl);
+$theme-bg-darker-10: color.adjust($theme-background, $lightness: -10%, $space: hsl);
+$theme-bg-darker-20: color.adjust($theme-background, $lightness: -20%, $space: hsl);
+$theme-bg-darker-30: color.adjust($theme-background, $lightness: -30%, $space: hsl);
+$theme-bg-lighter-5: color.adjust($theme-background, $lightness: 5%, $space: hsl);
+$theme-bg-bar: $background-header;
+$theme-bg-tooltip: $grey-650;
+$theme-bg-alpha-4: rgba($grey-750, 0.04);
+$theme-bg-alpha-12: rgba($grey-750, 0.12);
+// endregion
+
+// region Progress Bar Colors
+$pg-blue: #0096FF;
+$pg-green: #29ad32;
+$pg-yellow: $yellow-600;
+$pg-orange: #ff9900;
+$pg-red: #d91515;
+// endregion
+
+
+
+
+

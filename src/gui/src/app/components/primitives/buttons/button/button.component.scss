@@ -1,0 +1,204 @@
+@use "sass:color";
+
+@use "../../../../../styles/custom-fields";
+@use "../../../../../styles/fonts";
+@use "../../../../../styles/variables";
+
+$border-width: 2px;
+// connect this button's styling with custom-fields global styling
+$button-height: #{custom-fields.$form-field-height + (2*custom-fields.$form-field-vertical-padding) + (2*$border-width)};
+$button-padding: 0px 15px 0px 15px;
+$line-height: #{$button-height - (2*$border-width)};
+$button-color: variables.$theme-accent-main;
+$button-hover-color: color.adjust(variables.$theme-accent-main, $lightness: 12%, $space: hsl);
+$button-filled-text-color: variables.$background-content;
+
+$button-warn-color: variables.$theme-warn-main;
+$button-warn-hover-color: color.adjust(variables.$theme-warn-main, $lightness: 12%, $space: hsl);
+$button-warn-filled-text-color: variables.$text;
+
+$background-color: variables.$background-content;
+$button-text-font-weight: 600;
+$button-icon-font-weight: 500;
+
+$button-disabled-background-color: variables.$background-disabled-button;
+$button-disabled-text-color: variables.$text-disabled-button;
+
+$inline-icon-size: 20px;
+$icon-button-icon-size: 26px;
+
+button {
+    .mat-badge-content {
+        background-color: variables.$dark-orange-accent !important;
+        color: variables.$white !important;
+    }
+}
+
+.button-base {
+    position: relative;
+    height: $button-height;
+    line-height: $button-height;
+    border: $border-width solid $button-color;
+    border-radius: 100px;
+    font-family: fonts.$font-family;
+    font-weight: $button-text-font-weight;
+    letter-spacing: 1px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    // prevent select styles
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+.text-button-base {
+    @extend .button-base;
+    width: fit-content;
+    min-width: 90px;
+    padding: $button-padding;
+}
+
+.button-type-filled {
+    background: $button-color;
+    color: $button-filled-text-color;
+
+    &:hover {
+        background: $button-hover-color;
+        border-color: $button-hover-color;
+    }
+
+    &:active {
+        background: $button-color;
+        border-color: $button-color;
+    }
+}
+
+.button-type-stroked {
+    background: $background-color;
+    color: $button-color;
+
+    &:hover {
+        background: color.adjust($background-color, $lightness: 4%, $space: hsl);
+        border-color: $button-hover-color;
+        color: $button-hover-color;
+    }
+
+    &:active {
+        background: color.adjust($background-color, $lightness: 12%, $space: hsl);
+        border-color: $button-hover-color;
+        color: $button-hover-color;
+    }
+}
+
+.button-text {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    flex-direction: column;
+    font-size: 15px;
+}
+
+.inline-button-icon {
+    height: 100%;
+    width: $inline-icon-size;
+    margin-right: 3px;
+    position: relative;
+
+    mat-icon {
+        font-weight: $button-icon-font-weight;
+        font-size: $inline-icon-size;
+        height: $inline-icon-size;
+        width: $inline-icon-size;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translate(0, -50%);
+    }
+}
+
+.icon-button-icon {
+    height: 100%;
+    width: $icon-button-icon-size;
+    position: relative;
+
+    mat-icon {
+        font-weight: $button-icon-font-weight;
+        font-size: $icon-button-icon-size;
+        height: $icon-button-icon-size;
+        width: $icon-button-icon-size;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translate(0, -50%);
+    }
+}
+
+// overrides basic button if ThemePalette is 'warn'
+.button-base.warn {
+    border: $border-width solid $button-warn-color;
+}
+
+.button-type-filled.warn {
+    background: $button-warn-color;
+    color: $button-warn-filled-text-color;
+
+    &:hover {
+        background: $button-warn-hover-color;
+        border-color: $button-warn-hover-color;
+    }
+
+    &:active {
+        background: $button-warn-color;
+        border-color: $button-warn-color;
+    }
+}
+
+.button-type-stroked.warn {
+    background: $background-color;
+    color: $button-warn-color;
+
+    &:hover {
+        background: color.adjust($background-color, $lightness: 4%, $space: hsl);
+        border-color: $button-warn-hover-color;
+        color: $button-warn-hover-color;
+    }
+
+    &:active {
+        background: color.adjust($background-color, $lightness: 12%, $space: hsl);
+        border-color: $button-warn-hover-color;
+        color: $button-warn-hover-color;
+    }
+}
+
+// overrides all other classes if present
+.button-type-filled.disabled {
+    border: $border-width solid $button-disabled-background-color;
+    background: $button-disabled-background-color;
+    color: $button-disabled-text-color;
+
+    &:hover {
+        border: $border-width solid $button-disabled-background-color;
+        background: $button-disabled-background-color;
+        color: $button-disabled-text-color;
+        cursor: default;
+    }
+}
+
+.button-type-stroked.disabled {
+    border: $border-width solid $button-disabled-text-color;
+    background: transparent;
+    color: $button-disabled-text-color;
+
+    &:hover {
+        border: $border-width solid $button-disabled-text-color;
+        background: transparent;
+        color: $button-disabled-text-color;
+        cursor: default;
+    }
+}

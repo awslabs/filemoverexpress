@@ -1,0 +1,64 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "baseUrl": "./",
+        "paths": {
+            "@app/*": [
+                "src/app/*"
+            ],
+            "@classes/*": [
+                "src/app/classes/*"
+            ],
+            "@connect/*": [
+                "src/connect/*"
+            ],
+            "@containers/*": [
+                "src/app/components/containers/*"
+            ],
+            "@events/*": [
+                "src/app/classes/events/*"
+            ],
+            "@fme/*": [
+                "src/app/modules/fme/*"
+            ],
+            "@gen/*": [
+                "src/gen/*"
+            ],
+            "@modals/*": [
+                "src/app/components/modals/*"
+            ],
+            "@primitives/*": [
+                "src/app/components/primitives/*"
+            ],
+            "@services/*": [
+                "src/app/services/*"
+            ],
+            "@state/*": [
+                "src/app/state/*"
+            ]
+        },
+        "outDir": "./dist/out-tsc",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": false,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "sourceMap": true,
+        "declaration": false,
+        "experimentalDecorators": true,
+        "moduleResolution": "bundler",
+        "importHelpers": true,
+        "target": "ES2022",
+        "module": "ES2022",
+        "useDefineForClassFields": false
+    },
+    "angularCompilerOptions": {
+        "enableI18nLegacyMessageIdFormat": false,
+        "strictInjectionParameters": true,
+        "strictInputAccessModifiers": true,
+        "strictTemplates": true
+    }
+}

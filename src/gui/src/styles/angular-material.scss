@@ -1,0 +1,105 @@
+@use "variables";
+@use "fonts";
+
+// mat-menu overrides
+.mat-mdc-menu-panel {
+    border: 2px solid variables.$container-border !important;
+    background-color: variables.$background-menu !important;
+    color: variables.$text !important;
+}
+
+.mat-mdc-menu-content {
+    padding: 0 !important;
+}
+
+.mat-mdc-menu-item {
+    min-height: 36px !important;
+
+    &:hover {
+        background-color: variables.$background-menu-hover !important;
+    }
+}
+
+.mat-mdc-menu-item-text {
+    font-size: 14px !important;
+}
+
+// mat-tab overrides
+.mat-mdc-tab:not(.mdc-tab--active) .mdc-tab__text-label {
+    color: variables.$text !important;
+}
+
+.mat-mdc-tab-header {
+    border-bottom: 2px solid variables.$container-border;
+}
+
+.mat-mdc-tab {
+    --mat-tab-container-height: 36px;
+    --mat-tab-label-text-font: #{fonts.$font-family};
+    --mat-tab-label-text-size: 13px;
+    --mat-tab-label-text-line-height: 36px;
+    --mat-tab-label-text-weight: 600;
+}
+
+.mat-mdc-tab .mdc-tab-indicator__content--underline {
+    --mat-tab-active-indicator-height: 3px;
+    --mat-tab-active-indicator-shape: 3px;
+}
+
+.mdc-tab {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    min-width: 70px !important;
+}
+
+.mat-mdc-tab:not(:first-child)::after {
+    display: block;
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 25%;
+    height: 50%;
+    border-left: 2px solid variables.$container-border;
+}
+
+// mat-checkbox overrides
+.mat-pseudo-checkbox:not(.mat-pseudo-checkbox-checked) {
+    border-color: variables.$grey-450 !important;
+}
+
+// mat-select overrides
+.mat-mdc-select-panel {
+    --mat-select-panel-background-color: #{variables.$background-menu} !important;
+    border: 2px solid variables.$container-border !important;
+    padding: 0 !important;
+}
+
+// mat-option dropdown overrides
+.mat-mdc-option {
+    --mat-option-label-text-size: 14px !important;
+    --mat-option-label-text-line-height: 34px !important;
+    min-height: 34px !important;
+}
+
+// mat-tooltip overrides
+.mdc-tooltip__surface {
+    // increase max width
+    max-width: 350px !important;
+}
+
+// mat-form-field overrides
+.mdc-text-field--outlined {
+    --mat-form-field-outlined-outline-width: 2px !important;
+}
+
+// mat-tab overrides
+.mat-mdc-tab-body-wrapper {
+    height: 100% !important;
+}
+
+// override to allow multiple hints to show up in a list
+mat-form-field[data-multi-hint] {
+    .mat-mdc-form-field-hint-wrapper {
+        flex-direction: column !important;
+    }
+}

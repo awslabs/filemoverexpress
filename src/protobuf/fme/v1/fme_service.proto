@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package fme.v1;
+
+import "fme/v1/config.proto";
+import "fme/v1/events.proto";
+import "fme/v1/inventory.proto";
+import "fme/v1/job.proto";
+import "fme/v1/metadata.proto";
+import "fme/v1/remote_daemon.proto";
+import "fme/v1/shared.proto";
+import "fme/v1/supportfile.proto";
+import "s3_shared/v1/s3.proto";
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+service FmeService {
+    rpc ListEvents (fme.v1.ListEventsRequest) returns (stream fme.v1.ListEventsResponse) {}
+    rpc Shutdown (fme.v1.ShutdownRequest) returns (fme.v1.ShutdownResponse) {}
+    rpc GetConfiguration (fme.v1.GetConfigurationRequest) returns (fme.v1.FmeConfig) {}
+    rpc SetConfiguration (fme.v1.FmeConfig) returns (fme.v1.SetConfigurationResponse) {}
+    rpc GenerateInventoryReport (fme.v1.InventoryReportRequest) returns (fme.v1.InventoryReportResponse) {}
+    rpc GenerateSupportFile (fme.v1.CreateSupportFileRequest) returns (fme.v1.CreateSupportFileResponse) {}
+    rpc ListFolder (fme.v1.ListFolderRequest) returns (fme.v1.FsFolder) {}
+    rpc S3ListPrefix (s3_shared.v1.S3ListPrefixRequest) returns (s3_shared.v1.S3ListPrefixResponse) {}
+    rpc DownloadPrefixes (s3_shared.v1.DownloadPrefixesRequest) returns (s3_shared.v1.DownloadPrefixesResponse) {}
+    rpc UploadPrefixes (s3_shared.v1.UploadPrefixRequest) returns (s3_shared.v1.UploadPrefixResponse) {}
+    rpc CancelJob (fme.v1.CancelJobRequest) returns (fme.v1.CancelJobResponse) {}
+    rpc PauseJob (fme.v1.PauseJobRequest) returns (fme.v1.PauseJobResponse) {}
+    rpc ResumeJob (fme.v1.ResumeJobRequest) returns (fme.v1.ResumeJobResponse) {}
+    rpc RenameJob (fme.v1.RenameJobRequest) returns (fme.v1.RenameJobResponse) {}
+    rpc ResubmitJob (fme.v1.ResubmitJobRequest) returns (fme.v1.ResubmitJobResponse) {}
+    rpc ListJobs (fme.v1.ListJobsRequest) returns (fme.v1.ListJobsResponse) {}
+    rpc ListTasksForJob (fme.v1.ListTasksForJobRequest) returns (fme.v1.ListTasksForJobResponse) {}
+    rpc ListTasksForJobStream (fme.v1.ListTasksForJobRequest) returns (stream fme.v1.Task) {}
+    rpc ClearCompletedJobs (fme.v1.ClearCompletedJobsRequest) returns (fme.v1.ClearCompletedJobsResponse) {}
+    rpc ClearCompletedJob (fme.v1.ClearCompletedJobRequest) returns (fme.v1.ClearCompletedJobsResponse) {}
+    rpc CreateS3Prefix (s3_shared.v1.CreateS3PrefixRequest) returns (s3_shared.v1.CreateS3PrefixResponse) {}
+    rpc CreateLocalFolder (fme.v1.CreateLocalFolderRequest) returns (fme.v1.CreateLocalFolderResponse) {}
+    rpc DeleteS3Path (s3_shared.v1.DeleteS3PathRequest) returns (s3_shared.v1.DeleteS3PathResponse) {}
+    rpc RenameS3Path (s3_shared.v1.RenameS3PathRequest) returns (s3_shared.v1.RenameS3PathResponse) {}
+    rpc DeleteLocalPath (fme.v1.DeleteLocalPathRequest) returns (fme.v1.DeleteLocalPathResponse) {}
+    rpc RenameLocalPath (fme.v1.RenameLocalPathRequest) returns (fme.v1.RenameLocalPathResponse) {}
+}
+
+// ListEventsRequest and Response must be in the main file, as it uses values from each sub-file and would otherwise
+// circular imports
+message ListEventsRequest {
+    int32 count = 1;
+}
+
+message ListEventsResponse {
+    fme.v1.EventType event_type = 1;
+    oneof event {
+        fme.v1.MessageEvent message_event = 2;
+
+        fme.v1.InventoryReportStartedEvent inventory_report_started_event = 3;
+        fme.v1.InventoryReportCompletedEvent inventory_report_completed_event = 4;
+        fme.v1.InventoryReportErrorEvent inventory_report_error_event = 5;
+
+        fme.v1.ConfigurationUpdateEvent configuration_update_event = 6;
+        fme.v1.ServerDisconnectEvent server_disconnect_event = 7;
+        fme.v1.NewVersionAvailableEvent new_version_available_event = 8;
+        fme.v1.UnsupportedVersionEvent unsupported_version_event = 9;
+        fme.v1.MetadataEvent metadata_event = 10;
+        fme.v1.AlertEvent alert_event = 11;
+
+        fme.v1.JobProgressEvent job_progress_event = 13;
+        fme.v1.JobCompleteEvent job_complete_event = 14;
+        fme.v1.JobErrorEvent job_error_event = 15;
+        fme.v1.JobUpdateEvent job_update_event = 16;
+        fme.v1.TaskCompleteEvent task_complete_event = 17;
+        fme.v1.JobStatusChangeEvent job_status_change_event = 18;
+        fme.v1.JobCreateEvent job_create_event = 19;
+        fme.v1.JobChecksumProgressEvent job_checksum_progress_event = 20;
+        fme.v1.TransferStatsEvent transfer_stats_event = 21;
+    }
+}

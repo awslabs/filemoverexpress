@@ -1,0 +1,48 @@
+@use "../../../../styles/variables";
+
+$breadcrumb-selected-color: variables.$blue-400;
+$last-breadcrumb-color: variables.$grey-500;
+$arrow-icon-color: variables.$grey-500;
+
+.breadcrumb-group {
+    height: 18px;
+    width: 100%;
+    word-break: break-all;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.breadcrumb-basic {
+    display: inline-block;
+    max-width: 13%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.breadcrumb-single-clickable {
+    @extend .breadcrumb-basic;
+    color: variables.$active;
+    text-decoration: underline;
+
+    &:hover {
+        color: $breadcrumb-selected-color;
+        cursor: pointer;
+    }
+}
+
+.last-breadcrumb {
+    @extend .breadcrumb-basic;
+    color: $last-breadcrumb-color;
+    font-weight: bold;
+    cursor: default;
+}
+
+.arrow-icon {
+    width: 14px;
+    height: 100%;
+    font-size: 16px;
+    color: $arrow-icon-color;
+    margin-left: 3px;
+    margin-right: 3px;
+}

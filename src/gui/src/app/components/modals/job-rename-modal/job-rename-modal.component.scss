@@ -1,0 +1,15 @@
+mat-form-field {
+    width: 100%;
+}
+
+div[mat-dialog-content] :first-child {
+    margin-top: 4px;
+}
+
+[mat-dialog-actions] {
+    padding-top: 12px;
+
+    :not(:last-child) {
+        margin-right: 12px;
+    }
+}

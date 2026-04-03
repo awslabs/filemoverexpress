@@ -1,0 +1,103 @@
+@use "sass:color";
+
+@use "../../../../../styles/variables";
+@use "../../../../../styles/custom-table";
+
+$table-row-selected-color: variables.$table-selected-row-background-color;
+
+.logs-table-wrapper {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-gap: 5px;
+    grid-template-areas:
+        'inputs-section'
+        'table-section';
+}
+
+.inputs-section {
+    grid-area: inputs-section;
+    display: flex;
+    flex-direction: column;
+
+    .spacer {
+        flex: 1 1 auto;
+    }
+}
+
+.table-section {
+    grid-area: table-section;
+}
+
+.logs-container {
+    @extend .table-container;
+
+    // selected row styles
+    .selected-row {
+        background: $table-row-selected-color !important;
+
+        &:hover {
+            background: color.adjust($table-row-selected-color, $lightness: 5%, $space: hsl) !important;
+        }
+    }
+
+    // file name cell
+    .file-name {
+        display: flex;
+        gap: 6px;
+
+        .file-name-string {
+            width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    // column widths
+    .mat-column-timestamp {
+        width: 200px;
+    }
+
+    .mat-column-level {
+        width: 120px;
+    }
+
+    .remaining-table-space {
+        flex: 1 100%;
+    }
+}
+
+// needed so empty space in the browser container can listen for drop events
+.remaining-table-space {
+    flex: 1 100%;
+}
+
+.filter {
+    padding: 10px 10px 10px 0;
+    font-size: 11px !important;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+}
+
+.row-error {
+    background-color: rgba(variables.$red-600, .15) !important;
+}
+
+.row-warn {
+    background-color: rgba(variables.$orange-accent, .35) !important;
+}
+
+mat-option {
+    text-transform: capitalize;
+}
+
+.no-data {
+    text-align: center;
+    padding-top: 6px;
+}
+
+#jobSelector {
+    width: 400px;
+}

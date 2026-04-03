@@ -1,0 +1,27 @@
+<h1 mat-dialog-title>Available Version: {{ version() }}</h1>
+<div mat-dialog-content>
+    @if (releaseNotes.length) {
+        <div id="release-notes">
+            <h2>Release Notes:</h2>
+            <ul>
+                @for (notes of releaseNotes; track notes) {
+                    <li>
+                        {{ notes }}
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <p>
+        Ignore: Ignore this version and don't remind me again. <br/>
+        Skip: Ignore this version for the rest of this session. <br/>
+        Go to Download: Go to the download page to download the latest version of File Transfer.
+    </p>
+</div>
+
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Ignore" color="warn" [onClick]="ignore()"></fme-button>
+    <fme-button type="stroked" text="Skip" [onClick]="skip()"></fme-button>
+    <fme-button type="filled" text="Go to Download" [onClick]="update()"></fme-button>
+</div>

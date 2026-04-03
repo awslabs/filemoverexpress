@@ -1,0 +1,68 @@
+@use "../../../../styles/variables";
+@use "../../../../styles/modal";
+@use "../../../../styles/fonts";
+
+.dialog-title {
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .spacer {
+        flex: 1 auto;
+    }
+
+    a {
+        font-weight: 500;
+        font-family: fonts.$font-family-heavy;
+        font-size: 16px;
+        color: variables.$text-link;
+        cursor: pointer;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.bookmark-form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-row-gap: 16px;
+    grid-column-gap: 4px;
+    padding-top: 6px;
+}
+
+.mat-mdc-form-field {
+    width: 100%;
+    display: block;
+}
+
+div.form-field {
+    width: 100%;
+    display: block;
+    margin-bottom: 14px;
+    margin-top: 14px;
+}
+
+.slide-toggle-label {
+    color: variables.$text-form-field-hint;
+    font-size: smaller;
+}
+
+.inline-icon {
+    display: inline-flex;
+    vertical-align: middle;
+    transform: scale(0.8);
+    cursor: pointer;
+}
+
+.link-with-icon {
+    font-weight: bold;
+    color: variables.$text-link;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

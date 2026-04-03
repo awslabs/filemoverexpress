@@ -1,0 +1,7 @@
+<fme-button type="icon"
+            icon="refresh"
+            [disabled]="disabled()"
+            [onClick]="emitRefresh()"
+            [tooltip]="showRefreshNotificationBadge() ? refreshTooltipMessage() : ''"
+            [notificationBadge]="showRefreshNotificationBadge() ? '!' : ''">
+</fme-button>

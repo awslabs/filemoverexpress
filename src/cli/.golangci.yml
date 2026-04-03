@@ -1,0 +1,377 @@
+version: "2"
+run:
+    concurrency: 4
+    go: "1.24"
+    issues-exit-code: 1
+    tests: false
+    allow-parallel-runners: false
+output:
+    path-prefix: ""
+linters:
+    default: none
+    enable:
+        - asciicheck
+        - bodyclose
+        - decorder
+        - errcheck
+        - mnd
+        - govet
+        - ineffassign
+        - nestif
+        - noctx
+        - revive
+        - staticcheck
+        - unused
+    settings:
+        decorder:
+            dec-order:
+                - const
+                - var
+                - type
+                - func
+            disable-dec-num-check: false
+            disable-dec-order-check: false
+            disable-init-func-first-check: false
+        dogsled:
+            max-blank-identifiers: 2
+        misspell:
+            locale: US
+            ignore-rules:
+                - fme
+                - filemoverexpress
+        mnd:
+            # List of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
+            checks:
+                - argument
+                - case
+                - condition
+                - operation
+                - return
+                - assign
+            # List of numbers to exclude from analysis.
+            # The numbers should be written as string.
+            # Values always ignored: "1", "1.0", "0" and "0.0"
+            ignored-numbers:
+                - '2'
+                - '3'
+                - '4'
+                - '5'
+                - '6'
+                - '7'
+                - '8'
+                - '9'
+                - '10'
+                - '100'
+                - '1024'
+                - '0666'
+                - '0644'
+                - '0755'
+                - '0700'
+                - '0600'
+            ignored-files:
+                - '.*.pb.go'
+                - 'mock_.*.go'
+            # List of function patterns to exclude from analysis.
+            # Values always ignored: `time.Time`
+            ignored-functions:
+                - 'int64'
+        nestif:
+            min-complexity: 8
+        predeclared:
+            qualified-name: false
+        revive:
+            max-open-files: 2048
+            confidence: 0.8
+            severity: warning
+            enable-all-rules: false
+            rules:
+                -   name: add-constant
+                    arguments:
+                        -   allowFloats: 0.0,0.,1.0,1.,2.0,2.
+                            allowInts: 0,1,2
+                            allowStrs: '""'
+                            maxLitCount: "3"
+                    severity: warning
+                    disabled: true
+                -   name: argument-limit
+                    arguments:
+                        - 4
+                    severity: warning
+                    disabled: false
+                -   name: atomic
+                    severity: warning
+                    disabled: false
+                -   name: banned-characters
+                    arguments:
+                        - Ω
+                        - Σ
+                        - σ
+                    severity: warning
+                    disabled: true
+                -   name: bare-return
+                    severity: warning
+                    disabled: false
+                -   name: blank-imports
+                    severity: warning
+                    disabled: false
+                -   name: bool-literal-in-expr
+                    severity: warning
+                    disabled: false
+                -   name: call-to-gc
+                    severity: warning
+                    disabled: false
+                -   name: cognitive-complexity
+                    arguments:
+                        - 20
+                    severity: warning
+                    disabled: true
+                -   name: confusing-naming
+                    severity: warning
+                    disabled: false
+                -   name: confusing-results
+                    severity: warning
+                    disabled: true
+                -   name: constant-logical-expr
+                    severity: warning
+                    disabled: false
+                -   name: context-as-argument
+                    severity: warning
+                    disabled: false
+                -   name: context-keys-type
+                    severity: warning
+                    disabled: false
+                -   name: cyclomatic
+                    arguments:
+                        - 25
+                    severity: warning
+                    disabled: false
+                -   name: deep-exit
+                    severity: warning
+                    disabled: true
+                -   name: defer
+                    arguments:
+                        -   - call-chain
+                            - loop
+                            - recover
+                            - return
+                    severity: warning
+                    disabled: false
+                -   name: dot-imports
+                    severity: warning
+                    disabled: false
+                -   name: duplicated-imports
+                    severity: warning
+                    disabled: false
+                -   name: early-return
+                    severity: warning
+                    disabled: false
+                -   name: empty-block
+                    severity: warning
+                    disabled: false
+                -   name: empty-lines
+                    severity: warning
+                    disabled: false
+                -   name: error-naming
+                    severity: warning
+                    disabled: false
+                -   name: error-return
+                    severity: warning
+                    disabled: false
+                -   name: error-strings
+                    severity: warning
+                    disabled: false
+                -   name: errorf
+                    severity: warning
+                    disabled: false
+                -   name: exported
+                    arguments:
+                        - checkPrivateReceivers
+                        - sayRepetitiveInsteadOfStutters
+                    severity: warning
+                    disabled: true
+                -   name: file-header
+                    arguments:
+                        - This is the text that must appear at the top of source files.
+                    severity: warning
+                    disabled: true
+                -   name: flag-parameter
+                    severity: warning
+                    disabled: false
+                -   name: function-result-limit
+                    arguments:
+                        - 3
+                    severity: warning
+                    disabled: false
+                -   name: function-length
+                    arguments:
+                        - 40
+                        - 0
+                    severity: warning
+                    disabled: false
+                -   name: get-return
+                    severity: warning
+                    disabled: false
+                -   name: identical-branches
+                    severity: warning
+                    disabled: false
+                -   name: if-return
+                    severity: warning
+                    disabled: false
+                -   name: increment-decrement
+                    severity: warning
+                    disabled: false
+                -   name: indent-error-flow
+                    severity: warning
+                    disabled: false
+                -   name: imports-blocklist
+                    arguments:
+                        - crypto/md5
+                        - crypto/sha1
+                    severity: warning
+                    disabled: true
+                -   name: import-shadowing
+                    severity: warning
+                    disabled: false
+                -   name: line-length-limit
+                    arguments:
+                        - 140
+                    severity: warning
+                    disabled: false
+                -   name: max-public-structs
+                    arguments:
+                        - 10
+                    severity: warning
+                    disabled: false
+                -   name: modifies-parameter
+                    severity: warning
+                    disabled: false
+                -   name: modifies-value-receiver
+                    severity: warning
+                    disabled: false
+                -   name: nested-structs
+                    severity: warning
+                    disabled: false
+                -   name: optimize-operands-order
+                    severity: warning
+                    disabled: false
+                -   name: package-comments
+                    severity: warning
+                    disabled: true
+                -   name: range
+                    severity: warning
+                    disabled: false
+                -   name: range-val-in-closure
+                    severity: warning
+                    disabled: false
+                -   name: range-val-address
+                    severity: warning
+                    disabled: false
+                -   name: receiver-naming
+                    severity: warning
+                    disabled: false
+                -   name: redefines-builtin-id
+                    severity: warning
+                    disabled: false
+                -   name: string-of-int
+                    severity: warning
+                    disabled: false
+                -   name: string-format
+                    arguments:
+                        -   - core.WriteError[1].Message
+                            - /^([^A-Z]|$)/
+                            - must not start with a capital letter
+                        -   - fmt.Errorf[0]
+                            - /(^|[^\.!?])$/
+                            - must not end in punctuation
+                        -   - panic
+                            - /^[^\n]*$/
+                            - must not contain line breaks
+                    severity: warning
+                    disabled: true
+                -   name: struct-tag
+                    severity: warning
+                    disabled: false
+                -   name: superfluous-else
+                    severity: warning
+                    disabled: false
+                -   name: time-equal
+                    severity: warning
+                    disabled: false
+                -   name: time-naming
+                    severity: warning
+                    disabled: false
+                -   name: var-naming
+                    arguments:
+                        -   - ID
+                        -   - VM
+                    severity: warning
+                    disabled: true
+                -   name: var-declaration
+                    severity: warning
+                    disabled: false
+                -   name: unconditional-recursion
+                    severity: warning
+                    disabled: false
+                -   name: unexported-naming
+                    severity: warning
+                    disabled: false
+                -   name: unexported-return
+                    severity: warning
+                    disabled: false
+                -   name: unhandled-error
+                    arguments:
+                        - fmt.Printf
+                        - fmt.Println
+                    severity: warning
+                    disabled: false
+                -   name: unnecessary-stmt
+                    severity: warning
+                    disabled: false
+                -   name: unreachable-code
+                    severity: warning
+                    disabled: false
+                -   name: unused-parameter
+                    severity: warning
+                    disabled: false
+                -   name: unused-receiver
+                    severity: warning
+                    disabled: false
+                -   name: useless-break
+                    severity: warning
+                    disabled: false
+                -   name: waitgroup-by-value
+                    severity: warning
+                    disabled: false
+    exclusions:
+        generated: lax
+        presets:
+            - comments
+            - common-false-positives
+            - legacy
+            - std-error-handling
+        paths:
+            - .*\.my\.pb.go$
+            - vendor
+            - e2e-tests
+issues:
+    max-issues-per-linter: 100
+    max-same-issues: 100
+    uniq-by-line: true
+    new: false
+severity:
+    default: error
+formatters:
+    enable:
+        - gci
+    settings:
+        gci:
+            sections:
+                - standard
+                - default
+                - prefix(github.com/awslabs/filemoverexpress)
+    exclusions:
+        generated: lax
+        paths:
+            - .*\.my\.pb.go$
+            - vendor
+            - e2e-tests

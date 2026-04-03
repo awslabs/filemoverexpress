@@ -1,0 +1,157 @@
+@use "../../../../../styles/custom-fields";
+@use "../../../../../styles/material-icons";
+@use "../../../../../styles/variables";
+
+// region form field
+.select-dropdown-field {
+    @include custom-fields.custom-form-field;
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+.select-dropdown-field-focused {
+    @extend .custom-form-field-focused;
+}
+
+.select-dropdown-field-disabled {
+    @extend .custom-form-field-disabled;
+}
+
+.select-dropdown-field-content {
+    @extend .custom-form-field-text-content;
+}
+
+.disabled-select-dropdown-field-content {
+    @extend .disabled-custom-form-field-text-content;
+}
+
+.select-dropdown-field-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.select-dropdown-field-arrow {
+    @extend .custom-form-field-dropdown-arrow;
+}
+
+.select-dropdown-field-arrow-focused {
+    @extend .focused-form-field-dropdown-arrow;
+}
+
+.select-dropdown-field-arrow-disabled {
+    @extend .disabled-custom-form-field-dropdown-arrow;
+}
+
+// endregion
+
+
+// region dropdown menu
+.dropdown-menu {
+    .mat-mdc-menu-panel {
+        min-width: 200px !important;
+        max-width: 600px !important;
+    }
+}
+
+.dropdown-row {
+    @extend .custom-menu-row;
+}
+
+.clickable-dropdown-row {
+    @extend .custom-clickable-menu-row;
+}
+
+.row-divider {
+    @extend .custom-row-divider;
+}
+
+.section-divider {
+    @extend .custom-section-row-divider;
+}
+
+.section-header {
+    @extend .custom-header-text;
+}
+
+.item {
+    @extend .custom-row-text;
+}
+
+.row-text-wrapper {
+    display: flex;
+    flex: fit-content;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.row-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// endregion
+
+
+// region icon styles
+.icon-spacer {
+    @extend .custom-form-field-icon-spacer;
+}
+
+.icon {
+    @extend .custom-form-field-icon;
+}
+
+.action-icon {
+    @extend .custom-form-field-clickable-icon;
+}
+
+.outlined-icon {
+    font-family: material-icons.$material-icon-font-family-outlined;
+}
+
+.row-action-icon-wrapper {
+    display: flex;
+}
+
+// endregion
+
+// region icon colors
+.icon-color-red {
+    color: variables.$red-600;
+}
+
+.icon-color-orange {
+    color: variables.$orange-accent;
+}
+
+.icon-color-yellow {
+    color: variables.$yellow-accent;
+}
+
+.icon-color-green {
+    color: variables.$green-500;
+}
+
+.icon-color-blue {
+    color: variables.$blue-500;
+}
+
+.icon-color-white {
+    color: variables.$white;
+}
+
+.icon-color-gray {
+    color: variables.$grey-450;
+}
+
+.icon-color-black {
+    color: variables.$grey-900;
+}
+
+// endregion

@@ -1,0 +1,46 @@
+<div class="browser-wrapper">
+    <div class="breadcrumbs">
+        <fme-breadcrumbs [breadcrumbPath]="currentDirectory" [root]="'File System'" (navigate)="navigateToPath($event)"></fme-breadcrumbs>
+    </div>
+    <h1 class="title">Local</h1>
+    <div class="inputs-row">
+        <fme-text-input #filterField
+                        [disabled]="connectionState !== ConnectionState.CONNECTED"
+                        class="inputs-row-form-field"
+                        label="Search"
+                        (textChange)="updateFilter($event)">
+        </fme-text-input>
+        <fme-daemon-selector-dropdown [currentDirectory]="currentDirectory"
+                                      [fileBrowserType]="fileBrowserType"
+                                      (daemonSelectorNavigate)="navigateToPath($event)"
+                                      class="inputs-row-form-field">
+        </fme-daemon-selector-dropdown>
+        <div class="spacer"></div>
+        <fme-button type="icon"
+                    icon="create_new_folder"
+                    [onClick]="createLocalFolder()"
+                    [disabled]="connectionState !== ConnectionState.CONNECTED"
+        ></fme-button>
+        <fme-refresh-button [disabled]="connectionState !== ConnectionState.CONNECTED"
+                            [refreshTooltipMessage]="REFRESH_BUTTON_TOOLTIP"
+                            [showRefreshNotificationBadge]="shouldManualRefresh"
+                            (refresh)="refreshFileBrowser()">
+        </fme-refresh-button>
+    </div>
+    <div class="file-browser">
+        <fme-file-browser
+                [fileBrowserType]="fileBrowserType"
+                [fileBrowserID]="fileBrowserID"
+                [allowExternalDragOver]="false"
+                [currentDirectory]="currentDirectory"
+                [isRoot]="isRoot"
+                [filter]="filter"
+                [fileBrowserData]="fileBrowserData"
+                [contextMenuData]="fileBrowserContextMenuData"
+                (fileBrowserDrop)="dragDropDownload($event)"
+                (fileBrowserNavigate)="navigateToPath($event)"
+                (fileBrowserHasChanges)="shouldManualRefresh = $event"
+                (fileBrowserAutoRefresh)="refreshFileBrowser(true)">
+        </fme-file-browser>
+    </div>
+</div>

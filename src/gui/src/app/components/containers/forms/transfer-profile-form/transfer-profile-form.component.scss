@@ -1,0 +1,68 @@
+@use '@angular/material' as mat;
+@use '../../../../../styles/variables';
+@use '../../../../../styles/fonts';
+
+.transfer-profile-form {
+    section {
+        margin-bottom: 16px;
+    }
+}
+
+mat-form-field {
+    width: 100%;
+    display: block;
+}
+
+div.form-field {
+    width: 90%;
+    display: block;
+    margin-bottom: 14px;
+    margin-top: 14px;
+}
+
+div.buttons {
+    padding-top: 12px;
+
+    :not(:last-child) {
+        margin-right: 12px;
+    }
+}
+
+section mat-form-field:not(:last-child) {
+    margin-bottom: 12px;
+}
+
+mat-expansion-panel {
+    border: 2px solid variables.$container-border;
+}
+
+.section-header {
+    font-weight: 600;
+    font-family: fonts.$font-family-heavy;
+    font-size: 16px;
+}
+
+.section-description {
+    font-weight: 500;
+    font-family: fonts.$font-family-heavy;
+    font-size: 14px;
+}
+
+.mat-expansion-panel-header-description {
+    display: flex;
+    justify-content: flex-end;
+}
+
+a {
+    font-weight: bold;
+    color: variables.$text-link;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.warning-hint {
+    color: variables.$yellow-700;
+}

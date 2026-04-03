@@ -1,0 +1,310 @@
+@use "sass:color";
+
+@use "../../../../styles/custom-table";
+@use "../../../../styles/variables";
+
+$table-row-selected-color: variables.$table-selected-row-background-color;
+$drag-over-border-color: variables.$active;
+$row-icon-size: 18px;
+$row-icon-weight: 600;
+
+.file-browser-container {
+    @extend .table-container;
+
+    // prevent select styles
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+
+    // wrapper that fills the whole container
+    .table-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    // selected row styles
+    .selected-row {
+        background: $table-row-selected-color !important;
+
+        &:hover {
+            background: color.adjust($table-row-selected-color, $lightness: 5%, $space: hsl) !important;
+        }
+    }
+
+    .disabled-row {
+        color: variables.$grey-600;
+    }
+
+    // file name cell
+    .file-name {
+        display: flex;
+        gap: 5px;
+        height: 100%;
+        width: 100%;
+
+        .file-name-string {
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 5px;
+        }
+    }
+
+    // column widths
+    .mat-column-size {
+        @include custom-table.clamp-width(120px);
+    }
+
+    .mat-column-dateModified {
+        @include custom-table.clamp-width(200px);
+    }
+
+    // loading styles
+    .file-browser-loading {
+        flex: 1 100%;
+        padding: 40px 50px 40px 50px;
+        text-align: center;
+
+        .file-browser-loading-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+    }
+
+    // error message styles
+    .file-browser-error {
+        flex: 1 100%;
+        padding: 40px 50px 40px 50px;
+        text-align: center;
+
+        .file-browser-error-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .file-browser-error-message {
+            margin-bottom: 15px;
+        }
+
+        .file-browser-error-buttons {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+    }
+
+    // remaining table space when no error
+    .remaining-table-space {
+        flex: 1 100%;
+    }
+
+    // styles when file dragging is in progress
+    .dragging {
+        .selected-row {
+            opacity: 0.7;
+        }
+    }
+
+    // styles while files are being dragged over
+    .dragging-over {
+        .selected-row {
+            background: variables.$grey-700 !important;
+        }
+    }
+
+    // add border to row when dragging over
+    .row-dragged-over {
+        .mdc-data-table__cell:first-child {
+            border-bottom-left-radius: 6px !important;
+            border-top-left-radius: 6px !important;
+            border-left: 2px solid $drag-over-border-color !important;
+        }
+
+        .mdc-data-table__cell:last-child {
+            border-bottom-right-radius: 6px !important;
+            border-top-right-radius: 6px !important;
+            border-right: 2px solid $drag-over-border-color !important;
+        }
+
+        .mdc-data-table__cell {
+            border-bottom: 2px solid $drag-over-border-color !important;
+            border-top: 2px solid $drag-over-border-color !important;
+        }
+    }
+}
+
+// add border to table when dragging over
+.table-dragged-over {
+    border: 2px solid $drag-over-border-color !important;
+}
+
+// region icon styles
+.row-icon-wrapper {
+    width: $row-icon-size;
+    position: relative;
+
+    mat-icon {
+        font-weight: $row-icon-weight;
+        font-size: $row-icon-size;
+        height: $row-icon-size;
+        width: $row-icon-size;
+        position: absolute;
+        display: inline-block;
+        top: 50%;
+        transform: translate(0, -50%);
+    }
+}
+
+.folder-icon {
+    color: variables.$folder-icon-color;
+}
+
+.favorite-icon {
+    color: variables.$yellow-accent;
+}
+
+.hot-folder-icon {
+    color: variables.$orange-accent;
+}
+
+.starting-path-icon {
+    color: variables.$grey-300;
+}
+
+.glacier-icon {
+    color: variables.$blue-500;
+}
+
+//endregion
+
+// region drag preview styles
+// position the drag preview outside of the visible page to hide it
+.drag-preview-container {
+    position: absolute;
+    top: -800px;
+
+    // prevent select styles
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+}
+
+.drag-preview-content-wrapper {
+    position: relative;
+}
+
+.dragged-item-preview {
+    color: white;
+    width: 300px;
+    height: 30px;
+    line-height: 30px;
+    border-radius: 4px;
+    padding: 0 20px 0 20px;
+    vertical-align: middle;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.dragged-item-preview-front {
+    background: color.adjust(variables.$blue-600, $lightness: 5%, $space: hsl);
+    position: absolute;
+    top: 11px;
+    left: 3px;
+}
+
+.dragged-item-preview-back {
+    background: color.adjust(variables.$blue-600, $lightness: -20%, $space: hsl);
+    position: absolute;
+    top: 15px;
+    left: 7px;
+}
+
+.dragged-item-number {
+    background: variables.$red-600;
+    color: white;
+    font-weight: bold;
+    padding: 0 0.25em 0 0.25em;
+    min-width: 12px;
+    border-radius: 40px;
+    text-align: center;
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 335px;
+}
+
+.drag-preview-icon {
+    font-size: 20px;
+    vertical-align: middle;
+}
+
+// endregion
+
+// region icon colors
+.icon-color-red {
+    color: variables.$red-600;
+}
+
+.icon-color-orange {
+    color: variables.$orange-accent;
+}
+
+.icon-color-yellow {
+    color: variables.$yellow-accent;
+}
+
+.icon-color-green {
+    color: variables.$green-500;
+}
+
+.icon-color-blue {
+    color: variables.$blue-500;
+}
+
+.icon-color-white {
+    color: variables.$white;
+}
+
+.icon-color-gray {
+    color: variables.$grey-450;
+}
+
+.icon-color-black {
+    color: variables.$grey-900;
+}
+
+// endregion
+
+.context-menu-row {
+    display: grid;
+    grid-gap: 5px;
+    grid-template-columns: $row-icon-size 1fr;
+    height: 30px;
+    line-height: 30px;
+    width: 100%;
+
+    .context-menu-row-icon {
+        width: $row-icon-size;
+        position: relative;
+
+        mat-icon {
+            font-size: $row-icon-size;
+            height: $row-icon-size;
+            width: $row-icon-size;
+            position: absolute;
+            display: inline-block;
+            top: 50%;
+            transform: translate(0, -50%);
+        }
+    }
+
+    .context-menu-row-label {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+}
+

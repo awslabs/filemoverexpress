@@ -1,0 +1,51 @@
+api_server:
+    allow_ui_configuration: true
+    allowed_origins:
+        - ""
+    blocked_paths:
+        - .aws
+        - .filemoverexpress
+        - /dev
+        - /etc
+    enabled: true
+    remote:
+        enabled: false
+    tls:
+        enabled: false
+general:
+    max_active_checksums: 6
+    max_active_transfers: 5
+    no_sleep: false
+    retry_count: 3
+logging:
+    compress: true
+    directory: logs
+    max_age: 31
+    max_size: 50
+    severity: info
+protocols:
+    s3:
+        transfer_profiles:
+            e2e-test:
+                accelerated: true
+                auto_tuning: true
+                bucket: fme-e2e-tests
+                checksum_algorithm: md5-hex
+                chunk_size: 25
+                enable_metadata_filter: true
+                file_order: [ ]
+                filter: ""
+                max_age: ""
+                name: ""
+                paths:
+                    local: ""
+                    remote: ""
+                profile: e2e-test
+                region: us-west-2
+                storage_class: standard
+                threads: 10
+                upload_hot_folder:
+                    directory: ""
+                    enabled: false
+reports:
+    directory: reports

@@ -1,0 +1,16 @@
+<div [ngClass]="{
+                    'input-form-field': !focused && !disabled,
+                    'focused-input-form-field': focused,
+                    'disabled-input-form-field': disabled
+                }">
+    <div class="leading-icon-spacer">
+        <mat-icon class="icon">search</mat-icon>
+    </div>
+    <input type="text"
+           class="text-input-area"
+           [placeholder]="label()"
+           (focus)="onFocus()"
+           (blur)="onBlur()"
+           [(ngModel)]="inputtedText"
+           [disabled]="disabled()">
+</div>

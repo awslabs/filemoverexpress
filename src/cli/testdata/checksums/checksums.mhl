@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hashlist version="1.0">
+  <creatorinfo>
+    <name>asbjorn</name>
+    <username>asbjorn</username>
+    <hostname>147dda5e263b</hostname>
+    <startdate>2023-09-28T16:07:12.438379</startdate>
+    <finishdate>2023-09-28T16:07:12.438389</finishdate>
+  </creatorinfo>
+  <hash>
+    <file>test-file-3</file>
+    <md5>c1241921341440e5c094f440e0ceb756</md5>
+    <size>384000</size>
+    <lastmodificationdate>2023-09-28T16:06:17.002146</lastmodificationdate>
+    <hashdate>2023-09-28T16:07:12.439240</hashdate>
+  </hash>
+  <hash>
+    <file>test-file-2</file>
+    <md5>cf706ca8f8fee3319b8f739b85ab0444</md5>
+    <size>665600</size>
+    <lastmodificationdate>2023-09-28T16:06:07.683784</lastmodificationdate>
+    <hashdate>2023-09-28T16:07:12.440387</hashdate>
+  </hash>
+  <hash>
+    <file>test-file-1</file>
+    <md5>61d801940ded10755cb2641584d4a0df</md5>
+    <size>512000</size>
+    <lastmodificationdate>2023-09-28T16:06:00.031053</lastmodificationdate>
+    <hashdate>2023-09-28T16:07:12.441236</hashdate>
+  </hash>
+</hashlist>

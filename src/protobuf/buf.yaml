@@ -1,0 +1,16 @@
+version: v2
+lint:
+    use:
+        - STANDARD
+    ignore_only:
+        RPC_REQUEST_RESPONSE_UNIQUE:
+            - fme/v1/fme_service.proto
+        RPC_REQUEST_STANDARD_NAME:
+            - fme/v1/fme_service.proto
+        RPC_RESPONSE_STANDARD_NAME:
+            - fme/v1/fme_service.proto
+breaking:
+    use:
+        - FILE
+deps:
+    - buf.build/googleapis/googleapis

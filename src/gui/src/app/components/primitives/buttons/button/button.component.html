@@ -1,0 +1,22 @@
+<button [class]="type() === 'icon' ? 'button-base' : 'text-button-base'"
+        [class.button-type-filled]="type() === 'filled'"
+        [class.button-type-stroked]="type() !== 'filled'"
+        [class.disabled]="disabled()"
+        [class.warn]="color() === 'warn'"
+        [disabled]="disabled()"
+        (click)="onButtonClick()"
+        [matBadge]="notificationBadge()"
+        [matBadgeHidden]="!notificationBadge"
+        [matTooltip]="tooltip()"
+        type="button">
+    @if (icon()) {
+        <div [class]="type() === 'icon' ? 'icon-button-icon' : 'inline-button-icon'">
+            <mat-icon>{{ icon() }}</mat-icon>
+        </div>
+    }
+    @if (text()) {
+        <div class="button-text">
+            {{ text() }}
+        </div>
+    }
+</button>

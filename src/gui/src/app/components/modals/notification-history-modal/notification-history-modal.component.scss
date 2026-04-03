@@ -1,0 +1,14 @@
+@use "../../../../styles/custom-table";
+@use "../../../../styles/modal";
+
+.notifications-container {
+    @extend .table-container;
+}
+
+.mat-column-timestamp {
+    width: 120px;
+}
+
+.mat-column-level {
+    width: 100px;
+}

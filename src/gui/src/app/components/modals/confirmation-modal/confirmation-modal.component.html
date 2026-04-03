@@ -1,0 +1,22 @@
+<div>
+    <h1 mat-dialog-title>{{ config.title }}</h1>
+</div>
+<div mat-dialog-content>
+    <div class="modal-text" [innerHTML]="config.message"></div>
+</div>
+<div mat-dialog-actions class="modal-buttons">
+    @if (config.cancelText) {
+        <fme-button [type]="config.cancelType"
+                    [text]="config.cancelText"
+                    [color]="config.cancelClass"
+                    [onClick]="cancel()">
+        </fme-button>
+    }
+    @if (config.confirmText) {
+        <fme-button [type]="config.confirmType"
+                    [text]="config.confirmText"
+                    [color]="config.confirmClass"
+                    [onClick]="confirm()">
+        </fme-button>
+    }
+</div>

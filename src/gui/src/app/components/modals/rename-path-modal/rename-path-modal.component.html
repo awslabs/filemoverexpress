@@ -1,0 +1,76 @@
+<h1 mat-dialog-title>Rename {{ data.pathType.toString() | titlecase }}</h1>
+<div mat-dialog-content>
+    <div class="modal-text">
+        <div class="description">
+            <div>
+                Rename {{ data.pathType.toString() }}
+                @if (data.transferProfile) {
+                    for remote configuration <i>{{ data.transferProfile }}</i>
+                }
+            </div>
+            <p class="path-string">
+                {{ data.objectToRename }}
+            </p>
+        </div>
+
+        @if (data.pathType === PathType.S3_OBJECT || data.pathType === PathType.S3_PREFIX) {
+            <div class="warning-message">
+                <div class="warning-message-icon-wrapper">
+                    <mat-icon fontSet="material-icons">warning</mat-icon>
+                </div>
+                <div class="warning-message-text">
+                    @if (data.pathType === PathType.S3_PREFIX) {
+                        This action will copy all objects inside the old S3 prefix to the new S3 prefix you provide and delete the original objects in the old S3 prefix. This can take a long time if there are a lot of objects or the objects are very large.
+                        <a (click)="toggleHint($event, 'rename-s3-prefix')">Info</a>
+                    } @else {
+                        This action will copy the S3 object from the old S3 path to the new S3 path you provide and delete the object at the original S3 path. This can take a long time if the object is very large.
+                        <a (click)="toggleHint($event, 'rename-s3-object')">Info</a>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (shouldShowExtensionRenameWarning(data, this.renamePathForm.value | trimString | fileExtension)) {
+            <div class="warning-message">
+                <div class="warning-message-icon-wrapper">
+                    <mat-icon fontSet="material-icons">warning</mat-icon>
+                </div>
+                <div class="warning-message-text">
+                    Changing the file extension of a file can render the file unusable.
+                </div>
+            </div>
+        }
+
+        <div class="bottom-spacing">
+            <mat-form-field color="accent" class="modal-form-field">
+                <mat-label>New name</mat-label>
+                <input matInput type="text" [formControl]="renamePathForm">
+                @if (renamePathForm.hasError('required')) {
+                    <mat-error>New name is required</mat-error>
+                }
+                @if (renamePathForm.hasError('isEmptyString')) {
+                    <mat-error>New name cannot only contain whitespace</mat-error>
+                }
+                @if (renamePathForm.hasError('pattern')) {
+                    <mat-error>New name cannot have slashes or backslashes</mat-error>
+                }
+                @if (renamePathForm.hasError('isEqual')) {
+                    <mat-error>New name cannot be the same as the old name</mat-error>
+                }
+
+            </mat-form-field>
+        </div>
+        @if (renamePathForm.valid) {
+            <div>
+                New full {{ data.pathType.toString() }} path:
+            </div>
+            <div class="path-string">
+                {{ parentDirectoryDisplayPath }}{{ renamePathForm.value | trimString }}
+            </div>
+        }
+    </div>
+</div>
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled" text="Rename" [disabled]="renamePathForm.invalid" [onClick]="submit()"></fme-button>
+</div>

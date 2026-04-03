@@ -1,0 +1,31 @@
+<div class="breadcrumb-group">
+    <span class="breadcrumb-single-clickable" id="root-folder" (click)="clickBreadcrumb(-1)">{{ root() }}</span>
+    @if (breadcrumbPath() !== '/') {
+        @for (data of breadcrumbs(); track data; let i = $index) {
+            <span id="validBreadcrumbPath">
+                <mat-icon class="arrow-icon">arrow_forward_ios</mat-icon>
+                @if (i !== breadcrumbs().length - 1) {
+                    <span class="breadcrumb-single-clickable"
+                          id="child-folder-clickable"
+                          (click)="clickBreadcrumb(i)"
+                          [matTooltip]="i === 0 && hasEllipse() ? null : data"
+                          [matMenuTriggerFor]="i === 0 && hasEllipse() ? ellipseFolderDropdown : null">
+                            {{ data }}
+                        </span>
+                }
+                @if (i === breadcrumbs().length - 1) {
+                    <span class="last-breadcrumb" id="current-folder" [matTooltip]="data">{{ data }}</span>
+                }
+            </span>
+        }
+    }
+</div>
+
+<mat-menu #ellipseFolderDropdown="matMenu">
+    @for (data of ellipsesFolders(); track data; let i = $index) {
+        <button mat-menu-item (click)="clickEllipseFolder(i)">{{ data }}</button>
+        @if (i !== ellipsesFolders().length - 1) {
+            <mat-divider></mat-divider>
+        }
+    }
+</mat-menu>

@@ -1,0 +1,22 @@
+{
+    "name": "@filemoverexpress/electron",
+    "version": "1.0.0",
+    "productName": "File Mover Express",
+    "license": "MIT",
+    "main": "electron-main.js",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "csv-parse": "6.1.0",
+        "electron-log": "5.4.3",
+        "find-process": "2.0.0",
+        "fix-path": "5.0.0",
+        "rxjs": "7.8.2"
+    },
+    "devDependencies": {
+        "@types/node": "22.7.7",
+        "electron": "39.2.7",
+        "typescript": "5.9.3"
+    }
+}

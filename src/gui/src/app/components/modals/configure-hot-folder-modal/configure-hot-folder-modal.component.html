@@ -1,0 +1,22 @@
+<header mat-dialog-title class="dialog-title">
+    <h1>Configure Hot Folders</h1>
+    <div class="spacer"></div>
+    <a (click)="toggleHint($event, 'hot-folder-settings')">Info</a>
+</header>
+
+<div mat-dialog-content>
+    <fme-hot-folder-form
+            [preFillNewHotFolderData]="preFillNewHotFolderData"
+            [hotFolders]="hotFolders"
+            (hotFoldersEdited)="updateHotFolderForm($event)"
+    >
+    </fme-hot-folder-form>
+</div>
+<div mat-dialog-actions class="modal-buttons">
+    <fme-button type="stroked" text="Close" [onClick]="cancel()"></fme-button>
+    <fme-button type="filled"
+                text="Save"
+                [onClick]="save()"
+                [disabled]="!!hotFolderForm?.invalid">
+    </fme-button>
+</div>

@@ -1,0 +1,187 @@
+syntax = "proto3";
+
+package fme.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+message Job {
+    string job_id = 1;
+    string name = 2;
+    string transfer_profile_name = 3;
+    string status = 4;
+    string status_message = 5;
+    string direction = 6;
+    int64 total_bytes = 7;
+    int64 bytes_uploaded = 8;
+    int64 bytes_downloaded = 9;
+    bool has_task_errors = 10;
+    bool has_successful_tasks = 11;
+    string destination = 12;
+    google.protobuf.Timestamp created = 13;
+    google.protobuf.Timestamp discovering = 14;
+    google.protobuf.Timestamp checksumming = 15;
+    google.protobuf.Timestamp transferring = 16;
+    google.protobuf.Timestamp completed = 17;
+    string bucket = 18;
+}
+
+message Task {
+    string task_id = 1;
+    string destination = 2;
+    TaskLocalFile local_file = 3;
+    TaskS3Object s3_object = 4;
+    string task_direction = 5;
+    string status = 6;
+    string status_message = 7;
+    string job_id = 8;
+    string checksum = 9;
+    int32 priority = 11;
+    string err = 12;
+    int64 bytes_transferred = 13;
+}
+
+message TaskLocalFile {
+    string path = 1;
+    int64 size = 2;
+    google.protobuf.Timestamp last_modified = 3;
+}
+
+message TaskS3Object {
+    string key = 1;
+    int64 size = 2;
+    google.protobuf.Timestamp last_modified = 3;
+}
+
+message CancelJobRequest {
+    string job_id = 1;
+}
+
+message CancelJobResponse {
+    string job_id = 1;
+    bool success = 2;
+}
+
+message PauseJobRequest {
+    string job_id = 1;
+}
+
+message PauseJobResponse {
+    string job_id = 1;
+    bool success = 2;
+}
+
+message ResumeJobRequest {
+    string job_id = 1;
+}
+
+message ResumeJobResponse {
+    string job_id = 1;
+    bool success = 2;
+}
+
+message RenameJobRequest {
+    string job_id = 1;
+    string job_name = 2;
+}
+
+message RenameJobResponse {
+    string job_id = 1;
+    bool success = 2;
+    string error_message = 3;
+}
+
+message ResubmitJobRequest {
+    string job_id = 1;
+}
+
+message ResubmitJobResponse {
+    string job_id = 1;
+    bool success = 2;
+}
+
+message JobProgressEvent {
+    string id = 1;
+    string name = 2;
+    int64 bytes_transferred = 3;
+    int64 total_bytes = 4;
+}
+
+message JobCompleteEvent {
+    string id = 1;
+    string name = 2;
+    google.protobuf.Timestamp completed = 3;
+    bool has_task_errors = 4;
+    bool has_successful_tasks = 5;
+    bool has_all_skipped_tasks = 6;
+}
+
+message JobErrorEvent {
+    string id = 1;
+    string name = 2;
+    google.protobuf.Timestamp error_time = 3;
+    string error = 4;
+}
+
+message JobUpdateEvent {
+    string id = 1;
+    string old_name = 2;
+    string name = 3;
+}
+
+message TaskCompleteEvent {
+    string id = 1;
+    string direction = 2;
+    string destination = 3;
+}
+
+message ListJobsRequest {
+}
+
+message ListJobsResponse {
+    repeated Job jobs = 1;
+}
+
+message ListTasksForJobRequest {
+    string job_id = 1;
+}
+
+message ListTasksForJobResponse {
+    repeated Task tasks = 1;
+}
+
+message ClearCompletedJobsRequest {
+}
+
+message ClearCompletedJobRequest {
+    string job_id = 1;
+}
+
+message ClearCompletedJobsResponse {
+    bool success = 1;
+    repeated string cleared_job_ids = 2;
+    optional string error = 3;
+}
+
+message JobCreateEvent {
+    string id = 1;
+    string name = 2;
+    google.protobuf.Timestamp created = 3;
+    string transfer_profile = 4;
+    string destination = 5;
+    string direction = 6;
+    string status = 7;
+}
+
+message JobStatusChangeEvent {
+    string job_id = 1;
+    string status = 2;
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message JobChecksumProgressEvent {
+    string job_id = 1;
+    int32 total = 2;
+    int32 completed = 3;
+}

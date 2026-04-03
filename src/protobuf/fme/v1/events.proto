@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package fme.v1;
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    EVENT_TYPE_MESSAGE_EVENT_TYPE = 2;
+
+    EVENT_TYPE_INVENTORY_REPORT_STARTED_EVENT_TYPE = 3;
+    EVENT_TYPE_INVENTORY_REPORT_COMPLETED_EVENT_TYPE = 4;
+    EVENT_TYPE_INVENTORY_REPORT_ERROR_EVENT_TYPE = 5;
+
+    EVENT_TYPE_METADATA_EVENT_TYPE = 6;
+    EVENT_TYPE_CONFIGURATION_UPDATE_EVENT_TYPE = 7;
+    EVENT_TYPE_NEW_VERSION_AVAILABLE_EVENT_TYPE = 8;
+    EVENT_TYPE_UNSUPPORTED_VERSION_EVENT_TYPE = 9;
+    EVENT_TYPE_ALERT_EVENT_TYPE = 10;
+    EVENT_TYPE_SERVER_DISCONNECT_EVENT_TYPE = 11;
+
+    EVENT_TYPE_JOB_PROGRESS_EVENT_TYPE = 13;
+    EVENT_TYPE_JOB_COMPLETE_EVENT_TYPE = 14;
+    EVENT_TYPE_JOB_ERROR_EVENT_TYPE = 15;
+    EVENT_TYPE_JOB_UPDATE_EVENT_TYPE = 16;
+    EVENT_TYPE_TASK_COMPLETE_EVENT_TYPE = 17;
+    EVENT_TYPE_JOB_STATUS_CHANGE_EVENT_TYPE = 18;
+    EVENT_TYPE_JOB_CREATE_EVENT_TYPE = 19;
+    EVENT_TYPE_JOB_CHECKSUM_PROGRESS_EVENT = 20;
+    EVENT_TYPE_TRANSFER_STATS_EVENT_TYPE = 21;
+}
+
+enum DisconnectType {
+    DISCONNECT_TYPE_UNSPECIFIED = 0;
+    DISCONNECT_TYPE_CLI_DOWNLOADS_COMPLETE_DISCONNECT_TYPE = 2;
+    DISCONNECT_TYPE_CLI_UPLOADS_COMPLETE_DISCONNECT_TYPE = 4;
+    DISCONNECT_TYPE_DAEMON_MODE_EXIT_DISCONNECT_TYPE = 8;
+}
+
+message MessageEvent {
+    string msg = 1;
+    string log_level = 2;
+}
+
+message AlertEvent {
+    string msg = 1;
+    string level = 2;
+}
+
+message NewVersionAvailableEvent {
+    string new_version = 1;
+    string current_version = 2;
+    repeated string release_notes = 3;
+}
+
+message ServerDisconnectEvent {
+    DisconnectType disconnect_type = 1;
+}
+
+message ConfigurationUpdateEvent {
+}
+
+message UnsupportedVersionEvent {
+    string new_supported_version = 1;
+    string current_version = 2;
+    repeated string release_notes = 3;
+}
+
+message TransferStatsEvent {
+    int32 active_downloads = 1;
+    int32 active_uploads = 2;
+    int64 download_bps = 3;
+    int64 upload_bps = 4;
+    int64 total_bytes_downloaded = 5;
+    int64 total_bytes_uploaded = 6;
+}
