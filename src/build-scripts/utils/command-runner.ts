@@ -1,4 +1,4 @@
-import {spawn} from 'child_process';
+import spawn from 'cross-spawn';
 import {Logger} from './logger';
 
 export interface CommandResult {
@@ -23,7 +23,6 @@ export class CommandRunner {
             const childProcess = spawn(command, args, {
                 cwd: options?.cwd,
                 env: {...process.env, ...options?.env},
-                shell: true,
             });
 
             let stdout = '';
@@ -71,7 +70,6 @@ export class CommandRunner {
         return new Promise((resolve) => {
             const childProcess = spawn(command, args, {
                 stdio: 'inherit',
-                shell: true,
             });
 
             childProcess.on('close', (code: number | null) => {

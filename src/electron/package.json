@@ -8,15 +8,15 @@
         "build": "tsc"
     },
     "dependencies": {
-        "csv-parse": "6.1.0",
+        "csv-parse": "6.2.1",
         "electron-log": "5.4.3",
-        "find-process": "2.0.0",
+        "find-process": "2.1.1",
         "fix-path": "5.0.0",
         "rxjs": "7.8.2"
     },
     "devDependencies": {
-        "@types/node": "22.7.7",
-        "electron": "39.2.7",
+        "@types/node": "25.5.2",
+        "electron": "41.1.1",
         "typescript": "5.9.3"
     }
 }

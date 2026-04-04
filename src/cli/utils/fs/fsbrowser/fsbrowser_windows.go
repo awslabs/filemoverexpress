@@ -8,7 +8,7 @@ import (
     "regexp"
     "strings"
 
-    "github.com/shirou/gopsutil/v3/disk"
+    "github.com/shirou/gopsutil/v4/disk"
     "google.golang.org/protobuf/types/known/timestamppb"
 
     "github.com/awslabs/filemoverexpress/globals"

@@ -2,10 +2,13 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {cleanupMocks, createMockChildProcess} from '../test-utils';
 import {CommandRunner} from './command-runner';
 
-// Mock child_process module
-vi.mock('child_process', () => ({
-    spawn: vi.fn(),
-}));
+// Mock cross-spawn module
+vi.mock('cross-spawn', () => {
+    const fn = vi.fn();
+    fn.spawn = fn;
+    fn.sync = vi.fn();
+    return {default: fn};
+});
 
 // Mock Logger module
 vi.mock('./logger', () => ({
@@ -21,11 +24,11 @@ vi.mock('./logger', () => ({
 describe('CommandRunner', () => {
     beforeEach(async () => {
         // Import mocked modules
-        const {spawn} = await import('child_process');
+        const crossSpawn = await import('cross-spawn');
         const {Logger} = await import('./logger');
 
         // Reset mocks before each test
-        vi.mocked(spawn).mockReset();
+        vi.mocked(crossSpawn.default).mockReset();
         vi.mocked(Logger.error).mockReset();
     });
 
@@ -37,13 +40,13 @@ describe('CommandRunner', () => {
         describe('successful command execution', () => {
             it('should capture stdout for commands that exit with code 0', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const expectedStdout = 'test output from command';
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                     stdout: expectedStdout,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('echo', ['test']);
@@ -56,12 +59,12 @@ describe('CommandRunner', () => {
 
             it('should return exit code 0 for successful commands', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                     stdout: 'success',
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('ls', []);
@@ -72,11 +75,11 @@ describe('CommandRunner', () => {
 
             it('should handle commands with no output', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('true', []);
@@ -91,13 +94,13 @@ describe('CommandRunner', () => {
         describe('failed command execution', () => {
             it('should capture stderr for commands that fail', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const expectedStderr = 'error: command not found';
                 const mockProcess = createMockChildProcess({
                     exitCode: 1,
                     stderr: expectedStderr,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('invalid-command', []);
@@ -109,12 +112,12 @@ describe('CommandRunner', () => {
 
             it('should return non-zero exit code for failed commands', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const mockProcess = createMockChildProcess({
                     exitCode: 127,
                     stderr: 'command not found',
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('nonexistent', []);
@@ -125,13 +128,13 @@ describe('CommandRunner', () => {
 
             it('should handle commands with both stdout and stderr', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const mockProcess = createMockChildProcess({
                     exitCode: 1,
                     stdout: 'partial output',
                     stderr: 'error occurred',
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('test', ['arg']);
@@ -144,7 +147,7 @@ describe('CommandRunner', () => {
 
             it('should handle process error events', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const {Logger} = await import('./logger');
 
                 // Create a mock that triggers the error event
@@ -163,7 +166,7 @@ describe('CommandRunner', () => {
                         return mockProcess;
                     }),
                 };
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('test', []);
@@ -176,7 +179,7 @@ describe('CommandRunner', () => {
 
             it('should default to exit code 1 when close event returns null', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const mockProcess = {
                     stdout: {
                         on: vi.fn((event: string, handler: any) => mockProcess.stdout),
@@ -191,7 +194,7 @@ describe('CommandRunner', () => {
                         return mockProcess;
                     }),
                 };
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('test', []);
@@ -204,7 +207,8 @@ describe('CommandRunner', () => {
         describe('environment variable passing', () => {
             it('should pass custom environment variables to spawned process', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const customEnv = {
                     CUSTOM_VAR: 'custom_value',
                     ANOTHER_VAR: 'another_value',
@@ -230,7 +234,8 @@ describe('CommandRunner', () => {
 
             it('should merge custom env with process.env', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const originalPath = process.env.PATH;
                 const customEnv = {CUSTOM_VAR: 'value'};
                 const mockProcess = createMockChildProcess({
@@ -250,7 +255,8 @@ describe('CommandRunner', () => {
 
             it('should allow custom env to override process.env variables', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const customEnv = {PATH: '/custom/path'};
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
@@ -268,7 +274,8 @@ describe('CommandRunner', () => {
 
             it('should work without custom environment variables', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                 });
@@ -287,14 +294,14 @@ describe('CommandRunner', () => {
         describe('verbose output mode', () => {
             it('should stream stdout to process.stdout when verbose is true', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
                 const testOutput = 'verbose output';
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                     stdout: testOutput,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 await CommandRunner.run('test', [], {verbose: true});
@@ -305,14 +312,14 @@ describe('CommandRunner', () => {
 
             it('should stream stderr to process.stderr when verbose is true', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
                 const testError = 'verbose error';
                 const mockProcess = createMockChildProcess({
                     exitCode: 1,
                     stderr: testError,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 await CommandRunner.run('test', [], {verbose: true});
@@ -323,7 +330,7 @@ describe('CommandRunner', () => {
 
             it('should not stream output when verbose is false', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
                 const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
                 const mockProcess = createMockChildProcess({
@@ -331,7 +338,7 @@ describe('CommandRunner', () => {
                     stdout: 'output',
                     stderr: 'error',
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 await CommandRunner.run('test', [], {verbose: false});
@@ -343,7 +350,7 @@ describe('CommandRunner', () => {
 
             it('should not stream output when verbose is undefined', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
                 const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
                 const mockProcess = createMockChildProcess({
@@ -351,7 +358,7 @@ describe('CommandRunner', () => {
                     stdout: 'output',
                     stderr: 'error',
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 await CommandRunner.run('test', []);
@@ -363,14 +370,14 @@ describe('CommandRunner', () => {
 
             it('should still capture output when verbose is true', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
                 const testOutput = 'captured output';
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                     stdout: testOutput,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('test', [], {verbose: true});
@@ -383,7 +390,8 @@ describe('CommandRunner', () => {
         describe('working directory option', () => {
             it('should pass cwd option to spawn', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const customCwd = '/custom/working/directory';
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
@@ -407,7 +415,8 @@ describe('CommandRunner', () => {
         describe('command arguments', () => {
             it('should pass command arguments correctly', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const args = ['arg1', 'arg2', '--flag'];
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
@@ -427,7 +436,8 @@ describe('CommandRunner', () => {
 
             it('should handle empty arguments array', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                 });
@@ -446,9 +456,10 @@ describe('CommandRunner', () => {
         });
 
         describe('shell option', () => {
-            it('should always spawn with shell: true', async () => {
+            it('should spawn without shell option for security', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
+                const spawn = crossSpawn.default;
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                 });
@@ -461,8 +472,8 @@ describe('CommandRunner', () => {
                 expect(spawn).toHaveBeenCalledWith(
                     'test',
                     [],
-                    expect.objectContaining({
-                        shell: true,
+                    expect.not.objectContaining({
+                        shell: expect.anything(),
                     }),
                 );
             });
@@ -471,7 +482,7 @@ describe('CommandRunner', () => {
         describe('promise rejection handling', () => {
             it('should handle promise rejection in async operations', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const mockProcess = {
                     stdout: {
                         on: vi.fn((event: string, handler: any) => mockProcess.stdout),
@@ -486,7 +497,7 @@ describe('CommandRunner', () => {
                         return mockProcess;
                     }),
                 };
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('test', []);
@@ -500,13 +511,13 @@ describe('CommandRunner', () => {
         describe('large output handling', () => {
             it('should handle commands with large output', async () => {
                 // Arrange
-                const {spawn} = await import('child_process');
+                const crossSpawn = await import('cross-spawn');
                 const largeOutput = 'x'.repeat(10000); // 10KB of output
                 const mockProcess = createMockChildProcess({
                     exitCode: 0,
                     stdout: largeOutput,
                 });
-                vi.mocked(spawn).mockReturnValue(mockProcess as any);
+                vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
                 // Act
                 const result = await CommandRunner.run('test', []);
@@ -522,7 +533,7 @@ describe('CommandRunner', () => {
     describe('runWithLiveOutput', () => {
         it('should return exit code 0 for successful commands', async () => {
             // Arrange
-            const {spawn} = await import('child_process');
+            const crossSpawn = await import('cross-spawn');
             const mockProcess = {
                 on: vi.fn((event: string, handler: any) => {
                     if (event === 'close') {
@@ -531,7 +542,7 @@ describe('CommandRunner', () => {
                     return mockProcess;
                 }),
             };
-            vi.mocked(spawn).mockReturnValue(mockProcess as any);
+            vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
             // Act
             const exitCode = await CommandRunner.runWithLiveOutput('test', []);
@@ -542,7 +553,7 @@ describe('CommandRunner', () => {
 
         it('should return non-zero exit code for failed commands', async () => {
             // Arrange
-            const {spawn} = await import('child_process');
+            const crossSpawn = await import('cross-spawn');
             const mockProcess = {
                 on: vi.fn((event: string, handler: any) => {
                     if (event === 'close') {
@@ -551,7 +562,7 @@ describe('CommandRunner', () => {
                     return mockProcess;
                 }),
             };
-            vi.mocked(spawn).mockReturnValue(mockProcess as any);
+            vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
             // Act
             const exitCode = await CommandRunner.runWithLiveOutput('test', []);
@@ -560,9 +571,10 @@ describe('CommandRunner', () => {
             expect(exitCode).toBe(1);
         });
 
-        it('should spawn with stdio: inherit', async () => {
+        it('should spawn with stdio: inherit and without shell', async () => {
             // Arrange
-            const {spawn} = await import('child_process');
+            const crossSpawn = await import('cross-spawn');
+            const spawn = crossSpawn.default;
             const mockProcess = {
                 on: vi.fn((event: string, handler: any) => {
                     if (event === 'close') {
@@ -582,14 +594,20 @@ describe('CommandRunner', () => {
                 ['arg'],
                 expect.objectContaining({
                     stdio: 'inherit',
-                    shell: true,
+                }),
+            );
+            expect(spawn).toHaveBeenCalledWith(
+                'test',
+                ['arg'],
+                expect.not.objectContaining({
+                    shell: expect.anything(),
                 }),
             );
         });
 
         it('should handle error events', async () => {
             // Arrange
-            const {spawn} = await import('child_process');
+            const crossSpawn = await import('cross-spawn');
             const {Logger} = await import('./logger');
             const mockProcess = {
                 on: vi.fn((event: string, handler: any) => {
@@ -599,7 +617,7 @@ describe('CommandRunner', () => {
                     return mockProcess;
                 }),
             };
-            vi.mocked(spawn).mockReturnValue(mockProcess as any);
+            vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
             // Act
             const exitCode = await CommandRunner.runWithLiveOutput('test', []);
@@ -611,7 +629,7 @@ describe('CommandRunner', () => {
 
         it('should default to exit code 1 when close event returns null', async () => {
             // Arrange
-            const {spawn} = await import('child_process');
+            const crossSpawn = await import('cross-spawn');
             const mockProcess = {
                 on: vi.fn((event: string, handler: any) => {
                     if (event === 'close') {
@@ -620,7 +638,7 @@ describe('CommandRunner', () => {
                     return mockProcess;
                 }),
             };
-            vi.mocked(spawn).mockReturnValue(mockProcess as any);
+            vi.mocked(crossSpawn.default).mockReturnValue(mockProcess as any);
 
             // Act
             const exitCode = await CommandRunner.runWithLiveOutput('test', []);

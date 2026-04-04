@@ -80,7 +80,7 @@ export class CLIBuilder extends BaseBuilder {
         }
 
         if (this.config.ldFlags.length > 0) {
-            buildArgs.push('-ldflags', `'${this.config.ldFlags.join(' ')}'`);
+            buildArgs.push(`-ldflags="${this.config.ldFlags.join(' ')}"`);
         }
 
         buildArgs.push('-o', outputPath);
@@ -152,7 +152,7 @@ export class CLIBuilder extends BaseBuilder {
         }
 
         if (this.config.ldFlags.length > 0) {
-            buildArgs.push('-ldflags', this.config.ldFlags.join(' '));
+            buildArgs.push(`-ldflags="${this.config.ldFlags.join(' ')}"`);
         }
 
         Logger.debug('Building Windows daemon launcher...');

@@ -20,8 +20,3 @@ plugins:
         opt:
             - target=ts
             - import_extension=none
-    -   local: protoc-gen-connect-es
-        out: ../../src/gui/src/gen/connect
-        opt:
-            - target=ts
-            - import_extension=none

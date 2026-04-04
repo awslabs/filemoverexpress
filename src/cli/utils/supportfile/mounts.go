@@ -1,7 +1,7 @@
 package supportfile
 
 import (
-    "github.com/shirou/gopsutil/v3/disk"
+    "github.com/shirou/gopsutil/v4/disk"
 
     "github.com/awslabs/filemoverexpress/events"
     "github.com/awslabs/filemoverexpress/types/supportfiletypes"

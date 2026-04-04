@@ -3,7 +3,7 @@ package supportfile
 import (
     "math"
 
-    "github.com/shirou/gopsutil/v3/mem"
+    "github.com/shirou/gopsutil/v4/mem"
 
     "github.com/awslabs/filemoverexpress/events"
     "github.com/awslabs/filemoverexpress/types/supportfiletypes"
