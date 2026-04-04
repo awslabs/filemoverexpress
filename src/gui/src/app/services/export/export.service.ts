@@ -101,7 +101,7 @@ export class ExportService {
      * @param {ExportJobList} data
      * @private
      */
-    private processJob(config: ExportJobConfig, data: ExportJobList) {
+    private async processJob(config: ExportJobConfig, data: ExportJobList): Promise<void> {
         const timestamp = formatDate(new Date(), true);
         const cfg: ExportJobConfig = {
             ...DEFAULT_EXPORT_JOB_CONFIG,
@@ -121,7 +121,7 @@ export class ExportService {
                 mt = ExportMimeTypes.CSV;
                 break;
             case 'xlsx':
-                result = convertTransfersToExcel(data);
+                result = await convertTransfersToExcel(data);
                 if (!result) {
                     this.notifications.info('There are no jobs to export. Not downloading XLSX file.');
                     return;

@@ -1,8 +1,5 @@
 import { ExportJobList } from '@services/export/export.interfaces';
-// xlsx (SheetJS) is intentionally installed from the SheetJS CDN (cdn.sheetjs.com) rather than npm.
-// SheetJS was removed from the npm registry in 2022; the CDN is the only supported distribution channel.
-// See: https://docs.sheetjs.com/docs/getting-started/installation/nodejs
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { TransferDirection } from '@app/interfaces/jobs-table';
 import { FlattenedTask, Task } from '@classes/grpc/task';
 
@@ -130,47 +127,50 @@ export function convertTransfersToJson(data: ExportJobList): string {
 /**
  * Convert exported NGRX transfer data to XLSX
  * @param {ExportJobList} data - Transfer input data
- * @returns any - Returns the XLSX formatted data, or empty string if there is no data or an error occurred.
+ * @returns Promise<string> - Returns the base64-encoded XLSX data, or empty string if there is no data or an error occurred.
  */
-export function convertTransfersToExcel(data: ExportJobList) {
-    if (Object.keys(data).length == 0) {
+export async function convertTransfersToExcel(data: ExportJobList): Promise<string> {
+    if (Object.keys(data).length === 0) {
         return '';
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        const workbook = new ExcelJS.Workbook();
 
         for (const job of Object.values(data)) {
             const sheetName = sanitizeSheetName(job.jobName);
+            const directionLabel = job.direction === TransferDirection.Download ? 'download' : 'upload';
+            const worksheet = workbook.addWorksheet(`${sheetName} (${directionLabel})`);
 
             const flattenedTransfers: FlattenedTask[] = [];
             for (const transfer of job.transfers) {
                 flattenedTransfers.push(Task.toFlattenedTask(transfer, job.bucket));
             }
 
-            XLSX.utils.book_append_sheet(
-                wb,
-                XLSX.utils.json_to_sheet(flattenedTransfers),
-                `${sheetName} (${job.direction === TransferDirection.Download ? 'download' : 'upload'})`,
-            );
+            if (flattenedTransfers.length > 0) {
+                worksheet.columns = Object.keys(flattenedTransfers[0]).map(key => ({
+                    header: key,
+                    key: key,
+                }));
+                worksheet.addRows(flattenedTransfers);
+            }
         }
 
-        return XLSX.write(
-            wb,
-            {
-                bookType: 'xlsx',
-                type: 'base64',
-                bookSST: true,
-                cellDates: true,
-            },
-        );
+        const buffer: ArrayBuffer = await workbook.xlsx.writeBuffer() as ArrayBuffer;
+
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
     } catch (e) {
-        console.error(`Error occurred in convertTransfersToExcel: ${e} `);
+        console.error(`Error occurred in convertTransfersToExcel: ${e}`);
         return '';
     }
 }
 
-function sanitizeSheetName(jobName: string): string {
+export function sanitizeSheetName(jobName: string): string {
     let sheetname = jobName;
     if (sheetname.length > 20) {
         sheetname = `${sheetname.substring(0, 17)}...`;

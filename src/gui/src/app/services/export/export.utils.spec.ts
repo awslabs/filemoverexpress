@@ -95,15 +95,15 @@ describe('[exportUtils] convertTransfersToExcel', () => {
     };
 
     for (const testDescription of Object.keys(emptyTestCases)) {
-        it(testDescription, () => {
-            const result = exportUtils.convertTransfersToExcel(emptyTestCases[testDescription]);
+        it(testDescription, async () => {
+            const result = await exportUtils.convertTransfersToExcel(emptyTestCases[testDescription]);
             expect(result).toBe('');
         });
     }
 
     for (const testDescription of Object.keys(nonEmptyTestCases)) {
-        it(testDescription, () => {
-            const result = exportUtils.convertTransfersToExcel(nonEmptyTestCases[testDescription]);
+        it(testDescription, async () => {
+            const result = await exportUtils.convertTransfersToExcel(nonEmptyTestCases[testDescription]);
             expect(result).not.toBe('');
         });
     }

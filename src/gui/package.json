@@ -43,15 +43,12 @@
         "@ngrx/store-devtools": "21.1.0",
         "csv-parse": "6.2.1",
         "date-fns": "4.1.0",
+        "exceljs": "4.4.0",
         "google-protobuf": "3.21.4",
         "rxjs": "7.8.2",
         "semver-ts": "1.0.3",
         "tslib": "2.8.1",
-        "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
         "zone.js": "0.15.1"
-    },
-    "dependencyNotes": {
-        "xlsx": "SheetJS (xlsx) was removed from npm in 2022 and is now exclusively distributed via the SheetJS CDN (cdn.sheetjs.com). The CDN URL is the only supported installation method. See https://docs.sheetjs.com/docs/getting-started/installation/nodejs for details."
     },
     "devDependencies": {
         "@angular-devkit/core": "21.2.6",
