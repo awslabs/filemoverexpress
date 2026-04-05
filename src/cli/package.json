@@ -9,10 +9,9 @@
         "build:linux": "ts-node ../build-scripts/build.ts cli build --platforms linux",
         "build:windows": "ts-node ../build-scripts/build.ts cli build --platforms windows",
         "build:all": "ts-node ../build-scripts/build.ts cli build",
-        "test": "go test -short -v -cover ./...",
-        "test:coverage": "go test -coverprofile=coverage.out $(go list ./... | grep -v e2e-tests) && go tool cover -html=coverage.out",
+        "test": "go test -gcflags=\"all=-N -l\" -short -v -cover ./...",
+        "test:coverage": "go test -gcflags=\"all=-N -l\" -coverprofile=coverage.out $(go list ./... | grep -v e2e-tests) && go tool cover -html=coverage.out",
         "test:e2e": "cross-env E2E_TEST=true go test ./e2e-tests/... -v",
-        "test:docker-e2e": "docker-compose -f e2e-tests/docker-compose.yml up --abort-on-container-exit",
         "lint": "golangci-lint run",
         "lint:fix": "golangci-lint run --fix",
         "clean": "node ../build-scripts/cli/clean.js dist"

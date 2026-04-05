@@ -25,8 +25,7 @@ export class BreadcrumbsComponent {
      * Get full list of folder paths in an array and clean out empty path elements
      */
     cleanBreadcrumbsPathArray = computed(() => {
-        const paths = this.breadcrumbPath().split('/').filter((itm) => itm.trim().length);
-        return paths;
+        return this.breadcrumbPath().split('/').filter((itm) => itm.trim().length);
     });
 
     /**
@@ -66,7 +65,7 @@ export class BreadcrumbsComponent {
 
     /**
      * Click the single breadcrumb will emit the event to navigate the browser to the clicked folder
-     * @param folderIdx The idx of the folder in the displayed breadcrumbs path.
+     * @param folderIdx The idx of the folder in the displayed breadcrumb path.
      */
     clickBreadcrumb(folderIdx: number): void {
         if (folderIdx === -1) {
@@ -86,7 +85,7 @@ export class BreadcrumbsComponent {
             // compute real index
             pathIndex += this.ellipsesFolders().length;
         }
-        let clickedFolder: string = this.cleanBreadcrumbsPathArray().slice(0, pathIndex).join(fileSeparator);
+        let clickedFolder: string = this.cleanBreadcrumbsPathArray().slice(0, pathIndex + 1).join(fileSeparator);
         if (clickedFolder[0] != fileSeparator) {
             clickedFolder = fileSeparator + clickedFolder;
         }
