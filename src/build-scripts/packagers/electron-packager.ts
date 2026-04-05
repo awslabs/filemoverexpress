@@ -12,6 +12,7 @@ import {Platform, PlatformConfig} from '../types/platform';
 import {CommandRunner} from '../utils/command-runner';
 import {Logger} from '../utils/logger';
 import {PathResolver} from '../utils/path-resolver';
+import {toPosix} from '../utils/normalize-path';
 import {TempDirManager} from '../utils/temp-dir-manager';
 import {BasePackager} from './base-packager';
 
@@ -49,7 +50,7 @@ export class ElectronPackager extends BasePackager {
         Logger.debug(`Packaging Electron app for ${platform.platform}-${platform.arch}`);
 
         const tempDirManager = new TempDirManager();
-        const outputPath = path.join(PathResolver.getProjectRoot(), this.config.outputPath);
+        const outputPath = toPosix(path.join(PathResolver.getProjectRoot(), this.config.outputPath));
 
         const stagingDir = tempDirManager.createTempDir({prefix: 'electron-build-'});
 
@@ -75,7 +76,7 @@ export class ElectronPackager extends BasePackager {
             };
 
             if (iconPath) {
-                packagerOptions.icon = path.join(stagingDir, iconPath);
+                packagerOptions.icon = toPosix(path.join(stagingDir, iconPath));
             }
 
             Logger.debug(`Packaging with options: ${JSON.stringify(packagerOptions, null, 2)}`);
@@ -118,10 +119,10 @@ export class ElectronPackager extends BasePackager {
     }
 
     private async verifyPackagedApp(platform: PlatformConfig): Promise<void> {
-        const outputPath = path.join(PathResolver.getProjectRoot(), this.config.outputPath);
+        const outputPath = toPosix(path.join(PathResolver.getProjectRoot(), this.config.outputPath));
 
         const expectedAppName = this.getExpectedAppName(platform);
-        const expectedPath = path.join(outputPath, expectedAppName);
+        const expectedPath = toPosix(path.join(outputPath, expectedAppName));
 
         try {
             await fs.access(expectedPath);
@@ -157,17 +158,17 @@ export class ElectronPackager extends BasePackager {
         Logger.debug(`Staging files for ${platform.platform}-${platform.arch} to: ${stagingDir}`);
 
         const electronDir = PathResolver.getElectronDir();
-        const guiDistDir = path.join(PathResolver.getGUIDir(), 'dist', 'browser');
+        const guiDistDir = toPosix(path.join(PathResolver.getGUIDir(), 'dist', 'browser'));
 
         // Define source and destination paths
-        const electronPackageJson = path.join(electronDir, 'package.json');
-        const electronDistDir = path.join(electronDir, 'dist');
-        const electronAssetsDir = path.join(electronDir, 'assets');
+        const electronPackageJson = toPosix(path.join(electronDir, 'package.json'));
+        const electronDistDir = toPosix(path.join(electronDir, 'dist'));
+        const electronAssetsDir = toPosix(path.join(electronDir, 'assets'));
 
         // Copy electron package.json
         try {
             await fs.access(electronPackageJson);
-            await fs.copyFile(electronPackageJson, path.join(stagingDir, 'package.json'));
+            await fs.copyFile(electronPackageJson, toPosix(path.join(stagingDir, 'package.json')));
             Logger.debug('Copied electron package.json');
         } catch (error) {
             throw new Error(
@@ -181,8 +182,8 @@ export class ElectronPackager extends BasePackager {
             await fs.access(electronDistDir);
             const distFiles = await fs.readdir(electronDistDir);
             for (const file of distFiles) {
-                const srcPath = path.join(electronDistDir, file);
-                const destPath = path.join(stagingDir, file);
+                const srcPath = toPosix(path.join(electronDistDir, file));
+                const destPath = toPosix(path.join(stagingDir, file));
                 const stat = await fs.stat(srcPath);
                 if (stat.isDirectory()) {
                     await fs.cp(srcPath, destPath, {recursive: true});
@@ -201,7 +202,7 @@ export class ElectronPackager extends BasePackager {
         // Copy electron assets
         try {
             await fs.access(electronAssetsDir);
-            await fs.cp(electronAssetsDir, path.join(stagingDir, 'assets'), {recursive: true});
+            await fs.cp(electronAssetsDir, toPosix(path.join(stagingDir, 'assets')), {recursive: true});
             Logger.debug('Copied electron assets');
         } catch (error) {
             throw new Error(
@@ -213,7 +214,7 @@ export class ElectronPackager extends BasePackager {
         // Copy GUI build output to app subdirectory
         try {
             await fs.access(guiDistDir);
-            await fs.cp(guiDistDir, path.join(stagingDir, 'app'), {recursive: true});
+            await fs.cp(guiDistDir, toPosix(path.join(stagingDir, 'app')), {recursive: true});
             Logger.debug('Copied GUI build output to app directory');
         } catch (error) {
             throw new Error(

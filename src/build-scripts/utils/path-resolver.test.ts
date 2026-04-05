@@ -1,6 +1,7 @@
 import * as path from 'path';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {cleanupMocks} from '../test-utils';
+import {toPosix} from './normalize-path';
 import {PathResolver} from './path-resolver';
 
 // Mock the fs module
@@ -39,7 +40,7 @@ describe('PathResolver', () => {
             expect(path.isAbsolute(result)).toBe(true);
             expect(mockExistsSync).toHaveBeenCalled();
             // Verify it found a directory with the expected structure
-            expect(result).toContain('FileMoverExpressForAWS');
+            expect(result).toContain('build-scripts');
         });
 
         it('should cache project root after first call', () => {
@@ -90,7 +91,7 @@ describe('PathResolver', () => {
             // Arrange
             mockExistsSync.mockReturnValue(true);
             const projectRoot = PathResolver.getProjectRoot();
-            const expectedPath = path.join(projectRoot, 'src', 'cli');
+            const expectedPath = toPosix(path.join(projectRoot, 'src', 'cli'));
 
             // Act
             const result = PathResolver.getCLIDir();
@@ -121,7 +122,7 @@ describe('PathResolver', () => {
             // Arrange
             mockExistsSync.mockReturnValue(true);
             const projectRoot = PathResolver.getProjectRoot();
-            const expectedPath = path.join(projectRoot, 'src', 'gui');
+            const expectedPath = toPosix(path.join(projectRoot, 'src', 'gui'));
 
             // Act
             const result = PathResolver.getGUIDir();
@@ -152,7 +153,7 @@ describe('PathResolver', () => {
             // Arrange
             mockExistsSync.mockReturnValue(true);
             const projectRoot = PathResolver.getProjectRoot();
-            const expectedPath = path.join(projectRoot, 'src', 'electron');
+            const expectedPath = toPosix(path.join(projectRoot, 'src', 'electron'));
 
             // Act
             const result = PathResolver.getElectronDir();
@@ -169,7 +170,7 @@ describe('PathResolver', () => {
             // Arrange
             mockExistsSync.mockReturnValue(true);
             const projectRoot = PathResolver.getProjectRoot();
-            const expectedPath = path.join(projectRoot, 'src', 'build-scripts');
+            const expectedPath = toPosix(path.join(projectRoot, 'src', 'build-scripts'));
 
             // Act
             const result = PathResolver.getBuildScriptsDir();
@@ -186,7 +187,7 @@ describe('PathResolver', () => {
             // Arrange
             mockExistsSync.mockReturnValue(true);
             const projectRoot = PathResolver.getProjectRoot();
-            const expectedPath = path.join(projectRoot, 'src', 'protobuf');
+            const expectedPath = toPosix(path.join(projectRoot, 'src', 'protobuf'));
 
             // Act
             const result = PathResolver.getProtobufDir();
@@ -227,7 +228,7 @@ describe('PathResolver', () => {
 
         it('should resolve absolute path', () => {
             // Arrange
-            const absolutePath = path.resolve('/absolute/path/to/file.txt');
+            const absolutePath = toPosix(path.resolve('/absolute/path/to/file.txt'));
 
             // Act
             const result = PathResolver.resolve(absolutePath);
@@ -266,7 +267,7 @@ describe('PathResolver', () => {
             const result = PathResolver.resolve(...segments);
 
             // Assert
-            expect(result).toBe(path.resolve(...segments));
+            expect(result).toBe(toPosix(path.resolve(...segments)));
         });
 
         it('should handle parent directory references', () => {

@@ -458,6 +458,7 @@ describe('LocalInstaller', () => {
 
         it('should throw error if LOCALAPPDATA is not set', async () => {
             vi.unstubAllEnvs();
+            delete process.env.LOCALAPPDATA;
 
             await expect(installer.generate()).rejects.toThrow('LOCALAPPDATA environment variable is not set');
         });
@@ -665,6 +666,7 @@ describe('LocalInstaller', () => {
             installer = new LocalInstaller();
 
             vi.unstubAllEnvs();
+            delete process.env.LOCALAPPDATA;
 
             const rl = mockReadline.createInterface();
             vi.mocked(rl.question).mockImplementation((question: string, callback: (answer: string) => void) => {

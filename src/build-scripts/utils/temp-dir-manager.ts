@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import {toPosix} from './normalize-path';
 
 /**
  * Options for creating a temporary directory.
@@ -142,7 +143,7 @@ export class TempDirManager {
     public createTempDir(options?: TempDirOptions): string {
         const tmpdir = os.tmpdir();
         const prefix = options?.prefix || 'fme-tmp-';
-        const tempPath = path.join(tmpdir, prefix);
+        const tempPath = toPosix(path.join(tmpdir, prefix));
 
         try {
             return fs.mkdtempSync(tempPath);

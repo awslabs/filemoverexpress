@@ -6,6 +6,7 @@ import {Architecture, Platform, PlatformConfig} from '../types/platform';
 import {CommandRunner} from '../utils/command-runner';
 import {Logger} from '../utils/logger';
 import {PathResolver} from '../utils/path-resolver';
+import {toPosix} from '../utils/normalize-path';
 import {BaseBuilder} from './base-builder';
 
 export class CLIBuilder extends BaseBuilder {
@@ -16,7 +17,7 @@ export class CLIBuilder extends BaseBuilder {
     }
 
     get cleanupPaths(): string[] {
-        return [path.join(PathResolver.getCLIDir(), this.config.outputDir)];
+        return [toPosix(path.join(PathResolver.getCLIDir(), this.config.outputDir))];
     }
 
     async build(options: BuildOptions): Promise<void> {
@@ -61,11 +62,11 @@ export class CLIBuilder extends BaseBuilder {
 
     async buildForPlatform(platform: PlatformConfig): Promise<void> {
         const outputFileName = this.getOutputFileName(platform);
-        const outputPath = path.join(
+        const outputPath = toPosix(path.join(
             PathResolver.getProjectRoot(),
             this.config.outputDir,
             outputFileName,
-        );
+        ));
 
         const env: Record<string, string> = {
             GOOS: platform.platform,
@@ -80,7 +81,7 @@ export class CLIBuilder extends BaseBuilder {
         }
 
         if (this.config.ldFlags.length > 0) {
-            buildArgs.push(`-ldflags="${this.config.ldFlags.join(' ')}"`);
+            buildArgs.push('-ldflags', this.config.ldFlags.join(' '));
         }
 
         buildArgs.push('-o', outputPath);
@@ -120,10 +121,10 @@ export class CLIBuilder extends BaseBuilder {
             return;
         }
 
-        const launcherDir = path.join(
+        const launcherDir = toPosix(path.join(
             PathResolver.getProjectRoot(),
             this.config.windowsDaemonLauncherPath,
-        );
+        ));
 
         if (!fs.existsSync(launcherDir)) {
             Logger.warn(
@@ -133,11 +134,11 @@ export class CLIBuilder extends BaseBuilder {
         }
 
         const outputFileName = 'filemoverexpress-launcher.exe';
-        const outputPath = path.join(
+        const outputPath = toPosix(path.join(
             PathResolver.getProjectRoot(),
             this.config.outputDir,
             outputFileName,
-        );
+        ));
 
         const env: Record<string, string> = {
             GOOS: Platform.Windows,
@@ -152,7 +153,7 @@ export class CLIBuilder extends BaseBuilder {
         }
 
         if (this.config.ldFlags.length > 0) {
-            buildArgs.push(`-ldflags="${this.config.ldFlags.join(' ')}"`);
+            buildArgs.push('-ldflags', this.config.ldFlags.join(' '));
         }
 
         Logger.debug('Building Windows daemon launcher...');

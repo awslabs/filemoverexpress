@@ -3,6 +3,7 @@ import {BuildOptions} from '../types/build-target';
 import {GUIBuildConfig} from '../types/config';
 import {CommandRunner} from '../utils/command-runner';
 import {Logger} from '../utils/logger';
+import {toPosix} from '../utils/normalize-path';
 import {PathResolver} from '../utils/path-resolver';
 import {BaseBuilder} from './base-builder';
 
@@ -12,7 +13,7 @@ export class GUIBuilder extends BaseBuilder {
     }
 
     get cleanupPaths(): string[] {
-        return [path.join(PathResolver.getGUIDir(), this.config.angularConfig.outputPath)];
+        return [toPosix(path.join(PathResolver.getGUIDir(), this.config.angularConfig.outputPath))];
     }
 
     async build(options: BuildOptions): Promise<void> {

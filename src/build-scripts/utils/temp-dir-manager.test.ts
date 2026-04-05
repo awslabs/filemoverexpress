@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {cleanupMocks} from '../test-utils';
+import {toPosix} from './normalize-path';
 import {TempDirManager} from './temp-dir-manager';
 
 // Mock fs module
@@ -47,14 +48,14 @@ describe('TempDirManager', () => {
                 // Assert
                 expect(result).toBe(mockTempPath);
                 expect(fs.mkdtempSync).toHaveBeenCalledWith(
-                    path.join(mockTmpDir, 'fme-tmp-'),
+                    toPosix(path.join(mockTmpDir, 'fme-tmp-')),
                 );
             });
 
             it('should create a temporary directory with custom prefix', () => {
                 // Arrange
                 const customPrefix = 'build-';
-                const expectedPath = path.join(mockTmpDir, customPrefix);
+                const expectedPath = toPosix(path.join(mockTmpDir, customPrefix));
 
                 // Act
                 const result = manager.createTempDir({prefix: customPrefix});
@@ -69,7 +70,7 @@ describe('TempDirManager', () => {
                 const emptyPrefix = '';
                 // When prefix is empty, the implementation still uses default 'fme-tmp-'
                 // This is because the code does: options?.prefix || 'fme-tmp-'
-                const expectedPath = path.join(mockTmpDir, 'fme-tmp-');
+                const expectedPath = toPosix(path.join(mockTmpDir, 'fme-tmp-'));
 
                 // Act
                 const result = manager.createTempDir({prefix: emptyPrefix});
@@ -90,7 +91,7 @@ describe('TempDirManager', () => {
                 // Assert
                 expect(os.tmpdir).toHaveBeenCalled();
                 expect(fs.mkdtempSync).toHaveBeenCalledWith(
-                    path.join(customTmpDir, 'fme-tmp-'),
+                    toPosix(path.join(customTmpDir, 'fme-tmp-')),
                 );
             });
         });
@@ -152,8 +153,9 @@ describe('TempDirManager', () => {
                 });
 
                 // Act & Assert
+                const expectedPath = path.join(mockTmpDir, customPrefix).split(path.sep).join('/');
                 expect(() => manager.createTempDir({prefix: customPrefix})).toThrow(
-                    new RegExp(path.join(mockTmpDir, customPrefix)),
+                    new RegExp(expectedPath),
                 );
             });
         });
@@ -218,7 +220,7 @@ describe('TempDirManager', () => {
 
                 // Assert
                 expect(fs.mkdtempSync).toHaveBeenCalledWith(
-                    path.join(mockTmpDir, customPrefix),
+                    toPosix(path.join(mockTmpDir, customPrefix)),
                 );
             });
         });

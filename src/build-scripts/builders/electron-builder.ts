@@ -1,12 +1,13 @@
 import path from 'node:path';
 import {CommandRunner} from '../utils/command-runner';
 import {Logger} from '../utils/logger';
+import {toPosix} from '../utils/normalize-path';
 import {PathResolver} from '../utils/path-resolver';
 import {BaseBuilder} from './base-builder';
 
 export class ElectronBuilder extends BaseBuilder {
     get cleanupPaths() {
-        return [path.join(PathResolver.getElectronDir(), 'dist')];
+        return [toPosix(path.join(PathResolver.getElectronDir(), 'dist'))];
     }
 
     async build(): Promise<void> {

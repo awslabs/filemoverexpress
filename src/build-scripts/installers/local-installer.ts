@@ -9,6 +9,7 @@ import {InstallationReport, ShellType, SystemConfigOptions} from '../types/insta
 import {Architecture, Platform} from '../types/platform';
 import {Logger} from '../utils/logger';
 import {PathResolver} from '../utils/path-resolver';
+import {toPosix} from '../utils/normalize-path';
 import {detectCurrentArchitecture, detectCurrentPlatform} from '../utils/platform-detector';
 import {detectCurrentShell} from '../utils/shell-detector';
 import {BaseInstaller} from './base-installer';
@@ -97,7 +98,7 @@ export class LocalInstaller extends BaseInstaller {
 
         // Include the packaged application directory (dist/)
         const projectRoot = PathResolver.getProjectRoot();
-        const distPath = path.join(projectRoot, 'dist');
+        const distPath = toPosix(path.join(projectRoot, 'dist'));
         paths.push(distPath);
 
         return paths;
@@ -307,13 +308,13 @@ export class LocalInstaller extends BaseInstaller {
         const outputDir = `${appName}-${platformName}-${this._currentArchitecture}`;
         const projectRoot = PathResolver.getProjectRoot();
 
-        return path.join(projectRoot, 'dist', outputDir, appName + suffix);
+        return toPosix(path.join(projectRoot, 'dist', outputDir, appName + suffix));
     }
 
     private async copyCLIToInstallLocation(): Promise<void> {
         const [cliDestName, cliSourceName] = [this.getCLIBinaryDestinationFilename(), this.getCLIBinarySourceFilename()];
-        const sourcePath = path.join(PathResolver.getProjectRoot(), 'dist', cliSourceName);
-        const destinationPath = path.join(this.getCLIInstallPath(), cliDestName);
+        const sourcePath = toPosix(path.join(PathResolver.getProjectRoot(), 'dist', cliSourceName));
+        const destinationPath = toPosix(path.join(this.getCLIInstallPath(), cliDestName));
 
         // Create destination directory
         await fs.mkdir(this.getCLIInstallPath(), {recursive: true});
@@ -393,8 +394,8 @@ export class LocalInstaller extends BaseInstaller {
 
         // Copy each entry
         for (const entry of entries) {
-            const sourcePath = path.join(source, entry.name);
-            const destPath = path.join(destination, entry.name);
+            const sourcePath = toPosix(path.join(source, entry.name));
+            const destPath = toPosix(path.join(destination, entry.name));
 
             // Check if entry is a symlink using lstat (doesn't follow symlinks)
             const stats = await fs.lstat(sourcePath);
@@ -492,13 +493,13 @@ export class LocalInstaller extends BaseInstaller {
 
         switch (shell) {
             case ShellType.Bash:
-                configFilePath = path.join(home, '.bashrc');
+                configFilePath = toPosix(path.join(home, '.bashrc'));
                 break;
             case ShellType.Zsh:
-                configFilePath = path.join(home, '.zshrc');
+                configFilePath = toPosix(path.join(home, '.zshrc'));
                 break;
             case ShellType.Fish:
-                configFilePath = path.join(home, '.config', 'fish', 'config.fish');
+                configFilePath = toPosix(path.join(home, '.config', 'fish', 'config.fish'));
                 break;
             default:
                 throw new Error(`Unsupported shell type: ${shell}`);
@@ -539,7 +540,7 @@ export class LocalInstaller extends BaseInstaller {
             const lineToAdd = `\n# Added by File Mover Express installer\n${pathExportLine}\n`;
 
             // Ensure parent directory exists (for Fish config)
-            const configDir = path.dirname(configFilePath);
+            const configDir = toPosix(path.dirname(configFilePath));
             await fs.mkdir(configDir, {recursive: true});
 
             // Append to file
@@ -664,7 +665,7 @@ export class LocalInstaller extends BaseInstaller {
         Logger.debug('Creating Windows shortcuts...');
 
         const installPath = this.getGUIInstallPath();
-        const exePath = path.join(installPath, 'File Mover Express.exe');
+        const exePath = toPosix(path.join(installPath, 'File Mover Express.exe'));
 
         // Create Start Menu shortcut if requested
         if (options.createStartMenuShortcut) {
@@ -677,14 +678,14 @@ export class LocalInstaller extends BaseInstaller {
                     throw new Error('APPDATA environment variable is not set');
                 }
 
-                const shortcutPath = path.join(
+                const shortcutPath = toPosix(path.join(
                     startMenuPath,
                     'Microsoft',
                     'Windows',
                     'Start Menu',
                     'Programs',
                     'File Mover Express.lnk',
-                );
+                ));
 
                 // Create shortcut using PowerShell
                 const psCommand = `
@@ -725,7 +726,7 @@ export class LocalInstaller extends BaseInstaller {
                     throw new Error('USERPROFILE environment variable is not set');
                 }
 
-                const shortcutPath = path.join(userProfile, 'Desktop', 'File Mover Express.lnk');
+                const shortcutPath = toPosix(path.join(userProfile, 'Desktop', 'File Mover Express.lnk'));
 
                 // Create shortcut using PowerShell
                 const psCommand = `
@@ -871,7 +872,7 @@ export class LocalInstaller extends BaseInstaller {
         Logger.debug(reportText);
 
         // Save report as JSON file
-        const reportFilePath = path.join(this.installationReport.installPath, 'installation-report.json');
+        const reportFilePath = toPosix(path.join(this.installationReport.installPath, 'installation-report.json'));
 
         // Create a serializable version of the report (convert Date to string)
         const serializableReport = {
