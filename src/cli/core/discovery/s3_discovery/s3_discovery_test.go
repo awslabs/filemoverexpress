@@ -2,6 +2,7 @@ package s3_discovery
 
 import (
     "errors"
+    "path/filepath"
     "reflect"
     "sync"
     "testing"
@@ -67,7 +68,7 @@ func TestS3Discovery_Discover(t *testing.T) {
 
             want: []expectedTasks{
                 {
-                    Destination: mock.UnitTestFileNameWithPrefix,
+                    Destination: filepath.FromSlash(mock.UnitTestFileNameWithPrefix),
                     s3Object: jobmanagertypes.S3Object{
                         Key:          mock.UnitTestFileNameWithPrefix,
                         LastModified: lastModifiedForFilePathWithPrefix,
@@ -96,7 +97,7 @@ func TestS3Discovery_Discover(t *testing.T) {
 
             want: []expectedTasks{
                 {
-                    Destination: mock.UnitTestFileNameWithPrefix,
+                    Destination: filepath.FromSlash(mock.UnitTestFileNameWithPrefix),
                     s3Object: jobmanagertypes.S3Object{
                         Key:          mock.UnitTestFileNameWithPrefix,
                         LastModified: lastModifiedForFilePathWithPrefix,
@@ -125,8 +126,7 @@ func TestS3Discovery_Discover(t *testing.T) {
 
             want: []expectedTasks{
                 {
-                    Destination: discovery.StrTestPrefix + "/" + discovery.StrTestDestinationFolder + "/" + mock.
-                        UnitTestFileNameWithPrefix,
+                    Destination: filepath.Join(discovery.StrTestPrefix, discovery.StrTestDestinationFolder, mock.UnitTestFileNameWithPrefix),
                     s3Object: jobmanagertypes.S3Object{
                         Key:          mock.UnitTestFileNameWithPrefix,
                         LastModified: lastModifiedForFilePathWithPrefix,
@@ -156,8 +156,7 @@ func TestS3Discovery_Discover(t *testing.T) {
 
             want: []expectedTasks{
                 {
-                    Destination: discovery.StrTestPrefix + "/" + discovery.StrTestDestinationFolder + "/" + mock.
-                        UnitTestFileNameWithPrefix,
+                    Destination: filepath.Join(discovery.StrTestPrefix, discovery.StrTestDestinationFolder, mock.UnitTestFileNameWithPrefix),
                     s3Object: jobmanagertypes.S3Object{
                         Key:          mock.UnitTestFileNameWithPrefix,
                         LastModified: lastModifiedForFilePathWithPrefix,
@@ -257,7 +256,7 @@ func TestS3Discovery_calculateDestination(t *testing.T) {
             args: args{
                 s3key: mock.UnitTestFolderPrefix,
             },
-            want: discovery.StrTestPrefix + "/" + discovery.StrTestDestinationFolder + "/" + mock.UnitTestFolderPrefix,
+            want: filepath.Join(discovery.StrTestPrefix, discovery.StrTestDestinationFolder, mock.UnitTestFolderPrefix) + sep,
         },
         {
             name: "With empty prefix, valid destination folder and s3key should return expected file path",
@@ -269,7 +268,7 @@ func TestS3Discovery_calculateDestination(t *testing.T) {
             args: args{
                 s3key: mock.UnitTestFileNameWithPrefix,
             },
-            want: discovery.StrTestPrefix + "/" + discovery.StrTestDestinationFolder + "/" + mock.UnitTestFileNameWithPrefix,
+            want: filepath.Join(discovery.StrTestPrefix, discovery.StrTestDestinationFolder, mock.UnitTestFileNameWithPrefix),
         },
         {
             name: "With empty prefix, valid destination folder and s3key should return expected path",
@@ -281,7 +280,7 @@ func TestS3Discovery_calculateDestination(t *testing.T) {
             args: args{
                 s3key: mock.UnitTestFolderPrefix,
             },
-            want: discovery.StrTestDestinationFolder + "/" + mock.UnitTestFolderPrefix,
+            want: filepath.Join(discovery.StrTestDestinationFolder, mock.UnitTestFolderPrefix) + sep,
         },
     }
     for _, tt := range tests {

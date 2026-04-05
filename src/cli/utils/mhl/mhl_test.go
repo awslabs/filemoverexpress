@@ -2,8 +2,9 @@ package mhl
 
 import (
     "os"
-    "path"
+    "path/filepath"
     "regexp"
+    "runtime"
     "testing"
     "time"
 
@@ -14,6 +15,8 @@ import (
     "github.com/awslabs/filemoverexpress/types/eventtypes"
     "github.com/awslabs/filemoverexpress/types/sourcetypes"
 )
+
+var sep = string(filepath.Separator)
 
 const testMhlFileContents = `<?xml version='1.0' encoding='UTF-8'?>
 <hashlist version="1.0">
@@ -83,13 +86,18 @@ func TestLoadMHLFileInvalidXML(t *testing.T) {
 }
 
 func TestLoadMHLFileInvalidFile(t *testing.T) {
-    _, err := LoadMHLFile("/invalid-file.mhl")
+    invalidPath := sep + "invalid-file.mhl"
+    _, err := LoadMHLFile(invalidPath)
     if err == nil {
         t.Errorf("TestLoadMHLFileInvalidFile failed, expected an error, but got nil")
         return
     }
 
-    assert.Equal(t, "open /invalid-file.mhl: no such file or directory", err.Error())
+    if runtime.GOOS == "windows" {
+        assert.Contains(t, err.Error(), "The system cannot find the file specified.")
+    } else {
+        assert.Equal(t, "open /invalid-file.mhl: no such file or directory", err.Error())
+    }
 }
 
 func TestParseMhl(t *testing.T) {
@@ -102,7 +110,7 @@ func TestParseMhl(t *testing.T) {
         return
     }
 
-    td := path.Join(cwd, "../../", "testdata/utils_sources_data")
+    td := filepath.Join(cwd, "..", "..", "testdata", "utils_sources_data")
     if err := os.Chdir(td); err != nil {
         t.Errorf("TestParseMhl failed to change cwd to testdata folder: %s", err)
     }

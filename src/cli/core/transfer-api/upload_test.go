@@ -3,6 +3,7 @@ package transfer_api
 import (
     "context"
     "os"
+    "path/filepath"
     "sync"
     "testing"
     "time"
@@ -14,11 +15,13 @@ import (
 )
 
 func TestS3Manager_Upload(t *testing.T) {
-    err := os.MkdirAll("/tmp/TestS3Manager_Upload/", os.ModePerm)
+    tmpDir := filepath.Join(os.TempDir(), "TestS3Manager_Upload")
+    err := os.MkdirAll(tmpDir, os.ModePerm)
     if err != nil {
         t.Errorf("TestS3Manager_Upload failed creating test dir: %s", err)
     }
-    file, err := os.Create("/tmp/TestS3Manager_Upload/file.txt")
+    testFilePath := filepath.Join(tmpDir, "file.txt")
+    file, err := os.Create(testFilePath)
     if err != nil {
         t.Errorf("TestS3Manager_Upload failed creating test file: %s", err)
     }
@@ -53,7 +56,7 @@ func TestS3Manager_Upload(t *testing.T) {
                     ChecksumAlgorithm: "md5",
                     ChunkSize:         5 * constants.MiB,
                     Context:           context.Background(),
-                    FilePath:          "/tmp/TestS3Manager_Upload/file.txt",
+                    FilePath:          testFilePath,
                     Reader: &FileReader{
                         File:  file,
                         Size:  0,
@@ -82,8 +85,9 @@ func TestS3Manager_Upload(t *testing.T) {
             }
         })
     }
-    if err := os.RemoveAll("/tmp/TestS3Manager_Upload"); err != nil {
-        t.Errorf("Failed to remove test data files /tmp/TestS3Manager_Upload: %s", err.Error())
+    file.Close()
+    if err := os.RemoveAll(tmpDir); err != nil {
+        t.Errorf("Failed to remove test data files %s: %s", tmpDir, err.Error())
     }
 }
 

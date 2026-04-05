@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hashlist version="1.0">
   <creatorinfo>
-    <name>asbjorn</name>
-    <username>asbjorn</username>
-    <hostname>147dda5e263b</hostname>
+    <name>John Doe</name>
+    <username>johndoe</username>
+    <hostname>johndoes-desktop</hostname>
     <startdate>2023-09-28T16:07:12.438379</startdate>
     <finishdate>2023-09-28T16:07:12.438389</finishdate>
   </creatorinfo>

@@ -1,11 +1,15 @@
 package blocked_paths
 
 import (
+    "os"
+    "path/filepath"
     "testing"
     "time"
 
     "github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
+
+var sep = string(filepath.Separator)
 
 func TestBlockedPathsFilter_IsFiltered(t *testing.T) {
     type (
@@ -13,9 +17,9 @@ func TestBlockedPathsFilter_IsFiltered(t *testing.T) {
             task *jobmanagertypes.Task
         }
     )
-    filename := "/tmp/TestBlockedPathsFilter_IsFiltered/file.txt"
-    blockedfilename := "/tmp/TestBlockedPathsFilter_IsFiltered/.aws/file.txt"
-    secondBlockedFilename := "/dev/blockedpath.txt"
+    filename := filepath.Join(os.TempDir(), "TestBlockedPathsFilter_IsFiltered", "file.txt")
+    blockedfilename := filepath.Join(os.TempDir(), "TestBlockedPathsFilter_IsFiltered", ".aws", "file.txt")
+    secondBlockedFilename := filepath.Join(os.TempDir(), "blockeddir", "blockedpath.txt")
 
     downloadTask, _ := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
         S3Object: jobmanagertypes.S3Object{
@@ -98,7 +102,7 @@ func TestBlockedPathsFilter_IsFiltered(t *testing.T) {
     }
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            blockedPathsFilter := &BlockedPathsFilter{blockedPaths: []string{".aws", "/dev"}}
+            blockedPathsFilter := &BlockedPathsFilter{blockedPaths: []string{".aws", "blockeddir"}}
 
             got, err := blockedPathsFilter.IsFiltered(tt.args.task)
             if (err != nil) != tt.wantErr {

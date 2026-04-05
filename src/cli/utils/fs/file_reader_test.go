@@ -3,7 +3,7 @@ package fs
 import (
     "fmt"
     "os"
-    "path"
+    "path/filepath"
     "testing"
     "time"
 )
@@ -124,8 +124,8 @@ func getTestFileAndInfo() (os.FileInfo, *os.File, error) {
         return nil, nil, fmt.Errorf("failed getting working directory: %s", err)
     }
 
-    td := path.Join(cwd, "..", "..", "testdata")
-    testFile := path.Join(td, "utils_sources_data/file1")
+    td := filepath.Join(cwd, "..", "..", "testdata")
+    testFile := filepath.Join(td, "utils_sources_data", "file1")
     info, err := os.Stat(testFile)
     if err != nil {
         return nil, nil, fmt.Errorf("TestFileReader_Read failed to stat input file: %s\n", err)

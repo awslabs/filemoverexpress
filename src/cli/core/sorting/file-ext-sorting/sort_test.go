@@ -2,11 +2,14 @@ package file_ext_sorting
 
 import (
     "os"
+    "path/filepath"
     "testing"
 
     "github.com/awslabs/filemoverexpress/core/discovery/local_discovery"
     "github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
+
+var sep = string(filepath.Separator)
 
 var (
     ld = local_discovery.NewLocalDiscovery("", "random-id", "")
@@ -49,11 +52,11 @@ func TestFileExtSorting_Sort(t *testing.T) {
                 tasks: tasks,
             },
             want: []string{
-                "testdata/sorting/clip.mov",
-                "testdata/sorting/frame.mov",
-                "testdata/sorting/clip.wav",
-                "testdata/sorting/frame.wav",
-                "testdata/sorting/aaa.txt",
+                "testdata" + sep + "sorting" + sep + "clip.mov",
+                "testdata" + sep + "sorting" + sep + "frame.mov",
+                "testdata" + sep + "sorting" + sep + "clip.wav",
+                "testdata" + sep + "sorting" + sep + "frame.wav",
+                "testdata" + sep + "sorting" + sep + "aaa.txt",
             },
             wantErr: false,
         },
@@ -93,7 +96,7 @@ func getTasks() ([]*jobmanagertypes.Task, error) {
         return nil, err
     }
 
-    tasks, discoveryErrors := ld.Discover([]string{"testdata/sorting"})
+    tasks, discoveryErrors := ld.Discover([]string{filepath.Join("testdata", "sorting")})
     if discoveryErrors != nil {
         for _, err := range discoveryErrors {
             return nil, err
