@@ -9,13 +9,14 @@ File Mover Express is a high-performance file transfer application designed to a
 ## Key Features
 
 - **High-Performance Transfers**: Auto-tuned parallel processing for optimal throughput
-- **Multipart Upload Optimization**: Intelligent chunking and parallelized multipart uploads for large files with automatic retry and resume capabilities
-- **Drag & Drop GUI**: Intuitive graphical interface for easy file management
-- **Command-Line Interface**: Powerful CLI for scripting and automation
-- **Hot Folders**: Automatic monitoring and upload of new files
-- **Secure**: End-to-end encryption with AWS IAM integration
-- **Checksumming & MHL Support**: Multiple checksum algorithms (MD5, SHA1, SHA256) with Media Hash List (MHL) format support for professional media workflows
-- **Cross-Platform**: Support for macOS, Windows, and Linux
+- **Multipart Upload Optimization**: Large files are automatically split into chunks and uploaded in parallel, with built-in retry and resume so interrupted transfers pick up where they left off
+- **Drag & Drop GUI**: A simple graphical interface — drag files in, choose your S3 destination, and go
+- **Command-Line Interface**: Full CLI for scripting, automation, and headless environments
+- **Hot Folders**: Point File Mover Express at a folder and it will automatically upload anything new that appears in it
+- **Secure**: All transfers use HTTPS, and AWS IAM controls who can access your S3 buckets
+- **Remote Daemon**: Run File Mover Express on one machine and control it from another over an encrypted connection, protected by a password you set
+- **Checksumming & MHL Support**: Optional file integrity verification. XXH3 and xxHash64 are the fastest options — significantly quicker than MD5 or SHA. MD5, SHA1, and SHA256 are available for workflows that require them. Reads MHL files for camera-to-cloud verification workflows.
+- **Cross-Platform**: Works on macOS, Windows, and Linux
 - **Multi-Region**: Works with any AWS region where S3 is available
 
 ## Quick Start

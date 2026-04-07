@@ -43,10 +43,12 @@ File Mover Express operates under AWS's shared responsibility model:
 - Credentials stored using AWS CLI security standards
 
 **Remote Daemon Security:**
-- TLS encryption required for remote connections
-- Pre-shared key authentication
-- Configurable access restrictions
-- Path blocking to prevent unauthorized file access
+- All remote connections are encrypted using TLS — this is required and cannot be disabled
+- Access is protected by a password you choose (pre-shared key / PSK)
+- Your PSK is never stored in plain text — it must be encrypted before saving to the config file using `filemoverexpress crypto encrypt`
+- The daemon unlocks your PSK at startup using a secret passphrase you store as the `FME_PSK_SECRET` environment variable, keeping sensitive credentials out of config files
+- Use `blocked_paths` to prevent remote users from accessing sensitive folders on the host machine
+- Use `permissions` to control what actions remote users are allowed to perform
 
 ## Security Best Practices
 
@@ -159,7 +161,7 @@ For S3 access with customer-managed KMS key:
 api_server:
   remote:
     enabled: true
-    key: "use-strong-random-key-here"  # Use cryptographically strong key
+    key: "<encrypted-psk>"  # Must be AES-GCM encrypted — use: filemoverexpress crypto encrypt
     address: "0.0.0.0"  # Or specific IP for restricted access
     ports: 50006
   tls:
