@@ -109,29 +109,91 @@ npm run --prefix src/gui build:production
 
 ## Step 6 — Run the application
 
+After building, you have two options depending on how you want to use FME:
+
+### Option A — CLI only
+
+Run the daemon directly from the built binary. The GUI will be accessible in your browser at `http://localhost:50006`.
+
 ### macOS (Intel)
 ```bash
-./src/cli/dist/filemoverexpress-darwin-amd64
+./dist/filemoverexpress-darwin-amd64 daemon
 ```
 
 ### macOS (Apple Silicon)
 ```bash
-./src/cli/dist/filemoverexpress-darwin-arm64
+./dist/filemoverexpress-darwin-arm64 daemon
 ```
 
 ### Linux
 ```bash
-./src/cli/dist/filemoverexpress-linux-amd64
+./dist/filemoverexpress-linux-amd64 daemon
 ```
 
 ### Windows
 ```powershell
-.\src\cli\dist\filemoverexpress-windows-amd64.exe
+.\dist\filemoverexpress-windows-amd64.exe daemon
+```
+
+### Option B — Desktop app (Electron)
+
+To run the full desktop application with the GUI bundled as a native window, build and launch the Electron wrapper after completing Steps 1–5:
+
+```bash
+# Build the Electron app
+npm run --prefix src/electron build
+
+# Launch it
+cd src/electron/dist && electron .
+```
+
+Or in development mode (GUI hot-reload):
+
+```bash
+npm run --prefix src/gui electron:dev
 ```
 
 ---
 
-## Post-installation
+## Uninstall
+
+**1. Stop the daemon** if it's running:
+
+```bash
+# macOS / Linux
+pkill filemoverexpress
+
+# Windows (PowerShell)
+Stop-Process -Name filemoverexpress -ErrorAction SilentlyContinue
+```
+
+**2. Remove the application:**
+
+macOS:
+```bash
+rm -rf /Applications/File\ Mover\ Express.app
+# or if you didn't move it to Applications:
+rm -rf dist/File\ Mover\ Express-darwin-arm64
+```
+
+Windows — delete the folder you moved to Program Files, or the `dist\File Mover Express-win32-x64` folder.
+
+Linux:
+```bash
+rm -rf dist/File\ Mover\ Express-linux-x64
+```
+
+**3. Remove configuration and logs** (optional — skip this if you want to keep your transfer profiles):
+
+```bash
+# macOS / Linux
+rm -rf ~/.filemoverexpress
+
+# Windows (PowerShell)
+Remove-Item -Recurse -Force "$env:USERPROFILE\.filemoverexpress"
+```
+
+---
 
 1. Configure your AWS credentials: `aws configure`
 2. Follow the [Configuration](Configuration.md) guide to set up S3 buckets and transfer settings
@@ -140,6 +202,12 @@ npm run --prefix src/gui build:production
 ---
 
 ## Troubleshooting
+
+**`npm run proto` fails with "no such host" or DNS error**
+On corporate or VPN networks (including Amazon's), `proxy.golang.org` may be blocked. Set Go to fetch modules directly before running the install:
+
+    export GOPROXY=direct
+    npm run proto
 
 **`protoc-gen-go` not found**
 The proto step installs this automatically. If it still fails, ensure `go` is on your PATH and your Go version is 1.25 or higher: `go version`

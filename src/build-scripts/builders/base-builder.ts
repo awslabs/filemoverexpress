@@ -11,7 +11,8 @@ export abstract class BaseBuilder {
     async clean(): Promise<void> {
         await CommandRunner.run('git', ['ls-files', ...this.cleanupPaths], {cwd: PathResolver.getProjectRoot()})
             .then((res) => {
-                if (res.exitCode !== 0) {
+                // exit code 128 means the path doesn't exist yet — nothing to clean, safe to continue
+                if (res.exitCode !== 0 && res.exitCode !== 128) {
                     throw new Error(`git ls-files failed: ${res.stderr}`);
                 }
 

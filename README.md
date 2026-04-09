@@ -32,19 +32,35 @@ npm install
 # 2. Generate protobuf code (installs missing Go plugins automatically)
 npm run proto
 
-# 3. Build — use the command for your platform:
+# 3. Build the CLI — use the command for your platform:
 npm run --prefix src/cli build:mac        # macOS
 npm run --prefix src/cli build:linux      # Linux
 npm run --prefix src/cli build:windows    # Windows
 
-# 4. Build the GUI
+# 4. Build the GUI and package the desktop app
 npm run --prefix src/gui build:production
+npm run package
 
 # 5. Configure AWS credentials
 aws configure
 ```
 
-For full installation instructions including platform-specific prerequisite setup, see the [Installation Guide](docs/Installation.md).
+The packaged desktop app will be in `dist/` — for example `dist/File Mover Express-darwin-arm64/` on Apple Silicon.
+
+**macOS** — optionally move to Applications:
+```bash
+cp -r "dist/File Mover Express-darwin-arm64/File Mover Express.app" /Applications/
+```
+
+**Windows** — optionally move to Program Files:
+```powershell
+Move-Item "dist\File Mover Express-win32-x64" "C:\Program Files\File Mover Express"
+```
+
+**Next steps:**
+- Using the GUI? See the [GUI Guide](docs/Using-the-GUI.md)
+- Prefer the CLI? See the [CLI Guide](docs/Using-the-CLI.md)
+- Full installation details and troubleshooting: [Installation Guide](docs/Installation.md)
 
 ## Documentation
 
