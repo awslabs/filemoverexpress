@@ -90,7 +90,7 @@ function checkIfDaemonRunning(sub: Subject<boolean>) {
     const binPath = getDaemonPath();
     const binName = path.basename(binPath);
     const userHomeDir = os.homedir();
-    const pidPath = path.join(userHomeDir, '.filetransfer', 'filetransfer.pid');
+    const pidPath = path.join(userHomeDir, '.filemoverexpress', 'filemoverexpress.pid');
     if (fs.existsSync(pidPath)) {
         const pid = Number(fs.readFileSync(pidPath).toString());
         find('pid', pid)
