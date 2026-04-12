@@ -41,3 +41,7 @@ src/gui/proto/generated/proto/
 gl-code-quality-report.json
 
 node_modules/
+
+.kiro/specs/
+.kiro/settings/
+.vscode/

@@ -1,3 +1,4 @@
+import process from 'node:process';
 import {BuildComponent} from '../types/cli';
 import {CommandRunner} from './command-runner';
 import {Logger} from './logger';
@@ -13,12 +14,40 @@ export class ToolChecker {
         versionCommand: string[],
     ): Promise<ToolCheckResult> {
         try {
-            const result = await CommandRunner.run(toolName, versionCommand);
+            const result = await CommandRunner.run(toolName, versionCommand, {silent: true});
 
             if (result.exitCode === 0) {
                 return {
                     available: true,
                     version: result.stdout.trim() || result.stderr.trim(),
+                };
+            }
+
+            return {available: false};
+        } catch (error) {
+            return {available: false};
+        }
+    }
+
+    /**
+     * Checks whether a tool exists on PATH without executing it.
+     * Uses `where` on Windows and `command -v` elsewhere.
+     * Useful for tools that don't support a `--version` flag.
+     */
+    static async checkToolExists(
+        toolName: string,
+    ): Promise<ToolCheckResult> {
+        const isWindows = process.platform === 'win32';
+        const cmd = isWindows ? 'where' : 'command';
+        const args = isWindows ? [toolName] : ['-v', toolName];
+
+        try {
+            const result = await CommandRunner.run(cmd, args, {silent: true});
+
+            if (result.exitCode === 0) {
+                return {
+                    available: true,
+                    version: result.stdout.trim().split('\n')[0],
                 };
             }
 

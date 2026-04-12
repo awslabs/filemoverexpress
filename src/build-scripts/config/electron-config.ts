@@ -8,11 +8,13 @@ export const electronConfig: ElectronBuildConfig = {
     appName: 'File Mover Express',
     appBundleId: 'com.github.awslabs.filemoverexpress',
     helperBundleId: 'com.github.awslabs.filemoverexpress.helper',
+    appAuthor: 'Amazon Web Services',
+    appDescription: 'High-performance file transfer application for moving media assets between local filesystems and Amazon S3.',
     iconPaths: {
-        [Platform.Darwin]: 'assets/icons/mac/icon.icns',
-        [Platform.Linux]: 'assets/icons/linux/icon.png',
-        [Platform.Windows]: 'assets/icons/win/icon.ico',
-        [Platform.Unknown]: 'assets/icons/win/icon.ico',
+        [Platform.Darwin]: 'assets/icons/mac.icon.icns',
+        [Platform.Linux]: 'assets/icons/fme.png',
+        [Platform.Windows]: 'assets/icons/windows.ico',
+        [Platform.Unknown]: '',
     },
     packagerOptions: {
         overwrite: true,

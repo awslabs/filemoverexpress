@@ -1,3 +1,4 @@
+import {ForgeMakerType} from './forge';
 import {Architecture, Platform} from './platform';
 
 export interface BuildArgs {
@@ -11,4 +12,7 @@ export interface BuildOptions {
     platforms?: Platform[];
     production?: boolean;
     verbose?: boolean;
+    devMode?: boolean;
+    retainTempFiles?: boolean;
+    makers?: ForgeMakerType[];
 }

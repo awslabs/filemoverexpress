@@ -322,6 +322,7 @@ linters:
                     arguments:
                         - fmt.Printf
                         - fmt.Println
+                        - fmt.Fprintf
                     severity: warning
                     disabled: false
                 -   name: unnecessary-stmt

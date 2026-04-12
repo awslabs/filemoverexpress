@@ -115,10 +115,10 @@ describe('ElectronPackager', () => {
                 appBundleId: 'com.test.app',
                 helperBundleId: 'com.test.app.helper',
                 iconPaths: {
-                    [Platform.Darwin]: 'assets/icon.icns',
-                    [Platform.Linux]: 'assets/icon.png',
-                    [Platform.Windows]: 'assets/icon.ico',
-                    [Platform.Unknown]: 'assets/icon.ico',
+                    [Platform.Darwin]: 'assets/icons/mac/icon.icns',
+                    [Platform.Linux]: 'assets/icons/png/icon_256x256.png',
+                    [Platform.Windows]: 'assets/icons/win/icon.ico',
+                    [Platform.Unknown]: 'assets/icons/win/icon.ico',
                 },
                 packagerOptions: {
                     overwrite: true,

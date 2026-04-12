@@ -176,23 +176,24 @@ export class ShutdownService implements OnDestroy {
     private appCloseHandler() {
         if (isElectronApp()) {
             window.fme?.on('app-close', () => {
-                if (this.prefService.daemonClose === 'always') {
-                    this.doShutdown();
-                    return;
+                switch (this.prefService.daemonClose) {
+                    case 'always':
+                        this.doShutdown();
+                        break;
+                    case 'never':
+                        window.fme?.send('closed');
+                        break;
+                    default:
+                        this.showDaemonCloseModal().subscribe(
+                            (shouldKillDaemon) => {
+                                if (shouldKillDaemon) {
+                                    this.doShutdown();
+                                } else {
+                                    window.fme?.send('closed');
+                                }
+                            },
+                        );
                 }
-                if (this.prefService.daemonClose === 'never') {
-                    window.fme?.send('closed');
-                    return;
-                }
-                this.showDaemonCloseModal().subscribe(
-                    (shouldKillDaemon) => {
-                        if (shouldKillDaemon) {
-                            this.doShutdown();
-                        } else {
-                            window.fme?.send('closed');
-                        }
-                    },
-                );
             });
         }
     }

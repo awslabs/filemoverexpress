@@ -1,6 +1,7 @@
 package service
 
 import (
+    "crypto/rand"
     "errors"
     "fmt"
     "net"
@@ -22,6 +23,7 @@ const (
     GrpcDefaultWebPort       = 50006
     GrpcDefaultRemoteAddress = "0.0.0.0"
     fmePSKSecretEnvVar       = "FME_PSK_SECRET"
+    fmeGuiDaemonEnvVar       = "FME_GUI_DAEMON"
 )
 
 var (
@@ -55,13 +57,18 @@ func NewService(grpcHost string, grpcWebPortList []uint, remote bool) *FileMover
 
     if cfg.APIServer.RemoteSettings.PreSharedKey != "" {
         pskSecret, found := os.LookupEnv(fmePSKSecretEnvVar)
-        if !found {
-            events.Events.Fatal(strPSKEnvVarNotSet, fmePSKSecretEnvVar)
-        }
+        if found {
+            psk, decryptErr = crypto.DecryptPSK(pskSecret, cfg.APIServer.RemoteSettings.PreSharedKey)
+            if decryptErr != nil {
+                events.Events.Fatal(strPSKDecryptFailed, decryptErr.Error())
+            }
 
-        psk, decryptErr = crypto.DecryptPSK(pskSecret, cfg.APIServer.RemoteSettings.PreSharedKey)
-        if decryptErr != nil {
-            events.Events.Fatal(strPSKDecryptFailed, decryptErr.Error())
+        } else {
+            isGuiDaemon, isDaemonFound := os.LookupEnv(fmeGuiDaemonEnvVar)
+            if !isDaemonFound || isGuiDaemon != "true" {
+                events.Events.Fatal(strPSKEnvVarNotSet, fmePSKSecretEnvVar)
+            }
+            psk = rand.Text()
         }
     }
 

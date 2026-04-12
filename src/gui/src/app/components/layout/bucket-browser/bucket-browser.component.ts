@@ -673,7 +673,7 @@ export class BucketBrowserComponent implements OnDestroy {
     }
 
     private isStartingPath(path: string): boolean {
-        let configs3StartingPrefix = '';
+        let configs3StartingPrefix;
         const currentTransferProfile = this.selectedTransferProfile;
         try {
             if (currentTransferProfile) {

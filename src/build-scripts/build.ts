@@ -6,10 +6,12 @@ import {ProtobufBuilder} from './builders/protobuf-builder';
 import {cliConfig} from './config/cli-config';
 import {electronConfig} from './config/electron-config';
 import {guiConfig} from './config/gui-config';
+import {ForgeInstaller} from './installers/forge-installer';
 import {LocalInstaller} from './installers/local-installer';
 import {ElectronPackager} from './packagers/electron-packager';
 import {BuildOptions} from './types/build-target';
 import {BuildComponent} from './types/cli';
+import {ForgeMakerType} from './types/forge';
 import {Architecture, Platform} from './types/platform';
 import {Logger} from './utils/logger';
 import {detectCurrentArchitecture, detectCurrentPlatform} from './utils/platform-detector';
@@ -105,13 +107,57 @@ export async function executeBuild(component: BuildComponent, target: string, op
                             Logger.success('Successfully installed application');
                         })
                         .catch((error) => {
-                            Logger.error(`Failed to install:`, error);
+                            const message = error instanceof Error ? error.message : String(error);
+                            Logger.error(`Failed to install: ${message}`);
                             process.exit(1);
                         });
                     break;
                 default:
                     throw new Error(`Invalid installer type: ${target}`);
             }
+            break;
+
+        case 'installer': {
+            // Resolve target platform: explicit target > --platforms flag > auto-detect
+            const platformAliases: Record<string, Platform> = {
+                'mac': Platform.Darwin,
+                'macos': Platform.Darwin,
+                'darwin': Platform.Darwin,
+                'win': Platform.Windows,
+                'windows': Platform.Windows,
+                'win32': Platform.Windows,
+                'linux': Platform.Linux,
+            };
+
+            let resolvedPlatform: Platform;
+            if (target && platformAliases[target]) {
+                resolvedPlatform = platformAliases[target];
+            } else if (target && target !== '') {
+                const validAliases = Object.keys(platformAliases).join(', ');
+                throw new Error(
+                    `Invalid installer target: '${target}'. ` +
+                    `Valid targets are: ${validAliases} (or omit to auto-detect).`,
+                );
+            } else {
+                resolvedPlatform = options.platforms?.[0] ?? detectCurrentPlatform();
+            }
+
+            const installer = new ForgeInstaller({
+                platform: resolvedPlatform,
+                architecture: options.archs?.[0],
+                devMode: options.devMode ?? false,
+                retainTempFiles: options.retainTempFiles ?? false,
+                verbose: options.verbose ?? false,
+                makers: options.makers,
+            });
+
+            await installer.generate().catch((error) => {
+                const message = error instanceof Error ? error.message : String(error);
+                Logger.error(`Failed to generate installer: ${message}`);
+                process.exit(1);
+            });
+            break;
+        }
     }
 }
 
@@ -195,7 +241,6 @@ program
 
 program
     .command('install <target>')
-    .alias('installer')
     .description('Install File Mover Express to your local machine')
     .option('--verbose', 'Enable verbose output', false)
     .action(async (options) => {
@@ -207,6 +252,30 @@ program
             verbose: options.verbose,
         };
         await executeBuild('install', 'local', buildOptions);
+    });
+
+// Installer command - generate distributable installers via Electron Forge
+program
+    .command('installer [platform]')
+    .description('Generate a distributable installer via Electron Forge. Defaults to current platform. Optional platform: mac, win, linux.')
+    .option('--archs <archs>', 'Target architecture (x64, arm64)', parseArchitectures)
+    .option('--platforms <platforms>', 'Target platform (darwin, linux, windows)', parsePlatforms)
+    .option('--dev-mode', 'Skip packager if dist files exist', false)
+    .option('--retain-temp-files', 'Keep temp directories for debugging', false)
+    .option('--verbose', 'Enable verbose output', false)
+    .option('--makers <makers>', 'Comma-separated Forge maker types (dmg, pkg, zip, deb, rpm, squirrel, wix)', parseMakers)
+    .action(async (platform, options) => {
+        const defaults = getDefaultBuildOptions();
+        const buildOptions: BuildOptions = {
+            archs: options.archs || defaults.archs,
+            platforms: options.platforms || defaults.platforms,
+            production: true,
+            verbose: options.verbose,
+            devMode: options.devMode,
+            retainTempFiles: options.retainTempFiles,
+            makers: options.makers,
+        };
+        await executeBuild('installer', platform, buildOptions);
     });
 
 /**
@@ -254,6 +323,24 @@ export function parsePlatforms(value: string): Platform[] {
     }
 
     return platforms;
+}
+
+export function parseMakers(value: string): ForgeMakerType[] {
+    const validMakers = Object.values(ForgeMakerType) as string[];
+    const makerStrings = value.split(',').map(s => s.trim().toLowerCase());
+    const makers: ForgeMakerType[] = [];
+
+    for (const makerStr of makerStrings) {
+        if (!validMakers.includes(makerStr)) {
+            throw new Error(
+                `Invalid maker type '${makerStr}'. ` +
+                `Valid types are: ${validMakers.join(', ')}`,
+            );
+        }
+        makers.push(makerStr as ForgeMakerType);
+    }
+
+    return makers;
 }
 
 export async function main(): Promise<void> {

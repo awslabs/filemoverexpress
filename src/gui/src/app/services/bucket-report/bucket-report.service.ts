@@ -38,39 +38,39 @@ export class BucketReportService implements OnDestroy {
         }));
 
         this.subscriptions.push(this.fmeClientService.events$.pipe(
-                filter((evt) => evt instanceof InventoryReportCompletedEvent),
-                handleStreamError({retryCount: retry_count}),
-            ).subscribe({
-                next: (evt) => {
-                    try {
-                        this.processCompleteEvent(evt as InventoryReportCompletedEvent);
-                    } catch (e) {
-                        console.error(e);
-                        this.notifications.warning('Cannot save bucket report generation complete status.');
-                    }
-                },
-                error: (error) => {
-                    this.fmeClientService.processStreamError(error);
-                },
-            }),
+            filter((evt) => evt instanceof InventoryReportCompletedEvent),
+            handleStreamError({retryCount: retry_count}),
+        ).subscribe({
+            next: (evt) => {
+                try {
+                    this.processCompleteEvent(evt as InventoryReportCompletedEvent);
+                } catch (e) {
+                    console.error(e);
+                    this.notifications.warning('Cannot save bucket report generation complete status.');
+                }
+            },
+            error: (error) => {
+                this.fmeClientService.processStreamError(error);
+            },
+        }),
         );
 
         this.subscriptions.push(this.fmeClientService.events$.pipe(
-                filter((evt) => evt instanceof InventoryReportErrorEvent),
-                handleStreamError({retryCount: 5}),
-            ).subscribe({
-                next: (evt) => {
-                    try {
-                        this.processErrorEvent(evt as InventoryReportErrorEvent);
-                    } catch (e) {
-                        console.error(e);
-                        this.notifications.warning('Cannot save bucket report error complete status.');
-                    }
-                },
-                error: (error) => {
-                    this.fmeClientService.processStreamError(error);
-                },
-            }),
+            filter((evt) => evt instanceof InventoryReportErrorEvent),
+            handleStreamError({retryCount: 5}),
+        ).subscribe({
+            next: (evt) => {
+                try {
+                    this.processErrorEvent(evt as InventoryReportErrorEvent);
+                } catch (e) {
+                    console.error(e);
+                    this.notifications.warning('Cannot save bucket report error complete status.');
+                }
+            },
+            error: (error) => {
+                this.fmeClientService.processStreamError(error);
+            },
+        }),
         );
     }
 
