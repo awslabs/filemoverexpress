@@ -43,10 +43,12 @@ File Mover Express operates under AWS's shared responsibility model:
 - Credentials stored using AWS CLI security standards
 
 **Remote Daemon Security:**
-- TLS encryption required for remote connections
-- Pre-shared key authentication
-- Configurable access restrictions
-- Path blocking to prevent unauthorized file access
+- All remote connections are encrypted using TLS — this is required and cannot be disabled
+- Access is protected by a password you choose (pre-shared key / PSK)
+- Your PSK is never stored in plain text — it must be encrypted before saving to the config file using `filemoverexpress crypto encrypt`
+- The daemon unlocks your PSK at startup using a secret passphrase you store as the `FME_PSK_SECRET` environment variable, keeping sensitive credentials out of config files
+- Use `blocked_paths` to prevent remote users from accessing sensitive folders on the host machine
+- Use `permissions` to control what actions remote users are allowed to perform
 
 ## Security Best Practices
 
@@ -117,29 +119,71 @@ chmod 700 ~/.filemoverexpress/
 
 ## Security Configuration
 
-### Minimal IAM Policy
+### Required IAM Permissions
 
-For S3 access with customer-managed KMS key:
+File Mover Express uses the following S3 and STS API calls. The policy below covers all features including uploads, downloads, multipart transfers, rename/copy operations, delete operations, and credential validation.
 
 ```json
 {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "S3Access",
+            "Sid": "FileTransfers",
             "Effect": "Allow",
             "Action": [
                 "s3:GetObject",
                 "s3:PutObject",
+                "s3:HeadObject",
                 "s3:ListBucket",
-                "s3:GetBucketLocation",
-                "s3:GetObjectTagging"
+                "s3:ListBucketVersions"
             ],
             "Resource": [
                 "arn:aws:s3:::your-bucket-name",
                 "arn:aws:s3:::your-bucket-name/*"
             ]
         },
+        {
+            "Sid": "MultipartUploads",
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateMultipartUpload",
+                "s3:UploadPart",
+                "s3:UploadPartCopy",
+                "s3:CompleteMultipartUpload",
+                "s3:AbortMultipartUpload"
+            ],
+            "Resource": "arn:aws:s3:::your-bucket-name/*"
+        },
+        {
+            "Sid": "RenameAndDelete",
+            "Effect": "Allow",
+            "Action": [
+                "s3:CopyObject",
+                "s3:DeleteObject",
+                "s3:DeleteObjects",
+                "s3:ListObjectVersions"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name",
+                "arn:aws:s3:::your-bucket-name/*"
+            ]
+        }
+    ]
+}
+```
+
+**Notes:**
+- Remove the `RenameAndDelete` statement if your users only need upload/download access
+- Add KMS permissions if your bucket uses customer-managed encryption keys (see below)
+- `sts:GetCallerIdentity` is used for credential validation but [does not require any IAM permissions](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html) — no policy statement is needed for it
+- For more information on S3 IAM policies, see the [Amazon S3 User Guide](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html)
+
+**Optional: KMS access** (only if your bucket uses SSE-KMS encryption):
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
         {
             "Sid": "KMSAccess",
             "Effect": "Allow",
@@ -159,7 +203,7 @@ For S3 access with customer-managed KMS key:
 api_server:
   remote:
     enabled: true
-    key: "use-strong-random-key-here"  # Use cryptographically strong key
+    key: "<encrypted-psk>"  # Must be AES-GCM encrypted — use: filemoverexpress crypto encrypt
     address: "0.0.0.0"  # Or specific IP for restricted access
     ports: 50006
   tls:

@@ -111,8 +111,8 @@ Hot Folders automatically monitor local directories and upload new or modified f
 ### Hot Folder Behavior
 - Recursively monitors all subdirectories
 - Automatically uploads new or modified files
-- Works on file systems that support change notifications
-- May not work on some network file systems (NFS, SMB)
+- Uses polling to detect file changes, so it works on network file systems (NFS, SMB)
+- Detection may be slightly delayed on slow network mounts
 
 ## Jobs Tab
 

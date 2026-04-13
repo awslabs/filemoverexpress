@@ -1,7 +1,7 @@
 # File Mover Express CLI
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The CLI component is the core backend daemon of File Mover Express, written in Go. It provides high-performance file
 transfer capabilities, job management, and gRPC services for communication with the GUI application.
@@ -274,4 +274,4 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for general contribution guidelines
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](../../LICENSE) file for details.

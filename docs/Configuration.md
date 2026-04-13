@@ -128,23 +128,96 @@ hot_folders:
         s3_destination_folder: my/s3/prefix
 ```
 
-### API Server Configuration
+### Remote Daemon Configuration
 
-Configure the API server for GUI connectivity:
+The remote daemon feature lets you control File Mover Express running on one computer from another computer over a network — useful for managing transfers on a remote workstation or server without needing to be physically present.
+
+When remote access is enabled, all communication is encrypted and protected by a password you choose (called a pre-shared key, or PSK).
+
+#### How it works
+
+1. File Mover Express runs as a daemon on the host machine with remote access turned on
+2. You connect to it from another machine using the GUI or CLI
+3. The connection is secured with TLS (encrypted) and your PSK (password-protected)
+
+#### Setting up remote access
+
+**Step 1 — Choose a password for your connection**
+
+This is your pre-shared key. Pick something strong — at least 8 characters. You'll need it on both the host machine and any machine connecting to it.
+
+**Step 2 — Encrypt your password**
+
+For security, File Mover Express does not store your password in plain text. Run this command on the host machine to encrypt it:
+
+```bash
+filemoverexpress crypto encrypt
+```
+
+You'll be asked for:
+- A secret passphrase — think of this as the master key that locks your password. Keep it safe.
+- The password (PSK) you chose in Step 1
+
+The tool will show you an encrypted version of your password and offer to save it to your configuration file automatically. Choose yes.
+
+**Step 3 — Save your secret passphrase as an environment variable**
+
+The daemon needs your secret passphrase available when it starts up so it can unlock your password. Set it like this before starting the daemon:
+
+```bash
+# macOS / Linux
+export FME_PSK_SECRET="your-secret-passphrase"
+filemoverexpress daemon --remote
+
+# Windows (PowerShell)
+$env:FME_PSK_SECRET="your-secret-passphrase"
+filemoverexpress daemon --remote
+```
+
+> The daemon will refuse to start if `FME_PSK_SECRET` is not set.
+
+**Step 4 — Set up TLS certificates**
+
+TLS certificates encrypt the connection between machines. Remote access requires TLS to be enabled. See the [Security guide](Security.md) for instructions on setting up certificates.
+
+#### Configuration reference
 
 ```yaml
 api_server:
-  enabled: true  # Required for GUI functionality
+  enabled: true
   remote:
-    enabled: false  # Set to true for remote daemon
-    key: "your-secure-key"
-    ports: 50006
-    address: "0.0.0.0"
+    enabled: true                  # Turn on remote access
+    key: "<encrypted-psk>"         # Paste the encrypted value from Step 2
+    ports: 50006                   # Port to listen on
+    address: "0.0.0.0"             # Listen on all network interfaces
   tls:
-    enabled: false  # Set to true for remote daemon
+    enabled: true                  # Required for remote access
     certificate_file: "/path/to/cert.pem"
     key_file: "/path/to/key.pem"
+  blocked_paths:                   # Folders the remote user cannot access
+    - ".aws"
+    - ".ssh"
+  allowed_origins:                 # Origins allowed to connect (for CORS)
+    - "http://localhost:4200"      # Required if using ng serve for GUI development
+  permissions:
+    allow_ui_configuration: false  # Allow remote user to change settings
+    allow_local_rename_delete: false   # Allow remote user to rename/delete local files
+    allow_remote_rename_delete: false  # Allow remote user to rename/delete S3 files
 ```
+
+#### If you need to recover your password
+
+To decrypt and view an encrypted PSK value:
+
+```bash
+filemoverexpress crypto decrypt
+```
+
+#### Tips
+
+- Keep your secret passphrase somewhere safe — if you lose it, you'll need to re-encrypt your PSK
+- Never share your secret passphrase or commit it to version control
+- The `blocked_paths` list is a good way to prevent remote users from accessing sensitive folders on the host machine
 
 ## Validating Configuration
 

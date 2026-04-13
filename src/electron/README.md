@@ -2,7 +2,7 @@
 
 [![Electron Version](https://img.shields.io/badge/Electron-29.0+-blue.svg)](https://www.electronjs.org/)
 [![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The Electron wrapper packages the File Mover Express GUI as a native desktop application for macOS, Windows, and Linux. It provides the
 bridge between the web-based Angular GUI and native operating system features.
@@ -390,4 +390,4 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for general contribution guidelines
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](../../LICENSE) file for details.
