@@ -61,7 +61,7 @@ Before you can transfer files, you need an S3 bucket and AWS credentials with th
 }
 ```
 
-Attach this policy to an IAM user or role, then configure your credentials locally:
+Attach this policy to an IAM user or role, then configure your credentials locally by opening Terminal (macOS/Linux) or CMD (Windows):
 
 ```bash
 aws configure

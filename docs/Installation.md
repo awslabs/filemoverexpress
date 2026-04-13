@@ -92,49 +92,67 @@ npm run package
 
 The packaged desktop app will be in `dist/` — for example `dist/File Mover Express-darwin-arm64/` on Apple Silicon.
 
+**macOS** — optionally move to Applications:
+```bash
+cp -r "dist/File Mover Express-darwin-arm64/File Mover Express.app" /Applications/
+```
+
+**Windows** — optionally move to Program Files:
+```powershell
+Move-Item "dist\File Mover Express-win32-x64" "C:\Program Files\File Mover Express"
+```
+
 ---
 
-## Step 6 — Run the application
+## Step 6 — Set up AWS
 
-After building, you have two options depending on how you want to use FME:
+Before you can transfer files, you need an S3 bucket and AWS credentials with the right permissions.
 
-### Option A — CLI only
+**Create an S3 bucket** in the [S3 Console](https://s3.console.aws.amazon.com/) if you don't have one already.
 
-Run the daemon directly from the built binary. The GUI will be accessible in your browser at `http://localhost:50006`.
+**Create an IAM policy** with the minimum permissions File Mover Express needs:
 
-### macOS (Intel)
-```bash
-./dist/filemoverexpress-darwin-amd64 daemon
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
 ```
 
-### macOS (Apple Silicon)
-```bash
-./dist/filemoverexpress-darwin-arm64 daemon
-```
-
-### Linux
-```bash
-./dist/filemoverexpress-linux-amd64 daemon
-```
-
-### Windows
-```powershell
-.\dist\filemoverexpress-windows-amd64.exe daemon
-```
-
-### Option B — Desktop app (Electron)
-
-To run the full desktop application with the GUI bundled as a native window:
-
-```bash
-npm run package
-```
-
-Then launch the app from the `dist/` folder. Or in development mode (GUI hot-reload):
+Attach this policy to an IAM user or role, then configure your credentials locally by opening Terminal (macOS/Linux) or CMD (Windows):
 
 ```bash
-npm run --prefix src/gui electron:dev
+aws configure
 ```
+
+You'll be prompted for your AWS Access Key ID, Secret Access Key, and default region.
+
+> Don't have the AWS CLI? [Install it here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+
+---
+
+## Step 7 — Configure and start transferring
+
+1. Launch File Mover Express and add a Remote Configuration pointing to your S3 bucket. See the [Configuration Guide](Configuration.md) for full details.
+2. Start transferring files:
+   - Using the GUI? See the [GUI Guide](Using-the-GUI.md)
+   - Prefer the CLI? See the [CLI Guide](Using-the-CLI.md)
+   - New to the app? See [Getting Started](Getting-Started.md) for your first transfer
 
 ---
 
@@ -180,9 +198,13 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.filemoverexpress"
 
 ## Next Steps
 
-1. Configure your AWS credentials: `aws configure`
-2. Follow the [Configuration](Configuration.md) guide to set up S3 buckets and transfer settings
-3. See [Getting Started](Getting-Started.md) for your first transfer
+After building and configuring, explore the full documentation:
+
+- [Getting Started](Getting-Started.md) — Your first transfer
+- [Using the GUI](Using-the-GUI.md) — Graphical interface guide
+- [Using the CLI](Using-the-CLI.md) — Command-line usage and scripting
+- [Hot Folders](Hot-Folders.md) — Automated folder monitoring and uploads
+- [Configuration](Configuration.md) — Advanced configuration options including remote daemon setup
 
 ---
 
