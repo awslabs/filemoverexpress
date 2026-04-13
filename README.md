@@ -1,7 +1,7 @@
 # File Mover Express for AWS
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org/)
 [![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
 
 File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
@@ -21,44 +21,69 @@ File Mover Express is a high-performance file transfer application designed to a
 
 ## Quick Start
 
-**Prerequisites:** Go 1.24+, Node.js 22+, Git, golangci-lint
+### Step 1 — Install File Mover Express
+
+**Download a pre-built installer** from the [Releases page](https://github.com/awslabs/filemoverexpress/releases) and double-click to install.
+
+> **Note:** Installers are currently unsigned. macOS will show a Gatekeeper warning — right-click the app and choose Open to bypass it. Windows will show a SmartScreen warning — click "More info" then "Run anyway".
+
+Prefer to build from source? See [Building from Source](docs/Installation.md).
+
+---
+
+### Step 2 — Set up AWS
+
+Before you can transfer files, you need an S3 bucket and AWS credentials with the right permissions.
+
+**Create an S3 bucket** in the [S3 Console](https://s3.console.aws.amazon.com/) if you don't have one already.
+
+**Create an IAM policy** with the minimum permissions File Mover Express needs:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
+Attach this policy to an IAM user or role, then configure your credentials locally:
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/awslabs/filemoverexpress.git
-cd filemoverexpress
-npm install
-
-# 2. Generate protobuf code (installs missing Go plugins automatically)
-npm run proto
-
-# 3. Build the CLI
-npm run build:cli
-
-# 4. Build the GUI and package the desktop app
-npm run build:gui
-npm run package
-
-# 5. Configure AWS credentials
 aws configure
 ```
 
-The packaged desktop app will be in `dist/` — for example `dist/File Mover Express-darwin-arm64/` on Apple Silicon.
+You'll be prompted for your AWS Access Key ID, Secret Access Key, and default region.
 
-**macOS** — optionally move to Applications:
-```bash
-cp -r "dist/File Mover Express-darwin-arm64/File Mover Express.app" /Applications/
-```
+> Don't have the AWS CLI? [Install it here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 
-**Windows** — optionally move to Program Files:
-```powershell
-Move-Item "dist\File Mover Express-win32-x64" "C:\Program Files\File Mover Express"
-```
+---
 
-**Next steps:**
+### Step 3 — Configure File Mover Express
+
+Launch File Mover Express and add a Remote Configuration pointing to your S3 bucket. See the [Configuration Guide](docs/Configuration.md) for full details.
+
+---
+
+### Step 4 — Start transferring
+
 - Using the GUI? See the [GUI Guide](docs/Using-the-GUI.md)
 - Prefer the CLI? See the [CLI Guide](docs/Using-the-CLI.md)
-- Full installation details and troubleshooting: [Installation Guide](docs/Installation.md)
+- New to the app? See [Getting Started](docs/Getting-Started.md) for your first transfer
 
 ## Documentation
 
