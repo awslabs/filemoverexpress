@@ -4,7 +4,7 @@ import {Architecture, Platform} from '../types/platform';
 export const cliConfig: CLIBuildConfig = {
     outputDir: 'dist',
     sourceDir: 'src/cli',
-    goVersion: '1.24.0',
+    goVersion: '1.25.0',
     buildFlags: ['-trimpath'],
     ldFlags: ['-s', '-w'],
     windowsDaemonLauncherPath: 'src/windows-daemon-launcher',

@@ -1,7 +1,7 @@
 # File Mover Express for AWS
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
 [![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
 
 File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
@@ -9,126 +9,56 @@ File Mover Express is a high-performance file transfer application designed to a
 ## Key Features
 
 - **High-Performance Transfers**: Auto-tuned parallel processing for optimal throughput
-- **Multipart Upload Optimization**: Intelligent chunking and parallelized multipart uploads for large files with automatic retry and resume capabilities
-- **Drag & Drop GUI**: Intuitive graphical interface for easy file management
-- **Command-Line Interface**: Powerful CLI for scripting and automation
-- **Hot Folders**: Automatic monitoring and upload of new files
-- **Secure**: End-to-end encryption with AWS IAM integration
-- **Checksumming & MHL Support**: Multiple checksum algorithms (MD5, SHA1, SHA256) with Media Hash List (MHL) format support for professional media workflows
-- **Cross-Platform**: Support for macOS, Windows, and Linux
+- **Multipart Upload Optimization**: Large files are automatically split into chunks and uploaded in parallel, with built-in retry and resume so interrupted transfers pick up where they left off
+- **Drag & Drop GUI**: A simple graphical interface — drag files in, choose your S3 destination, and go
+- **Command-Line Interface**: Full CLI for scripting, automation, and headless environments
+- **Hot Folders**: Point File Mover Express at a folder and it will automatically upload anything new that appears in it
+- **Secure**: All transfers use HTTPS, and AWS IAM controls who can access your S3 buckets
+- **Remote Daemon**: Run File Mover Express on one machine and control it from another over an encrypted connection, protected by a password you set
+- **Checksumming & MHL Support**: Optional file integrity verification. XXH3 and xxHash64 are the fastest options — significantly quicker than MD5 or SHA. MD5, SHA1, and SHA256 are available for workflows that require them. Reads MHL files for camera-to-cloud verification workflows.
+- **Cross-Platform**: Works on macOS, Windows, and Linux
 - **Multi-Region**: Works with any AWS region where S3 is available
 
 ## Quick Start
 
-### Prerequisites
+**Prerequisites:** Go 1.24+, Node.js 22+, Git, golangci-lint
 
-**Required Tools:**
-- **Node.js** 22 or higher with npm/yarn
-- **Go** 1.24 or higher
-- **golangci-lint** - Go linter ([installation guide](https://golangci-lint.run/usage/install/))
-- **AWS Account** with S3 access
-
-**Optional Tools:**
-- **Electron** - For building desktop packages (installed via npm)
-
-### Installation
-
-#### macOS
-
-[//]: # (**Option 1: Download Installer &#40;Recommended&#41;**)
-[//]: # (- Download the latest `.pkg` installer from [Releases]&#40;https://github.com/awslabs/filemoverexpress/releases&#41;)
-[//]: # (- Supports both Intel x64 and Apple Silicon ARM64 architectures)
-[//]: # (- Double-click to run the installer and follow the setup wizard)
-[//]: # ()
-[//]: # (**Option 2: Build from Source**)
 ```bash
-# Install dependencies
-brew install go node git golangci-lint
-
-# Clone repository
+# 1. Clone and install
 git clone https://github.com/awslabs/filemoverexpress.git
 cd filemoverexpress
-
-# Install npm dependencies
 npm install
 
-# Generate protobuf code
-npm run proto:generate
+# 2. Generate protobuf code (installs missing Go plugins automatically)
+npm run proto
 
-# Build CLI for macOS
-npm run --prefix src/cli build:mac
+# 3. Build the CLI
+npm run build:cli
 
-# Build GUI
-npm run --prefix src/gui build:prod
+# 4. Build the GUI and package the desktop app
+npm run build:gui
+npm run package
 
-# Run the CLI application
-./src/cli/dist/filemoverexpress-darwin-amd64
+# 5. Configure AWS credentials
+aws configure
 ```
 
-#### Windows
+The packaged desktop app will be in `dist/` — for example `dist/File Mover Express-darwin-arm64/` on Apple Silicon.
 
-[//]: # (**Option 1: Download Installer &#40;Recommended&#41;**)
-[//]: # (- Download the latest `.msi` installer from [Releases]&#40;https://github.com/awslabs/filemoverexpress/releases&#41;)
-[//]: # (- Supports Windows x64 architecture)
-[//]: # (- Run the installer and follow the setup wizard)
-[//]: # ()
-[//]: # (**Option 2: Build from Source**)
+**macOS** — optionally move to Applications:
 ```bash
-# Clone repository
-git clone https://github.com/awslabs/filemoverexpress.git
-cd filemoverexpress
-
-# Install npm dependencies
-npm install
-
-# Generate protobuf code
-npm run proto:generate
-
-# Build CLI for Windows
-npm run --prefix src/cli build:win
-
-# Build GUI
-npm run --prefix src/gui build:prod
-
-# Run the application
-.\src\cli\dist\filemoverexpress-windows-amd64.exe
+cp -r "dist/File Mover Express-darwin-arm64/File Mover Express.app" /Applications/
 ```
 
-#### Linux
-```bash
-# Install dependencies
-sudo apt update
-sudo apt install -y golang-go nodejs npm git
-
-# Install golangci-lint (follow official installation guides)
-
-# Clone repository
-git clone https://github.com/awslabs/filemoverexpress.git
-cd filemoverexpress
-
-# Install npm dependencies
-npm install
-
-# Generate protobuf code
-npm run proto:generate
-
-# Build CLI for Linux
-npm run --prefix src/cli build:linux
-
-# Build GUI
-npm run --prefix src/gui build:prod
-
-# Run the application
-./src/cli/dist/filemoverexpress-linux-amd64
+**Windows** — optionally move to Program Files:
+```powershell
+Move-Item "dist\File Mover Express-win32-x64" "C:\Program Files\File Mover Express"
 ```
 
-### AWS Configuration
-
-1. Create an S3 bucket with appropriate permissions
-2. Configure IAM policy with required S3 access permissions
-3. Set up AWS credentials using `aws configure`
-
-For detailed setup instructions, see the [Setup Guide](https://github.com/awslabs/filemoverexpress/wiki/Setup).
+**Next steps:**
+- Using the GUI? See the [GUI Guide](docs/Using-the-GUI.md)
+- Prefer the CLI? See the [CLI Guide](docs/Using-the-CLI.md)
+- Full installation details and troubleshooting: [Installation Guide](docs/Installation.md)
 
 ## Documentation
 
@@ -172,7 +102,7 @@ filemoverexpress/
 npm install
 
 # Generate protobuf code
-npm run proto:generate
+npm run proto
 
 # Build for all supported platforms
 npm run build:all
@@ -181,7 +111,7 @@ npm run build:all
 npm run build:cli           # All CLI platforms
 npm run --prefix src/cli build:mac      # macOS (Intel x64 and Apple Silicon ARM64)
 npm run --prefix src/cli build:linux    # Linux (x64 and ARM64)
-npm run --prefix src/cli build:win      # Windows (x64)
+npm run --prefix src/cli build:windows  # Windows (x64)
 
 # Build GUI
 npm run build:gui           # Production GUI build
@@ -206,7 +136,7 @@ npm run clean:gui           # Clean GUI artifacts only
 
 | Command | Description |
 |---------|-------------|
-| `npm run proto:generate` | Generate protobuf code for CLI and GUI |
+| `npm run proto` | Generate protobuf code for CLI and GUI |
 | `npm run build:all` | Build both CLI and GUI components |
 | `npm run build:cli` | Build CLI for all platforms (macOS, Linux, Windows) |
 | `npm run build:gui` | Build GUI production bundle |
@@ -256,7 +186,7 @@ npm run --prefix src/cli build:mac
 npm run --prefix src/cli build:linux
 
 # Windows only (x64)
-npm run --prefix src/cli build:win
+npm run --prefix src/cli build:windows
 
 # All platforms in parallel
 npm run --prefix src/cli build:all
