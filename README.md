@@ -21,7 +21,7 @@ File Mover Express is a high-performance file transfer application designed to a
 
 ## Quick Start
 
-**Prerequisites:** Go 1.25+, Node.js 22+, Git, golangci-lint
+**Prerequisites:** Go 1.24+, Node.js 22+, Git, golangci-lint
 
 ```bash
 # 1. Clone and install
@@ -32,13 +32,11 @@ npm install
 # 2. Generate protobuf code (installs missing Go plugins automatically)
 npm run proto
 
-# 3. Build the CLI — use the command for your platform:
-npm run --prefix src/cli build:mac        # macOS
-npm run --prefix src/cli build:linux      # Linux
-npm run --prefix src/cli build:windows    # Windows
+# 3. Build the CLI
+npm run build:cli
 
 # 4. Build the GUI and package the desktop app
-npm run --prefix src/gui build:production
+npm run build:gui
 npm run package
 
 # 5. Configure AWS credentials
