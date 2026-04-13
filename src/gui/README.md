@@ -2,7 +2,7 @@
 
 [![Angular Version](https://img.shields.io/badge/Angular-21+-red.svg)](https://angular.io/)
 [![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The GUI component is a modern Angular application that provides an intuitive graphical interface for File Mover Express. It communicates
 with the CLI daemon via gRPC and offers drag-and-drop file management, job monitoring, and configuration management.
@@ -206,4 +206,4 @@ Contributions to the GUI component are welcome. Please see [CONTRIBUTING.md](../
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](../../LICENSE) file for details.
