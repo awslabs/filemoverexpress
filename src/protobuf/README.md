@@ -1,7 +1,7 @@
 # File Mover Express Protocol Buffers
 
 [![Protocol Buffers](https://img.shields.io/badge/Protobuf-3.0+-blue.svg)](https://developers.google.com/protocol-buffers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 This directory contains Protocol Buffer (protobuf) definitions that define the communication interface between the CLI daemon and GUI application. These definitions are used to generate type-safe client and server code for both Go and TypeScript.
 
@@ -386,4 +386,4 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for general contribution guidelines
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](../../LICENSE) file for details.

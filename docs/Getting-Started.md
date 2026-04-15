@@ -6,18 +6,25 @@ This guide will help you get up and running with File Mover Express quickly.
 
 Before starting, ensure you have completed:
 
-1. **[Setup](Setup)** - AWS account, S3 bucket, and IAM policy configuration
-2. **[Installation](Installation)** - File Mover Express software installation
-3. **[Configuration](Configuration)** - Remote configuration setup
+1. **[Installation](Installation.md)** — Download and install File Mover Express
+2. **[IAM Permissions](Security.md#required-iam-permissions)** — AWS credentials and S3 access
+3. **[Configuration](Configuration.md)** — Add a Remote Configuration for your S3 bucket
 
 ## Quick Start Guide
 
 ### Step 1: Launch File Mover Express
 
 **GUI Mode:**
+
+Open File Mover Express from your Applications folder (macOS), Start Menu (Windows), or wherever you installed it.
+
+If you built from source, you can also launch it from the `dist/` folder or run the daemon directly:
+
 ```bash
-./fme
+filemoverexpress daemon
 ```
+
+The GUI will be accessible at `http://localhost:4200` when running `ng serve` from the `src/gui` folder. See [Development](Development.md) for details.
 
 **CLI Mode:**
 ```bash
