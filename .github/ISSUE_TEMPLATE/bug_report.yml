@@ -1,0 +1,133 @@
+---
+name: "🐛 Bug Report"
+description: Report a bug in File Mover Express
+title: "[Bug]: (short description)"
+labels: [bug, needs-triage]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the sections below so we can reproduce and fix the issue.
+
+        ⚠️ **Important**: Please review your logs and configuration before submitting to ensure no sensitive information (AWS credentials, access keys, bucket names, file paths, etc.) is included.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Provide the steps needed to reproduce the issue.
+      placeholder: |
+        1. Open File Mover Express
+        2. Navigate to ...
+        3. Click on ...
+        4. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      description: Which interface were you using?
+      options:
+        - GUI (Desktop App)
+        - CLI
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: File Mover Express version
+      description: Run `filemoverexpress --version` or check Settings in the GUI.
+      placeholder: "e.g. 2.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating system
+      placeholder: "e.g. Windows 11, macOS 15.2 (Apple Silicon), Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version (if building from source)
+      description: Run `node --version`. Leave blank if using a pre-built installer.
+      placeholder: "e.g. v20.18.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: |
+        Include relevant log output or error messages. You can generate a support file via the GUI (≡ → Support) or CLI (`filemoverexpress support-file`).
+
+        ⚠️ **Please redact any sensitive information** such as AWS credentials, account IDs, bucket names, or file paths that could identify your environment.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration (if relevant)
+      description: |
+        Include relevant sections of your `configuration.yaml` if the issue may be configuration-related.
+
+        ⚠️ **Remove all credentials, access keys, bucket names, and any other sensitive values before pasting.**
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: |
+        Any other information that might help — screenshots, network environment details, file sizes/types involved, etc.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I have searched existing issues to verify this is not a duplicate
+          required: true
+        - label: I have removed all sensitive information (credentials, account IDs, bucket names) from this report
+          required: true
+
