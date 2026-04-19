@@ -7,7 +7,7 @@ import type {
     ShortcutRecord,
     SystemConfigOptions,
 } from './installer';
-import {ShellType} from './installer';
+import {InstallScope, ShellType} from './installer';
 import {Architecture, Platform} from './platform';
 
 describe('installer types', () => {
@@ -236,4 +236,26 @@ describe('installer types', () => {
             expect(report.shortcutsCreated[1].type).toBe('desktop');
         });
     });
+
+    describe('InstallScope enum', () => {
+        it('should have User value', () => {
+            expect(InstallScope.User).toBe('user');
+        });
+
+        it('should have System value', () => {
+            expect(InstallScope.System).toBe('system');
+        });
+
+        it('should have exactly 2 install scope values', () => {
+            const values = Object.values(InstallScope);
+            expect(values).toHaveLength(2);
+        });
+
+        it('should contain all expected install scope values', () => {
+            const values = Object.values(InstallScope);
+            expect(values).toContain('user');
+            expect(values).toContain('system');
+        });
+    });
+
 });

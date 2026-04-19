@@ -10,6 +10,9 @@ import { Subject } from 'rxjs';
 import { default as find } from 'find-process';
 import { SpawnOptions } from 'node:child_process';
 
+// Used by squirrel during install, updates, etc. Quit immediately to avoid the app flashing up during the installation
+if (require('electron-squirrel-startup')) app.quit();
+
 let mainWindow: BrowserWindow | null = null;
 let daemonProcess: ChildProcess | null = null;
 let daemonRunning = false;
@@ -18,11 +21,16 @@ const minimumWindowWidth = 1450;
 const minimumWindowHeight = 1000;
 
 if (process.platform === 'darwin') {
-    process.env.PATH = `${process.env.PATH}:${path.join(path.dirname(__dirname), 'bin')}`;
+    process.env.PATH = `${process.env.PATH}:${path.join(__dirname, 'binaries')}`;
 }
 log.initialize();
 log.info(`${productNames.PRODUCT_NAME} starting...`);
 
+if (process.env.FME_ELECTRON_DEBUG) {
+    log.info('Enabling electron debug logging');
+    log.transports.file.level = 'debug';
+    log.transports.console.level = 'debug';
+}
 
 function createWindow() {
     const iconPath = path.join(__dirname, 'assets/icons/png/icon_128x128.png');
@@ -83,7 +91,8 @@ function createWindow() {
  * Return the absolute path to the CLI executable
  */
 function getDaemonPath(): string {
-    return path.join(path.dirname(__dirname), 'bin', isWindowsOS() ? productNames.PRODUCT_DAEMON_LAUNCHER : productNames.PRODUCT_CLI_NAME);
+    const binaryName = isWindowsOS() ? productNames.PRODUCT_DAEMON_LAUNCHER : productNames.PRODUCT_CLI_NAME;
+    return path.join(__dirname, 'binaries', binaryName);
 }
 
 function checkIfDaemonRunning(sub: Subject<boolean>) {
@@ -206,15 +215,15 @@ ipcMain.handle('startDaemon', () => {
     }
     daemonRunning = true;
 
-    // A separate daemon is needed for windows so that the console window doesn't appeear
     const spawnOpts: SpawnOptions = {
         detached: true,
-        env: {FILETRANSFER_GUI_DAEMON: 'true'},
+        env: {FME_GUI_DAEMON: 'true'},
         stdio: 'ignore',
     };
     const cliBinary = getDaemonPath();
     log.debug(`Starting binary ${cliBinary}`);
 
+    // A separate daemon is needed for windows so that the console window doesn't appear
     daemonProcess = isWindowsOS()
         ? daemonProcess = spawn(cliBinary, [], spawnOpts)
         : daemonProcess = spawn(cliBinary, ['daemon'], spawnOpts);

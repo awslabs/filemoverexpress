@@ -148,7 +148,7 @@ export async function convertTransfersToExcel(data: ExportJobList): Promise<stri
             }
 
             if (flattenedTransfers.length > 0) {
-                worksheet.columns = Object.keys(flattenedTransfers[0]).map(key => ({
+                worksheet.columns = Object.keys(flattenedTransfers[0]).map((key) => ({
                     header: key,
                     key: key,
                 }));

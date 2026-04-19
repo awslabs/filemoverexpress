@@ -54,7 +54,7 @@ describe('ToolChecker', () => {
 
                 // Assert
                 expect(result.available).toBe(true);
-                expect(CommandRunner.run).toHaveBeenCalledWith('go', ['version']);
+                expect(CommandRunner.run).toHaveBeenCalledWith('go', ['version'], {silent: true});
             });
 
             it('should capture version from stdout when available', async () => {
@@ -152,7 +152,7 @@ describe('ToolChecker', () => {
                 // Assert
                 expect(result.available).toBe(true);
                 expect(result.version).toBe('v18.0.0');
-                expect(CommandRunner.run).toHaveBeenCalledWith('node', ['--version']);
+                expect(CommandRunner.run).toHaveBeenCalledWith('node', ['--version'], {silent: true});
             });
         });
     });
@@ -172,7 +172,7 @@ describe('ToolChecker', () => {
 
             // Assert
             expect(result.available).toBe(true);
-            expect(CommandRunner.run).toHaveBeenCalledWith('go', ['version']);
+            expect(CommandRunner.run).toHaveBeenCalledWith('go', ['version'], {silent: true});
         });
 
         it('should return false when go is not installed', async () => {
@@ -207,7 +207,7 @@ describe('ToolChecker', () => {
 
             // Assert
             expect(result.available).toBe(true);
-            expect(CommandRunner.run).toHaveBeenCalledWith('ng', ['version']);
+            expect(CommandRunner.run).toHaveBeenCalledWith('ng', ['version'], {silent: true});
         });
 
         it('should return false when ng is not installed', async () => {
@@ -243,7 +243,7 @@ describe('ToolChecker', () => {
 
                 // Assert
                 expect(result).toBe(true);
-                expect(CommandRunner.run).toHaveBeenCalledWith('go', ['version']);
+                expect(CommandRunner.run).toHaveBeenCalledWith('go', ['version'], {silent: true});
             });
 
             it('should return false and report missing go', async () => {
@@ -284,7 +284,7 @@ describe('ToolChecker', () => {
 
                 // Assert
                 expect(result).toBe(true);
-                expect(CommandRunner.run).toHaveBeenCalledWith('ng', ['version']);
+                expect(CommandRunner.run).toHaveBeenCalledWith('ng', ['version'], {silent: true});
             });
 
             it('should return false and report missing ng', async () => {

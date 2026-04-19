@@ -63,9 +63,10 @@ describe('GUIBuilder', () => {
                 appBundleId: 'com.example.filemoverexpress',
                 helperBundleId: 'com.example.filemoverexpress.helper',
                 iconPaths: {
-                    [Platform.Darwin]: 'assets/icon.icns',
-                    [Platform.Linux]: 'assets/icon.png',
-                    [Platform.Windows]: 'assets/icon.ico',
+                    [Platform.Darwin]: 'assets/icons/mac/icon.icns',
+                    [Platform.Linux]: 'assets/icons/png/icon_256x256.png',
+                    [Platform.Windows]: 'assets/icons/png/icon.ico',
+                    [Platform.Unknown]: 'assets/icons/png/icon.ico',
                 },
                 packagerOptions: {
                     overwrite: true,

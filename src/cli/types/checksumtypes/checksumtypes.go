@@ -83,7 +83,6 @@ func pruneChecksumCache() {
                 if deleteErr := b.Delete(k); deleteErr != nil {
                     events.Events.Warn("Failed to prune checksum cache record %s: %s", string(k), deleteErr.Error())
                 }
-
             }
         }
 

@@ -867,7 +867,7 @@ export class DaemonBrowserComponent implements OnDestroy {
     }
 
     private isStartingPath(path: string): boolean {
-        let configLocalStartingPath = '';
+        let configLocalStartingPath;
         const currentTransferProfile = this.selectedTransferProfile;
         try {
             if (currentTransferProfile) {

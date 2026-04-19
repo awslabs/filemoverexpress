@@ -6,7 +6,7 @@ Get File Mover Express up and running quickly. This guide is designed for artist
 
 Before starting, make sure you have:
 
-- [ ] **File Mover Express installer** (`.pkg` for macOS, `.msi` for Windows)
+- [ ] **File Mover Express installer** (download from [GitHub releases](https://github.com/awslabs/filemoverexpress/releases))
 - [ ] **Studio connection settings** (provided by your IT team)
 - [ ] **AWS credentials** (Access Key and Secret Key from your studio or IT department)
 
@@ -15,14 +15,14 @@ Before starting, make sure you have:
 ## Step 1: Install File Mover Express
 
 ### macOS
-1. **Download** the `.pkg` installer from your studio or [GitHub releases](https://github.com/awslabs/filemoverexpress/releases)
+1. **Download** the installer from your studio or [GitHub releases](https://github.com/awslabs/filemoverexpress/releases)
 2. **Double-click** the installer file
 3. **Follow the setup wizard** - click "Continue" and "Install"
 4. **Enter your password** when prompted
 5. **Click "Close"** when installation completes
 
 ### Windows
-1. **Download** the `.msi` installer from your studio or [GitHub releases](https://github.com/awslabs/filemoverexpress/releases)
+1. **Download** the installer from your studio or [GitHub releases](https://github.com/awslabs/filemoverexpress/releases)
 2. **Double-click** the installer file
 3. **Follow the setup wizard** - click "Next" through the prompts
 4. **Click "Install"** and wait for completion

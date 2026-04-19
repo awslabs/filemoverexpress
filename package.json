@@ -15,25 +15,30 @@
         "src/*"
     ],
     "scripts": {
-        "build:cli": "cd src/build-scripts && ts-node build.ts cli",
-        "build:gui": "cd src/build-scripts && ts-node build.ts gui",
-        "build:all": "npm-run-all --parallel --aggregate-output --print-label build:cli build:gui",
-        "electron": "cd src/build-scripts && ts-node build.ts electron",
-        "install:local": "cd src/build-scripts && ts-node build.ts install local",
-        "package": "cd src/build-scripts && ts-node build.ts package",
-        "proto": "cd src/build-scripts && ts-node build.ts proto",
+        "build": "npm-run-all --parallel --aggregate-output --print-label build:cli build:gui",
+        "build:cli": "npx -w @filemoverexpress/build-scripts ts-node build.ts cli",
+        "build:gui": "npx -w @filemoverexpress/build-scripts ts-node build.ts gui",
+        "build:electron": "npx -w @filemoverexpress/build-scripts ts-node build.ts electron",
+        "build:proto": "npx -w @filemoverexpress/build-scripts ts-node build.ts proto",
+
+        "installer": "npx -w @filemoverexpress/build-scripts ts-node build.ts installer",
+        "install:local": "npx -w @filemoverexpress/build-scripts ts-node build.ts install local",
+
+        "package": "npx -w @filemoverexpress/build-scripts ts-node build.ts package",
+
+        "test": "npm-run-all --print-label test:build-scripts test:cli test:gui",
         "test:build-scripts": "npm run --prefix src/build-scripts test",
         "test:cli": "npm run --prefix src/cli test",
         "test:gui": "npm run --prefix src/gui test",
-        "test:all": "npm-run-all --parallel --aggregate-output --print-label test:build-scripts test:cli test:gui",
+
+        "lint": "npm-run-all --parallel --aggregate-output --print-label lint:cli lint:gui",
         "lint:cli": "npm run --prefix src/cli lint",
-        "lint:gui": "npm run --prefix src/gui lint",
-        "lint:all": "npm-run-all --parallel --aggregate-output --print-label lint:cli lint:gui"
+        "lint:gui": "npm run --prefix src/gui lint"
     },
     "devDependencies": {
         "@bufbuild/buf": "1.67.0",
         "@bufbuild/protoc-gen-es": "2.11.0",
-        "@eslint/js": "10.0.1",
+        "@eslint/js": "9.39.4",
         "@stylistic/eslint-plugin": "5.10.0",
         "@types/node": "^20",
         "cross-env": "10.1.0",

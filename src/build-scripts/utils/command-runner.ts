@@ -11,6 +11,7 @@ export interface RunOptions {
     cwd?: string;
     env?: Record<string, string>;
     verbose?: boolean;
+    silent?: boolean;
 }
 
 export class CommandRunner {
@@ -53,7 +54,9 @@ export class CommandRunner {
             });
 
             childProcess.on('error', (error: Error) => {
-                Logger.error(`Failed to execute command: ${command}`, error);
+                if (!options?.silent) {
+                    Logger.error(`Failed to execute command: ${command}`, error);
+                }
                 resolve({
                     exitCode: 1,
                     stdout,

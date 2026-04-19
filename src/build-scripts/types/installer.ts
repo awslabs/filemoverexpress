@@ -1,6 +1,14 @@
 import {Architecture, Platform} from './platform';
 
 /**
+ * Installation scope - user-local or system-wide
+ */
+export enum InstallScope {
+    User = 'user',
+    System = 'system',
+}
+
+/**
  * Options for system configuration during installation
  */
 export interface SystemConfigOptions {

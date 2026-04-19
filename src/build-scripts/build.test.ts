@@ -17,6 +17,7 @@ vi.mock('./builders/protobuf-builder');
 vi.mock('./builders/electron-builder');
 vi.mock('./packagers/electron-packager');
 vi.mock('./installers/local-installer');
+vi.mock('./installers/forge-installer');
 
 // Mock logger
 vi.mock('./utils/logger', () => ({
@@ -799,6 +800,204 @@ describe('build.ts', () => {
 
                 // Assert
                 expect(detectCurrentArchitecture).toHaveBeenCalled();
+            });
+        });
+
+        describe('installer command', () => {
+            it('should auto-detect darwin platform and create ForgeInstaller', async () => {
+                // Arrange
+                const {detectCurrentPlatform} = await import('./utils/platform-detector');
+                vi.mocked(detectCurrentPlatform).mockReturnValue(Platform.Darwin);
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+                const optionsWithoutPlatform: BuildOptions = {
+                    archs: [Architecture.X64],
+                    production: false,
+                    verbose: false,
+                };
+
+                // Act
+                await executeBuild('installer', '', optionsWithoutPlatform);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledTimes(1);
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Darwin,
+                    }),
+                );
+                expect(mockGenerate).toHaveBeenCalledTimes(1);
+            });
+
+            it('should auto-detect windows platform and create ForgeInstaller', async () => {
+                // Arrange
+                const {detectCurrentPlatform} = await import('./utils/platform-detector');
+                vi.mocked(detectCurrentPlatform).mockReturnValue(Platform.Windows);
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+                const optionsWithoutPlatform: BuildOptions = {
+                    archs: [Architecture.X64],
+                    production: false,
+                    verbose: false,
+                };
+
+                // Act
+                await executeBuild('installer', '', optionsWithoutPlatform);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledTimes(1);
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Windows,
+                    }),
+                );
+                expect(mockGenerate).toHaveBeenCalledTimes(1);
+            });
+
+            it('should auto-detect linux platform and create ForgeInstaller', async () => {
+                // Arrange
+                const {detectCurrentPlatform} = await import('./utils/platform-detector');
+                vi.mocked(detectCurrentPlatform).mockReturnValue(Platform.Linux);
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+                const optionsWithoutPlatform: BuildOptions = {
+                    archs: [Architecture.X64],
+                    production: false,
+                    verbose: false,
+                };
+
+                // Act
+                await executeBuild('installer', '', optionsWithoutPlatform);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledTimes(1);
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Linux,
+                    }),
+                );
+                expect(mockGenerate).toHaveBeenCalledTimes(1);
+            });
+
+            it('should accept "mac" as platform alias for darwin', async () => {
+                // Arrange
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+
+                // Act
+                await executeBuild('installer', 'mac', buildOptions);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Darwin,
+                    }),
+                );
+            });
+
+            it('should accept "win" as platform alias for windows', async () => {
+                // Arrange
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+
+                // Act
+                await executeBuild('installer', 'win', buildOptions);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Windows,
+                    }),
+                );
+            });
+
+            it('should accept "linux" as platform alias', async () => {
+                // Arrange
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+
+                // Act
+                await executeBuild('installer', 'linux', buildOptions);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Linux,
+                    }),
+                );
+            });
+
+            it('should throw error for invalid installer target', async () => {
+                // Act & Assert
+                await expect(executeBuild('installer', 'invalid', buildOptions)).rejects.toThrow(
+                    "Invalid installer target: 'invalid'",
+                );
+            });
+
+            it('should pass devMode and retainTempFiles options to installer', async () => {
+                // Arrange
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+                const optionsWithDevMode: BuildOptions = {
+                    ...buildOptions,
+                    devMode: true,
+                    retainTempFiles: true,
+                };
+
+                // Act
+                await executeBuild('installer', '', optionsWithDevMode);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        devMode: true,
+                        retainTempFiles: true,
+                    }),
+                );
+            });
+
+            it('should use platform from options when no target is provided', async () => {
+                // Arrange
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+                const optionsWithPlatform: BuildOptions = {
+                    ...buildOptions,
+                    platforms: [Platform.Linux],
+                };
+
+                // Act
+                await executeBuild('installer', '', optionsWithPlatform);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        platform: Platform.Linux,
+                    }),
+                );
             });
         });
 

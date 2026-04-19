@@ -35,7 +35,7 @@ export function tasksTableFilterPredicate(task: TaskElement, term: string): bool
 
     const filters: FilterValues = JSON.parse(term);
     let isStatusAvailable = false;
-    let isNameAvailable = false;
+    let isNameAvailable;
     if (filters.status) {
         for (const status of filters.status) {
             if (task.status?.trim() === status) {

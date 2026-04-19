@@ -100,8 +100,9 @@ describe('config types', () => {
                 helperBundleId: 'com.test.app.helper',
                 iconPaths: {
                     [Platform.Darwin]: 'assets/icons/mac/icon.icns',
-                    [Platform.Linux]: 'assets/icons/linux/icon.png',
-                    [Platform.Windows]: 'assets/icons/win/icon.ico',
+                    [Platform.Linux]: 'assets/icons/png/icon_256x256.png',
+                    [Platform.Windows]: 'assets/icons/png/icon.ico',
+                    [Platform.Unknown]: 'assets/icons/png/icon.ico',
                 },
                 packagerOptions: {
                     overwrite: true,
@@ -127,8 +128,9 @@ describe('config types', () => {
                 helperBundleId: 'com.test.app.helper',
                 iconPaths: {
                     [Platform.Darwin]: 'assets/icons/mac/icon.icns',
-                    [Platform.Linux]: 'assets/icons/linux/icon.png',
-                    [Platform.Windows]: 'assets/icons/win/icon.ico',
+                    [Platform.Linux]: 'assets/icons/png/icon_256x256.png',
+                    [Platform.Windows]: 'assets/icons/png/icon.ico',
+                    [Platform.Unknown]: 'assets/icons/png/icon.ico',
                 },
                 packagerOptions: {
                     overwrite: true,
@@ -182,8 +184,9 @@ describe('config types', () => {
                     helperBundleId: 'com.test.app.helper',
                     iconPaths: {
                         [Platform.Darwin]: 'assets/icons/mac/icon.icns',
-                        [Platform.Linux]: 'assets/icons/linux/icon.png',
-                        [Platform.Windows]: 'assets/icons/win/icon.ico',
+                        [Platform.Linux]: 'assets/icons/png/icon_256x256.png',
+                        [Platform.Windows]: 'assets/icons/png/icon.ico',
+                        [Platform.Unknown]: 'assets/icons/png/icon.ico',
                     },
                     packagerOptions: {
                         overwrite: true,
@@ -222,8 +225,9 @@ describe('config types', () => {
                     helperBundleId: 'com.test.app.helper',
                     iconPaths: {
                         [Platform.Darwin]: 'assets/icons/mac/icon.icns',
-                        [Platform.Linux]: 'assets/icons/linux/icon.png',
-                        [Platform.Windows]: 'assets/icons/win/icon.ico',
+                        [Platform.Linux]: 'assets/icons/png/icon_256x256.png',
+                        [Platform.Windows]: 'assets/icons/png/icon.ico',
+                        [Platform.Unknown]: 'assets/icons/png/icon.ico',
                     },
                     packagerOptions: {
                         overwrite: true,

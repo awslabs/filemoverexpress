@@ -201,7 +201,7 @@ Electron packaging is configured in `package.json`:
     },
     "mac": {
       "target": ["dmg", "zip"],
-      "icon": "assets/icons/mac/icon.icns"
+      "icon": "assets/icons/png/icon_256x256.png"
     },
     "win": {
       "target": ["nsis", "portable"],

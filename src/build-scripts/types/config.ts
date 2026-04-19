@@ -18,6 +18,8 @@ export interface ElectronBuildConfig extends BuildConfig {
     appName: string;
     appBundleId: string;
     helperBundleId: string;
+    appAuthor: string;
+    appDescription: string;
     iconPaths: Record<Platform, string>;
     packagerOptions: ElectronPackagerOptions;
 }

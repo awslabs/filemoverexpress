@@ -33,10 +33,15 @@ describe('cli types', () => {
             expect(component).toBe('install');
         });
 
+        it('should accept installer as valid BuildComponent', () => {
+            const component: BuildComponent = 'installer';
+            expect(component).toBe('installer');
+        });
+
         it('should validate all BuildComponent values', () => {
-            const validComponents: BuildComponent[] = ['cli', 'gui', 'electron', 'proto', 'package', 'install'];
+            const validComponents: BuildComponent[] = ['cli', 'gui', 'electron', 'proto', 'package', 'install', 'installer'];
             validComponents.forEach((component) => {
-                expect(['cli', 'gui', 'electron', 'proto', 'package', 'install']).toContain(component);
+                expect(['cli', 'gui', 'electron', 'proto', 'package', 'install', 'installer']).toContain(component);
             });
         });
     });

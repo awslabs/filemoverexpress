@@ -12,7 +12,12 @@ const ellipseUpperBound = 5;
     selector: 'fme-breadcrumbs',
     templateUrl: './breadcrumbs.component.html',
     styleUrls: ['./breadcrumbs.component.scss'],
-    imports: [MatIcon, MatTooltip, MatMenu, MatMenuItem, MatMenuTrigger, MatDivider],
+    imports: [MatIcon,
+        MatTooltip,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger,
+        MatDivider],
 })
 export class BreadcrumbsComponent {
     public breadcrumbPath = model<string>('/');
