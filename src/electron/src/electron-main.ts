@@ -155,8 +155,10 @@ app.whenReady().then(
         globalShortcut.register('CommandOrControl+Q', () => {
             const now = new Date().getTime();
             const diff = now - cmdQTimestamp;
-            if (diff > 60) {
+            console.log(cmdQTimestamp, now, diff);
+            if (diff > 15_000) {
                 mainWindow?.webContents?.send('app-close');
+                cmdQTimestamp = now;
                 return;
             }
             mainWindow = null;
