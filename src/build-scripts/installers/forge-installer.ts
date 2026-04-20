@@ -611,11 +611,23 @@ export class ForgeInstaller extends BaseInstaller {
     }
 
     /**
-     * Inserts a platform-architecture suffix before the file extension.
+     * Inserts a platform-architecture suffix before the file extension,
+     * unless the filename already contains both platform and architecture
+     * identifiers (e.g. Forge's ZIP maker includes "win32-x64" by default).
      *
      * Example: "File Mover Express.dmg" → "File Mover Express-darwin-arm64.dmg"
+     * Skipped: "File Mover Express-win32-x64-1.0.0.zip" (already has platform-arch)
      */
     private addPlatformArchSuffix(filename: string): string {
+        const lower = filename.toLowerCase();
+        const platformIds = [this.platform, this.toElectronPlatform()];
+        const hasPlatform = platformIds.some(id => lower.includes(id));
+        const hasArch = lower.includes(this.architecture);
+
+        if (hasPlatform && hasArch) {
+            return filename;
+        }
+
         const ext = path.extname(filename);
         const stem = filename.slice(0, filename.length - ext.length);
         return `${stem}-${this.platform}-${this.architecture}${ext}`;
