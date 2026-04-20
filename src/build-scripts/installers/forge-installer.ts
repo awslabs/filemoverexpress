@@ -505,7 +505,9 @@ export class ForgeInstaller extends BaseInstaller {
     }
 
     /**
-     * Copies generated installer artifacts from Forge output to dist/.
+     * Copies generated installer artifacts from Forge output to dist/,
+     * renaming them to include the platform and architecture suffix
+     * (e.g. "File Mover Express.dmg" → "File Mover Express-darwin-arm64.dmg").
      */
     private async copyOutputToDist(results: ForgeMakeResult[]): Promise<string[]> {
         const projectRoot = PathResolver.getProjectRoot();
@@ -516,7 +518,7 @@ export class ForgeInstaller extends BaseInstaller {
 
         for (const result of results) {
             for (const artifact of result.artifacts) {
-                const filename = path.basename(artifact);
+                const filename = this.addPlatformArchSuffix(path.basename(artifact));
                 const destPath = toPosix(path.join(distDir, filename));
 
                 await fs.copyFile(artifact, destPath);
@@ -606,6 +608,29 @@ export class ForgeInstaller extends BaseInstaller {
             return `${this.baseName}.exe`;
         }
         return this.baseName;
+    }
+
+    /**
+     * Inserts a platform-architecture suffix before the file extension,
+     * unless the filename already contains both platform and architecture
+     * identifiers (e.g. Forge's ZIP maker includes "win32-x64" by default).
+     *
+     * Example: "File Mover Express.dmg" → "File Mover Express-darwin-arm64.dmg"
+     * Skipped: "File Mover Express-win32-x64-1.0.0.zip" (already has platform-arch)
+     */
+    private addPlatformArchSuffix(filename: string): string {
+        const lower = filename.toLowerCase();
+        const platformIds = [this.platform, this.toElectronPlatform()];
+        const hasPlatform = platformIds.some(id => lower.includes(id));
+        const hasArch = lower.includes(this.architecture);
+
+        if (hasPlatform && hasArch) {
+            return filename;
+        }
+
+        const ext = path.extname(filename);
+        const stem = filename.slice(0, filename.length - ext.length);
+        return `${stem}-${this.platform}-${this.architecture}${ext}`;
     }
 
     private getDaemonLauncherSourcePath(): string {

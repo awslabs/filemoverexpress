@@ -126,6 +126,8 @@ describe('config types', () => {
                 appName: 'Test App',
                 appBundleId: 'com.test.app',
                 helperBundleId: 'com.test.app.helper',
+                appAuthor: 'App Author',
+                appDescription: 'App Description',
                 iconPaths: {
                     [Platform.Darwin]: 'assets/icons/mac/icon.icns',
                     [Platform.Linux]: 'assets/icons/png/icon_256x256.png',

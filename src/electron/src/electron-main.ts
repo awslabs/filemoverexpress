@@ -17,6 +17,7 @@ let mainWindow: BrowserWindow | null = null;
 let daemonProcess: ChildProcess | null = null;
 let daemonRunning = false;
 let firstLaunchComplete = false;
+let cmdQTimestamp = 0;
 const minimumWindowWidth = 1450;
 const minimumWindowHeight = 1000;
 
@@ -152,6 +153,14 @@ app.whenReady().then(
             mainWindow?.webContents.openDevTools();
         });
         globalShortcut.register('CommandOrControl+Q', () => {
+            const now = new Date().getTime();
+            const diff = now - cmdQTimestamp;
+            console.log(cmdQTimestamp, now, diff);
+            if (diff > 15_000) {
+                mainWindow?.webContents?.send('app-close');
+                cmdQTimestamp = now;
+                return;
+            }
             mainWindow = null;
             app.quit();
         });

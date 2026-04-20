@@ -3,16 +3,23 @@
 package serviceutils
 
 import (
-    "path/filepath"
-    "strings"
+	"path/filepath"
+	"strings"
 )
 
 func ConvertPathFromGRPC(inputPath string) string {
-    pathParts := strings.Split(inputPath, "/")
-    drive, pathParts := pathParts[1], pathParts[2:]
-    newCombinedPath := make([]string, 0)
-    newCombinedPath = append(newCombinedPath, strings.ToUpper(drive+":"))
-    newCombinedPath = append(newCombinedPath, pathParts...)
+	if strings.HasPrefix(inputPath, "/") {
+		inputPath = inputPath[1:]
+	}
 
-    return strings.Join(newCombinedPath, string(filepath.Separator))
+	pathParts := strings.Split(inputPath, "/")
+	drive, pathParts := pathParts[0], pathParts[1:]
+	newCombinedPath := make([]string, 0)
+	newCombinedPath = append(newCombinedPath, strings.ToUpper(drive+":"))
+	newCombinedPath = append(newCombinedPath, pathParts...)
+	if len(newCombinedPath) == 1 {
+		return newCombinedPath[0] + "\\"
+	}
+
+	return strings.Join(newCombinedPath, string(filepath.Separator))
 }
