@@ -66,6 +66,7 @@ git clone https://github.com/awslabs/filemoverexpress.git
 cd filemoverexpress
 npm install
 npm run package
+npm run installer
 ```
 
 The packaged app will be in `dist/`.
