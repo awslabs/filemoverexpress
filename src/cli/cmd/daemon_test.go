@@ -1,12 +1,12 @@
 package cmd
 
 import (
-    "testing"
+	"testing"
 
-    "github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/globals"
 )
 
 func TestHasValidTransferProfiles(t *testing.T) {
-    global := globals.GetInstance()
-    hasValidTransferProfiles(global)
+	global := globals.GetInstance()
+	hasValidTransferProfiles(global)
 }

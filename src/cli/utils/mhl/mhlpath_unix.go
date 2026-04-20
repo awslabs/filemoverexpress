@@ -5,5 +5,5 @@ package mhl
 import "path/filepath"
 
 func getMhlPathByOs(mhlFileEntryPath string) string {
-    return filepath.ToSlash(mhlFileEntryPath)
+	return filepath.ToSlash(mhlFileEntryPath)
 }

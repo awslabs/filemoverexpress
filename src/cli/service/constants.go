@@ -1,5 +1,5 @@
 package service
 
 const (
-    EventBufferSize = 25
+	EventBufferSize = 25
 )

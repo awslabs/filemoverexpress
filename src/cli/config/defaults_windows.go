@@ -3,12 +3,12 @@
 package config
 
 import (
-    "os"
-    "strings"
+	"os"
+	"strings"
 
-    "github.com/awslabs/filemoverexpress/constants"
+	"github.com/awslabs/filemoverexpress/constants"
 )
 
 func getDefaultBlockedPaths() []string {
-    return []string{".aws", constants.DefaultAppDir, strings.ToLower(os.Getenv("WINDIR"))}
+	return []string{".aws", constants.DefaultAppDir, strings.ToLower(os.Getenv("WINDIR"))}
 }

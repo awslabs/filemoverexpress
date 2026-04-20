@@ -1,12 +1,12 @@
 package systeminfo
 
 import (
-    "testing"
+	"testing"
 
-    "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetMachineID(t *testing.T) {
-    id := GetMachineID()
-    assert.NotEmpty(t, id)
+	id := GetMachineID()
+	assert.NotEmpty(t, id)
 }

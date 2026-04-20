@@ -1,21 +1,21 @@
 package discovery
 
 import (
-    "fmt"
+	"fmt"
 )
 
 type DiscoveryError struct {
-    format string
-    values []any
+	format string
+	values []any
 }
 
 func (de DiscoveryError) Error() string {
-    return fmt.Sprintf(de.format, de.values...)
+	return fmt.Sprintf(de.format, de.values...)
 }
 
 func NewDiscoveryError(format string, values ...any) DiscoveryError {
-    return DiscoveryError{
-        format: format,
-        values: values,
-    }
+	return DiscoveryError{
+		format: format,
+		values: values,
+	}
 }
