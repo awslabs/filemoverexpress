@@ -550,6 +550,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                     maxHeight: '80%',
                     data: {
                         hotFolderSourcePath: hotFolderSourcePath,
+                        ...(this.selectedTransferProfile && {profileName: this.selectedTransferProfile}),
                     },
                     autoFocus: 'dialog',
                 },

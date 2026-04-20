@@ -19,43 +19,43 @@
                             <mat-form-field color="accent">
                                 <mat-label>Retry Count</mat-label>
                                 <input matInput type="number" formControlName="retryCount" step="1">
-                                @if (configForm.get('general')?.get('retryCount')?.hasError('required')) {
+                                @if (configForm.controls.general.controls.retryCount.hasError('required')) {
                                     <mat-error>{{ formErrorMessages.retryCount.required }}</mat-error>
                                 }
-                                @if (configForm.get('general')?.get('retryCount')?.hasError('min')) {
+                                @if (configForm.controls.general.controls.retryCount.hasError('min')) {
                                     <mat-error>{{ formErrorMessages.retryCount.minValue }}</mat-error>
                                 }
                             </mat-form-field>
                             <mat-form-field color="accent" data-multi-hint>
                                 <mat-label>Max Active Transfers</mat-label>
                                 <input matInput type="number" formControlName="maxActiveTransfers" step="1">
-                                @if (configForm.get('general')?.get('maxActiveTransfers')?.hasError('required')) {
+                                @if (configForm.controls.general.controls.maxActiveTransfers.hasError('required')) {
                                     <mat-error>{{ formErrorMessages.maxActiveTransfer.required }}</mat-error>
                                 }
-                                @if (configForm.get('general')?.get('maxActiveTransfers')?.hasError('min')) {
+                                @if (configForm.controls.general.controls.maxActiveTransfers.hasError('min')) {
                                     <mat-error>{{ formErrorMessages.maxActiveTransfer.minValue }}</mat-error>
                                 }
-                                @if (configForm.get('general')?.get('maxActiveTransfers')?.value > 200) {
+                                @if (configForm.controls.general.controls.maxActiveTransfers.value > 200) {
                                     <mat-hint>Value higher than 200 can cause problems</mat-hint>
                                 }
-                                @if (originalConfig && configForm.get('general')?.get('maxActiveTransfers')?.value !== originalConfig.general.maxActiveTransfers) {
+                                @if (originalConfig && configForm.controls.general.controls.maxActiveTransfers.value !== originalConfig.general.maxActiveTransfers) {
                                     <mat-hint>These changes will not take effect until you restart the app</mat-hint>
                                 }
                             </mat-form-field>
                             <mat-form-field color="accent">
                                 <mat-label>Max Active Checksums</mat-label>
                                 <input matInput type="number" formControlName="maxActiveChecksums" step="1">
-                                @if (configForm.get('general')?.get('maxActiveChecksums')?.hasError('required')) {
+                                @if (configForm.controls.general.controls.maxActiveChecksums.hasError('required')) {
                                     <mat-error>
                                         {{ formErrorMessages.maxActiveChecksums.required }}
                                     </mat-error>
                                 }
-                                @if (configForm.get('general')?.get('maxActiveChecksums')?.hasError('min')) {
+                                @if (configForm.controls.general.controls.maxActiveChecksums.hasError('min')) {
                                     <mat-error>
                                         {{ formErrorMessages.maxActiveChecksums.minValue }}
                                     </mat-error>
                                 }
-                                @if (configForm.get('general')?.get('maxActiveChecksums')?.hasError('invalidChecksum')) {
+                                @if (configForm.controls.general.controls.maxActiveChecksums.hasError('invalidChecksum')) {
                                     <mat-error class="text-error">
                                         {{ formErrorMessages.maxActiveChecksums.maxValue }} CPU cores: {{ cpuCoreCount }}
                                     </mat-error>
@@ -65,17 +65,17 @@
                             <mat-form-field color="accent">
                                 <mat-label>Target Bandwidth (in MB)</mat-label>
                                 <input matInput type="number" formControlName="targetBandwidth" step="1">
-                                @if (configForm.get('general')?.get('targetBandwidth')?.hasError('required')) {
+                                @if (configForm.controls.general.controls.targetBandwidth.hasError('required')) {
                                     <mat-error>
                                         {{ formErrorMessages.targetBandwidth.required }}
                                     </mat-error>
                                 }
-                                @if (configForm.get('general')?.get('targetBandwidth')?.hasError('min')) {
+                                @if (configForm.controls.general.controls.targetBandwidth.hasError('min')) {
                                     <mat-error>
                                         {{ formErrorMessages.targetBandwidth.minValue }}
                                     </mat-error>
                                 }
-                                @if (configForm.get('general')?.get('targetBandwidth')?.hasError('max')) {
+                                @if (configForm.controls.general.controls.targetBandwidth.hasError('max')) {
                                     <mat-error class="text-error">
                                         {{ formErrorMessages.targetBandwidth.maxValue }}
                                     </mat-error>
@@ -136,12 +136,12 @@
                                         </mat-option>
                                     }
                                 </mat-select>
-                                @if (configForm.get('logging')?.get('severity')?.hasError('required')) {
+                                @if (configForm.controls.logging.controls.severity.hasError('required')) {
                                     <mat-error>
                                         {{ formErrorMessages.severity.required }}
                                     </mat-error>
                                 }
-                                @if (configForm.get('logging')?.get('severity')?.hasError('oneOf')) {
+                                @if (configForm.controls.logging.controls.severity.hasError('oneOf')) {
                                     <mat-error>
                                         {{ formErrorMessages.severity.oneOf }}
                                     </mat-error>
@@ -156,7 +156,7 @@
                             <mat-form-field color="accent">
                                 <mat-label>Max size (in MB)</mat-label>
                                 <input matInput type="number" formControlName="maxSize" step="1">
-                                @if (configForm.get('logging')?.get('maxSize')?.hasError('min')) {
+                                @if (configForm.controls.logging.controls.maxSize.hasError('min')) {
                                     <mat-error>
                                         {{ formErrorMessages.loggingMaxSize.minValue }}
                                     </mat-error>
@@ -166,7 +166,7 @@
                             <mat-form-field color="accent">
                                 <mat-label>Max age</mat-label>
                                 <input matInput type="number" formControlName="maxAge" step="1">
-                                @if (configForm.get('logging')?.get('maxAge')?.hasError('min')) {
+                                @if (configForm.controls.logging.controls.maxAge.hasError('min')) {
                                     <mat-error>
                                         {{ formErrorMessages.loggingMaxAge.minValue }}
                                     </mat-error>

@@ -3,7 +3,7 @@ import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MAT_ICON_DEFAULT_OPTIONS } from '@angular/material/icon';
 import { MAT_TOOLTIP_DEFAULT_OPTIONS } from '@angular/material/tooltip';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withHashLocation } from '@angular/router';
 import { appRoutes } from '@app/components/layout/shell/app.routes';
 import { metaReducers, reducers } from '@app/state';
 import { provideState, provideStore } from '@ngrx/store';
@@ -19,7 +19,7 @@ import { ShutdownService } from '@services/shutdown/shutdown.service';
 export const appConfig: ApplicationConfig = {
     providers: [
         provideZoneChangeDetection(),
-        provideRouter(appRoutes),
+        provideRouter(appRoutes, withHashLocation()),
         provideStore(reducers, {metaReducers}),
         provideState(fmeClientFeature),
         provideAppInitializer(() => {

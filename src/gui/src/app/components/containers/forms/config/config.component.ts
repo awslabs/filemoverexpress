@@ -27,6 +27,18 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { VersionService } from '@services/version/version.service';
 import { ConnectionState } from '@state/models/connection-state-model';
 import { logSeverities } from './config.constants';
+import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
+import {
+    ConfigFormApiServerGroup,
+    ConfigFormApiServerPermissionsGroup,
+    ConfigFormApiServerTLSGroup,
+    ConfigFormGeneralGroup, ConfigFormGroup,
+    ConfigFormLoggingGroup,
+    ConfigFormProtocolsGroup,
+    ConfigFormReportsGroup,
+    ConfigFormS3Group,
+} from '@containers/forms/config/config.interfaces';
+import { TransferProfileForm } from '@containers/forms/transfer-profile-form/transfer-profile-form.interfaces';
 
 @Component({
     selector: 'fme-config',
@@ -61,25 +73,117 @@ export class ConfigComponent implements OnInit {
     private bottomSheet = inject(MatBottomSheet);
 
     @ViewChildren(MatExpansionPanel) expansionPanels!: QueryList<MatExpansionPanel>;
-    configForm: FormGroup = new FormGroup({});
     formErrorMessages = formErrorMessages;
     cpuCoreCount = 0;
     logSeverities = logSeverities;
     ConnectionState = ConnectionState;
     transferProfiles: string[] = [];
     hotFolders: HotFolders[] = [];
-    hotFolderForm: FormGroup | null = null;
+    hotFolderForm: FormArray<FormGroup<HotFolderFormGroup>> | null = null;
     originalConfig: FmeConfig | null = null;
+    configForm: FormGroup<ConfigFormGroup> = new FormGroup<ConfigFormGroup>({
+            general: new FormGroup<ConfigFormGeneralGroup>({
+                noSleep: new FormControl<boolean>(false, {nonNullable: true}),
+                retryCount: new FormControl<number>(1, {
+                        validators: [
+                            Validators.required,
+                            Validators.min(1),
+                            isIntegerValidator,
+                        ],
+                        nonNullable: true,
+                    },
+                ),
+                maxActiveTransfers: new FormControl<number>(1, {
+                        validators: [
+                            Validators.required,
+                            Validators.min(1),
+                            isIntegerValidator,
+                        ],
+                        nonNullable: true,
+                    },
+                ),
+                maxActiveChecksums: new FormControl<number>(1, {
+                        validators: [
+                            Validators.required,
+                            Validators.min(1),
+                            isIntegerValidator,
+                        ],
+                        nonNullable: true,
+                    },
+                ),
+                targetBandwidth: new FormControl<number>(0, {
+                    validators: [
+                        Validators.required,
+                        Validators.max(1000000),
+                        Validators.min(0),
+                        isIntegerValidator,
+                    ],
+                    nonNullable: true,
+                }),
+            }),
+            logging: new FormGroup<ConfigFormLoggingGroup>({
+                directory: new FormControl<string>('', {nonNullable: true}),
+                severity: new FormControl<string>('info', {
+                    validators: [
+                        Validators.required, oneOfValidator(this.logSeverities.map((itm) => itm.value)),
+                    ],
+                    nonNullable: true,
+                }),
+                maxSize: new FormControl<number>(0, {
+                    validators: [
+                        Validators.min(0), isIntegerValidator,
+                    ],
+                    nonNullable: true,
+                }),
+                maxAge: new FormControl<number>(0, {
+                    validators: [
+                        Validators.min(0), isIntegerValidator,
+                    ],
+                    nonNullable: true,
+                }),
+                compress: new FormControl<boolean>(true, {nonNullable: true}),
+            }),
+            reports: new FormGroup<ConfigFormReportsGroup>({
+                directory: new FormControl<string>('', {nonNullable: true}),
+            }),
+            apiServer: new FormGroup<ConfigFormApiServerGroup>({
+                enabled: new FormControl<boolean>(true, {nonNullable: true}),
+                permissions: new FormGroup<ConfigFormApiServerPermissionsGroup>({
+                    allowUiConfiguration: new FormControl<boolean>(false, {nonNullable: true}),
+                    allowLocalRenameDelete: new FormControl<boolean>(false, {nonNullable: true}),
+                    allowRemoteRenameDelete: new FormControl<boolean>(false, {nonNullable: true}),
+                }),
+                tls: new FormGroup<ConfigFormApiServerTLSGroup>({
+                    enabled: new FormControl<boolean>(false, {nonNullable: true}),
+                    certificateFile: new FormControl<string>('', {nonNullable: true}),
+                    keyFile: new FormControl<string>('', {nonNullable: true}),
+                }),
+                blockedPaths: new FormControl<string[]>([], {nonNullable: true}),
+                remote: new FormGroup({
+                    enabled: new FormControl<boolean>(true, {nonNullable: true}),
+                    preSharedKey: new FormControl<string>('/', {nonNullable: true}),
+                    address: new FormControl<string>('/', {nonNullable: true}),
+                    ports: new FormControl<number[]>([], {nonNullable: true}),
+                }),
+                allowedOrigins: new FormControl<string[]>([], {nonNullable: true}),
+            }),
+            protocols: new FormGroup<ConfigFormProtocolsGroup>({
+                s3: new FormGroup<ConfigFormS3Group>({
+                    transferProfiles: new FormControl<Record<string, TransferProfileForm>>({}, {nonNullable: true}),
+                }),
+            }),
+            uploadHotFolders: new FormArray<FormGroup<HotFolderFormGroup>>([]),
+        },
+    );
 
     constructor() {
-        this.setupConfigForm();
         this.metadataService.onUpdate.pipe(
             handleStreamError({retryCount: 5, fatal: true}),
         ).subscribe({
             next: (metadataLoaded) => {
                 try {
                     if (metadataLoaded) {
-                        const checksumCtrl = this.configForm.get('protocols')?.get('s3')?.get('maxActiveChecksums');
+                        const checksumCtrl = this.configForm.controls.general.controls.maxActiveChecksums;
                         this.cpuCoreCount = this.metadataService.cpuCoreCount;
                         if (checksumCtrl) {
                             checksumCtrl.addValidators(maxActiveChecksumsValidator(this.cpuCoreCount));
@@ -110,12 +214,11 @@ export class ConfigComponent implements OnInit {
                 this.configForm.enable();
                 this.configForm.patchValue({
                     general: result.general,
-                    apiServer: result.apiServer,
                     logging: result.logging,
-                    results: result.reports,
-                    protocols: result.protocols,
-                    uploadHotFolders: result.uploadHotFolders,
                     reports: result.reports,
+                    // apiServer: result.apiServer,
+                    // protocols: result.protocols,
+                    uploadHotFolders: result.uploadHotFolders,
                 });
                 this.hotFolders = result.uploadHotFolders;
 
@@ -133,9 +236,9 @@ export class ConfigComponent implements OnInit {
     onSubmit() {
         return () => {
             if (this.hotFolderForm) {
-                this.configForm.setControl('uploadHotFolders', this.hotFolderForm.get('uploadHotFolders') as FormArray);
+                this.configForm.controls.uploadHotFolders.setValue(this.hotFolderForm.getRawValue());
             }
-            const settings: IFmeConfig = this.configForm.getRawValue();
+            const settings: IFmeConfig = this.configForm.getRawValue() as unknown as IFmeConfig;
             const input = FmeConfig.fromJson(settings);
 
             this.fmeClientService.setConfiguration(input).subscribe({
@@ -155,85 +258,6 @@ export class ConfigComponent implements OnInit {
         return () => {
             this.historyService.redirectToPrevious();
         };
-    }
-
-    setupConfigForm() {
-        this.configForm = new FormGroup(
-            {
-                general: new FormGroup({
-                    noSleep: new FormControl<boolean>(false),
-                    retryCount: new FormControl<number>(
-                        1,
-                        [
-                            Validators.required,
-                            Validators.min(1),
-                            isIntegerValidator,
-                        ],
-                    ),
-
-                    maxActiveTransfers: new FormControl<number>(1, [
-                        Validators.required,
-                        Validators.min(1),
-                        isIntegerValidator,
-                    ]),
-                    maxActiveChecksums: new FormControl<number>(1, [
-                        Validators.required,
-                        Validators.min(1),
-                        isIntegerValidator,
-                    ]),
-                    targetBandwidth: new FormControl<number>(0, [
-                        Validators.required,
-                        Validators.max(1000000),
-                        Validators.min(0),
-                        isIntegerValidator,
-                    ]),
-                }),
-                logging: new FormGroup({
-                    directory: new FormControl<string>(''),
-                    severity: new FormControl<string>('info', [
-                        Validators.required, oneOfValidator(this.logSeverities.map((itm) => itm.value)),
-                    ]),
-                    maxSize: new FormControl<number>(0, [
-                        Validators.min(0), isIntegerValidator,
-                    ]),
-                    maxAge: new FormControl<number>(0, [
-                        Validators.min(0), isIntegerValidator,
-                    ]),
-                    compress: new FormControl<boolean>(true),
-                }),
-                reports: new FormGroup({
-                    directory: new FormControl<string>(''),
-                }),
-                apiServer: new FormGroup({
-                    enabled: new FormControl<boolean>(true),
-                    permissions: new FormGroup({
-                        allowUiConfiguration: new FormControl<boolean>(false),
-                        allowLocalRenameDelete: new FormControl<boolean>(false),
-                        allowRemoteRenameDelete: new FormControl<boolean>(false),
-                    }),
-                    tls: new FormGroup({
-                        enabled: new FormControl<boolean>(false),
-                        certificateFile: new FormControl<string>(''),
-                        keyFile: new FormControl<string>(''),
-                    }),
-                    blockedPaths: new FormControl<string[]>([]),
-                    remote: new FormGroup({
-                        enabled: new FormControl<boolean>(true),
-                        preSharedKey: new FormControl<string>('/'),
-                        address: new FormControl<string>('/'),
-                        ports: new FormControl<string>('/'),
-                    }),
-                    allowedOrigins: new FormControl<string[]>([]),
-                }),
-                protocols: new FormGroup({
-                    s3: new FormGroup({
-                        transferProfiles: new FormControl<Record<string, TransferProfile>>({}),
-                    }),
-                }),
-                uploadHotFolders: new FormArray([]),
-            },
-        );
-        this.configForm.disable();
     }
 
     private markFormGroupDirty(group: FormGroup) {
@@ -259,9 +283,9 @@ export class ConfigComponent implements OnInit {
     /**
      * Updates the stored hot folder FormGroup.
      *
-     * @param {FormGroup} hotFolderForm - FormGroup from nested hot folder form component
+     * @param {FormArray} hotFolderForm - FormGroup from nested hot folder form component
      */
-    updateHotFolderForm(hotFolderForm: FormGroup) {
+    updateHotFolderForm(hotFolderForm: FormArray<FormGroup<HotFolderFormGroup>>) {
         this.hotFolderForm = hotFolderForm;
     }
 }

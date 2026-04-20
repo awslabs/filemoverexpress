@@ -1,101 +1,105 @@
-<form [formGroup]="hotFolderForm">
-    <div formArrayName="uploadHotFolders">
+@if (hotFolderFormArray(); as formArray) {
+    <form [formArray]="formArray">
         <mat-accordion multi>
-            @for (item of getHotFolderControls(); track item; let i = $index) {
+            @for (hotFolderFormGroup of formArray.controls.values(); track hotFolderFormGroup.value; let i = $index) {
                 <mat-expansion-panel togglePosition="before">
                     <mat-expansion-panel-header>
-                        <mat-panel-title class="section-header" [class.error]="item.invalid">
-                            <span [matTooltip]="item.invalid ? 'There are errors' : ''" matTooltipPosition="right">
-                                {{ getHotFolderName(i) }}
-                                @if (item.invalid) {
+                        <mat-panel-title class="section-header" [class.error]="hotFolderFormGroup.invalid">
+                            <span [matTooltip]="hotFolderFormGroup.invalid ? 'There are errors' : ''"
+                                  matTooltipPosition="right">
+                                {{ hotFolderFormGroup.controls.name.value }}
+                                @if (hotFolderFormGroup.invalid) {
                                     <mat-icon class="panel-title-icon">error_outline</mat-icon>
                                 }
                             </span>
                         </mat-panel-title>
                     </mat-expansion-panel-header>
                     <div class="hot-folder-form-fields-container">
-                        <div class="hftxp-grid" [formGroupName]="i">
-                            <div class="hftxp-general">
-                                <h4>General settings</h4>
-                                <mat-form-field color="accent">
-                                    <mat-label>Name</mat-label>
-                                    <input matInput type="string" formControlName="name" maxlength="30">
-                                    @if (duplicateHotFolderNamesError(i)) {
-                                        <mat-error>
-                                            {{ formErrorMessages.hotFolders.name.duplicateName }}
-                                        </mat-error>
-                                    }
-                                    @if (hotFolderNameRequiredError(i)) {
-                                        <mat-error>
-                                            {{ formErrorMessages.hotFolders.name.required }}
-                                        </mat-error>
-                                    }
-                                </mat-form-field>
-                                <mat-form-field color="accent">
-                                    <mat-label>Local Source Folder</mat-label>
-                                    <input matInput type="string" formControlName="localSourceFolder">
-                                    @if (localSourceFolderRequiredError(i)) {
-                                        <mat-error>
-                                            {{ formErrorMessages.hotFolders.localSourceFolder.required }}
-                                        </mat-error>
-                                    }
-                                </mat-form-field>
-                                <mat-slide-toggle formControlName="enabled" color="accent">
-                                    Enabled
-                                </mat-slide-toggle>
-                            </div>
-                            <div class="hftxp-txp">
-                                <div formArrayName="remoteConfigurations">
-                                    <h4>
-                                        Destinations
-                                        <a (click)="addRemoteConfiguration(i)" class="add-button">
-                                            <mat-icon>add</mat-icon>
-                                        </a>
-                                    </h4>
-                                    @if (destinationConfigRequiredError(i)) {
-                                        <div class="error">
-                                            {{ formErrorMessages.hotFolders.destinations.required }}
-                                        </div>
-                                    }
-                                    @for (item of getRemoteConfigurationControls(i); track item; let j = $index) {
-                                        <div class="hftxp-txp-list">
-                                            <div [formGroupName]="j">
-                                                <mat-form-field color="accent">
-                                                    <mat-label>Remote Configuration</mat-label>
-                                                    <mat-select formControlName="remoteConfigurationName">
-                                                        @for (txp of transferProfiles; track txp) {
-                                                            <mat-option [value]="txp">{{ txp }}</mat-option>
-                                                        }
-                                                    </mat-select>
-                                                    @if (remoteConfigurationRequiredError(i, j)) {
-                                                        <mat-error>
-                                                            {{ formErrorMessages.hotFolders.destinations.remoteConfiguration.required }}
-                                                        </mat-error>
-                                                    }
-                                                </mat-form-field>
-                                                <mat-form-field color="accent">
-                                                    <mat-label>S3 Destination Folder</mat-label>
-                                                    <input matInput type="string" formControlName="s3DestinationFolder">
-                                                    <mat-hint>
-                                                        If blank, the destination is the root of the S3 bucket.
-                                                    </mat-hint>
-                                                </mat-form-field>
-                                                <fme-button type="stroked"
-                                                            color="warn"
-                                                            text="Delete"
-                                                            [onClick]="deleteRemoteConfiguration(i,j)"
-                                                            [disabled]="canDeleteDestination(i)">
-                                                    Delete
-                                                </fme-button>
+                        @if (formArray.controls.at(i); as fg) {
+                            <div class="hftxp-grid" [formGroup]="fg">
+                                <div class="hftxp-general">
+                                    <h4>General settings</h4>
+                                    <mat-form-field color="accent">
+                                        <mat-label>Name</mat-label>
+                                        <input matInput type="string" formControlName="name" maxlength="30">
+                                        @if (hotFolderFormGroup.controls.name.hasError('duplicate-name')) {
+                                            <mat-error>
+                                                {{ formErrorMessages.hotFolders.name.duplicateName }}
+                                            </mat-error>
+                                        }
+                                        @if (hotFolderFormGroup.controls.name.hasError('required')) {
+                                            <mat-error>
+                                                {{ formErrorMessages.hotFolders.name.required }}
+                                            </mat-error>
+                                        }
+                                    </mat-form-field>
+                                    <mat-form-field color="accent">
+                                        <mat-label>Local Source Folder</mat-label>
+                                        <input matInput type="string" formControlName="localSourceFolder">
+                                        @if (hotFolderFormGroup.controls.localSourceFolder.hasError('required')) {
+                                            <mat-error>
+                                                {{ formErrorMessages.hotFolders.localSourceFolder.required }}
+                                            </mat-error>
+                                        }
+                                    </mat-form-field>
+                                    <mat-slide-toggle formControlName="enabled" color="accent">
+                                        Enabled
+                                    </mat-slide-toggle>
+                                </div>
+                                <div class="hftxp-txp">
+                                    <div formArrayName="remoteConfigurations">
+                                        <h4>
+                                            Destinations
+                                            <a (click)="hotFolderFormGroup.controls.remoteConfigurations.push(createRemoteConfigFormGroup())" class="add-button">
+                                                <mat-icon>add</mat-icon>
+                                            </a>
+                                        </h4>
+                                        @if (fg.controls.remoteConfigurations.hasError('required')) {
+                                            <div class="error">
+                                                {{ formErrorMessages.hotFolders.destinations.required }}
                                             </div>
-                                        </div>
-                                    }
+                                        }
+                                        @for (remoteConfigFormGroup of hotFolderFormGroup.controls.remoteConfigurations.controls; track remoteConfigFormGroup; let j = $index) {
+                                            <div class="hftxp-txp-list">
+                                                <div [formGroupName]="j">
+                                                    <mat-form-field color="accent">
+                                                        <mat-label>Remote Configuration</mat-label>
+                                                        <mat-select formControlName="remoteConfigurationName">
+                                                            @for (txp of transferProfiles(); track txp) {
+                                                                <mat-option [value]="txp">{{ txp }}</mat-option>
+                                                            }
+                                                        </mat-select>
+                                                        @if (remoteConfigFormGroup.controls.remoteConfigurationName.hasError('required')) {
+                                                            <mat-error>
+                                                                {{ formErrorMessages.hotFolders.destinations.remoteConfiguration.required }}
+                                                            </mat-error>
+                                                        }
+                                                    </mat-form-field>
+                                                    <mat-form-field color="accent">
+                                                        <mat-label>S3 Destination Folder</mat-label>
+                                                        <input matInput type="string"
+                                                               formControlName="s3DestinationFolder">
+                                                        <mat-hint>
+                                                            If blank, the destination is the root of the S3 bucket.
+                                                        </mat-hint>
+                                                    </mat-form-field>
+                                                    <fme-button type="stroked"
+                                                                color="warn"
+                                                                text="Delete"
+                                                                [onClick]="() => hotFolderFormGroup.controls.remoteConfigurations.removeAt(j)"
+                                                                [disabled]="hotFolderFormGroup.controls.remoteConfigurations.controls.length < 2">
+                                                        Delete
+                                                    </fme-button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        }
                     </div>
                     <fme-button type="filled" color="warn" text="Delete Hot Folder"
-                                [onClick]="deleteHotFolder(i)" class="right-button"></fme-button>
+                                [onClick]="() => formArray.removeAt(i)" class="right-button"></fme-button>
                 </mat-expansion-panel>
             }
         </mat-accordion>
@@ -106,5 +110,5 @@
                 text="Add Hot Folder"
                 [onClick]="addHotFolder()">
         </fme-button>
-    </div>
-</form>
+    </form>
+}
