@@ -59,7 +59,7 @@ filemoverexpress/
 
 ### Quick build (recommended)
 
-`npm run package` runs the full build pipeline in the correct order — protobuf generation, CLI, GUI, Electron packaging — and produces a ready-to-run desktop app.
+`npm run installer` runs the full build pipeline in the correct order — protobuf generation, CLI, GUI, Electron packaging — and produces a ready-to-run desktop app.
 
 ```bash
 git clone https://github.com/awslabs/filemoverexpress.git
