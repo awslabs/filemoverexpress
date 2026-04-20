@@ -3,9 +3,9 @@
 package config
 
 import (
-    "github.com/awslabs/filemoverexpress/constants"
+	"github.com/awslabs/filemoverexpress/constants"
 )
 
 func getDefaultBlockedPaths() []string {
-    return []string{".aws", constants.DefaultAppDir, "/dev", "/etc"}
+	return []string{".aws", constants.DefaultAppDir, "/dev", "/etc"}
 }

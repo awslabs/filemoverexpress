@@ -3,28 +3,28 @@
 package core
 
 import (
-    "syscall"
+	"syscall"
 
-    "github.com/awslabs/filemoverexpress/constants"
+	"github.com/awslabs/filemoverexpress/constants"
 )
 
 func CheckLimits() error {
-    var nofile syscall.Rlimit
+	var nofile syscall.Rlimit
 
-    err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &nofile)
-    if err != nil {
-        return err
-    }
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &nofile)
+	if err != nil {
+		return err
+	}
 
-    if nofile.Cur >= constants.RequiredLimits {
-        return nil
-    }
+	if nofile.Cur >= constants.RequiredLimits {
+		return nil
+	}
 
-    nofile.Cur = constants.RequiredLimits
-    err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &nofile)
-    if err != nil {
-        return err
-    }
+	nofile.Cur = constants.RequiredLimits
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &nofile)
+	if err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }

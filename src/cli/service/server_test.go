@@ -1,9 +1,9 @@
 package service
 
 import (
-    "testing"
+	"testing"
 )
 
 func TestNewService_Executes(t *testing.T) {
-    NewService("127.0.0.1", []uint{50006}, false)
+	NewService("127.0.0.1", []uint{50006}, false)
 }

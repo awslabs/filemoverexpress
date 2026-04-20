@@ -1,6 +1,6 @@
 package constants
 
 const (
-    BaseDecimal = 10
-    BaseHex     = 16
+	BaseDecimal = 10
+	BaseHex     = 16
 )

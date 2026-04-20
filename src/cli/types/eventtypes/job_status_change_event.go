@@ -1,41 +1,41 @@
 package eventtypes
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 
-    "google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
-    "github.com/awslabs/filemoverexpress/logger"
-    "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
+	"github.com/awslabs/filemoverexpress/logger"
+	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 )
 
 type JobStatusChangeEvent struct {
-    Id        string
-    Status    string
-    Timestamp time.Time
+	Id        string
+	Status    string
+	Timestamp time.Time
 }
 
 func (jsce *JobStatusChangeEvent) String() string {
-    return fmt.Sprintf("Job %s status changed to %s", jsce.Id, jsce.Status)
+	return fmt.Sprintf("Job %s status changed to %s", jsce.Id, jsce.Status)
 }
 
 func (*JobStatusChangeEvent) Type() MessageFlags {
-    return JobStatusChangeEventType
+	return JobStatusChangeEventType
 }
 
 func (*JobStatusChangeEvent) Priority() logger.LogLevel {
-    return JobStatusChangeEventPriority
+	return JobStatusChangeEventPriority
 }
 
 func (jsce *JobStatusChangeEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) {
-    pbEvent := fmev1.JobStatusChangeEvent{
-        JobId:     jsce.Id,
-        Status:    jsce.Status,
-        Timestamp: timestamppb.New(jsce.Timestamp),
-    }
+	pbEvent := fmev1.JobStatusChangeEvent{
+		JobId:     jsce.Id,
+		Status:    jsce.Status,
+		Timestamp: timestamppb.New(jsce.Timestamp),
+	}
 
-    msgEvent := &fmev1.ListEventsResponse_JobStatusChangeEvent{JobStatusChangeEvent: &pbEvent}
+	msgEvent := &fmev1.ListEventsResponse_JobStatusChangeEvent{JobStatusChangeEvent: &pbEvent}
 
-    return msgEvent, fmev1.EventType_EVENT_TYPE_JOB_STATUS_CHANGE_EVENT_TYPE
+	return msgEvent, fmev1.EventType_EVENT_TYPE_JOB_STATUS_CHANGE_EVENT_TYPE
 }

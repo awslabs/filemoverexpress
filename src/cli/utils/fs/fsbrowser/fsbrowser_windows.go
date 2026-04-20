@@ -3,17 +3,17 @@
 package fsbrowser
 
 import (
-    "os"
-    "path/filepath"
-    "regexp"
-    "strings"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 
-    "github.com/shirou/gopsutil/v4/disk"
-    "google.golang.org/protobuf/types/known/timestamppb"
+	"github.com/shirou/gopsutil/v4/disk"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
-    "github.com/awslabs/filemoverexpress/globals"
-    "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-    "github.com/awslabs/filemoverexpress/utils/fs"
+	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
+	"github.com/awslabs/filemoverexpress/utils/fs"
 )
 
 func ListDirectory(path string) (*fmev1.FsFolder, error) {

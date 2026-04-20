@@ -1,38 +1,38 @@
 package discovery
 
 import (
-    "os"
+	"os"
 
-    "github.com/awslabs/filemoverexpress/events"
-    ftErrors "github.com/awslabs/filemoverexpress/fme-errors"
+	"github.com/awslabs/filemoverexpress/events"
+	ftErrors "github.com/awslabs/filemoverexpress/fme-errors"
 )
 
 func ValidateSourceSymlink(source string) error {
-    info, err := os.Lstat(source)
-    if err != nil {
-        return err
-    }
+	info, err := os.Lstat(source)
+	if err != nil {
+		return err
+	}
 
-    if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-        return ftErrors.ErrSourceIsSymlink
-    }
+	if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		return ftErrors.ErrSourceIsSymlink
+	}
 
-    return nil
+	return nil
 }
 
 func ValidateFileAccess(source string) error {
-    fh, err := os.Open(source)
-    if err != nil {
-        if os.IsNotExist(err) {
-            return NewDiscoveryError(StrSourceDoesNotExists, source)
-        }
+	fh, err := os.Open(source)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return NewDiscoveryError(StrSourceDoesNotExists, source)
+		}
 
-        return NewDiscoveryError(StrFailedListingDir, source)
-    }
+		return NewDiscoveryError(StrFailedListingDir, source)
+	}
 
-    if err := fh.Close(); err != nil {
-        events.Events.Warn("Failed closing file handle: %s", err)
-    }
+	if err := fh.Close(); err != nil {
+		events.Events.Warn("Failed closing file handle: %s", err)
+	}
 
-    return nil
+	return nil
 }

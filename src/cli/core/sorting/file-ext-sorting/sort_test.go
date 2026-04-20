@@ -1,107 +1,107 @@
 package file_ext_sorting
 
 import (
-    "os"
-    "path/filepath"
-    "testing"
+	"os"
+	"path/filepath"
+	"testing"
 
-    "github.com/awslabs/filemoverexpress/core/discovery/local_discovery"
-    "github.com/awslabs/filemoverexpress/types/jobmanagertypes"
+	"github.com/awslabs/filemoverexpress/core/discovery/local_discovery"
+	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
 
 var sep = string(filepath.Separator)
 
 var (
-    ld = local_discovery.NewLocalDiscovery("", "random-id", "")
+	ld = local_discovery.NewLocalDiscovery("", "random-id", "")
 )
 
 func TestFileExtSorting_Sort(t *testing.T) {
-    type (
-        fields struct {
-            extOrder []string
-            output   []*jobmanagertypes.Task
-            filtered map[string]bool
-        }
+	type (
+		fields struct {
+			extOrder []string
+			output   []*jobmanagertypes.Task
+			filtered map[string]bool
+		}
 
-        args struct {
-            tasks []*jobmanagertypes.Task
-        }
-    )
+		args struct {
+			tasks []*jobmanagertypes.Task
+		}
+	)
 
-    tasks, tasksErr := getTasks()
-    if tasksErr != nil {
-        t.Errorf("Failed building tasks list for sorting tests")
-        return
-    }
+	tasks, tasksErr := getTasks()
+	if tasksErr != nil {
+		t.Errorf("Failed building tasks list for sorting tests")
+		return
+	}
 
-    tests := []struct {
-        name    string
-        fields  fields
-        args    args
-        want    []string
-        wantErr bool
-    }{
-        {
-            name: "Test sorting list",
-            fields: fields{
-                extOrder: []string{".mov", ".wav", "*"},
-                output:   make([]*jobmanagertypes.Task, 0),
-                filtered: make(map[string]bool),
-            },
-            args: args{
-                tasks: tasks,
-            },
-            want: []string{
-                "testdata" + sep + "sorting" + sep + "clip.mov",
-                "testdata" + sep + "sorting" + sep + "frame.mov",
-                "testdata" + sep + "sorting" + sep + "clip.wav",
-                "testdata" + sep + "sorting" + sep + "frame.wav",
-                "testdata" + sep + "sorting" + sep + "aaa.txt",
-            },
-            wantErr: false,
-        },
-    }
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            fes := &FileExtSorting{
-                extOrder: tt.fields.extOrder,
-                output:   tt.fields.output,
-                filtered: tt.fields.filtered,
-            }
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "Test sorting list",
+			fields: fields{
+				extOrder: []string{".mov", ".wav", "*"},
+				output:   make([]*jobmanagertypes.Task, 0),
+				filtered: make(map[string]bool),
+			},
+			args: args{
+				tasks: tasks,
+			},
+			want: []string{
+				"testdata" + sep + "sorting" + sep + "clip.mov",
+				"testdata" + sep + "sorting" + sep + "frame.mov",
+				"testdata" + sep + "sorting" + sep + "clip.wav",
+				"testdata" + sep + "sorting" + sep + "frame.wav",
+				"testdata" + sep + "sorting" + sep + "aaa.txt",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fes := &FileExtSorting{
+				extOrder: tt.fields.extOrder,
+				output:   tt.fields.output,
+				filtered: tt.fields.filtered,
+			}
 
-            got, err := fes.Sort(tt.args.tasks)
-            if (err != nil) != tt.wantErr {
-                t.Errorf("Sort() error = %v, wantErr %v", err, tt.wantErr)
-                return
-            }
+			got, err := fes.Sort(tt.args.tasks)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Sort() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 
-            if len(got) != len(tt.want) {
-                t.Errorf("Expected output to be same length as input, got %d, expected %d", len(got), len(tt.want))
-                return
-            }
+			if len(got) != len(tt.want) {
+				t.Errorf("Expected output to be same length as input, got %d, expected %d", len(got), len(tt.want))
+				return
+			}
 
-            for idx, expected := range tt.want {
-                if got[idx].LocalFile().Path != expected {
-                    t.Errorf("Expected %s to be at index %d but %s was found instead", expected, idx, got[idx].LocalFile().Path)
-                    return
-                }
-            }
-        })
-    }
+			for idx, expected := range tt.want {
+				if got[idx].LocalFile().Path != expected {
+					t.Errorf("Expected %s to be at index %d but %s was found instead", expected, idx, got[idx].LocalFile().Path)
+					return
+				}
+			}
+		})
+	}
 }
 
 func getTasks() ([]*jobmanagertypes.Task, error) {
-    err := os.Chdir("../../../")
-    if err != nil {
-        return nil, err
-    }
+	err := os.Chdir("../../../")
+	if err != nil {
+		return nil, err
+	}
 
-    tasks, discoveryErrors := ld.Discover([]string{filepath.Join("testdata", "sorting")})
-    if discoveryErrors != nil {
-        for _, err := range discoveryErrors {
-            return nil, err
-        }
-    }
+	tasks, discoveryErrors := ld.Discover([]string{filepath.Join("testdata", "sorting")})
+	if discoveryErrors != nil {
+		for _, err := range discoveryErrors {
+			return nil, err
+		}
+	}
 
-    return tasks, nil
+	return tasks, nil
 }

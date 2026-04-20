@@ -1,38 +1,38 @@
 package supportfile
 
 import (
-    "os"
-    "time"
+	"os"
+	"time"
 )
 
 type fileInfo struct {
-    name    string
-    size    int64
-    mode    os.FileMode
-    modTime time.Time
-    isDir   bool
+	name    string
+	size    int64
+	mode    os.FileMode
+	modTime time.Time
+	isDir   bool
 }
 
 func (fi *fileInfo) Name() string {
-    return fi.name
+	return fi.name
 }
 
 func (fi *fileInfo) Size() int64 {
-    return fi.size
+	return fi.size
 }
 
 func (fi *fileInfo) Mode() os.FileMode {
-    return fi.mode
+	return fi.mode
 }
 
 func (fi *fileInfo) ModTime() time.Time {
-    return fi.modTime
+	return fi.modTime
 }
 
 func (fi *fileInfo) IsDir() bool {
-    return fi.isDir
+	return fi.isDir
 }
 
 func (*fileInfo) Sys() interface{} {
-    return nil
+	return nil
 }
