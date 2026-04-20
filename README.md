@@ -4,7 +4,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org/)
 [![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
 
-File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
+File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Unlike traditional transfer clients that tie transfers to your desktop session, File Mover Express runs a daemon-based transfer engine that can live on any machine — your workstation, a server in the data center, or an EC2 instance — while you control it from the GUI or CLI over an encrypted connection. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
 
 ## Key Features
 
@@ -15,7 +15,7 @@ File Mover Express is a high-performance file transfer application designed to a
 - **Hot Folders**: Point File Mover Express at a folder and it will automatically upload anything new that appears in it
 - **Secure**: All transfers use HTTPS, and AWS IAM controls who can access your S3 buckets
 - **Remote Daemon**: Run File Mover Express on one machine and control it from another over an encrypted connection, protected by a password you set
-- **Checksumming & MHL Support**: Optional file integrity verification. XXH3 and xxHash64 are the fastest options — significantly quicker than MD5 or SHA. MD5, SHA1, and SHA256 are available for workflows that require them. Reads MHL files for camera-to-cloud verification workflows.
+- **Checksumming & MHL Support**: Optional file integrity verification, with XXH3 being the fastest option. XXHash, XXHash64 and MD5 are available for workflows that require them. Reads MHL files for camera-to-cloud verification workflows.
 - **Cross-Platform**: Works on macOS, Windows, and Linux
 - **Multi-Region**: Works with any AWS region where S3 is available
 
