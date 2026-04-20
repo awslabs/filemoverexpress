@@ -1,6 +1,6 @@
 import { FormArray, FormControl, FormGroup } from '@angular/forms';
-import { TransferProfileForm } from '@containers/forms/transfer-profile-form/transfer-profile-form.interfaces';
 import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
+import { TransferProfile } from '@app/classes';
 
 export interface ConfigFormGeneralGroup {
     noSleep: FormControl<boolean>;
@@ -51,7 +51,7 @@ export interface ConfigFormApiServerGroup {
 }
 
 export interface ConfigFormS3Group {
-    transferProfiles: FormControl<Record<string, TransferProfileForm>>;
+    transferProfiles: FormControl<Record<string, TransferProfile>>;
 }
 
 export interface ConfigFormProtocolsGroup {

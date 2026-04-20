@@ -15,7 +15,7 @@ import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
 import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
-import { FmeConfig, HotFolders } from '@classes/config';
+import { FmeConfig, HotFolders, TransferProfile } from '@classes/config';
 import { isIntegerValidator, maxActiveChecksumsValidator, oneOfValidator } from '@classes/form-validators';
 import { handleStreamError } from '@classes/rxjs-operators';
 import { HotFolderFormComponent } from '@containers/forms/hot-folder-form/hot-folder-form.component';
@@ -39,7 +39,6 @@ import {
     ConfigFormReportsGroup,
     ConfigFormS3Group,
 } from '@containers/forms/config/config.interfaces';
-import { TransferProfileForm } from '@containers/forms/transfer-profile-form/transfer-profile-form.interfaces';
 
 @Component({
     selector: 'fme-config',
@@ -176,7 +175,7 @@ export class ConfigComponent implements OnInit {
             }),
             protocols: new FormGroup<ConfigFormProtocolsGroup>({
                 s3: new FormGroup<ConfigFormS3Group>({
-                    transferProfiles: new FormControl<Record<string, TransferProfileForm>>({}, {nonNullable: true}),
+                    transferProfiles: new FormControl<Record<string, TransferProfile>>({}, {nonNullable: true}),
                 }),
             }),
             uploadHotFolders: new FormArray<FormGroup<HotFolderFormGroup>>([]),
@@ -224,7 +223,7 @@ export class ConfigComponent implements OnInit {
                     logging: result.logging,
                     reports: result.reports,
                     apiServer: result.apiServer,
-                    protocols: {s3: result.protocols.s3.transferProfiles},
+                    protocols: result.protocols,
                     uploadHotFolders: result.uploadHotFolders,
                 });
                 this.hotFolders = result.uploadHotFolders;
