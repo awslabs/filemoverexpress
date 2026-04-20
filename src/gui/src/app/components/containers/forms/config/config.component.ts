@@ -15,7 +15,7 @@ import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
 import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
-import { FmeConfig, HotFolders, TransferProfile } from '@classes/config';
+import { FmeConfig, HotFolders } from '@classes/config';
 import { isIntegerValidator, maxActiveChecksumsValidator, oneOfValidator } from '@classes/form-validators';
 import { handleStreamError } from '@classes/rxjs-operators';
 import { HotFolderFormComponent } from '@containers/forms/hot-folder-form/hot-folder-form.component';
@@ -32,7 +32,8 @@ import {
     ConfigFormApiServerGroup,
     ConfigFormApiServerPermissionsGroup,
     ConfigFormApiServerTLSGroup,
-    ConfigFormGeneralGroup, ConfigFormGroup,
+    ConfigFormGeneralGroup,
+    ConfigFormGroup,
     ConfigFormLoggingGroup,
     ConfigFormProtocolsGroup,
     ConfigFormReportsGroup,
@@ -81,10 +82,12 @@ export class ConfigComponent implements OnInit {
     hotFolders: HotFolders[] = [];
     hotFolderForm: FormArray<FormGroup<HotFolderFormGroup>> | null = null;
     originalConfig: FmeConfig | null = null;
-    configForm: FormGroup<ConfigFormGroup> = new FormGroup<ConfigFormGroup>({
+    configForm: FormGroup<ConfigFormGroup> = new FormGroup<ConfigFormGroup>(
+        {
             general: new FormGroup<ConfigFormGeneralGroup>({
                 noSleep: new FormControl<boolean>(false, {nonNullable: true}),
-                retryCount: new FormControl<number>(1, {
+                retryCount: new FormControl<number>(1,
+                    {
                         validators: [
                             Validators.required,
                             Validators.min(1),
@@ -93,7 +96,8 @@ export class ConfigComponent implements OnInit {
                         nonNullable: true,
                     },
                 ),
-                maxActiveTransfers: new FormControl<number>(1, {
+                maxActiveTransfers: new FormControl<number>(1,
+                    {
                         validators: [
                             Validators.required,
                             Validators.min(1),
@@ -102,7 +106,8 @@ export class ConfigComponent implements OnInit {
                         nonNullable: true,
                     },
                 ),
-                maxActiveChecksums: new FormControl<number>(1, {
+                maxActiveChecksums: new FormControl<number>(1,
+                    {
                         validators: [
                             Validators.required,
                             Validators.min(1),
@@ -111,15 +116,17 @@ export class ConfigComponent implements OnInit {
                         nonNullable: true,
                     },
                 ),
-                targetBandwidth: new FormControl<number>(0, {
-                    validators: [
-                        Validators.required,
-                        Validators.max(1000000),
-                        Validators.min(0),
-                        isIntegerValidator,
-                    ],
-                    nonNullable: true,
-                }),
+                targetBandwidth: new FormControl<number>(0,
+                    {
+                        validators: [
+                            Validators.required,
+                            Validators.max(1000000),
+                            Validators.min(0),
+                            isIntegerValidator,
+                        ],
+                        nonNullable: true,
+                    },
+                ),
             }),
             logging: new FormGroup<ConfigFormLoggingGroup>({
                 directory: new FormControl<string>('', {nonNullable: true}),
@@ -216,8 +223,8 @@ export class ConfigComponent implements OnInit {
                     general: result.general,
                     logging: result.logging,
                     reports: result.reports,
-                    // apiServer: result.apiServer,
-                    // protocols: result.protocols,
+                    apiServer: result.apiServer,
+                    protocols: {s3: result.protocols.s3.transferProfiles},
                     uploadHotFolders: result.uploadHotFolders,
                 });
                 this.hotFolders = result.uploadHotFolders;

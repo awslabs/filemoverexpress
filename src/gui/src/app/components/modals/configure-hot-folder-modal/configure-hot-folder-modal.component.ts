@@ -103,7 +103,6 @@ export class ConfigureHotFolderModalComponent implements OnInit {
     save() {
         return () => {
             if (this.originalConfig && this.hotFolderForm) {
-                console.log(this.originalConfig, this.hotFolderForm);
                 if (this.hotFolderForm) {
                     this.originalConfig.uploadHotFolders = this.hotFolderForm.getRawValue();
                     this.fmeClientService.setConfiguration(this.originalConfig).subscribe({
