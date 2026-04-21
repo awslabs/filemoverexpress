@@ -15,7 +15,6 @@ import { formErrorMessages } from '@app/constants/common.constants';
 import { HotFolders } from '@classes/config';
 import { validateHotFolderNames } from '@classes/form-validators';
 import {
-    HotFolderData,
     HotFolderFormGroup,
     HotFolderRemoteConfigFormGroup,
 } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
@@ -23,6 +22,10 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
+import { ConfigureHotFolderModalData } from '@modals/configure-hot-folder-modal/configure-hot-folder-modal.interfaces';
+import { AppState } from '@app/state';
+import { Store } from '@ngrx/store';
+import { selectBucketBrowserPath } from '@state/ui-context/ui-context.selectors';
 
 @Component({
     selector: 'fme-hot-folder-form',
@@ -54,8 +57,9 @@ export class HotFolderFormComponent implements OnDestroy {
     private metadata = inject(MetadataService);
     private metadataSignal = toSignal(this.metadata.onUpdate);
     private changeSub: Subscription | null = null;
+    private store = inject<Store<AppState>>(Store);
 
-    preFillNewHotFolderData = input<HotFolderData>({});
+    preFillNewHotFolderData = input<ConfigureHotFolderModalData | null>(null);
     hotFolders = input<HotFolders[]>([]);
     hotFoldersEdited = output<FormArray<FormGroup<HotFolderFormGroup>>>();
 
@@ -89,25 +93,26 @@ export class HotFolderFormComponent implements OnDestroy {
             }));
         }
 
-        if (prefills.localSourcePath) {
-            if (!hotFolders.find(itm => itm.localSourceFolder === prefills.localSourcePath)) {
+        if (prefills) {
+            const currentS3Path = this.store.selectSignal(selectBucketBrowserPath);
+            if (!hotFolders.find(itm => itm.localSourceFolder === prefills.hotFolderSourcePath)) {
                 const prefillFormGroup = new FormGroup<HotFolderFormGroup>({
                         name: new FormControl<string>('', {
                             validators: [validateHotFolderNames, Validators.required],
                             nonNullable: true,
                         }),
                         enabled: new FormControl<boolean>(true, {nonNullable: true}),
-                        localSourceFolder: new FormControl<string>(this.preFillNewHotFolderData().localSourcePath ?? '', {
+                        localSourceFolder: new FormControl<string>(prefills.hotFolderSourcePath ?? '', {
                             validators: [Validators.required],
                             nonNullable: true,
                         }),
                         remoteConfigurations: new FormArray<FormGroup<HotFolderRemoteConfigFormGroup>>([
                             new FormGroup<HotFolderRemoteConfigFormGroup>({
-                                remoteConfigurationName: new FormControl<string>('', {
+                                remoteConfigurationName: new FormControl<string>(prefills.profileName ?? '', {
                                     validators: [Validators.required],
                                     nonNullable: true,
                                 }),
-                                s3DestinationFolder: new FormControl<string>(prefills.s3DestinationPath ?? '', {
+                                s3DestinationFolder: new FormControl<string>(currentS3Path(), {
                                     validators: [Validators.required],
                                     nonNullable: true,
                                 }),
@@ -145,7 +150,7 @@ export class HotFolderFormComponent implements OnDestroy {
                     nonNullable: true,
                 }),
                 enabled: new FormControl<boolean>(true, {nonNullable: true}),
-                localSourceFolder: new FormControl<string>(this.preFillNewHotFolderData().localSourcePath || '', {
+                localSourceFolder: new FormControl<string>(this.preFillNewHotFolderData()?.hotFolderSourcePath ?? '', {
                     validators: [Validators.required],
                     nonNullable: true,
                 }),

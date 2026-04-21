@@ -12,6 +12,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MetadataService } from '@services/metadata/metadata.service';
+import { of } from 'rxjs';
 
 describe('ConfigureHotFolderModalComponent', () => {
     let component: ConfigureHotFolderModalComponent;
@@ -39,6 +41,13 @@ describe('ConfigureHotFolderModalComponent', () => {
                 {
                     provide: MatDialogRef,
                     useValue: {},
+                },
+                {
+                    provide: MetadataService,
+                    useValue: {
+                        onUpdate: of(false),
+                        transferProfiles: {},
+                    },
                 },
                 provideMockStore<AppState>({initialState: initialTestState}),
             ],

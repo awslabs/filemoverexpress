@@ -6,7 +6,7 @@
 
 <div mat-dialog-content>
     <fme-hot-folder-form
-            [preFillNewHotFolderData]="prefilledData()"
+            [preFillNewHotFolderData]="data"
             [hotFolders]="hotFolders"
             (hotFoldersEdited)="updateHotFolderForm($event)"
     >
