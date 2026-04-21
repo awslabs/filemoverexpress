@@ -14,6 +14,12 @@ The Hot Folder feature recursively monitors all file system events within specif
 
 ## Requirements and Limitations
 
+**Re-adding a hot folder re-uploads all files:**
+When you remove a hot folder and add it back (or restart the daemon), the initial sync uploads every file in the directory — even if identical files already exist in S3. File Mover Express does not currently check for existing objects during the hot folder initial sync. If you need to re-add a hot folder pointing at a directory that has already been synced, be aware that all files will be re-uploaded.
+
+**Duplicate detection with checksums requires File Mover Express metadata:**
+When checksumming is enabled on a transfer profile, the object-already-exists check compares checksum values stored in S3 object metadata (e.g., `xxh3`, `xxhash64`, `md5-hex`). These metadata fields are only written by File Mover Express during upload. Files uploaded to S3 by other tools (AWS CLI, S3 console, third-party clients) will not have this metadata, so File Mover Express may re-upload them even if the content is identical. With checksumming disabled, the check uses file size and last-modified time, which works regardless of how the file was originally uploaded.
+
 ### File System Support
 
 **Compatible Systems:**
