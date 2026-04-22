@@ -45,7 +45,6 @@ import { Subscription } from 'rxjs';
         MatOption,
         MatHint,
         ButtonComponent,
-
     ],
 })
 export class HotFolderFormComponent implements OnDestroy {
