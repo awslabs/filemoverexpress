@@ -83,8 +83,8 @@ export class HotFolderFormComponent implements OnDestroy {
             );
             hff.push(new FormGroup<HotFolderFormGroup>({
                 name: new FormControl<string>(hotFolder.name, {validators: [Validators.required], nonNullable: true}),
-                enabled: new FormControl<boolean>(false, {validators: [Validators.required], nonNullable: true}),
-                localSourceFolder: new FormControl<string>('', {validators: [Validators.required], nonNullable: true}),
+                enabled: new FormControl<boolean>(hotFolder.enabled, {validators: [Validators.required], nonNullable: true}),
+                localSourceFolder: new FormControl<string>(hotFolder.localSourceFolder, {validators: [Validators.required], nonNullable: true}),
                 remoteConfigurations: remoteConfigs,
             }));
         }
