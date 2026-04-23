@@ -1,0 +1,22 @@
+@use 'sass:map';
+@use '../../../../styles/variables' as vars;
+
+@mixin generateClasses() {
+    $colors: (default, info, warning, error, success);
+
+    @each $color in $colors {
+        .panel {
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+
+            &.#{$color} {
+                background-color: map.get(vars.$panel-background-color, $color);
+                color: map.get(vars.$panel-text-color, $color);
+                border: 1px solid map.get(vars.$panel-border-color, $color);
+            }
+        }
+    }
+}
+
+@include generateClasses();

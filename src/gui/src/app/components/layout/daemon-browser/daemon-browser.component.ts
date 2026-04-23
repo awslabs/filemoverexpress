@@ -322,7 +322,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                     list: fileBrowserList,
                     error: null,
                 };
-                this.store.dispatch(UiContextActions.setDaemonBrowserPath({path: path}));
+                this.store.dispatch(UiContextActions.setDaemonBrowserPath({path: this.currentDirectory}));
             },
             error: (error) => {
                 if (options?.silentRefreshNavigation) {
@@ -553,8 +553,8 @@ export class DaemonBrowserComponent implements OnDestroy {
             const hotFolderSourcePath = grpcPathToDisplayPath(triggerObject.name, this.fileBrowserType);
             const modalData: ConfigureHotFolderModalData = {
                 hotFolderSourcePath: hotFolderSourcePath,
-                hotFolderDestinationPath: this.currentDirectory,
-                ...(this.selectedTransferProfile && { profileName: this.selectedTransferProfile }),
+                hotFolderDestinationPath: triggerObject.name.split('/').at(-1) ?? '',
+                profileName: this.selectedTransferProfile ?? '',
             };
             const dialogRef = this.dialog.open<ConfigureHotFolderModalComponent, ConfigureHotFolderModalData>(
                 ConfigureHotFolderModalComponent, {

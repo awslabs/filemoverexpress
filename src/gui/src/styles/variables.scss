@@ -176,7 +176,26 @@ $pg-orange: #ff9900;
 $pg-red: #d91515;
 // endregion
 
-
-
-
-
+// region Panel colors
+$panel-background-color: (
+        default: $blue-900,
+        info: $blue-900,
+        success: $green-900,
+        warning: $yellow-900,
+        error: $red-900,
+);
+$panel-border-color: (
+        default: $blue-500,
+        info: $blue-500,
+        success: $green-500,
+        warning: $yellow-700,
+        error: $red-500,
+);
+$panel-text-color: (
+        default: $grey-100,
+        success: $grey-100,
+        info: $grey-100,
+        warning: $grey-100,
+        error: $grey-100,
+);
+//

@@ -26,6 +26,7 @@ import { ConfigureHotFolderModalData } from '@modals/configure-hot-folder-modal/
 import { AppState } from '@app/state';
 import { Store } from '@ngrx/store';
 import { selectBucketBrowserPath } from '@state/ui-context/ui-context.selectors';
+import { PanelComponent } from '@app/components/layout/panel/panel.component';
 
 @Component({
     selector: 'fme-hot-folder-form',
@@ -48,7 +49,7 @@ import { selectBucketBrowserPath } from '@state/ui-context/ui-context.selectors'
         MatOption,
         MatHint,
         ButtonComponent,
-
+        PanelComponent,
     ],
 })
 export class HotFolderFormComponent implements OnDestroy {
@@ -58,6 +59,8 @@ export class HotFolderFormComponent implements OnDestroy {
     private metadataSignal = toSignal(this.metadata.onUpdate);
     private changeSub: Subscription | null = null;
     private store = inject<Store<AppState>>(Store);
+    private currentS3Path = this.store.selectSignal(selectBucketBrowserPath);
+    protected warning: string | null = null;
 
     preFillNewHotFolderData = input<ConfigureHotFolderModalData | null>(null);
     hotFolders = input<HotFolders[]>([]);
@@ -74,7 +77,7 @@ export class HotFolderFormComponent implements OnDestroy {
 
         for (const hotFolder of hotFolders) {
             const remoteConfigs = new FormArray<FormGroup<HotFolderRemoteConfigFormGroup>>(
-                hotFolder.remoteConfigurations.map(remoteConfig => new FormGroup<HotFolderRemoteConfigFormGroup>({
+                hotFolder.remoteConfigurations.map((remoteConfig) => new FormGroup<HotFolderRemoteConfigFormGroup>({
                     remoteConfigurationName: new FormControl<string>(remoteConfig.remoteConfigurationName, {
                         validators: [Validators.required],
                         nonNullable: true,
@@ -87,48 +90,52 @@ export class HotFolderFormComponent implements OnDestroy {
             );
             hff.push(new FormGroup<HotFolderFormGroup>({
                 name: new FormControl<string>(hotFolder.name, {validators: [Validators.required], nonNullable: true}),
-                enabled: new FormControl<boolean>(false, {validators: [Validators.required], nonNullable: true}),
-                localSourceFolder: new FormControl<string>('', {validators: [Validators.required], nonNullable: true}),
+                enabled: new FormControl<boolean>(hotFolder.enabled, {validators: [Validators.required], nonNullable: true}),
+                localSourceFolder: new FormControl<string>(hotFolder.localSourceFolder, {validators: [Validators.required], nonNullable: true}),
                 remoteConfigurations: remoteConfigs,
             }));
         }
 
         if (prefills) {
-            const currentS3Path = this.store.selectSignal(selectBucketBrowserPath);
-            if (!hotFolders.find(itm => itm.localSourceFolder === prefills.hotFolderSourcePath)) {
+            const destinationPath = (this.currentS3Path() ?? '') + (prefills.hotFolderDestinationPath ?? '');
+            const existingIndex = hotFolders.findIndex((itm) => itm.localSourceFolder === prefills.hotFolderSourcePath);
+            if (existingIndex == -1) {
                 const prefillFormGroup = new FormGroup<HotFolderFormGroup>({
-                        name: new FormControl<string>('', {
-                            validators: [validateHotFolderNames, Validators.required],
-                            nonNullable: true,
-                        }),
-                        enabled: new FormControl<boolean>(true, {nonNullable: true}),
-                        localSourceFolder: new FormControl<string>(prefills.hotFolderSourcePath ?? '', {
-                            validators: [Validators.required],
-                            nonNullable: true,
-                        }),
-                        remoteConfigurations: new FormArray<FormGroup<HotFolderRemoteConfigFormGroup>>([
-                            new FormGroup<HotFolderRemoteConfigFormGroup>({
-                                remoteConfigurationName: new FormControl<string>(prefills.profileName ?? '', {
-                                    validators: [Validators.required],
-                                    nonNullable: true,
-                                }),
-                                s3DestinationFolder: new FormControl<string>(currentS3Path(), {
-                                    validators: [Validators.required],
-                                    nonNullable: true,
-                                }),
+                    name: new FormControl<string>('', {
+                        validators: [validateHotFolderNames, Validators.required],
+                        nonNullable: true,
+                    }),
+                    enabled: new FormControl<boolean>(true, {nonNullable: true}),
+                    localSourceFolder: new FormControl<string>(prefills.hotFolderSourcePath ?? '', {
+                        validators: [Validators.required],
+                        nonNullable: true,
+                    }),
+                    remoteConfigurations: new FormArray<FormGroup<HotFolderRemoteConfigFormGroup>>([
+                        new FormGroup<HotFolderRemoteConfigFormGroup>({
+                            remoteConfigurationName: new FormControl<string>(prefills.profileName ?? '', {
+                                validators: [Validators.required],
+                                nonNullable: true,
                             }),
-                        ], {validators: [Validators.required]}),
-                    },
-                );
+                            s3DestinationFolder: new FormControl<string>(destinationPath, {
+                                validators: [Validators.required],
+                                nonNullable: true,
+                            }),
+                        }),
+                    ], {validators: [Validators.required]}),
+                });
                 hff.push(prefillFormGroup);
 
                 // To avoid a circular reference we need to run this with a timer
-                setTimeout(() => this.expansionPanels()?.at(-1)?.open(), 200);
+                setTimeout(() => this.expansionPanels()?.at(-1)?.open(), 100);
+            } else {
+                const existingHotFolder = hotFolders.at(existingIndex);
+                this.warning = `Hot folder ${existingHotFolder?.name} is already configured for ${prefills.hotFolderSourcePath}`;
+                setTimeout(() => this.expansionPanels()?.at(existingIndex)?.open(), 100);
             }
         }
 
         this.changeSub?.unsubscribe();
-        this.changeSub = hff.statusChanges.subscribe(__status => this.hotFoldersEdited.emit(this.hotFolderFormArray()));
+        this.changeSub = hff.statusChanges.subscribe((__status) => this.hotFoldersEdited.emit(hff));
 
         return hff;
     });
