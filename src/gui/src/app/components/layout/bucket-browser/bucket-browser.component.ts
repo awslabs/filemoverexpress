@@ -58,6 +58,9 @@ import {
 } from '../file-browser/file-browser.interfaces';
 import { BUCKET_BROWSER_INITIAL_DATA, BUCKET_FILE_BROWSER_ID, fileBrowserErrors, notificationMessages } from './bucket-browser.constants';
 import { NavigateOptions } from './bucket-browser.interfaces';
+import { Store } from '@ngrx/store';
+import { AppState } from '@app/state';
+import * as UiContextActions from '@state/ui-context/actions/ui-context.actions';
 
 @Component({
     selector: 'fme-bucket-browser',
@@ -80,6 +83,7 @@ export class BucketBrowserComponent implements OnDestroy {
     private dialog = inject(MatDialog);
     private metadata = inject(MetadataService);
     private bookmarks = inject(BookmarksService);
+    private store = inject<Store<AppState>>(Store);
 
     @ViewChild('filterField') filterField!: TextInputComponent;
     fileBrowserID = BUCKET_FILE_BROWSER_ID;
@@ -263,6 +267,7 @@ export class BucketBrowserComponent implements OnDestroy {
                     list: fileBrowserList,
                     error: null,
                 };
+                this.store.dispatch(UiContextActions.setBucketBrowserPath({path: path}));
             },
             error: (error) => {
                 if (options?.silentRefreshNavigation) {
