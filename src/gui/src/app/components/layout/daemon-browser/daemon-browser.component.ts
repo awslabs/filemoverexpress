@@ -655,8 +655,7 @@ export class DaemonBrowserComponent implements OnDestroy {
      * @private
      */
     private isHotFolder(folderPath: string): boolean {
-        folderPath = this.cleanHotFolderPath(folderPath);
-        return this.hotFolderList.includes(folderPath);
+        return this.hotFolderList.includes(this.cleanHotFolderPath(folderPath));
     }
 
     /**
@@ -747,15 +746,28 @@ export class DaemonBrowserComponent implements OnDestroy {
     /**
      * Cleans a path to be compared with a hot folder path
      *
-     * @param {string} path - Path to be cleaned
+     * @param {string} inputPath - Path to be cleaned
      * @private
      */
-    private cleanHotFolderPath(path: string): string {
-        path = path.trim();
-        if (path !== '/') {
-            path = path.endsWith('/') ? path.slice(0, -1) : path;
+    private cleanHotFolderPath(inputPath: string): string {
+        let cleaned = inputPath.trim();
+
+        if (this.metadata.daemonOS === 'windows') {
+            cleaned = cleaned
+                .replace(/^([a-z]):?/i, '$1')
+                .replaceAll('\\', '/')
+                .toLowerCase();
+
+            if (cleaned.startsWith('/')) {
+                cleaned = cleaned.substring(1);
+            }
         }
-        return path;
+
+        if (cleaned !== '/') {
+            cleaned = cleaned.endsWith('/') ? cleaned.slice(0, -1) : cleaned;
+        }
+
+        return cleaned;
     }
 
     /**
