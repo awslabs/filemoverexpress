@@ -62,6 +62,7 @@ import {
         HotFolderFormComponent,
         ButtonComponent,
         AsyncPipe,
+
     ],
 })
 export class ConfigComponent implements OnInit {
@@ -242,7 +243,9 @@ export class ConfigComponent implements OnInit {
     onSubmit() {
         return () => {
             if (this.hotFolderForm) {
-                this.configForm.controls.uploadHotFolders.setValue(this.hotFolderForm.getRawValue());
+                for (const ctrl of this.hotFolderForm.controls) {
+                    this.configForm.controls.uploadHotFolders.push(ctrl);
+                }
             }
             const settings: IFmeConfig = this.configForm.getRawValue() as unknown as IFmeConfig;
             const input = FmeConfig.fromJson(settings);
