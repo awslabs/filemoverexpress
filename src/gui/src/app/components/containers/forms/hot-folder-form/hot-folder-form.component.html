@@ -104,6 +104,11 @@
             }
         </mat-accordion>
         <div class="padding"></div>
+        @if (warning) {
+            <fme-panel panelClass="warning">
+                {{warning}}
+            </fme-panel>
+        }
         <fme-button
                 type="filled"
                 color="accent"

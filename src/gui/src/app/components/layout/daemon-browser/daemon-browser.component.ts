@@ -2,7 +2,11 @@ import { Component, inject, OnDestroy, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
 import { FileBrowserComponent } from '@app/components/layout/file-browser/file-browser.component';
-import { cleanPath, getOSFileBrowserName, stringToFileBrowserType } from '@app/components/layout/file-browser/file-browser.utils';
+import {
+    cleanPath,
+    getOSFileBrowserName,
+    stringToFileBrowserType,
+} from '@app/components/layout/file-browser/file-browser.utils';
 import { ConfigureHotFolderModalComponent } from '@app/components/modals/configure-hot-folder-modal/configure-hot-folder-modal.component';
 import { ConfigureHotFolderModalData } from '@app/components/modals/configure-hot-folder-modal/configure-hot-folder-modal.interfaces';
 import { CreatePrefixFolderModalComponent } from '@app/components/modals/create-prefix-folder/create-prefix-folder-modal.component';
@@ -61,6 +65,9 @@ import {
 } from '../file-browser/file-browser.interfaces';
 import { DAEMON_FILE_BROWSER_ID, fileBrowserErrors, notificationMessages } from './daemon-browser.constants';
 import { NavigateOptions } from './daemon-browser.interfaces';
+import * as UiContextActions from '@state/ui-context/actions/ui-context.actions';
+import { Store } from '@ngrx/store';
+import { AppState } from '@app/state';
 
 @Component({
     selector: 'fme-daemon-browser',
@@ -82,6 +89,7 @@ export class DaemonBrowserComponent implements OnDestroy {
     private bookmarks = inject(BookmarksService);
     private dialog = inject(MatDialog);
     private metadata = inject(MetadataService);
+    private store = inject<Store<AppState>>(Store);
 
     @ViewChild('filterField') filterField!: TextInputComponent;
     fileBrowserID = DAEMON_FILE_BROWSER_ID;
@@ -314,6 +322,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                     list: fileBrowserList,
                     error: null,
                 };
+                this.store.dispatch(UiContextActions.setDaemonBrowserPath({path: this.currentDirectory}));
             },
             error: (error) => {
                 if (options?.silentRefreshNavigation) {
@@ -542,16 +551,17 @@ export class DaemonBrowserComponent implements OnDestroy {
                 return;
             }
             const hotFolderSourcePath = grpcPathToDisplayPath(triggerObject.name, this.fileBrowserType);
-
+            const modalData: ConfigureHotFolderModalData = {
+                hotFolderSourcePath: hotFolderSourcePath,
+                hotFolderDestinationPath: triggerObject.name.split('/').at(-1) ?? '',
+                profileName: this.selectedTransferProfile ?? '',
+            };
             const dialogRef = this.dialog.open<ConfigureHotFolderModalComponent, ConfigureHotFolderModalData>(
                 ConfigureHotFolderModalComponent, {
                     width: '60%',
                     maxWidth: '900px',
                     maxHeight: '80%',
-                    data: {
-                        hotFolderSourcePath: hotFolderSourcePath,
-                        ...(this.selectedTransferProfile && {profileName: this.selectedTransferProfile}),
-                    },
+                    data: modalData,
                     autoFocus: 'dialog',
                 },
             );
@@ -645,8 +655,7 @@ export class DaemonBrowserComponent implements OnDestroy {
      * @private
      */
     private isHotFolder(folderPath: string): boolean {
-        folderPath = this.cleanHotFolderPath(folderPath);
-        return this.hotFolderList.includes(folderPath);
+        return this.hotFolderList.includes(this.cleanHotFolderPath(folderPath));
     }
 
     /**
@@ -737,15 +746,28 @@ export class DaemonBrowserComponent implements OnDestroy {
     /**
      * Cleans a path to be compared with a hot folder path
      *
-     * @param {string} path - Path to be cleaned
+     * @param {string} inputPath - Path to be cleaned
      * @private
      */
-    private cleanHotFolderPath(path: string): string {
-        path = path.trim();
-        if (path !== '/') {
-            path = path.endsWith('/') ? path.slice(0, -1) : path;
+    private cleanHotFolderPath(inputPath: string): string {
+        let cleaned = inputPath.trim();
+
+        if (this.metadata.daemonOS === 'windows') {
+            cleaned = cleaned
+                .replace(/^([a-z]):?/i, '$1')
+                .replaceAll('\\', '/')
+                .toLowerCase();
+
+            if (cleaned.startsWith('/')) {
+                cleaned = cleaned.substring(1);
+            }
         }
-        return path;
+
+        if (cleaned !== '/') {
+            cleaned = cleaned.endsWith('/') ? cleaned.slice(0, -1) : cleaned;
+        }
+
+        return cleaned;
     }
 
     /**

@@ -15,12 +15,16 @@ import { TransferProfileService } from '@services/transfer-profile/transfer-prof
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { LogsService } from '@services/logs/logs.service';
 import { ShutdownService } from '@services/shutdown/shutdown.service';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideZoneChangeDetection(),
         provideRouter(appRoutes, withHashLocation()),
         provideStore(reducers, {metaReducers}),
+        provideStoreDevtools({
+            maxAge: 25,
+        }),
         provideState(fmeClientFeature),
         provideAppInitializer(() => {
             const services = [

@@ -5,6 +5,8 @@ import { LogsState, reducer as logsReducer } from '@state/logs/reducers/logs.red
 import { JobState, reducer as jobReducer } from '@state/job/reducers/job.reducer';
 import { reducer as transferStatsReducer, TransferStatsState } from '@state/transfer-stats/reducers/transfer-stats.reducer';
 import { NotificationState, reducer as notificationsReducer } from '@state/notifications/reducers/notifications.reducer';
+import { UiContextState } from '@state/models/ui-context.model';
+import { reducer as uiContextReducer } from '@state/ui-context/reducers/ui-context.reducer';
 
 export interface AppState {
     fmeClient: FmeClientState,
@@ -12,6 +14,7 @@ export interface AppState {
     jobs: JobState,
     transferStats: TransferStatsState,
     notifications: NotificationState,
+    uiContext: UiContextState,
 }
 
 export const reducers: ActionReducerMap<AppState> = {
@@ -20,6 +23,7 @@ export const reducers: ActionReducerMap<AppState> = {
     jobs: jobReducer,
     transferStats: transferStatsReducer,
     notifications: notificationsReducer,
+    uiContext: uiContextReducer,
 };
 
 export const metaReducers: MetaReducer<AppState>[] = !environment.production ? [] : [];

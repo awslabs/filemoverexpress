@@ -24,4 +24,8 @@ export const initialTestState: AppState = {
         ids: [],
         entities: {},
     },
+    uiContext: {
+        daemonBrowserPath: '',
+        bucketBrowserPath: '',
+    },
 };

@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, inject, OnInit, Output } from '@angular/core';
 import { FormArray, FormGroup } from '@angular/forms';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
@@ -36,12 +36,6 @@ export class ConfigureHotFolderModalComponent implements OnInit {
     private fmeClientService = inject(FmeClientService);
     private notifications = inject(NotificationsService);
     private bottomSheet = inject(MatBottomSheet);
-
-    prefilledData = computed(() => {
-        return {
-            localSourcePath: this.data.hotFolderSourcePath,
-        };
-    });
 
     @Output() hotFoldersSaved = new EventEmitter<boolean>();
     hotFolders: HotFolders[] = [];
