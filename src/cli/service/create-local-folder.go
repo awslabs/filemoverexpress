@@ -8,7 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/service/serviceutils"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/utils/fs"
@@ -19,7 +19,7 @@ func (*FileMoverServer) CreateLocalFolder(
 	_ context.Context,
 	req *connect.Request[fmev1.CreateLocalFolderRequest],
 ) (*connect.Response[fmev1.CreateLocalFolderResponse], error) {
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	resp := &fmev1.CreateLocalFolderResponse{
 		Success: false,
 		Message: "",

@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 // FileWriter is a wrapper struct around file write operations, allowing us to track rudimentary write speeds from disk
@@ -22,7 +22,7 @@ func (w *FileWriter) Write(p []byte) (int, error) {
 
 func (w *FileWriter) WriteAt(p []byte, offset int64) (int, error) {
 	if IsThrottled() {
-		sleepTime := GetSleepTime(transfer.Download)
+		sleepTime := GetSleepTime(transfertypes.Download)
 		time.Sleep(sleepTime)
 	}
 

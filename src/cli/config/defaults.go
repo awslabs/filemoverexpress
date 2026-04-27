@@ -8,37 +8,37 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/systeminfo"
 )
 
-func setGeneralDefaultSettings() {
-	viper.SetDefault("general.max_active_checksums", systeminfo.GetCoreCount())
-	viper.SetDefault("general.max_active_transfers", constants.DefaultMaxActiveTransfers)
-	viper.SetDefault("general.no_sleep", false)
-	viper.SetDefault("general.retry_count", constants.DefaultRetryCount)
-	viper.SetDefault("general.target_bandwidth", 0)
+func setGeneralDefaultSettings(instance *viper.Viper) {
+	instance.SetDefault("general.max_active_checksums", systeminfo.GetCoreCount())
+	instance.SetDefault("general.max_active_transfers", constants.DefaultMaxActiveTransfers)
+	instance.SetDefault("general.no_sleep", false)
+	instance.SetDefault("general.retry_count", constants.DefaultRetryCount)
+	instance.SetDefault("general.target_bandwidth", 0)
 }
 
-func setLoggingDefaultSettings() {
-	viper.SetDefault("logging.directory", "logs")
-	viper.SetDefault("logging.severity", "info")
-	viper.SetDefault("logging.max_size", constants.DefaultLoggingMaxSize)
-	viper.SetDefault("logging.max_age", constants.DefaultLoggingMaxAge)
-	viper.SetDefault("logging.compress", true)
+func setLoggingDefaultSettings(instance *viper.Viper) {
+	instance.SetDefault("logging.directory", "logs")
+	instance.SetDefault("logging.severity", "info")
+	instance.SetDefault("logging.max_size", constants.DefaultLoggingMaxSize)
+	instance.SetDefault("logging.max_age", constants.DefaultLoggingMaxAge)
+	instance.SetDefault("logging.compress", true)
 }
 
-func setReportingDefaultSettings() {
-	viper.SetDefault("reports.directory", "reports")
+func setReportingDefaultSettings(instance *viper.Viper) {
+	instance.SetDefault("reports.directory", "reports")
 }
 
-func setS3DefaultSettings() {
-	viper.SetDefault("protocols.s3.transfer_profiles", map[string]configtypes.TransferProfile{})
+func setS3DefaultSettings(instance *viper.Viper) {
+	instance.SetDefault("protocols.s3.transfer_profiles", map[string]configtypes.TransferProfile{})
 }
 
-func setAPIServerDefaultSettings() {
-	viper.SetDefault("api_server.allowed_origins", []string{})
-	viper.SetDefault("api_server.enabled", true)
-	viper.SetDefault("api_server.tls.enabled", false)
-	viper.SetDefault("api_server.remote.enabled", false)
-	viper.SetDefault("api_server.blocked_paths", getDefaultBlockedPaths())
-	viper.SetDefault("api_server.permissions.allow_ui_configuration", false)
-	viper.SetDefault("api_server.permissions.allow_local_rename_delete", false)
-	viper.SetDefault("api_server.permissions.allow_remote_rename_delete", false)
+func setAPIServerDefaultSettings(instance *viper.Viper) {
+	instance.SetDefault("api_server.allowed_origins", []string{})
+	instance.SetDefault("api_server.enabled", true)
+	instance.SetDefault("api_server.tls.enabled", false)
+	instance.SetDefault("api_server.remote.enabled", false)
+	instance.SetDefault("api_server.blocked_paths", getDefaultBlockedPaths())
+	instance.SetDefault("api_server.permissions.allow_ui_configuration", false)
+	instance.SetDefault("api_server.permissions.allow_local_rename_delete", false)
+	instance.SetDefault("api_server.permissions.allow_remote_rename_delete", false)
 }

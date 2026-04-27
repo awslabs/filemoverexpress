@@ -11,21 +11,21 @@ import (
 
 	"github.com/radovskyb/watcher"
 
+	"github.com/awslabs/filemoverexpress/config"
+
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 var (
-	Watcher            *watcher.Watcher
+	fileWatcher        *watcher.Watcher
 	lastUpdated        time.Time
 	pendingUploads     []string
 	mtx                *sync.Mutex
 	fileUpdateWaitTime = 10 * time.Second
-	// key: hot folder name, value: hot folder struct
-	hotFolders map[string]*HotFolder
+	hotFolders         map[string]*HotFolder
 )
 
 type HotFolder struct {
@@ -36,28 +36,28 @@ type HotFolder struct {
 	TransferProfilesAndDestinationFolders map[string]string
 }
 
-// init creates a new Watcher, initializes its hotFolders map, and starts goroutines that process filesystem events
-func init() {
+// Init creates a new Watcher, initializes its hotFolders map, and starts goroutines that process filesystem events
+func Init() {
 	hotFolders = make(map[string]*HotFolder)
 	lastUpdated = time.Now()
 	mtx = &sync.Mutex{}
 
-	Watcher = watcher.New()
-	Watcher.FilterOps(watcher.Rename, watcher.Move, watcher.Create, watcher.Write)
-	initializeHotFolders()
+	fileWatcher = watcher.New()
+	fileWatcher.FilterOps(watcher.Rename, watcher.Move, watcher.Create, watcher.Write)
+	configureHotFolders()
 
 	go waitForFileSystemEvents()
 	go processFileUpdates()
 }
 
-// initializeHotFolders reads the hot folders from the config, and updates the local hot folder map
-func initializeHotFolders() {
-	cfgHotFolders := globals.GetInstance().GetCfg().UploadHotFolders
+// configureHotFolders reads the hot folders from the config, and updates the local hot folder map
+func configureHotFolders() {
+	cfgHotFolders := config.LoadConfiguration().UploadHotFolders
 	for _, cfgHotFolder := range cfgHotFolders {
 		hotFolderTransferConfigs := cfgHotFolder.RemoteConfigurations
 		hotFolderTxMap := make(map[string]string)
-		for _, config := range hotFolderTransferConfigs {
-			hotFolderTxMap[config.RemoteConfigurationName] = config.S3DestinationFolder
+		for _, cfg := range hotFolderTransferConfigs {
+			hotFolderTxMap[cfg.RemoteConfigurationName] = cfg.S3DestinationFolder
 		}
 
 		hotFolder := HotFolder{
@@ -72,7 +72,7 @@ func initializeHotFolders() {
 
 // RemoveOldHotFolders gets rid of any cached hot folders that are no longer in the config
 func RemoveOldHotFolders() {
-	configHotFolders := globals.GetInstance().GetCfg().UploadHotFolders
+	configHotFolders := config.LoadConfiguration().UploadHotFolders
 	for _, cachedHotFolder := range hotFolders {
 		removed := true
 		for _, configHotFolder := range configHotFolders {
@@ -89,7 +89,7 @@ func RemoveOldHotFolders() {
 
 // IsSourceFolderStillUsed returns true if the source folder is still being used by another hot folder
 func IsSourceFolderStillUsed(sourceFolder string) bool {
-	for _, hotFolder := range globals.GetInstance().GetCfg().UploadHotFolders {
+	for _, hotFolder := range config.LoadConfiguration().UploadHotFolders {
 		if sourceFolder == hotFolder.LocalSourceFolder {
 			return true
 		}
@@ -113,14 +113,14 @@ func ConfigureHotFolderWatcher(newHotFolder HotFolder) bool {
 			return false
 		}
 		if !IsSourceFolderStillUsed(cachedHotFolder.SourceFolder) {
-			err := Watcher.RemoveRecursive(cachedHotFolder.SourceFolder)
+			err := fileWatcher.RemoveRecursive(cachedHotFolder.SourceFolder)
 			if err != nil {
 				events.Events.Warn(strErrorRemovingHotFolder, cachedHotFolder.SourceFolder, err)
 			}
 		}
 	}
 
-	if err := Watcher.AddRecursive(newHotFolder.SourceFolder); err != nil {
+	if err := fileWatcher.AddRecursive(newHotFolder.SourceFolder); err != nil {
 		events.Events.Warn(strErrorAddingHotFolder, newHotFolder.Name, err.Error())
 		return false
 	}
@@ -134,7 +134,7 @@ func ConfigureHotFolderWatcher(newHotFolder HotFolder) bool {
 func waitForFileSystemEvents() {
 	for {
 		select {
-		case evt := <-Watcher.Event:
+		case evt := <-fileWatcher.Event:
 			if evt.IsDir() {
 				continue
 			}
@@ -144,9 +144,9 @@ func waitForFileSystemEvents() {
 				pendingUploads = append(pendingUploads, evt.Path)
 			}
 			mtx.Unlock()
-		case err := <-Watcher.Error:
+		case err := <-fileWatcher.Error:
 			events.Events.Error(strErrorRunningHotFolder, err.Error())
-		case <-Watcher.Closed:
+		case <-fileWatcher.Closed:
 			return
 		default:
 			time.Sleep(100 * time.Millisecond)
@@ -211,13 +211,13 @@ func buildJobName(filesToUpload []string) string {
 // StartHotFolderUpload Creates a job and starts an Upload for each remote configuration in the hot folder
 func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string) {
 	for transferProfileName, destinationFolder := range hotFolder.TransferProfilesAndDestinationFolders {
-		transferProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(transferProfileName)
+		transferProfile, err := config.LoadConfiguration().GetTransferProfile(transferProfileName)
 		if err != nil {
 			events.Events.Warn(strErrorGenericUpload, hotFolder.Name, err)
 			continue
 		}
 		job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
-			Direction:       transfer.Upload,
+			Direction:       transfertypes.Upload,
 			Name:            jobName,
 			TransferProfile: &transferProfile,
 			Sources:         keys,
@@ -250,12 +250,17 @@ func InitialHotFolderUpload() {
 	}
 }
 
+// StartWatcher will initialize the file watcher with the configured interval
+func StartWatcher(interval time.Duration) error {
+	return fileWatcher.Start(interval)
+}
+
 // removeDuplicateNamedHotFolders checks for any duplicate-named hot folders from the config. If there is a duplicate,
 // it deletes the entry from the hotfolder map and removes the listener if no other hot folders are using the same source folder.
 // Returns a list of all hot folder names that had duplicates
 func removeDuplicateNamedHotFolders() (duplicates []string) {
 	hotFolderNamesCount := make(map[string]int)
-	for _, hotFolder := range globals.GetInstance().GetCfg().UploadHotFolders {
+	for _, hotFolder := range config.LoadConfiguration().UploadHotFolders {
 		if _, alreadyExists := hotFolderNamesCount[hotFolder.Name]; alreadyExists {
 			events.Events.Error(strDuplicateHotFolderName, hotFolder.Name)
 			hotFolderNamesCount[hotFolder.Name]++
@@ -271,7 +276,7 @@ func removeDuplicateNamedHotFolders() (duplicates []string) {
 				sourceFolder := hotFolder.SourceFolder
 				delete(hotFolders, hotFolderName)
 				if !IsSourceFolderStillUsed(sourceFolder) {
-					err := Watcher.RemoveRecursive(sourceFolder)
+					err := fileWatcher.RemoveRecursive(sourceFolder)
 					if err != nil {
 						events.Events.Warn(strErrorRemovingHotFolder, sourceFolder, err)
 					}

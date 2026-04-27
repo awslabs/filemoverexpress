@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/service/types"
 	"github.com/awslabs/filemoverexpress/utils/crypto"
@@ -43,7 +43,7 @@ func NewService(grpcHost string, grpcWebPortList []uint, remote bool) *FileMover
 		return fmeServer
 	}
 	defer mtx.Unlock()
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	if !cfg.APIServer.Enabled {
 		events.Events.Warn(strApiServerDisabled)
 		return nil

@@ -5,7 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 )
 
@@ -18,7 +18,7 @@ func (*FileMoverServer) DeleteS3Path(
 		Message: "",
 	}
 
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 
 	allowRemoteRenameDelete := cfg.APIServer.Permissions.AllowRemoteRenameDelete
 	if !isLocalClient(req.Peer()) && !allowRemoteRenameDelete {

@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 // FileReader is a wrapper struct around file read operations, allowing us to track rudimentary read speeds from disk
@@ -24,7 +24,7 @@ func (r *FileReader) Read(p []byte) (int, error) {
 
 func (r *FileReader) ReadAt(p []byte, offset int64) (int, error) {
 	if IsThrottled() {
-		sleepTime := GetSleepTime(transfer.Upload)
+		sleepTime := GetSleepTime(transfertypes.Upload)
 		time.Sleep(sleepTime)
 	}
 

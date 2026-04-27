@@ -1,6 +1,8 @@
 package discovery
 
 import (
+	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/bytedance/mockey"
@@ -17,11 +19,14 @@ func TestValidatePathLength(t *testing.T) {
 		wantErr            bool
 	}
 
+	shortFilename := generateRandomString(60)
+	longFilename := generateRandomString(275)
+
 	tests := []test{
 		{
 			name: "ShortFilenameShouldSucceed",
 			args: args{
-				source: "testdata/discovery/text-files/test.txt",
+				source: shortFilename,
 			},
 			longPathsSupported: true,
 			wantErr:            false,
@@ -29,7 +34,7 @@ func TestValidatePathLength(t *testing.T) {
 		{
 			name: "LongFilenameShouldSucceed",
 			args: args{
-				source: StrTestLongFileName,
+				source: longFilename,
 			},
 			longPathsSupported: true,
 			wantErr:            false,
@@ -37,7 +42,7 @@ func TestValidatePathLength(t *testing.T) {
 		{
 			name: "LongFilenameShouldFail",
 			args: args{
-				source: StrTestLongFileName,
+				source: longFilename,
 			},
 			longPathsSupported: false,
 			wantErr:            true,
@@ -56,6 +61,18 @@ func TestValidatePathLength(t *testing.T) {
 			})
 		})
 	}
+}
+
+func generateRandomString(n int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	var sb strings.Builder
+	sb.Grow(n)
+	for i := 0; i < n; i++ {
+		sb.WriteByte(charset[rand.IntN(len(charset))])
+	}
+
+	return sb.String()
 }
 
 //func Test_supportsLongFilePaths(t *testing.T) {

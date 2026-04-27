@@ -11,7 +11,7 @@ import (
 	"github.com/shirou/gopsutil/v4/disk"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/utils/fs"
 )
@@ -62,7 +62,7 @@ func listFolders(winPath string) (*fmev1.FsFolder, error) {
 		if fileInfo.Mode()&excludedModes != 0 {
 			continue
 		}
-		if ShouldExcludeDirEntry(pathName, globals.GetInstance().GetCfg().APIServer.BlockedPathList) {
+		if ShouldExcludeDirEntry(pathName, config.LoadConfiguration().APIServer.BlockedPathList) {
 			continue
 		}
 

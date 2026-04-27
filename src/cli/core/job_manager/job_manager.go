@@ -26,12 +26,11 @@ import (
 	"github.com/awslabs/filemoverexpress/core/transferstats"
 	"github.com/awslabs/filemoverexpress/events"
 	fmeErrors "github.com/awslabs/filemoverexpress/fme-errors"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/types/databasetypes"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 var (
@@ -93,7 +92,7 @@ func GetInstance() *JobManager {
 			s3ManagerLock:  &sync.RWMutex{},
 			priorityQueue:  NewPriorityQueue(),
 		}
-		maxActiveTransfers := globals.GetInstance().GetCfg().General.MaxActiveTransfers
+		maxActiveTransfers := config.LoadConfiguration().General.MaxActiveTransfers
 		maxActiveTransfers = max(maxActiveTransfers, 1)
 
 		for i := 0; i < int(maxActiveTransfers); i++ {
@@ -206,7 +205,7 @@ func (jm *JobManager) GetJob(jobId string) *jobmanagertypes.Job {
 func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 	transferProfile := job.TransferProfile()
 	jobId := job.JobId()
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 
 	// region Discover
 	job.SetStatus(jobmanagertypes.JobStatusDiscovering)
@@ -334,7 +333,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	transferProfile := job.TransferProfile()
 	jobId := job.JobId()
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 
 	// region Discover
 	job.SetStatus(jobmanagertypes.JobStatusDiscovering)
@@ -561,7 +560,7 @@ func sendJobProgress(job *jobmanagertypes.Job, cancelChan chan bool) {
 			bytesUploaded := atomic.LoadInt64(&job.BytesUploaded)
 			bytesDownloaded := atomic.LoadInt64(&job.BytesDownloaded)
 			var bytesTransferred int64
-			if job.Direction() == transfer.Upload {
+			if job.Direction() == transfertypes.Upload {
 				bytesTransferred = bytesUploaded
 			} else {
 				bytesTransferred = bytesDownloaded

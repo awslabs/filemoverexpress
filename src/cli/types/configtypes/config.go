@@ -8,10 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/spf13/viper"
-
 	"github.com/awslabs/filemoverexpress/constants"
-	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/utils/safeconv"
@@ -19,6 +16,7 @@ import (
 
 var ViperLock sync.Mutex
 
+// When updating the tag values, make sure to make the corresponding updates for the constants in config/config/config-keys.go
 // revive:disable:max-public-structs
 type (
 	FmeConfig struct {
@@ -131,8 +129,8 @@ func (v *TransferProfile) String() string {
 	return strings.Join(out, "\n")
 }
 
-func (nc FmeConfig) GetTransferProfile(profileName string) (TransferProfile, error) {
-	for name, transferProfile := range nc.Protocols.S3.TransferProfiles {
+func (fmeConfig FmeConfig) GetTransferProfile(profileName string) (TransferProfile, error) {
+	for name, transferProfile := range fmeConfig.Protocols.S3.TransferProfiles {
 		if name == profileName {
 			return transferProfile, nil
 		}
@@ -141,53 +139,53 @@ func (nc FmeConfig) GetTransferProfile(profileName string) (TransferProfile, err
 	return TransferProfile{}, errors.New(strNoSuchTransferProfile + profileName)
 }
 
-func (nc FmeConfig) ToProtobuf() *fmev1.FmeConfig {
-	transferProfiles := TransferProfilesToProtobuf(nc.Protocols.S3.TransferProfiles)
-	uploadHotFolders := HotFoldersToProtobuf(nc.UploadHotFolders)
+func (fmeConfig FmeConfig) ToProtobuf() *fmev1.FmeConfig {
+	transferProfiles := TransferProfilesToProtobuf(fmeConfig.Protocols.S3.TransferProfiles)
+	uploadHotFolders := HotFoldersToProtobuf(fmeConfig.UploadHotFolders)
 
 	// Safe conversion for logging settings - Issues #12, #13
-	maxSize, err := safeconv.IntToInt32(nc.Logging.MaxSize)
+	maxSize, err := safeconv.IntToInt32(fmeConfig.Logging.MaxSize)
 	if err != nil {
-		logger.Error("Invalid MaxSize value %d: %v, using default", nc.Logging.MaxSize, err)
+		logger.Error("Invalid MaxSize value %d: %v, using default", fmeConfig.Logging.MaxSize, err)
 		maxSize = 100 // Default max size in MB
 	}
 
-	maxAge, err := safeconv.IntToInt32(nc.Logging.MaxAge)
+	maxAge, err := safeconv.IntToInt32(fmeConfig.Logging.MaxAge)
 	if err != nil {
-		logger.Error("Invalid MaxAge value %d: %v, using default", nc.Logging.MaxAge, err)
+		logger.Error("Invalid MaxAge value %d: %v, using default", fmeConfig.Logging.MaxAge, err)
 		maxAge = 28 // Default max age in days
 	}
 
 	return &fmev1.FmeConfig{
 		General: &fmev1.GeneralSettings{
-			NoSleep:            nc.General.NoSleep,
-			RetryCount:         nc.General.RetryCount,
-			MaxActiveTransfers: nc.General.MaxActiveTransfers,
-			MaxActiveChecksums: nc.General.MaxActiveChecksums,
-			TargetBandwidth:    nc.General.TargetBandwidth,
+			NoSleep:            fmeConfig.General.NoSleep,
+			RetryCount:         fmeConfig.General.RetryCount,
+			MaxActiveTransfers: fmeConfig.General.MaxActiveTransfers,
+			MaxActiveChecksums: fmeConfig.General.MaxActiveChecksums,
+			TargetBandwidth:    fmeConfig.General.TargetBandwidth,
 		},
 		Logging: &fmev1.LoggingSettings{
-			Directory: nc.Logging.Directory,
-			Severity:  nc.Logging.Severity,
+			Directory: fmeConfig.Logging.Directory,
+			Severity:  fmeConfig.Logging.Severity,
 			MaxSize:   maxSize,
 			MaxAge:    maxAge,
-			Compress:  nc.Logging.Compress,
+			Compress:  fmeConfig.Logging.Compress,
 		},
 		Reports: &fmev1.ReportsSettings{
-			Directory: nc.Reports.Directory,
+			Directory: fmeConfig.Reports.Directory,
 		},
 		ApiServer: &fmev1.ApiServerSettings{
-			Enabled: nc.APIServer.Enabled,
+			Enabled: fmeConfig.APIServer.Enabled,
 			Tls: &fmev1.ApiServerTlsSettings{
-				Enabled:         nc.APIServer.TLSSettings.Enabled,
-				CertificateFile: nc.APIServer.TLSSettings.CertificateFile,
-				KeyFile:         nc.APIServer.TLSSettings.KeyFile,
+				Enabled:         fmeConfig.APIServer.TLSSettings.Enabled,
+				CertificateFile: fmeConfig.APIServer.TLSSettings.CertificateFile,
+				KeyFile:         fmeConfig.APIServer.TLSSettings.KeyFile,
 			},
 			Remote: &fmev1.ApiServerRemoteSettings{
-				Enabled:      nc.APIServer.RemoteSettings.Enabled,
-				PreSharedKey: nc.APIServer.RemoteSettings.PreSharedKey,
-				Address:      nc.APIServer.RemoteSettings.Address,
-				Ports:        nc.APIServer.RemoteSettings.Ports,
+				Enabled:      fmeConfig.APIServer.RemoteSettings.Enabled,
+				PreSharedKey: fmeConfig.APIServer.RemoteSettings.PreSharedKey,
+				Address:      fmeConfig.APIServer.RemoteSettings.Address,
+				Ports:        fmeConfig.APIServer.RemoteSettings.Ports,
 			},
 		},
 		Protocols: &fmev1.Protocols{
@@ -199,55 +197,36 @@ func (nc FmeConfig) ToProtobuf() *fmev1.FmeConfig {
 	}
 }
 
-func (nc FmeConfig) GRPCUpdate(pbc *fmev1.FmeConfig) error {
-	ViperLock.Lock()
-	defer ViperLock.Unlock()
-
-	nc.saveGeneralSettings(pbc.General)
-	nc.saveLoggingSettings(pbc.Logging)
-	nc.saveReportSettings(pbc.Reports)
-	nc.saveS3Settings(pbc.Protocols.S3)
-	nc.saveHotFolderSettings(pbc.UploadHotFolders)
-
-	err := viper.WriteConfig()
-	if err != nil {
-		events.Events.Error(strErrorWritingConfig, err.Error())
+func FromProtobuf(newConfig *fmev1.FmeConfig, apiServerConfig APIServer) FmeConfig {
+	return FmeConfig{
+		General: General{
+			NoSleep:            newConfig.General.NoSleep,
+			RetryCount:         newConfig.General.RetryCount,
+			MaxActiveChecksums: newConfig.General.MaxActiveChecksums,
+			MaxActiveTransfers: newConfig.General.MaxActiveTransfers,
+			TargetBandwidth:    newConfig.General.TargetBandwidth,
+		},
+		Logging: Logging{
+			Directory: newConfig.Logging.Directory,
+			Severity:  newConfig.Logging.Severity,
+			MaxSize:   int(newConfig.Logging.MaxSize),
+			MaxAge:    int(newConfig.Logging.MaxAge),
+			Compress:  newConfig.Logging.Compress,
+		},
+		Reports: Reports{
+			Directory: newConfig.Reports.Directory,
+		},
+		APIServer: apiServerConfig,
+		Protocols: ProtocolList{
+			S3: S3ProtocolConfig{
+				TransferProfiles: TransferProfilesFromProtobuf(newConfig.Protocols.S3.TransferProfiles),
+			},
+		},
+		UploadHotFolders: HotFoldersFromProtobuf(newConfig.UploadHotFolders),
 	}
-
-	return err
 }
 
-func (FmeConfig) saveGeneralSettings(settings *fmev1.GeneralSettings) {
-	viper.Set("general.no_sleep", settings.NoSleep)
-	viper.Set("general.retry_count", settings.RetryCount)
-	viper.Set("general.max_active_transfers", settings.MaxActiveTransfers)
-	viper.Set("general.max_active_checksums", settings.MaxActiveChecksums)
-	viper.Set("general.target_bandwidth", settings.TargetBandwidth)
-}
-
-func (FmeConfig) saveLoggingSettings(settings *fmev1.LoggingSettings) {
-	viper.Set("logging.directory", settings.Directory)
-	viper.Set("logging.severity", settings.Severity)
-	viper.Set("logging.max_size", settings.MaxSize)
-	viper.Set("logging.max_age", settings.MaxAge)
-	viper.Set("logging.compress", settings.Compress)
-}
-
-func (FmeConfig) saveReportSettings(settings *fmev1.ReportsSettings) {
-	viper.Set("reports.directory", settings.Directory)
-}
-
-func (FmeConfig) saveS3Settings(settings *fmev1.S3Settings) {
-	transferProfiles := transferProfilesFromProtobuf(settings.TransferProfiles)
-	viper.Set("protocols.s3.transfer_profiles", transferProfiles)
-}
-
-func (FmeConfig) saveHotFolderSettings(settings []*fmev1.UploadHotFolderSettings) {
-	hotFolders := hotFoldersFromProtobuf(settings)
-	viper.Set("hot_folders", hotFolders)
-}
-
-func transferProfilesFromProtobuf(profileList map[string]*fmev1.TransferProfile) (transferProfiles map[string]TransferProfile) {
+func TransferProfilesFromProtobuf(profileList map[string]*fmev1.TransferProfile) (transferProfiles map[string]TransferProfile) {
 	transferProfiles = make(map[string]TransferProfile)
 
 	for name, transferProfile := range profileList {
@@ -286,7 +265,6 @@ func TransferProfilesToProtobuf(transferProfiles map[string]TransferProfile) map
 	out := make(map[string]*fmev1.TransferProfile)
 
 	for name, transferProfile := range transferProfiles {
-		// Safe conversion for threads - Issue #11
 		threads, err := safeconv.IntToInt32(transferProfile.Threads)
 		if err != nil {
 			logger.Error("Invalid Threads value %d for profile '%s': %v, using default", transferProfile.Threads, name, err)
@@ -323,7 +301,7 @@ func TransferProfilesToProtobuf(transferProfiles map[string]TransferProfile) map
 	return out
 }
 
-func hotFoldersFromProtobuf(hotFoldersList []*fmev1.UploadHotFolderSettings) (hotFolders []UploadHotFolderSettings) {
+func HotFoldersFromProtobuf(hotFoldersList []*fmev1.UploadHotFolderSettings) (hotFolders []UploadHotFolderSettings) {
 	for _, hotFolder := range hotFoldersList {
 		var txs []HotFolderRemoteConfigurations
 		for _, tx := range hotFolder.RemoteConfigurations {

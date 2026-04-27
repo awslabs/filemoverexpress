@@ -12,10 +12,6 @@ const (
 	StrTestJobId                    string = "test-id"
 	StrTestPrefix                   string = "testPrefix"
 	StrTestDestinationFolder        string = "testDestinationFolder"
-	StrTestLongFileName             string = "testdata/discovery/too-long-filename" +
-		"/abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd" +
-		"abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd" +
-		"abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcda"
-	StrContainsUnsafeChars = "%s contains characters that aren't recommended for S3 use. See https://docs.aws.amazon." +
+	StrContainsUnsafeChars                 = "%s contains characters that aren't recommended for S3 use. See https://docs.aws.amazon." +
 		"com/AmazonS3/latest/userguide/object-keys.html for more information."
 )

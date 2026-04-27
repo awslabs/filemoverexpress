@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/utils"
 	fmefs "github.com/awslabs/filemoverexpress/utils/fs"
 )
@@ -100,7 +100,7 @@ func DeleteLocalPath(pathToDelete string, pathType PathType) error {
 	}
 
 	// check blocked path
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	if ShouldExcludeDirEntry(cleanedPathToDelete, cfg.APIServer.BlockedPathList) {
 		return fmt.Errorf("%s %s contains a blocked path", pathType, cleanedPathToDelete)
 	}
@@ -152,7 +152,7 @@ func RenameLocalPath(pathToRename string, newPathName string, pathType PathType)
 	}
 
 	// check blocked path
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	pathsToCheck := []string{cleanedPathToRename, cleanedNewPathName}
 	for _, path := range pathsToCheck {
 		if ShouldExcludeDirEntry(path, cfg.APIServer.BlockedPathList) {

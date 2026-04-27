@@ -8,7 +8,7 @@ import (
 
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 type JobCreateEvent struct {
@@ -17,7 +17,7 @@ type JobCreateEvent struct {
 	Created             time.Time
 	TransferProfileName string
 	Destination         string
-	Direction           transfer.Direction
+	Direction           transfertypes.Direction
 	Status              string
 }
 
@@ -35,7 +35,7 @@ func (*JobCreateEvent) Priority() logger.LogLevel {
 
 func (jce *JobCreateEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) {
 	var direction string
-	if jce.Direction == transfer.Download {
+	if jce.Direction == transfertypes.Download {
 		direction = "download"
 	} else {
 		direction = "upload"

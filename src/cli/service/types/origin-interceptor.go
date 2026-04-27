@@ -6,7 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/logger"
 )
 
@@ -68,7 +68,7 @@ func (*OriginInterceptor) validateOrigin(origin string, remoteAddr string) bool 
 		return true
 	}
 
-	for _, allowedOrigin := range globals.GetInstance().GetCfg().APIServer.AllowedOrigins {
+	for _, allowedOrigin := range config.LoadConfiguration().APIServer.AllowedOrigins {
 		if origin == allowedOrigin {
 			return true
 		}
