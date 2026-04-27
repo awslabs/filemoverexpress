@@ -3,7 +3,6 @@ package core
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/awslabs/filemoverexpress/events"
 	fmeErrors "github.com/awslabs/filemoverexpress/fme-errors"
@@ -81,16 +80,4 @@ func DirExists(dirPath string) (bool, error) {
 		return false, fmeErrors.ErrIsFile
 	}
 	return true, nil
-}
-
-func ContainsUnsupportedChars(path string) bool {
-	//test groups of spaces
-	r, _ := regexp.Compile(" {2,}")
-	if r.MatchString(path) {
-		return true
-	}
-
-	//test whether it only contains characters in approved chars regex
-	isValid := regexp.MustCompile(`^[a-zA-Z0-9!_.*'() -]+(/[a-zA-Z0-9!_.*'() -]+)*$`).MatchString
-	return !isValid(path)
 }

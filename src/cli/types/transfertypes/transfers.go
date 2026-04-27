@@ -24,16 +24,6 @@ func (a *transfers) Inc(direction Direction) {
 	}
 }
 
-// IncVal increments the transfer counter by value
-func (a *transfers) IncVal(direction Direction, value int32) {
-	switch direction {
-	case Upload:
-		atomic.AddInt32(&a.Uploads, value)
-	case Download:
-		atomic.AddInt32(&a.Downloads, value)
-	}
-}
-
 // Dec deletes a transfer object from transfers
 func (a *transfers) Dec(direction Direction) {
 	switch direction {
@@ -52,9 +42,4 @@ func (a *transfers) UploadsCount() int32 {
 // DownloadsCount returns the count of active uploads
 func (a *transfers) DownloadsCount() int32 {
 	return atomic.LoadInt32(&a.Downloads)
-}
-
-// TotalCount returns the combined count of active uploads and downloads
-func (a *transfers) TotalCount() int32 {
-	return a.DownloadsCount() + a.UploadsCount()
 }

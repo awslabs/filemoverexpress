@@ -2,7 +2,6 @@ package checksum_manager
 
 import (
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/awslabs/filemoverexpress/constants"
@@ -46,8 +45,3 @@ type (
 		XXH3     string
 	}
 )
-
-func (csr *checksumStatsRecord) Complete() {
-	atomic.AddInt32(&csr.completed, 1)
-	csr.wg.Done()
-}

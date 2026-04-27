@@ -129,6 +129,8 @@ func (fmed *FMEDaemon) Shutdown() {
 	fmed.watcher.Close()
 	time.Sleep(time.Millisecond * time.Duration(exitDelayMs))
 	daemonutils.DeletePidFile()
+	events.Events.Close()
+
 	os.Exit(0)
 }
 
@@ -142,27 +144,6 @@ func (fmed *FMEDaemon) processEvents() {
 		}
 	}
 }
-
-/*
-func (*FMEDaemon) printStatus() {
-	last := int32(-1)
-	start := time.Now()
-
-	for {
-		duration := int32(time.Since(start).Seconds())
-		if duration%5 == 0 && duration != last {
-			last = duration
-			uplEvt := eventtypes.TotalUploadsEvent{
-				ActiveTransfers:    transfer.ActiveTransfers.UploadsCount(),
-				RemainingTransfers: transfer.RemainingTransfers.UploadsCount(),
-				CompletedUploads:   transfer.CompletedTransfers.UploadsCount(),
-			}
-			events.Events.Send(&uplEvt)
-		}
-		time.Sleep(constants.SleepDuration)
-	}
-}
-*/
 
 // This should only be called by GetInstance()
 func newDaemon() FMEDaemon {
