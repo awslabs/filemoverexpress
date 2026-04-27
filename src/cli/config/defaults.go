@@ -33,6 +33,7 @@ func setS3DefaultSettings() {
 }
 
 func setAPIServerDefaultSettings() {
+	viper.SetDefault("api_server.allowed_origins", []string{""})
 	viper.SetDefault("api_server.enabled", true)
 	viper.SetDefault("api_server.tls.enabled", false)
 	viper.SetDefault("api_server.remote.enabled", false)

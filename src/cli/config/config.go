@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -19,18 +17,12 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/systeminfo"
 )
 
-const (
-	// empty string is valid key, but we never expect our config to have this key
-	unexpectedViperConfigKey = ""
-)
-
 var configFile, configDir string
 
 // init validates the user's configuration environment, and sets up the default values for all config file options
 func init() {
 	configFile, configDir = setupConfigFileAndDirectory()
 
-	migrateOldConfigurationValues()
 	InitConfig()
 	ValidateAndUpdateConfiguration()
 }
@@ -51,67 +43,6 @@ func InitConfig() {
 	setAPIServerDefaultSettings()
 
 	createConfigIfNotExists(configFile)
-}
-
-func migrateOldConfigurationValues() {
-	_, err := os.Stat(configFile)
-	if os.IsNotExist(err) {
-		return
-	}
-
-	oldKeysToNewKeys := make(map[string]string)
-	oldKeysToNewKeys["api_server.allow_ui_configuration"] = "api_server.permissions.allow_ui_configuration"
-
-	configtypes.ViperLock.Lock()
-	defer configtypes.ViperLock.Unlock()
-
-	// temporary viper instance used just for migration (so aliases aren't stored)
-	migrationViper := viper.New()
-	migrationViper.SetConfigName(GetConfigName())
-	migrationViper.SetConfigType(constants.ConfigFileExt)
-	migrationViper.AddConfigPath(configDir)
-
-	if err = migrationViper.ReadInConfig(); err != nil {
-		logger.Fatal(strUnableToLoadConfig, err)
-	}
-
-	nonExistentConfigKey := getNonExistentConfigKey(migrationViper.AllKeys())
-
-	for oldKey, newKey := range oldKeysToNewKeys {
-		if migrationViper.IsSet(oldKey) {
-			oldValue := migrationViper.Get(oldKey)
-			// remove the old key value pair from the config file
-			migrationViper.RegisterAlias(oldKey, nonExistentConfigKey)
-			err = migrationViper.WriteConfig()
-			if err != nil {
-				logger.Fatal(strErrorUpdatingConfig, err)
-			}
-			// migrate old value to new key if new key is not set
-			if !migrationViper.IsSet(newKey) {
-				viper.Set(newKey, oldValue)
-				err = viper.WriteConfig()
-				if err != nil {
-					logger.Fatal(strErrorUpdatingConfig, err)
-				}
-			}
-		}
-	}
-}
-
-// getNonExistentConfigKey returns a config key guaranteed to not exist in the viper instance
-func getNonExistentConfigKey(existingKeys []string) string {
-	if !slices.Contains(existingKeys, unexpectedViperConfigKey) {
-		return unexpectedViperConfigKey
-	}
-	// generate new unique key
-	longestKey := ""
-	for _, key := range existingKeys {
-		if len(key) > len(longestKey) {
-			longestKey = key
-		}
-	}
-	// add a string that is unexpected to be part of a new valid key
-	return longestKey + "a3dm"
 }
 
 // LoadConfiguration loads in values from the configuration file
@@ -142,17 +73,6 @@ func rekeyTransferProfilesByName(cfg configtypes.FmeConfig) configtypes.FmeConfi
 	return cfg
 }
 
-// CheckS3ProtocolValue ensures the correct config or default value is returned
-func CheckS3ProtocolValue(key string) int {
-	v := viper.GetInt(key)
-	if v == 0 {
-		s := strings.TrimPrefix(key, "protocols.s3.")
-		return constants.ConfigDefaults[s]
-	}
-
-	return v
-}
-
 // GetConfigName returns the name of the config file
 func GetConfigName() string {
 	if os.Getenv("FME_E2E") == "true" {
@@ -180,21 +100,6 @@ func ConvertMaxAgeToInt(maxAgeStr string) int64 {
 		return 0
 	}
 	return maxAgeSecs
-}
-
-func GetFilterValue() *regexp.Regexp {
-	var filterRgx *regexp.Regexp
-	f := viper.GetString("protocols.s3.filter")
-	if f != "" {
-		var err error
-		filterRgx, err = regexp.Compile(f)
-		if err != nil {
-			var emptyRgx *regexp.Regexp
-			events.Events.Error(strInvalidFilterExpr, err)
-			return emptyRgx
-		}
-	}
-	return filterRgx
 }
 
 // ValidateAndUpdateConfiguration checks all configuration values and resets invalid ones to defaults.
