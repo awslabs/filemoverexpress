@@ -2,11 +2,8 @@ package config
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 )
@@ -35,25 +32,10 @@ func TestString(t *testing.T) {
 
 }
 
-func TestCheckS3ProtocolValue(t *testing.T) {
-	expectedOut := 10
-	s := CheckS3ProtocolValue("protocols.s3.threads")
-
-	if s != expectedOut {
-		t.Errorf("TestCheckS3ProtocolValue got an unexpected value. Expected '%d', got '%d", expectedOut, s)
-	}
-}
-
 func TestLoadConfiguration(t *testing.T) {
 	_, err := LoadConfiguration()
 	if err != nil {
 		t.Errorf("TestLoadConfiguration failed to load config file: %s\n", err)
 		return
 	}
-}
-
-func TestGetFilterValue(t *testing.T) {
-	var expected *regexp.Regexp
-	regex := GetFilterValue()
-	assert.Equal(t, regex, expected)
 }

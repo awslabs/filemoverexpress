@@ -56,10 +56,6 @@ func (nrg *FmeGlobals) GetMachineId() string {
 	return nrg.machineId
 }
 
-func (nrg *FmeGlobals) SetCfg(cfg configtypes.FmeConfig) {
-	nrg.cfg.Store(cfg)
-}
-
 func (nrg *FmeGlobals) GetCfg() (cfg configtypes.FmeConfig) {
 	if !cfgInitialized {
 		cfg, err := config.LoadConfiguration()
