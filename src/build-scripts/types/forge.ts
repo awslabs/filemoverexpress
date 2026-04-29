@@ -66,6 +66,8 @@ export interface ForgeInstallerOptions {
     devMode?: boolean;
     /** Keep temp directories for debugging. */
     retainTempFiles?: boolean;
+    /** Resolved semver string to embed in build artifacts. */
+    buildVersion?: string;
 }
 
 /**

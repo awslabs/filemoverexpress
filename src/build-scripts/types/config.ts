@@ -12,6 +12,7 @@ export interface CLIBuildConfig extends BuildConfig {
     buildFlags: string[];
     ldFlags: string[];
     windowsDaemonLauncherPath?: string;
+    verbose?: boolean;
 }
 
 export interface ElectronBuildConfig extends BuildConfig {

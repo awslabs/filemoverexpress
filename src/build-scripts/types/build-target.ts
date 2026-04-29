@@ -15,4 +15,5 @@ export interface BuildOptions {
     devMode?: boolean;
     retainTempFiles?: boolean;
     makers?: ForgeMakerType[];
+    buildVersion?: string;
 }

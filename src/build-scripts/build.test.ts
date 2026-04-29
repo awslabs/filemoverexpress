@@ -1065,5 +1065,72 @@ describe('build.ts', () => {
                 expect(mockBuild).toHaveBeenCalledWith(optionsWithEmptyArrays);
             });
         });
+
+        describe('build version', () => {
+            it('should log build version in configuration summary when buildVersion is set', async () => {
+                // Arrange
+                const {Logger} = await import('./utils/logger');
+                const {CLIBuilder} = await import('./builders/cli-builder');
+                vi.mocked(CLIBuilder).mockImplementation(function (this: any) {
+                    this.build = vi.fn().mockResolvedValue(undefined);
+                } as any);
+                buildOptions.buildVersion = '1.2.3';
+
+                // Act
+                await executeBuild('cli', 'build', buildOptions);
+
+                // Assert
+                expect(Logger.info).toHaveBeenCalledWith('  Build version: 1.2.3');
+            });
+
+            it('should not log build version when buildVersion is not set', async () => {
+                // Arrange
+                const {Logger} = await import('./utils/logger');
+                const {CLIBuilder} = await import('./builders/cli-builder');
+                vi.mocked(CLIBuilder).mockImplementation(function (this: any) {
+                    this.build = vi.fn().mockResolvedValue(undefined);
+                } as any);
+
+                // Act
+                await executeBuild('cli', 'build', buildOptions);
+
+                // Assert
+                const infoCalls = vi.mocked(Logger.info).mock.calls.map(call => call[0]);
+                const hasVersionLog = infoCalls.some(msg => typeof msg === 'string' && msg.includes('Build version'));
+                expect(hasVersionLog).toBe(false);
+            });
+
+            it('should forward buildVersion to CLIBuilder', async () => {
+                // Arrange
+                const {CLIBuilder} = await import('./builders/cli-builder');
+                const mockBuild = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(CLIBuilder).mockImplementation(function (this: any) {
+                    this.build = mockBuild;
+                } as any);
+                buildOptions.buildVersion = '2.0.0';
+
+                // Act
+                await executeBuild('cli', 'build', buildOptions);
+
+                // Assert
+                expect(mockBuild).toHaveBeenCalledWith(expect.objectContaining({buildVersion: '2.0.0'}));
+            });
+
+            it('should forward buildVersion to ForgeInstaller', async () => {
+                // Arrange
+                const {ForgeInstaller} = await import('./installers/forge-installer');
+                const mockGenerate = vi.fn().mockResolvedValue(undefined);
+                vi.mocked(ForgeInstaller).mockImplementation(function (this: any) {
+                    this.generate = mockGenerate;
+                } as any);
+                buildOptions.buildVersion = '3.0.0';
+
+                // Act
+                await executeBuild('installer', '', buildOptions);
+
+                // Assert
+                expect(ForgeInstaller).toHaveBeenCalledWith(expect.objectContaining({buildVersion: '3.0.0'}));
+            });
+        });
     });
 });
