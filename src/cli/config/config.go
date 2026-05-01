@@ -2,10 +2,14 @@ package config
 
 import (
 	"fmt"
+	"maps"
 	"os"
-	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/awslabs/filemoverexpress/constants"
@@ -17,52 +21,94 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/systeminfo"
 )
 
-var configFile, configDir string
+type (
+	ReloadFn func(config configtypes.FmeConfig)
+)
 
-// init validates the user's configuration environment, and sets up the default values for all config file options
-func init() {
-	configFile, configDir = setupConfigFileAndDirectory()
-
-	InitConfig()
-	ValidateAndUpdateConfiguration()
-}
+var (
+	configFile, configDir string
+	cachedCfg             atomic.Value // configtypes.FmeConfig
+	initialized           bool
+	fmeViper              *viper.Viper
+	configLock            = sync.Mutex{}
+)
 
 func initViper() {
-	viper.SetConfigName(GetConfigName())
-	viper.SetConfigType(constants.ConfigFileExt)
-	viper.AddConfigPath(configDir)
+	if fmeViper == nil {
+		fmeViper = viper.New()
+	}
+
+	fmeViper.SetConfigName(GetConfigName())
+	fmeViper.SetConfigType(constants.ConfigFileExt)
+	fmeViper.AddConfigPath(GetConfigDir())
+
+	setGeneralDefaultSettings(fmeViper)
+	setLoggingDefaultSettings(fmeViper)
+	setReportingDefaultSettings(fmeViper)
+	setS3DefaultSettings(fmeViper)
+	setAPIServerDefaultSettings(fmeViper)
+
+	LoadConfiguration()
 }
 
 func InitConfig() {
+	configFile, configDir = setupConfigFileAndDirectory()
 	initViper()
-
-	setGeneralDefaultSettings()
-	setLoggingDefaultSettings()
-	setReportingDefaultSettings()
-	setS3DefaultSettings()
-	setAPIServerDefaultSettings()
-
-	createConfigIfNotExists(configFile)
+	createConfigIfNotExists(fmeViper, configFile)
+	validateAndUpdateConfiguration()
 }
 
 // LoadConfiguration loads in values from the configuration file
-func LoadConfiguration() (configtypes.FmeConfig, error) {
-	var cfg configtypes.FmeConfig
-
-	configtypes.ViperLock.Lock()
-	defer configtypes.ViperLock.Unlock()
-	if err := viper.ReadInConfig(); err != nil {
-		return cfg, err
+func LoadConfiguration() configtypes.FmeConfig {
+	if initialized {
+		return cachedCfg.Load().(configtypes.FmeConfig)
 	}
 
-	err := viper.Unmarshal(&cfg)
-	if err != nil {
-		return cfg, err
+	return loadConfig()
+}
+
+func SaveConfig(cfg *configtypes.FmeConfig) error {
+	var configMap map[string]interface{}
+	tempViper := createViper()
+	if decodeErr := mapstructure.Decode(*cfg, &configMap); decodeErr != nil {
+		return decodeErr
 	}
 
-	cfg = rekeyTransferProfilesByName(cfg)
+	if mergeErr := tempViper.MergeConfigMap(configMap); mergeErr != nil {
+		return mergeErr
+	}
 
-	return cfg, nil
+	if writeErr := tempViper.WriteConfigAs(configFile); writeErr != nil {
+		return writeErr
+	}
+
+	return nil
+}
+
+func BindFlag(key string, flag *pflag.Flag) error {
+	return fmeViper.BindPFlag(key, flag)
+}
+
+func loadConfig() configtypes.FmeConfig {
+	var loadedCfg configtypes.FmeConfig
+
+	configLock.Lock()
+	defer configLock.Unlock()
+
+	tempViper := createViper()
+	if err := tempViper.ReadInConfig(); err != nil {
+		logger.Fatal("Error reading configuration file: %v", err)
+	}
+
+	if err := tempViper.Unmarshal(&loadedCfg); err != nil {
+		logger.Fatal("Error parsing configuration file: %v", err)
+	}
+
+	loadedCfg = rekeyTransferProfilesByName(loadedCfg)
+	cachedCfg.Store(loadedCfg)
+	initialized = true
+
+	return loadedCfg
 }
 
 func rekeyTransferProfilesByName(cfg configtypes.FmeConfig) configtypes.FmeConfig {
@@ -81,12 +127,12 @@ func GetConfigName() string {
 	return constants.ConfigFilename
 }
 
-func WatchConfig(reload func(e fsnotify.Event)) {
-	configtypes.ViperLock.Lock()
-	defer configtypes.ViperLock.Unlock()
-
-	viper.WatchConfig()
-	viper.OnConfigChange(reload)
+func WatchConfig(watcherCallback ReloadFn) {
+	fmeViper.WatchConfig()
+	fmeViper.OnConfigChange(func(e fsnotify.Event) {
+		newCfg := loadConfig()
+		watcherCallback(newCfg)
+	})
 }
 
 func ConvertMaxAgeToInt(maxAgeStr string) int64 {
@@ -102,32 +148,28 @@ func ConvertMaxAgeToInt(maxAgeStr string) int64 {
 	return maxAgeSecs
 }
 
-// ValidateAndUpdateConfiguration checks all configuration values and resets invalid ones to defaults.
+// validateAndUpdateConfiguration checks all configuration values and resets invalid ones to defaults.
 // Warnings are logged directly via logger.Warn so they are visible during startup, even before
 // any event bus listeners have registered. The event bus calls remain so that warnings also reach
 // connected GUI/CLI clients when configuration is reloaded at runtime.
-func ValidateAndUpdateConfiguration() {
-	cfg, err := LoadConfiguration()
-	if err != nil {
-		logger.Fatal(strUnableToLoadConfig, err)
-	}
-	configtypes.ViperLock.Lock()
-	defer configtypes.ViperLock.Unlock()
+func validateAndUpdateConfiguration() {
+	cfg := LoadConfiguration()
 
 	validateAPIServerSettings()
-	validateGeneralSettings(&cfg)
-	validateTransferProfiles(&cfg)
+	updated := validateGeneralSettings(&cfg)
+	updated = validateTransferProfiles(&cfg) || updated
 
-	err = viper.WriteConfig()
-	if err != nil {
-		logger.Fatal(strErrorUpdatingConfig, err)
+	if updated {
+		if err := SaveConfig(&cfg); err != nil {
+			logger.Fatal(strErrorUpdatingConfig, err)
+		}
 	}
 }
 
 // validateAPIServerSettings is used to set default values for API server settings if they are not set, since these values cannot be set
 // through the GUI
 func validateAPIServerSettings() {
-	setAPIServerDefaultSettings()
+	setAPIServerDefaultSettings(fmeViper)
 }
 
 func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
@@ -136,7 +178,7 @@ func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
 		changesRequired = true
 		logger.Warn(strInvalidFieldValue, "max_retry_count", cfg.General.RetryCount, constants.DefaultRetryCount)
 		events.Events.Warn(strInvalidFieldValue, "max_retry_count", cfg.General.RetryCount, constants.DefaultRetryCount)
-		viper.Set("general.retry_count", constants.DefaultRetryCount)
+		cfg.General.RetryCount = constants.DefaultRetryCount
 	}
 
 	cpuCores := systeminfo.GetCoreCount()
@@ -144,7 +186,7 @@ func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
 		changesRequired = true
 		logger.Warn(strInvalidFieldValue, "max_active_checksums", cfg.General.MaxActiveChecksums, max(cpuCores, 1))
 		events.Events.Warn(strInvalidFieldValue, "max_active_checksums", cfg.General.MaxActiveChecksums, max(cpuCores, 1))
-		viper.Set("general.max_active_checksums", max(cpuCores, 1))
+		cfg.General.MaxActiveChecksums = max(cpuCores, 1)
 	}
 
 	if cfg.General.MaxActiveTransfers < 1 {
@@ -157,11 +199,11 @@ func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
 			cfg.General.MaxActiveTransfers,
 			constants.DefaultMaxActiveTransfers,
 		)
-		viper.Set("general.max_active_transfers", constants.DefaultMaxActiveTransfers)
+		cfg.General.MaxActiveTransfers = constants.DefaultMaxActiveTransfers
 	}
 
 	if cfg.General.TargetBandwidth < 0 {
-		viper.Set("general.target_bandwidth", 0)
+		cfg.General.TargetBandwidth = 0
 	}
 
 	return changesRequired
@@ -171,102 +213,95 @@ func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
 
 func validateTransferProfiles(cfg *configtypes.FmeConfig) bool {
 	changesRequired := false
-	transferProfileFields := make(map[string]any)
-	transferProfileFields["auto_tuning"] = true
-	transferProfileFields["region"] = "us-west2"
-	transferProfileFields["name"] = ""
-	transferProfileFields["bucket"] = ""
-	transferProfileFields["profile"] = ""
-	transferProfileFields["endpoint"] = ""
-	transferProfileFields["filter"] = ""
-	transferProfileFields["checksums.enabled"] = false
-	transferProfileFields["checksums.algorithm"] = constants.DefaultChecksumAlgorithm
-	transferProfileFields["chunk_size"] = constants.DefaultChunkSize
-	transferProfileFields["threads"] = constants.DefaultThreads
-	transferProfileFields["max_age"] = ""
-	transferProfileFields["accelerated"] = false
-	transferProfileFields["file_order"] = []string{}
-	transferProfileFields["enable_metadata_filter"] = true
-	transferProfileFields["storage_class"] = "standard"
-	transferProfileFields["paths.local"] = ""
-	transferProfileFields["paths.remote"] = ""
+	for txProfileName := range maps.Keys(cfg.Protocols.S3.TransferProfiles) {
+		txp := cfg.Protocols.S3.TransferProfiles[txProfileName]
 
-	for txProfileName := range cfg.Protocols.S3.TransferProfiles {
-		configPath := strings.Join([]string{"protocols.s3.transfer_profiles", txProfileName}, ".")
-		for field, defaultValue := range transferProfileFields {
-			fieldPath := strings.Join([]string{configPath, field}, ".")
-			if !viper.IsSet(fieldPath) {
-				changesRequired = true
-				viper.Set(fieldPath, defaultValue)
-			} else {
-				viper.Set(fieldPath, viper.Get(fieldPath))
-			}
+		if txp.Region == "" {
+			txp.Region = "us-east-2"
+			changesRequired = true
+		}
+
+		if txp.Checksums.Algorithm == "" {
+			txp.Checksums.Algorithm = constants.DefaultChecksumAlgorithm
+			changesRequired = true
+		}
+
+		if txp.StorageClass == "" {
+			txp.StorageClass = "standard"
+			changesRequired = true
+		}
+
+		if txp.ChunkSize < constants.MinChunkSize {
+			logger.Warn(strInvalidFieldValue, "chunk_size", txp.ChunkSize, constants.DefaultChunkSize)
+			events.Events.Warn(strInvalidFieldValue, "chunk_size", txp.ChunkSize, constants.DefaultChunkSize)
+			txp.ChunkSize = constants.DefaultChunkSize
+			changesRequired = true
+		}
+
+		if txp.Threads < 1 {
+			logger.Warn(strInvalidFieldValue, "threads", txp.Threads, constants.DefaultThreads)
+			events.Events.Warn(strInvalidFieldValue, "threads", txp.Threads, constants.DefaultThreads)
+			txp.Threads = constants.DefaultThreads
+			changesRequired = true
+		}
+
+		if !utils.IsValidChecksumConfig(string(txp.Checksums.Algorithm), txp.Checksums.Enabled) {
+			logger.Warn(strInvalidFieldValue, "checksums.algorithm", string(txp.Checksums.Algorithm), constants.DefaultChecksumAlgorithm)
+			logger.Warn(strInvalidFieldValue, "checksums.enabled", txp.Checksums.Enabled, constants.DefaultChecksumEnabled)
+			events.Events.Warn(strInvalidFieldValue, "checksums.algorithm", string(txp.Checksums.Algorithm), constants.DefaultChecksumAlgorithm)
+			events.Events.Warn(strInvalidFieldValue, "checksums.enabled", txp.Checksums.Enabled, constants.DefaultChecksumEnabled)
+
+			txp.Checksums.Algorithm = constants.DefaultChecksumAlgorithm
+			txp.Checksums.Enabled = constants.DefaultChecksumEnabled
+
+			changesRequired = true
+		}
+
+		changesRequired = validateChecksumConfig(&txp) || changesRequired
+
+		if changesRequired {
+			cfg.Protocols.S3.TransferProfiles[txProfileName] = txp
 		}
 	}
 
-	for txProfileName := range cfg.Protocols.S3.TransferProfiles {
-		configPath := strings.Join([]string{"protocols.s3.transfer_profiles", txProfileName}, ".")
-
-		changesRequired = validateChunkSize(configPath, changesRequired)
-		changesRequired = validateThreads(configPath, changesRequired)
-		changesRequired = validateChecksumConfig(configPath, changesRequired)
+	for name := range maps.Keys(cfg.Protocols.S3.TransferProfiles) {
+		txp := cfg.Protocols.S3.TransferProfiles[name]
+		if txp.Threads < 1 {
+			logger.Warn(strInvalidFieldValue, "threads", txp.Threads, constants.DefaultThreads)
+			events.Events.Warn(strInvalidFieldValue, "threads", txp.Threads, constants.DefaultThreads)
+			txp.Threads = constants.DefaultThreads
+		}
+		if changesRequired {
+			cfg.Protocols.S3.TransferProfiles[name] = txp
+		}
 	}
 
 	return changesRequired
 }
 
-func validateChecksumConfig(configPath string, changesRequired bool) bool {
-	checksumsPath := strings.Join([]string{configPath, "checksums"}, ".")
-	checksumAlgorithmPath := strings.Join([]string{configPath, "checksums", "algorithm"}, ".")
-	checksumEnabledPath := strings.Join([]string{configPath, "checksums", "enabled"}, ".")
-	if viper.IsSet(checksumsPath) {
-		configuredChecksumAlgorithm, validAlgorithmType := viper.Get(checksumAlgorithmPath).(string)
-		configuredChecksumEnabled, validEnabledType := viper.Get(checksumEnabledPath).(bool)
+func validateChecksumConfig(txp *configtypes.TransferProfile) bool {
+	if !utils.IsValidChecksumConfig(string(txp.Checksums.Algorithm), txp.Checksums.Enabled) {
+		logger.Warn(strInvalidFieldValue, "checksums.algorithm", string(txp.Checksums.Algorithm), constants.DefaultChecksumAlgorithm)
+		logger.Warn(strInvalidFieldValue, "checksums.enabled", txp.Checksums.Enabled, constants.DefaultChecksumEnabled)
+		events.Events.Warn(strInvalidFieldValue, "checksums.algorithm", string(txp.Checksums.Algorithm), constants.DefaultChecksumAlgorithm)
+		events.Events.Warn(strInvalidFieldValue, "checksums.enabled", txp.Checksums.Enabled, constants.DefaultChecksumEnabled)
 
-		if !validAlgorithmType || !validEnabledType || !utils.IsValidChecksumConfig(configuredChecksumAlgorithm,
-			configuredChecksumEnabled) {
-			logger.Warn(strInvalidFieldValue, "checksums.algorithm", configuredChecksumAlgorithm,
-				constants.DefaultChecksumAlgorithm)
-			logger.Warn(strInvalidFieldValue, "checksums.enabled", configuredChecksumEnabled,
-				constants.DefaultChecksumEnabled)
-			events.Events.Warn(strInvalidFieldValue, "checksums.algorithm", configuredChecksumAlgorithm,
-				constants.DefaultChecksumAlgorithm)
-			events.Events.Warn(strInvalidFieldValue, "checksums.enabled", configuredChecksumEnabled,
-				constants.DefaultChecksumEnabled)
-			changesRequired = true
-			viper.Set(checksumAlgorithmPath, constants.DefaultChecksumAlgorithm)
-			viper.Set(checksumEnabledPath, constants.DefaultChecksumEnabled)
-		}
+		txp.Checksums.Algorithm = constants.DefaultChecksumAlgorithm
+		txp.Checksums.Enabled = constants.DefaultChecksumEnabled
+
+		return true
 	}
-	return changesRequired
+
+	return false
 }
 
-func validateThreads(configPath string, changesRequired bool) bool {
-	threadsPath := strings.Join([]string{configPath, "threads"}, ".")
-	if viper.IsSet(threadsPath) {
-		configuredThreads, validType := viper.Get(threadsPath).(int)
-		if !validType || configuredThreads < 1 {
-			logger.Warn(strInvalidFieldValue, "threads", configuredThreads, constants.DefaultThreads)
-			events.Events.Warn(strInvalidFieldValue, "threads", configuredThreads, constants.DefaultThreads)
-			changesRequired = true
-			viper.Set(threadsPath, constants.DefaultThreads)
-		}
-	}
-	return changesRequired
-}
+func createViper() *viper.Viper {
+	tempViper := viper.New()
+	tempViper.SetConfigName(GetConfigName())
+	tempViper.SetConfigType(constants.ConfigFileExt)
+	tempViper.AddConfigPath(GetConfigDir())
 
-func validateChunkSize(configPath string, changesRequired bool) bool {
-	chunkSizePath := strings.Join([]string{configPath, "chunk_size"}, ".")
-	if viper.IsSet(chunkSizePath) {
-		configuredChunkSize, validType := viper.Get(chunkSizePath).(int)
-		if !validType || configuredChunkSize < constants.MinChunkSize {
-			logger.Warn(strInvalidFieldValue, "chunk_size", configuredChunkSize, constants.DefaultChunkSize)
-			events.Events.Warn(strInvalidFieldValue, "chunk_size", configuredChunkSize, constants.DefaultChunkSize)
-			changesRequired = true
-			viper.Set(chunkSizePath, constants.DefaultChunkSize)
-		}
-	}
-	return changesRequired
+	return tempViper
 }
 
 //revive:enable:function-length

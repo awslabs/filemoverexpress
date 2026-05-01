@@ -13,7 +13,7 @@ import (
 	"github.com/awslabs/filemoverexpress/types/databasetypes"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 	"github.com/awslabs/filemoverexpress/utils"
 )
 
@@ -26,7 +26,7 @@ type (
 		statusMessage         string
 		lock                  *sync.RWMutex
 		WaitGroup             sync.WaitGroup
-		direction             transfer.Direction
+		direction             transfertypes.Direction
 		TotalBytes            int64
 		BytesUploaded         int64
 		BytesDownloaded       int64
@@ -47,7 +47,7 @@ type (
 		uploadBasePath        string
 	}
 	JobConfig struct {
-		Direction       transfer.Direction
+		Direction       transfertypes.Direction
 		Name            string
 		TransferProfile *configtypes.TransferProfile
 		Destination     string
@@ -206,13 +206,13 @@ func (j *Job) SetHasSuccessfulTasks(hasSuccessfulTasks bool) {
 	j.hasSuccessfulTasks = hasSuccessfulTasks
 }
 
-func (j *Job) Direction() transfer.Direction {
+func (j *Job) Direction() transfertypes.Direction {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.direction
 }
 
-func (j *Job) SetDirection(direction transfer.Direction) {
+func (j *Job) SetDirection(direction transfertypes.Direction) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 	j.direction = direction

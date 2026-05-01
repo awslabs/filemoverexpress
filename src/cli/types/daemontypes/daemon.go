@@ -11,13 +11,12 @@ import (
 	"time"
 
 	"github.com/radovskyb/watcher"
-	"github.com/spf13/viper"
 
 	"github.com/awslabs/filemoverexpress/cmd/clitools"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/core/upload/hot_folder"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/daemontypes/daemonutils"
@@ -153,11 +152,13 @@ func newDaemon() FMEDaemon {
 	w := watcher.New()
 	w.FilterOps(watcher.Rename, watcher.Move, watcher.Create, watcher.Write)
 
+	cfg := config.LoadConfiguration()
+
 	nrd := FMEDaemon{
 		Signals:            sigs,
 		watcher:            w,
 		watchedFiles:       map[string]time.Time{},
-		maxActiveTransfers: viper.GetInt32("general.max_active_transfers"),
+		maxActiveTransfers: cfg.General.MaxActiveTransfers,
 		work:               make(chan interface{}),
 		eventChannel:       make(chan eventtypes.Event),
 	}
@@ -176,7 +177,7 @@ func DaemonWorker() {
 	hot_folder.InitialHotFolderUpload()
 
 	// Start the watching process - it'll check for changes every 100ms. Blocks until the watcher is closed
-	err := hot_folder.Watcher.Start(time.Millisecond * fileWatcherIntervalMs)
+	err := hot_folder.StartWatcher(time.Millisecond * fileWatcherIntervalMs)
 	if err != nil {
 		events.Events.Fatal(strFailedToStartFileWatcher, err)
 	}
@@ -186,7 +187,7 @@ func DaemonWorker() {
 //
 //revive:disable:cognitive-complexity
 func verifyBlockedList() {
-	for _, pathName := range globals.GetInstance().GetCfg().APIServer.BlockedPathList {
+	for _, pathName := range config.LoadConfiguration().APIServer.BlockedPathList {
 		if filepath.IsAbs(pathName) {
 			symName, err := filepath.EvalSymlinks(pathName)
 			if err != nil {

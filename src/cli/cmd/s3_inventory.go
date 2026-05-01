@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/inventory"
 	"github.com/awslabs/filemoverexpress/types/inventorytypes"
 	"github.com/awslabs/filemoverexpress/utils"
@@ -42,7 +42,7 @@ func init() {
 func s3InventoryCheckArgs(cmd *cobra.Command, args []string) error {
 	exitIfIncorrectArgCount(cmd, args)
 
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 
 	var txProfiles []string
 	for txProfile := range cfg.Protocols.S3.TransferProfiles {
@@ -75,7 +75,7 @@ func exitIfIncorrectArgCount(cmd *cobra.Command, args []string) {
 }
 
 func run(_ *cobra.Command, _ []string) {
-	txProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(inventoryTxProfileName)
+	txProfile, err := config.LoadConfiguration().GetTransferProfile(inventoryTxProfileName)
 	errs.CheckError(err, "", true)
 
 	inventoryInput := inventorytypes.GenerateInventoryInput{

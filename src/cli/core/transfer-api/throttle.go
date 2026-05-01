@@ -4,10 +4,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/core/transferstats"
-	"github.com/awslabs/filemoverexpress/globals"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 const (
@@ -18,13 +18,17 @@ const (
 )
 
 var (
-	gTargetBPS        = int64(globals.GetInstance().GetCfg().General.TargetBandwidth) * constants.MiB
+	gTargetBPS        int64
 	gCurrentSleepTime = int64(50 * time.Millisecond)
 	isThrottling      = gTargetBPS > 0
 	updateCount       int64
 )
 
-func GetSleepTime(direction transfer.Direction) time.Duration {
+func InitThrottling() {
+	gTargetBPS = int64(config.LoadConfiguration().General.TargetBandwidth) * constants.MiB
+}
+
+func GetSleepTime(direction transfertypes.Direction) time.Duration {
 	targetBPS := atomic.LoadInt64(&gTargetBPS)
 	if targetBPS == 0 {
 		return 0
@@ -36,7 +40,7 @@ func GetSleepTime(direction transfer.Direction) time.Duration {
 
 	currentSleepTime := float64(atomic.LoadInt64(&gCurrentSleepTime))
 	var currentBPS int64
-	if direction == transfer.Upload {
+	if direction == transfertypes.Upload {
 		currentBPS = transferstats.UploadBps()
 	} else {
 		currentBPS = transferstats.DownloadBps()

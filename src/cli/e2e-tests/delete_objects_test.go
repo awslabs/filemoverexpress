@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1/fmev1connect"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
@@ -214,7 +214,7 @@ func setupSinglePrefixDeleteTest() *DeleteTest {
 }
 
 func performDeleteTest(t *testing.T, client fmev1connect.FmeServiceClient, deleteTest *DeleteTest) {
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	txp, err := cfg.GetTransferProfile(transferProfileName)
 	if err != nil {
 		t.Errorf("failed to get transfer profile data for S3Manager: %s\n", err)

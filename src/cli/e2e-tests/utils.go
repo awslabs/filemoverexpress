@@ -24,8 +24,8 @@ import (
 	s3sharedv1 "github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 
 	"github.com/awslabs/filemoverexpress/constants"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/types/databasetypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1/fmev1connect"
@@ -67,7 +67,7 @@ func setUp() {
 }
 
 func DeleteS3Object(key string, transferProfileName string) {
-	transferProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(transferProfileName)
+	transferProfile, err := config.LoadConfiguration().GetTransferProfile(transferProfileName)
 	if err != nil {
 		log.Fatalf("Failed to load transfer profile: %s", err.Error())
 	}
@@ -97,7 +97,7 @@ func DeleteS3Object(key string, transferProfileName string) {
 }
 
 func DeleteS3Prefix(prefix string, transferProfileName string) {
-	transferProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(transferProfileName)
+	transferProfile, err := config.LoadConfiguration().GetTransferProfile(transferProfileName)
 	if err != nil {
 		log.Fatalf("Failed to load transfer profile: %s", err.Error())
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/core/transferstats"
+	hotFolder "github.com/awslabs/filemoverexpress/core/upload/hot_folder"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
@@ -59,7 +60,7 @@ func runDaemon(cmd *cobra.Command, _ []string) {
 	}
 	createPidFile()
 
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	createDaemon()
 	if cfg.General.NoSleep {
 		utils.RunCaffeinate()
@@ -67,16 +68,17 @@ func runDaemon(cmd *cobra.Command, _ []string) {
 
 	global := globals.GetInstance()
 	global.SetDaemonMode(true)
-	hasValidTransferProfiles(global)
+	hasValidTransferProfiles()
 	checkPSKRecommendation()
 	checkRemoteFlagUsage(cmd)
 	transferstats.Initialize()
+	hotFolder.Init()
 
 	addressFlagUsed := cmd.Flags().Lookup("address").Changed
 	portsFlagUsed := cmd.Flags().Lookup("ports").Changed
 
 	if remoteEnabled || cfg.APIServer.RemoteSettings.Enabled {
-		if strings.TrimSpace(globals.GetInstance().GetCfg().APIServer.RemoteSettings.PreSharedKey) == "" {
+		if strings.TrimSpace(cfg.APIServer.RemoteSettings.PreSharedKey) == "" {
 			events.Events.Fatal(strRemoteWithoutKey)
 		}
 		if !cfg.APIServer.TLSSettings.Enabled {
@@ -101,15 +103,15 @@ func runDaemon(cmd *cobra.Command, _ []string) {
 
 //revive:enable:function-length,cognitive-complexity
 
-func hasValidTransferProfiles(global *globals.FmeGlobals) {
-	if (len(global.GetCfg().Protocols.S3.TransferProfiles)) == 0 {
+func hasValidTransferProfiles() {
+	if (len(config.LoadConfiguration().Protocols.S3.TransferProfiles)) == 0 {
 		logger.Warn(strDaemonNoTransferProfile)
 	}
 }
 
 // checkPSKRecommendation will warn the user if the key in their configuration file is less than 8 characters long
 func checkPSKRecommendation() {
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	if cfg.APIServer.RemoteSettings.Enabled || remoteEnabled {
 		if len(cfg.APIServer.RemoteSettings.PreSharedKey) < minRecommendedKeyLen {
 			logger.Warn(strWeakPSK)
@@ -120,7 +122,7 @@ func checkPSKRecommendation() {
 // checkRemoteFlagUsage will warn the user if they use the --address flag or --ports flag without using the --remote flag or having
 // api_server.remote.enabled set to true in their configuration file
 func checkRemoteFlagUsage(cmd *cobra.Command) {
-	if !remoteEnabled && !globals.GetInstance().GetCfg().APIServer.RemoteSettings.Enabled {
+	if !remoteEnabled && !config.LoadConfiguration().APIServer.RemoteSettings.Enabled {
 		if cmd.Flags().Lookup("address").Changed {
 			logger.Warn(strRemoteIncorrectAddressUse, address)
 		}

@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
 	"github.com/awslabs/filemoverexpress/utils/fs"
@@ -17,7 +18,7 @@ import (
 
 func getMetadataInfo(peer connect.Peer) eventtypes.MetadataEvent {
 	global := globals.GetInstance()
-	cfg := global.GetCfg()
+	cfg := config.LoadConfiguration()
 
 	var permissionsData map[string]bool
 	if isLocalClient(peer) {

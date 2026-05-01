@@ -6,7 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/service/serviceutils"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/utils/fs/fsbrowser"
@@ -21,7 +21,7 @@ func (*FileMoverServer) DeleteLocalPath(
 		Message: "",
 	}
 
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	allowLocalRenameDelete := cfg.APIServer.Permissions.AllowLocalRenameDelete
 	if !isLocalClient(req.Peer()) && !allowLocalRenameDelete {
 		resp.Success = false

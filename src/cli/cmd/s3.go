@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/awslabs/filemoverexpress/cmd/clitools"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/core/download"
 	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
@@ -20,7 +20,7 @@ import (
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/service"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 	"github.com/awslabs/filemoverexpress/utils"
 	"github.com/awslabs/filemoverexpress/utils/errs"
 	"github.com/awslabs/filemoverexpress/utils/fs"
@@ -135,7 +135,7 @@ func bindConfigsToFlags(command *cobra.Command, _ []string) {
 	for pflag, opt := range flags {
 		// bind flag if exists
 		if flag := command.PersistentFlags().Lookup(opt); flag != nil {
-			err := viper.BindPFlag(pflag, flag)
+			err := config.BindFlag(pflag, flag)
 
 			if err != nil {
 				events.Events.Fatal(strS3FailedBindingFlags, err)
@@ -150,7 +150,7 @@ func uploadFile(cmd *cobra.Command, args []string) {
 
 	transferProfileName, sources := parseUploadCommandArgs(args)
 	forceFlag := getForceFlag(cmd)
-	txProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(transferProfileName)
+	txProfile, err := config.LoadConfiguration().GetTransferProfile(transferProfileName)
 	if err != nil {
 		events.Events.Error("error retrieving transfer profile %s: %v", transferProfileName, err)
 		return
@@ -202,7 +202,7 @@ func uploadFile(cmd *cobra.Command, args []string) {
 		jobName += " & others"
 	}
 	job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
-		Direction:       transfer.Upload,
+		Direction:       transfertypes.Upload,
 		Name:            jobName,
 		TransferProfile: &txProfile,
 		Sources:         sources,
@@ -245,7 +245,7 @@ func fileMoverCommandInit() {
 	global := globals.GetInstance()
 	global.SetDaemonMode(false)
 
-	if global.GetCfg().General.NoSleep {
+	if config.LoadConfiguration().General.NoSleep {
 		utils.RunCaffeinate()
 	}
 
@@ -254,21 +254,25 @@ func fileMoverCommandInit() {
 }
 
 func warnIfMaxFilesTooLow() {
-	cfgThreads := viper.GetInt32("protocols.s3.threads")
-
 	// Validate configuration values
-	if maxActiveTransfers <= 0 || cfgThreads <= 0 {
-		events.Events.Warn(fmt.Sprintf("Invalid configuration: max-active-transfers=%d, threads=%d", maxActiveTransfers, cfgThreads))
+	if maxActiveTransfers <= 0 {
+		events.Events.Warn(fmt.Sprintf("Invalid configuration: max-active-transfers=%d", maxActiveTransfers))
 		return
 	}
 
+	cfg := config.LoadConfiguration()
+	var highestMaxThreads int
+	for _, txp := range cfg.Protocols.S3.TransferProfiles {
+		highestMaxThreads = max(highestMaxThreads, txp.Threads)
+	}
+
 	// Calculate with overflow check
-	product := int64(maxActiveTransfers) * int64(cfgThreads)
+	product := int64(maxActiveTransfers) * int64(highestMaxThreads)
 	if product < 0 {
 		events.Events.Warn(fmt.Sprintf(
 			"Configuration overflow: max-active-transfers=%d * threads=%d would exceed limits",
 			maxActiveTransfers,
-			cfgThreads,
+			highestMaxThreads,
 		))
 		return
 	}
@@ -288,7 +292,7 @@ func downloadObject(cmd *cobra.Command, args []string) {
 
 	txProfileName, destination, source := parseDownloadCommandArgs(args)
 	forceFlag := getForceFlag(cmd)
-	txProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(txProfileName)
+	txProfile, err := config.LoadConfiguration().GetTransferProfile(txProfileName)
 	if err != nil {
 		events.Events.Error("error retrieving transfer profile %s: %v", txProfileName, err)
 		return
@@ -299,7 +303,7 @@ func downloadObject(cmd *cobra.Command, args []string) {
 	}
 
 	job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
-		Direction:       transfer.Download,
+		Direction:       transfertypes.Download,
 		Name:            source,
 		TransferProfile: &txProfile,
 		Sources:         []string{source},
@@ -317,7 +321,7 @@ func downloadObject(cmd *cobra.Command, args []string) {
 func validateCredentials(_ *cobra.Command, args []string) {
 	txProfileName := args[0]
 
-	txProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(txProfileName)
+	txProfile, err := config.LoadConfiguration().GetTransferProfile(txProfileName)
 	errs.CheckError(err, "", true)
 
 	s3m, err := transferapi.NewS3Manager(transferapi.S3ManagerConfig{
@@ -350,7 +354,7 @@ func s3ArgsCheck(cmd *cobra.Command, args []string, minArgs int) error {
 	clitools.RegisterEventListener("s3cli")
 	exitIfMinArgs(cmd, args, minArgs)
 
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 
 	var txProfiles []string
 	for txProfile := range cfg.Protocols.S3.TransferProfiles {

@@ -12,7 +12,7 @@ import (
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 func (*FileMoverServer) ResubmitJob(
@@ -55,7 +55,7 @@ func (*FileMoverServer) ResubmitJob(
 		}), connect.NewError(connect.CodeInvalidArgument, errors.New(strFailedToCreateJob))
 	}
 
-	if job.Direction() == transfer.Upload {
+	if job.Direction() == transfertypes.Upload {
 		upload.Uploader(newJob)
 	} else {
 		download.Downloader(newJob)

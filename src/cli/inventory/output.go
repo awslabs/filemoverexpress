@@ -15,7 +15,6 @@ import (
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/types/inventorytypes"
 	"github.com/awslabs/filemoverexpress/utils/fs"
 )
@@ -198,7 +197,7 @@ func outputYaml(input outputFileSettings) (string, error) {
 
 func generateFileName(extension string) (string, error) {
 	var outputDir string
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 
 	cfgDir := cfg.Reports.Directory
 	if filepath.IsAbs(cfgDir) {

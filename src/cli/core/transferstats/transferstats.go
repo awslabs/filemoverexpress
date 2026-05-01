@@ -8,8 +8,8 @@ import (
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
-	jmt "github.com/awslabs/filemoverexpress/types/jobmanagertypes"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 const (
@@ -50,7 +50,7 @@ type (
 	jobData struct {
 		lastBytes int64
 		totalSize int64
-		direction transfer.Direction
+		direction transfertypes.Direction
 	}
 )
 
@@ -127,8 +127,8 @@ func handleStatusChange(evt *eventtypes.JobStatusChangeEvent) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	if !jmt.JobStatusInProgress.Is(evt.Status) {
-		if jmt.JobStatusPaused.Is(evt.Status) {
+	if !jobmanagertypes.JobStatusInProgress.Is(evt.Status) {
+		if jobmanagertypes.JobStatusPaused.Is(evt.Status) {
 			handlePause(evt.Id)
 		}
 
@@ -153,12 +153,12 @@ func handleStatusChange(evt *eventtypes.JobStatusChangeEvent) {
 
 	n := time.Now()
 	switch lb.direction {
-	case transfer.Upload:
+	case transfertypes.Upload:
 		activeUploads++
 		if activeUploads == 1 {
 			startUploads = &n
 		}
-	case transfer.Download:
+	case transfertypes.Download:
 		activeDownloads++
 		if activeDownloads == 1 {
 			startDownloads = &n
@@ -184,7 +184,7 @@ func handleProgress(evt *eventtypes.JobProgressEvent) {
 	delta := newBytes - lb.lastBytes
 	lb.lastBytes += delta
 
-	if lb.direction == transfer.Upload && startUploads != nil {
+	if lb.direction == transfertypes.Upload && startUploads != nil {
 		totalBytesUploaded += delta
 		activeBytesUploaded += delta
 
@@ -194,7 +194,7 @@ func handleProgress(evt *eventtypes.JobProgressEvent) {
 		} else {
 			bpsUpload = activeBytesUploaded / duration
 		}
-	} else if lb.direction == transfer.Download && startDownloads != nil {
+	} else if lb.direction == transfertypes.Download && startDownloads != nil {
 		totalBytesDownloaded += delta
 		activeBytesDownloaded += delta
 		duration := int64(time.Since(*startDownloads).Seconds())
@@ -216,7 +216,7 @@ func handlePause(jobId string) {
 	pausedJobs[jobId] = lb
 
 	switch lb.direction {
-	case transfer.Upload:
+	case transfertypes.Upload:
 		if activeUploads > 0 {
 			activeUploads--
 		}
@@ -226,7 +226,7 @@ func handlePause(jobId string) {
 			bpsUpload = 0
 			activeBytesUploaded = 0
 		}
-	case transfer.Download:
+	case transfertypes.Download:
 		if activeDownloads > 0 {
 			activeDownloads--
 		}
@@ -257,7 +257,7 @@ func handleCompletion(jobId string) {
 
 	delta := lb.totalSize - lb.lastBytes
 	switch lb.direction {
-	case transfer.Upload:
+	case transfertypes.Upload:
 		totalBytesUploaded += delta
 		activeBytesUploaded += delta
 
@@ -270,7 +270,7 @@ func handleCompletion(jobId string) {
 			bpsUpload = 0
 			activeBytesUploaded = 0
 		}
-	case transfer.Download:
+	case transfertypes.Download:
 		totalBytesDownloaded += delta
 		activeBytesDownloaded += delta
 
