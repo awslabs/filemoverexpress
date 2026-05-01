@@ -6,7 +6,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 )
 
@@ -14,7 +15,7 @@ func (*FileMoverServer) SetConfiguration(
 	_ context.Context,
 	req *connect.Request[fmev1.FmeConfig],
 ) (*connect.Response[fmev1.SetConfigurationResponse], error) {
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	allowConfigEdit := cfg.APIServer.Permissions.AllowUIConfiguration
 	if !isLocalClient(req.Peer()) && !allowConfigEdit {
 		return connect.NewResponse(&fmev1.SetConfigurationResponse{
@@ -23,7 +24,8 @@ func (*FileMoverServer) SetConfiguration(
 		}), connect.NewError(connect.CodeResourceExhausted, errors.New(strUnableToWriteConfig))
 	}
 
-	err := cfg.GRPCUpdate(req.Msg)
+	newConfig := configtypes.FromProtobuf(req.Msg, cfg.APIServer)
+	err := config.SaveConfig(&newConfig)
 	if err != nil {
 		return connect.NewResponse(&fmev1.SetConfigurationResponse{
 			Success: false,

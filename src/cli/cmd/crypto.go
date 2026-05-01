@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
-	"github.com/awslabs/filemoverexpress/types/configtypes"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/utils/crypto"
 )
 
@@ -70,18 +69,16 @@ func runEncrypt(_ *cobra.Command, _ []string) {
 	}
 
 	fmt.Println(encrypted)
+	cfg := config.LoadConfiguration()
 
 	answer := promptInput(reader, strUpdateConfig)
 	if strings.EqualFold(strings.TrimSpace(answer), "y") {
-		configtypes.ViperLock.Lock()
-		viper.Set("api_server.remote.key", encrypted)
-		viper.Set("api_server.remote.pre_shared_key_encrypted", true)
-		if err := viper.WriteConfig(); err != nil {
-			configtypes.ViperLock.Unlock()
+		cfg.APIServer.RemoteSettings.PreSharedKey = encrypted
+
+		if err := config.SaveConfig(&cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write config: %v\n", err)
 			os.Exit(1)
 		}
-		configtypes.ViperLock.Unlock()
 		fmt.Fprintln(os.Stderr, strConfigUpdated)
 	}
 }

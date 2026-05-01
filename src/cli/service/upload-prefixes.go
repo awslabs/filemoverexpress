@@ -7,13 +7,13 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 	"github.com/awslabs/filemoverexpress/utils/fs"
 )
 
@@ -48,7 +48,7 @@ func (*FileMoverServer) UploadPrefixes(
 		}), connect.NewError(connect.CodeInvalidArgument, errors.New(strUploadMissingSources))
 	}
 
-	transferProfile, err = globals.GetInstance().GetCfg().GetTransferProfile(req.Msg.GetTransferProfile())
+	transferProfile, err = config.LoadConfiguration().GetTransferProfile(req.Msg.GetTransferProfile())
 	if err != nil {
 		return connect.NewResponse(&s3_sharedv1.UploadPrefixResponse{
 			Success:  false,
@@ -58,7 +58,7 @@ func (*FileMoverServer) UploadPrefixes(
 	}
 	job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
 		Name:            jobName,
-		Direction:       transfer.Upload,
+		Direction:       transfertypes.Upload,
 		TransferProfile: &transferProfile,
 		Sources:         sources,
 		Destination:     destination,

@@ -6,10 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/panicwrap"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 
 	"github.com/awslabs/filemoverexpress/cmd"
 	"github.com/awslabs/filemoverexpress/config"
@@ -18,8 +16,8 @@ import (
 	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/core/upload/hot_folder"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/daemontypes/daemonutils"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
 	"github.com/awslabs/filemoverexpress/utils"
@@ -29,10 +27,12 @@ import (
 var Version string
 
 func initialize() {
-	globals.GetInstance().GetCfg()
+	config.InitConfig()
 	config.WatchConfig(ReloadConfigUpdates)
-
 	setupLogger()
+
+	// Initialize services that require config before use
+	transferapi.InitThrottling()
 
 	go func() {
 		time.Sleep(8 * time.Second)
@@ -71,28 +71,27 @@ func main() {
 }
 
 func setupLogger() {
-	level, logpath := getSevAndPath()
-	loglevel, err := logrus.ParseLevel(level)
+	cfg := config.LoadConfiguration()
+	logDirectory := configureLogDirectory(cfg)
+	loglevel, err := logrus.ParseLevel(cfg.Logging.Severity)
 	if err != nil {
 		loglevel = logrus.WarnLevel
 	}
 
 	err = logger.Init(&logger.Config{
 		Severity: loglevel,
-		LogPath:  logpath,
-		MaxSize:  viper.GetInt("logging.max_size"),
-		MaxAge:   viper.GetInt("logging.max_age"),
-		Compress: viper.GetBool("logging.compress"),
+		LogPath:  logDirectory,
+		MaxSize:  cfg.Logging.MaxSize,
+		MaxAge:   cfg.Logging.MaxAge,
+		Compress: cfg.Logging.Compress,
 	})
 	if err != nil {
 		fmt.Printf("Failed configuring logging output: %s\n", err)
 	}
 }
 
-func getSevAndPath() (severity string, logPath string) {
-	severity = viper.GetString("logging.severity")
-	logPath = viper.GetString("logging.directory")
-
+func configureLogDirectory(cfg configtypes.FmeConfig) string {
+	logPath := cfg.Logging.Directory
 	if logPath != "" {
 		if !filepath.IsAbs(logPath) {
 			var err error
@@ -103,7 +102,7 @@ func getSevAndPath() (severity string, logPath string) {
 		}
 	}
 
-	return severity, logPath
+	return logPath
 }
 
 func panicHandler(output string) {
@@ -112,12 +111,12 @@ func panicHandler(output string) {
 	os.Exit(1)
 }
 
-func ReloadConfigUpdates(_ fsnotify.Event) {
-	globals.GetInstance().ReloadCfg()
+func ReloadConfigUpdates(cfg configtypes.FmeConfig) {
 	configUpdateEvent := eventtypes.ConfigurationUpdateEvent{}
 	events.Events.Send(&configUpdateEvent)
-	transferapi.SetTargetBPS(int64(globals.GetInstance().GetCfg().General.TargetBandwidth) * constants.MiB)
-	hotFolders := globals.GetInstance().GetCfg().UploadHotFolders
+
+	transferapi.SetTargetBPS(int64(cfg.General.TargetBandwidth) * constants.MiB)
+	hotFolders := cfg.UploadHotFolders
 
 	hot_folder.RemoveOldHotFolders()
 	for _, hotFolder := range hotFolders {

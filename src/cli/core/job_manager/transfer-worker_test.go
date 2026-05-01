@@ -13,13 +13,13 @@ import (
 	"github.com/awslabs/filemoverexpress/core/transfer-api/mock"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
-	transfer "github.com/awslabs/filemoverexpress/types/transfertypes"
+	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 func TestJobManager_DoSingleTransfer(t *testing.T) {
 	job1, _ := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
 		Name:      "testJob",
-		Direction: transfer.Download,
+		Direction: transfertypes.Download,
 		TransferProfile: &configtypes.TransferProfile{
 			Name:         "test-profile1",
 			Bucket:       "test-bucket",
@@ -30,7 +30,7 @@ func TestJobManager_DoSingleTransfer(t *testing.T) {
 	})
 	job2, _ := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
 		Name:      "testJob",
-		Direction: transfer.Upload,
+		Direction: transfertypes.Upload,
 		TransferProfile: &configtypes.TransferProfile{
 			Name:         "test-profile2",
 			Bucket:       "test-bucket",
@@ -41,7 +41,7 @@ func TestJobManager_DoSingleTransfer(t *testing.T) {
 	})
 	job3, _ := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
 		Name:      "testJob2",
-		Direction: transfer.Upload,
+		Direction: transfertypes.Upload,
 		TransferProfile: &configtypes.TransferProfile{
 			Name:         "test-profile3",
 			Bucket:       "test-bucket",
@@ -52,7 +52,7 @@ func TestJobManager_DoSingleTransfer(t *testing.T) {
 	})
 	InvalidStorageClassJob, _ := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
 		Name:      "invalidTestJob",
-		Direction: transfer.Upload,
+		Direction: transfertypes.Upload,
 		TransferProfile: &configtypes.TransferProfile{
 			Name:         "test-name",
 			Bucket:       "test-bucket",
@@ -203,9 +203,9 @@ func TestJobManager_DoSingleTransfer(t *testing.T) {
 			}
 			// check bytes transferred on task and job structs
 			var jobBytesTransferred int64
-			if tt.job.Direction() == transfer.Upload {
+			if tt.job.Direction() == transfertypes.Upload {
 				jobBytesTransferred = tt.job.BytesUploaded
-			} else if tt.job.Direction() == transfer.Download {
+			} else if tt.job.Direction() == transfertypes.Download {
 				jobBytesTransferred = tt.job.BytesDownloaded
 			}
 			if jobBytesTransferred != tt.expectedJobBytesTransferred {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 	"github.com/awslabs/filemoverexpress/utils"
 )
@@ -21,7 +21,7 @@ func (*FileMoverServer) S3ListPrefix(
 	var objects []*s3_sharedv1.S3Object
 	var folders []string
 
-	transferProfile, err := globals.GetInstance().GetCfg().GetTransferProfile(req.Msg.GetTransferProfile())
+	transferProfile, err := config.LoadConfiguration().GetTransferProfile(req.Msg.GetTransferProfile())
 	if err != nil {
 		return nil, err
 	}

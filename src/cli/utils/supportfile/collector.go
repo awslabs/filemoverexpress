@@ -3,6 +3,7 @@ package supportfile
 import (
 	"gopkg.in/yaml.v2"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
@@ -24,7 +25,7 @@ func Create() (outputFile string, outputDir string, err error) {
 	supportFileMap["memory.yaml"] = GetMemoryInformation()
 	supportFileMap["mounts.yaml"] = mounts
 	supportFileMap["mount_usages.yaml"] = GetMountPointUsage(mounts)
-	supportFileMap[constants.ConfigFullName] = inst.GetCfg()
+	supportFileMap[constants.ConfigFullName] = config.LoadConfiguration()
 	supportFileMap["limits.yaml"] = GetLimits()
 
 	for filename, input := range supportFileMap {

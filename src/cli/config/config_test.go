@@ -31,11 +31,3 @@ func TestString(t *testing.T) {
 	}
 
 }
-
-func TestLoadConfiguration(t *testing.T) {
-	_, err := LoadConfiguration()
-	if err != nil {
-		t.Errorf("TestLoadConfiguration failed to load config file: %s\n", err)
-		return
-	}
-}

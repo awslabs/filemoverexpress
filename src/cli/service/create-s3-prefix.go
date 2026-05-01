@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/awslabs/filemoverexpress/core/job_manager"
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 )
 
@@ -22,7 +22,7 @@ func (*FileMoverServer) CreateS3Prefix(
 	}
 
 	jm := job_manager.GetInstance()
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	txp, err := cfg.GetTransferProfile(req.Msg.GetTransferProfile())
 	if err != nil {
 		resp.Success = false

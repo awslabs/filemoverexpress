@@ -323,6 +323,7 @@ linters:
                         - fmt.Printf
                         - fmt.Println
                         - fmt.Fprintf
+                        - fmt.Fprintln
                     severity: warning
                     disabled: false
                 -   name: unnecessary-stmt

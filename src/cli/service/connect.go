@@ -9,8 +9,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/service/types"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1/fmev1connect"
@@ -21,7 +21,7 @@ type FileMoverServer struct {
 }
 
 func startServer(mux *http.ServeMux, ip string, port uint) {
-	cfg := globals.GetInstance().GetCfg()
+	cfg := config.LoadConfiguration()
 	address := fmt.Sprintf("%s:%d", ip, port)
 
 	if cfg.APIServer.TLSSettings.Enabled {

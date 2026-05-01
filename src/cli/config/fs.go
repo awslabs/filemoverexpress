@@ -10,7 +10,6 @@ import (
 
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/events"
-	"github.com/awslabs/filemoverexpress/types/configtypes"
 )
 
 func makeConfigDir(configDir string) os.FileInfo {
@@ -24,13 +23,14 @@ func makeConfigDir(configDir string) os.FileInfo {
 	return dInfo
 }
 
-func createConfigIfNotExists(configFile string) {
+func createConfigIfNotExists(viperInstance *viper.Viper, configFile string) {
 	_, err := os.Stat(configFile)
 
 	if os.IsNotExist(err) {
-		configtypes.ViperLock.Lock()
-		defer configtypes.ViperLock.Unlock()
-		if cErr := viper.WriteConfigAs(configFile); cErr != nil {
+		configLock.Lock()
+		defer configLock.Unlock()
+
+		if cErr := viperInstance.WriteConfigAs(configFile); cErr != nil {
 			events.Events.Fatal(strFailedWritingFile, err)
 		}
 	}
@@ -69,10 +69,7 @@ func GetConfigDir() string {
 
 func GetLogDir() string {
 	cfgDir := GetConfigDir()
-	cfg, err := LoadConfiguration()
-	if err != nil {
-		return configDir
-	}
+	cfg := LoadConfiguration()
 
 	if cfg.Logging.Directory == "" {
 		return filepath.Join(configDir, "logs")

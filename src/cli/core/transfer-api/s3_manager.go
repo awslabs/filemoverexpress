@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go/middleware"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	fmeconfig "github.com/awslabs/filemoverexpress/config"
 )
 
 var (
@@ -102,7 +102,7 @@ func NewS3Manager(input S3ManagerConfig) (*S3Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	retryCount := globals.GetInstance().GetCfg().General.RetryCount
+	retryCount := fmeconfig.LoadConfiguration().General.RetryCount
 	retryCount = max(retryCount, 0)
 	var client *s3.Client
 	if input.Endpoint != "" {

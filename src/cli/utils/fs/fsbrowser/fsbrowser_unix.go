@@ -8,7 +8,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/awslabs/filemoverexpress/globals"
+	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/logger"
 	pbtypes "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 )
@@ -29,7 +29,7 @@ func ListDirectory(path string) (*pbtypes.FsFolder, error) {
 		if fileInfo.Mode()&excludedModes != 0 {
 			continue
 		}
-		if ShouldExcludeDirEntry(pathName, globals.GetInstance().GetCfg().APIServer.BlockedPathList) {
+		if ShouldExcludeDirEntry(pathName, config.LoadConfiguration().APIServer.BlockedPathList) {
 			continue
 		}
 
