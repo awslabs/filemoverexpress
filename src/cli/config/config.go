@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 
-	"github.com/fsnotify/fsnotify"
-	"github.com/go-viper/mapstructure/v2"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	yamlv3 "gopkg.in/yaml.v3"
 
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/events"
@@ -29,32 +32,47 @@ var (
 	configFile, configDir string
 	cachedCfg             atomic.Value // configtypes.FmeConfig
 	initialized           bool
-	fmeViper              *viper.Viper
 	configLock            = sync.Mutex{}
+	boundFlags            = make(map[string]*pflag.Flag)
+	fileProvider          *file.File
 )
 
-func initViper() {
-	if fmeViper == nil {
-		fmeViper = viper.New()
+func buildDefaultsMap() map[string]interface{} {
+	return map[string]interface{}{
+		"general.maxActiveChecksums":                    systeminfo.GetCoreCount(),
+		"general.maxActiveTransfers":                    constants.DefaultMaxActiveTransfers,
+		"general.noSleep":                               constants.DefaultNoSleep,
+		"general.retryCount":                            constants.DefaultRetryCount,
+		"general.targetBandwidth":                       constants.DefaultTargetBandwidth,
+		"logging.directory":                             constants.DefaultLoggingDirectory,
+		"logging.severity":                              constants.DefaultLoggingSeverity,
+		"logging.maxSize":                               constants.DefaultLoggingMaxSize,
+		"logging.maxAge":                                constants.DefaultLoggingMaxAge,
+		"logging.compress":                              constants.DefaultLoggingCompress,
+		"reports.directory":                             constants.DefaultReportsDirectory,
+		"protocols.s3.transferProfiles":                 map[string]interface{}{},
+		"apiServer.allowedOrigins":                      []string{},
+		"apiServer.enabled":                             constants.DefaultAPIServerEnabled,
+		"apiServer.tls.enabled":                         constants.DefaultAPIServerTLSEnabled,
+		"apiServer.remote.enabled":                      constants.DefaultAPIServerRemoteEnabled,
+		"apiServer.blockedPaths":                        getDefaultBlockedPaths(),
+		"apiServer.permissions.allowUIConfiguration":    constants.DefaultAllowUIConfiguration,
+		"apiServer.permissions.allowLocalRenameDelete":  constants.DefaultAllowLocalRenameDelete,
+		"apiServer.permissions.allowRemoteRenameDelete": constants.DefaultAllowRemoteRenameDelete,
 	}
+}
 
-	fmeViper.SetConfigName(GetConfigName())
-	fmeViper.SetConfigType(constants.ConfigFileExt)
-	fmeViper.AddConfigPath(GetConfigDir())
-
-	setGeneralDefaultSettings(fmeViper)
-	setLoggingDefaultSettings(fmeViper)
-	setReportingDefaultSettings(fmeViper)
-	setS3DefaultSettings(fmeViper)
-	setAPIServerDefaultSettings(fmeViper)
+func initKoanf() {
+	configPath := filepath.Join(GetConfigDir(), GetConfigName()+"."+constants.ConfigFileExt)
+	fileProvider = file.Provider(configPath)
 
 	LoadConfiguration()
 }
 
 func InitConfig() {
 	configFile, configDir = setupConfigFileAndDirectory()
-	initViper()
-	createConfigIfNotExists(fmeViper, configFile)
+	initKoanf()
+	createConfigIfNotExists(configFile)
 	validateAndUpdateConfiguration()
 }
 
@@ -67,40 +85,35 @@ func LoadConfiguration() configtypes.FmeConfig {
 	return loadConfig()
 }
 
-func SaveConfig(cfg *configtypes.FmeConfig) error {
-	var configMap map[string]interface{}
-	tempViper := createViper()
-	if decodeErr := mapstructure.Decode(*cfg, &configMap); decodeErr != nil {
-		return decodeErr
-	}
-
-	if mergeErr := tempViper.MergeConfigMap(configMap); mergeErr != nil {
-		return mergeErr
-	}
-
-	if writeErr := tempViper.WriteConfigAs(configFile); writeErr != nil {
-		return writeErr
-	}
-
-	return nil
-}
-
-func BindFlag(key string, flag *pflag.Flag) error {
-	return fmeViper.BindPFlag(key, flag)
-}
-
 func loadConfig() configtypes.FmeConfig {
 	var loadedCfg configtypes.FmeConfig
 
 	configLock.Lock()
 	defer configLock.Unlock()
 
-	tempViper := createViper()
-	if err := tempViper.ReadInConfig(); err != nil {
-		logger.Fatal("Error reading configuration file: %v", err)
+	k := koanf.New(".")
+
+	if err := k.Load(confmap.Provider(buildDefaultsMap(), "."), nil); err != nil {
+		logger.Fatal("Error loading default configuration: %v", err)
 	}
 
-	if err := tempViper.Unmarshal(&loadedCfg); err != nil {
+	if fileProvider != nil {
+		if err := k.Load(fileProvider, yaml.Parser()); err != nil {
+			logger.Fatal(strUnableToLoadConfig, err)
+		}
+	}
+
+	for key, flag := range boundFlags {
+		if flag.Changed {
+			_ = k.Load(confmap.Provider(map[string]interface{}{
+				key: flag.Value.String(),
+			}, "."), nil)
+		}
+	}
+
+	if err := k.UnmarshalWithConf("", &loadedCfg, koanf.UnmarshalConf{
+		Tag: "koanf",
+	}); err != nil {
 		logger.Fatal("Error parsing configuration file: %v", err)
 	}
 
@@ -109,6 +122,37 @@ func loadConfig() configtypes.FmeConfig {
 	initialized = true
 
 	return loadedCfg
+}
+
+func buildDefaultConfig() configtypes.FmeConfig {
+	k := koanf.New(".")
+	_ = k.Load(confmap.Provider(buildDefaultsMap(), "."), nil)
+	var cfg configtypes.FmeConfig
+	_ = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "koanf"})
+	return cfg
+}
+
+func marshalConfigToFile(cfg configtypes.FmeConfig, filePath string) error {
+	data, err := yamlv3.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+	return nil
+}
+
+func SaveConfig(cfg *configtypes.FmeConfig) error {
+	return marshalConfigToFile(*cfg, configFile)
+}
+
+func BindFlag(key string, flag *pflag.Flag) error {
+	if flag == nil {
+		return fmt.Errorf("flag is nil for key %s", key)
+	}
+	boundFlags[key] = flag
+	return nil
 }
 
 func rekeyTransferProfilesByName(cfg configtypes.FmeConfig) configtypes.FmeConfig {
@@ -128,8 +172,11 @@ func GetConfigName() string {
 }
 
 func WatchConfig(watcherCallback ReloadFn) {
-	fmeViper.WatchConfig()
-	fmeViper.OnConfigChange(func(e fsnotify.Event) {
+	fileProvider.Watch(func(event interface{}, err error) {
+		if err != nil {
+			logger.Error("Config watch error: %v", err)
+			return
+		}
 		newCfg := loadConfig()
 		watcherCallback(newCfg)
 	})
@@ -155,7 +202,6 @@ func ConvertMaxAgeToInt(maxAgeStr string) int64 {
 func validateAndUpdateConfiguration() {
 	cfg := LoadConfiguration()
 
-	validateAPIServerSettings()
 	updated := validateGeneralSettings(&cfg)
 	updated = validateTransferProfiles(&cfg) || updated
 
@@ -164,12 +210,6 @@ func validateAndUpdateConfiguration() {
 			logger.Fatal(strErrorUpdatingConfig, err)
 		}
 	}
-}
-
-// validateAPIServerSettings is used to set default values for API server settings if they are not set, since these values cannot be set
-// through the GUI
-func validateAPIServerSettings() {
-	setAPIServerDefaultSettings(fmeViper)
 }
 
 func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
@@ -293,15 +333,6 @@ func validateChecksumConfig(txp *configtypes.TransferProfile) bool {
 	}
 
 	return false
-}
-
-func createViper() *viper.Viper {
-	tempViper := viper.New()
-	tempViper.SetConfigName(GetConfigName())
-	tempViper.SetConfigType(constants.ConfigFileExt)
-	tempViper.AddConfigPath(GetConfigDir())
-
-	return tempViper
 }
 
 //revive:enable:function-length

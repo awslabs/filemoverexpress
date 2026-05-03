@@ -11,6 +11,19 @@ const (
 	DefaultRetryCount         = 3
 	MaxRetryCount             = 10000
 	MinChunkSize              = 5
+
+	DefaultNoSleep                 = false
+	DefaultTargetBandwidth         = 0
+	DefaultLoggingDirectory        = "logs"
+	DefaultLoggingSeverity         = "info"
+	DefaultLoggingCompress         = true
+	DefaultReportsDirectory        = "reports"
+	DefaultAPIServerEnabled        = true
+	DefaultAPIServerTLSEnabled     = false
+	DefaultAPIServerRemoteEnabled  = false
+	DefaultAllowUIConfiguration    = false
+	DefaultAllowLocalRenameDelete  = false
+	DefaultAllowRemoteRenameDelete = false
 )
 
 var ConfigDefaults = map[string]int{
