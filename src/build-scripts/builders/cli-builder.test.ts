@@ -1061,6 +1061,109 @@ describe('CLIBuilder', () => {
                 );
             });
         });
+
+        describe('build version injection', () => {
+            it('should omit -X ldflag when buildVersion is not set', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({});
+
+                // Assert
+                const calls = vi.mocked(CommandRunner.run).mock.calls;
+                for (const call of calls) {
+                    const args = call[1];
+                    const ldflagsIndex = args.indexOf('-ldflags');
+                    if (ldflagsIndex !== -1) {
+                        const ldflagsValue = args[ldflagsIndex + 1];
+                        expect(ldflagsValue).not.toContain("-X 'main.Version");
+                    }
+                }
+            });
+
+            it('should append -X ldflag when buildVersion is set', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({buildVersion: '1.2.3'});
+
+                // Assert
+                const calls = vi.mocked(CommandRunner.run).mock.calls;
+                const firstCall = calls[0];
+                const args = firstCall[1];
+                const ldflagsIndex = args.indexOf('-ldflags');
+                expect(ldflagsIndex).toBeGreaterThan(-1);
+                const ldflagsValue = args[ldflagsIndex + 1];
+                expect(ldflagsValue).toBe('-s -w -X "main.Version=v1.2.3"');
+            });
+
+            it('should log injected ldflag at debug level when buildVersion is set', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+                const {Logger} = await import('../utils/logger');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({buildVersion: '2.0.0'});
+
+                // Assert
+                expect(Logger.debug).toHaveBeenCalledWith(
+                    expect.stringContaining('Injecting version ldflag'),
+                );
+            });
+
+            it('should not modify original config ldFlags array', async () => {
+                // Arrange
+                const fs = await import('node:fs');
+                const {CommandRunner} = await import('../utils/command-runner');
+
+                const builder = new CLIBuilder(mockConfig);
+
+                vi.mocked(CommandRunner.run).mockResolvedValue({
+                    exitCode: 0,
+                    stdout: '',
+                    stderr: '',
+                });
+                vi.mocked(fs.existsSync).mockReturnValue(true);
+
+                // Act
+                await builder.build({buildVersion: '1.0.0'});
+
+                // Assert
+                expect(mockConfig.ldFlags).toEqual(['-s', '-w']);
+            });
+        });
     });
 
     describe('cleanupPaths', () => {

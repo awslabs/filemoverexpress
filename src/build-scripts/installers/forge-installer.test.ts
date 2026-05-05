@@ -430,6 +430,127 @@ describe('ForgeInstaller', () => {
         });
     });
 
+    // --- Build version injection ---
+    describe('build version injection', () => {
+        it('should not rewrite staged package.json version when buildVersion is not set', async () => {
+            const installer = new ForgeInstaller();
+
+            try {
+                await installer.generate();
+            } catch {
+                // Expected — Forge make will fail in test environment
+            }
+
+            // writeFile should not have been called with a package.json path containing version data
+            const writeFileCalls = mockFS.writeFile.mock.calls;
+            const pkgJsonWriteCalls = writeFileCalls.filter(
+                (call: any[]) => typeof call[0] === 'string' && call[0].endsWith('package.json'),
+            );
+            // No package.json write should contain a version rewrite
+            for (const call of pkgJsonWriteCalls) {
+                if (typeof call[1] === 'string') {
+                    // If it was written, it should not be a JSON version rewrite
+                    // (the forge.config.js write is a different file)
+                    const content = call[1];
+                    try {
+                        const parsed = JSON.parse(content);
+                        // If we can parse it as JSON, it means package.json was written
+                        // but without buildVersion set, this should not happen
+                        expect(parsed).not.toHaveProperty('version');
+                    } catch {
+                        // Not JSON, so it's not a package.json rewrite — that's fine
+                    }
+                }
+            }
+        });
+
+        it('should rewrite staged package.json version when buildVersion is set', async () => {
+            mockFS.readFile.mockImplementation(async (filePath: string) => {
+                if (typeof filePath === 'string' && filePath.endsWith('package.json')) {
+                    return JSON.stringify({name: 'test-app', version: '1.0.0'});
+                }
+                return '';
+            });
+
+            const installer = new ForgeInstaller({buildVersion: '2.0.0'});
+
+            try {
+                await installer.generate();
+            } catch {
+                // Expected — Forge make will fail in test environment
+            }
+
+            // Find the writeFile call for package.json
+            const writeFileCalls = mockFS.writeFile.mock.calls;
+            const pkgJsonWriteCall = writeFileCalls.find(
+                (call: any[]) => typeof call[0] === 'string' && call[0].endsWith('package.json'),
+            );
+
+            expect(pkgJsonWriteCall).toBeDefined();
+            const writtenContent = JSON.parse(pkgJsonWriteCall[1]);
+            expect(writtenContent.version).toBe('2.0.0');
+            expect(writtenContent.name).toBe('test-app');
+        });
+
+        it('should log version at debug level when buildVersion is set', async () => {
+            const {Logger} = await import('../utils/logger');
+            vi.mocked(Logger.debug).mockReset();
+
+            mockFS.readFile.mockImplementation(async (filePath: string) => {
+                if (typeof filePath === 'string' && filePath.endsWith('package.json')) {
+                    return JSON.stringify({name: 'test-app', version: '1.0.0'});
+                }
+                return '';
+            });
+
+            const installer = new ForgeInstaller({buildVersion: '3.0.0'});
+
+            try {
+                await installer.generate();
+            } catch {
+                // Expected — Forge make will fail in test environment
+            }
+
+            expect(Logger.debug).toHaveBeenCalledWith(
+                'Set staged package.json version to: 3.0.0',
+            );
+        });
+
+        it('should not modify original src/electron/package.json', async () => {
+            mockFS.readFile.mockImplementation(async (filePath: string) => {
+                if (typeof filePath === 'string' && filePath.endsWith('package.json')) {
+                    return JSON.stringify({name: 'test-app', version: '1.0.0'});
+                }
+                return '';
+            });
+
+            const installer = new ForgeInstaller({buildVersion: '2.0.0'});
+
+            try {
+                await installer.generate();
+            } catch {
+                // Expected — Forge make will fail in test environment
+            }
+
+            // Verify writeFile was NOT called with the original src/electron/package.json path
+            const writeFileCalls = mockFS.writeFile.mock.calls;
+            const originalPkgJsonWrites = writeFileCalls.filter(
+                (call: any[]) =>
+                    typeof call[0] === 'string' &&
+                    call[0].includes('src/electron/package.json'),
+            );
+            expect(originalPkgJsonWrites).toHaveLength(0);
+
+            // Verify the write was to a temp/staging directory path (not the source)
+            const pkgJsonWriteCall = writeFileCalls.find(
+                (call: any[]) => typeof call[0] === 'string' && call[0].endsWith('package.json'),
+            );
+            expect(pkgJsonWriteCall).toBeDefined();
+            // The temp dir path contains 'forge-build-' prefix from the mock TempDirManager
+            expect(pkgJsonWriteCall[0]).toContain('forge-build-');
+        });
+    });
+
     // --- Cleanup behavior ---
     describe('cleanup', () => {
         it('should clean up temp directories on successful generate', async () => {

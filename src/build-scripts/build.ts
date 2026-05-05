@@ -15,6 +15,7 @@ import {ForgeMakerType} from './types/forge';
 import {Architecture, Platform} from './types/platform';
 import {Logger} from './utils/logger';
 import {detectCurrentArchitecture, detectCurrentPlatform} from './utils/platform-detector';
+import {resolveVersion} from './utils/version-resolver';
 
 // Create Commander program instance
 const program = new Command();
@@ -27,7 +28,8 @@ Examples:
   $ ts-node build.ts cli build
   $ ts-node build.ts cli build --archs x64,arm64 --platforms darwin
   $ ts-node build.ts gui package:mac --production`)
-    .version('1.0.0');
+    .version('1.0.0')
+    .option('--build-version <version>', 'Semantic version to embed in build artifacts');
 
 /**
  * Executes a build for the specified component with the given options
@@ -50,6 +52,9 @@ export async function executeBuild(component: BuildComponent, target: string, op
     }
     if (options.verbose) {
         Logger.info('  Verbose: true');
+    }
+    if (options.buildVersion) {
+        Logger.info(`  Build version: ${options.buildVersion}`);
     }
 
     // Execute component-specific build
@@ -149,6 +154,7 @@ export async function executeBuild(component: BuildComponent, target: string, op
                 retainTempFiles: options.retainTempFiles ?? false,
                 verbose: options.verbose ?? false,
                 makers: options.makers,
+                buildVersion: options.buildVersion,
             });
 
             await installer.generate().catch((error) => {
@@ -169,6 +175,7 @@ program
     .option('--platforms <platforms>', 'Comma-separated platforms (darwin, linux, windows)', parsePlatforms)
     .option('--production', 'Build in production mode', false)
     .option('--verbose', 'Enable verbose output', false)
+    .option('--build-version <version>', 'Semantic version to embed in build artifacts')
     .action(async (target, options) => {
         // Apply defaults for unspecified options
         const defaults = getDefaultBuildOptions();
@@ -178,6 +185,7 @@ program
             production: options.production,
             verbose: options.verbose,
         };
+        buildOptions.buildVersion = resolveVersion(program.opts().buildVersion ?? options.buildVersion);
         await executeBuild('cli', target ?? 'build', buildOptions);
     });
 
@@ -264,6 +272,7 @@ program
     .option('--retain-temp-files', 'Keep temp directories for debugging', false)
     .option('--verbose', 'Enable verbose output', false)
     .option('--makers <makers>', 'Comma-separated Forge maker types (dmg, pkg, zip, deb, rpm, squirrel, wix)', parseMakers)
+    .option('--build-version <version>', 'Semantic version to embed in build artifacts')
     .action(async (platform, options) => {
         const defaults = getDefaultBuildOptions();
         const buildOptions: BuildOptions = {
@@ -275,6 +284,7 @@ program
             retainTempFiles: options.retainTempFiles,
             makers: options.makers,
         };
+        buildOptions.buildVersion = resolveVersion(program.opts().buildVersion ?? options.buildVersion);
         await executeBuild('installer', platform, buildOptions);
     });
 

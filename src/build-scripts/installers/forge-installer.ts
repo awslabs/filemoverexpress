@@ -7,12 +7,7 @@ import {ProtobufBuilder} from '../builders/protobuf-builder';
 import {cliConfig} from '../config/cli-config';
 import {electronConfig} from '../config/electron-config';
 import {guiConfig} from '../config/gui-config';
-import {
-    ForgeConfig,
-    ForgeInstallerOptions,
-    ForgeMakeResult,
-    ForgeMakerType,
-} from '../types/forge';
+import {ForgeConfig, ForgeInstallerOptions, ForgeMakeResult, ForgeMakerType,} from '../types/forge';
 import {Architecture, Platform} from '../types/platform';
 import {CommandRunner} from '../utils/command-runner';
 import {Logger} from '../utils/logger';
@@ -24,6 +19,8 @@ import {ToolChecker} from '../utils/tool-checker';
 import {BaseInstaller} from './base-installer';
 import {ForgeConfigGenerator} from './forge-config-generator';
 import {ForgeMakerResolver} from './forge-maker-resolver';
+import {CLIBuildConfig} from "../types/config";
+import {BuildOptions} from "../types/build-target";
 
 /**
  * Electron Forge-based installer generator.
@@ -50,6 +47,7 @@ import {ForgeMakerResolver} from './forge-maker-resolver';
 export class ForgeInstaller extends BaseInstaller {
     private readonly platform: Platform;
     private readonly architecture: Architecture;
+    private readonly buildVersion?: string;
     private readonly requestedMakers?: ForgeMakerType[];
     private readonly verbose: boolean;
     private readonly devMode: boolean;
@@ -71,6 +69,7 @@ export class ForgeInstaller extends BaseInstaller {
         this.devMode = options?.devMode ?? false;
         this.retainTempFiles = options?.retainTempFiles ?? false;
         this.tempDirManager = new TempDirManager();
+        this.buildVersion = options?.buildVersion;
 
         // Validate cross-platform override
         if (options?.platform !== undefined && this.platform !== hostPlatform) {
@@ -239,18 +238,23 @@ export class ForgeInstaller extends BaseInstaller {
         const protobufBuilder = new ProtobufBuilder();
         await protobufBuilder.build();
 
-        const buildConfig = {...cliConfig};
-        buildConfig.platforms = [{platform: this.platform, arch: this.architecture}];
+        const buildConfig: CLIBuildConfig = {
+            ...cliConfig,
+            platforms: [{
+                platform: this.platform, arch: this.architecture
+            }],
+        };
 
         const cliBuilder = new CLIBuilder(buildConfig);
         const guiBuilder = new GUIBuilder(guiConfig);
         const electronBuilder = new ElectronBuilder();
 
-        const buildOptions = {
+        const buildOptions: BuildOptions = {
             production: true,
             verbose: this.verbose,
             platforms: [this.platform],
             archs: [this.architecture],
+            ...(this.buildVersion && {buildVersion: this.buildVersion}),
         };
 
         await electronBuilder.build();
@@ -284,6 +288,15 @@ export class ForgeInstaller extends BaseInstaller {
             path.join(tempDir, 'package.json'),
         );
         Logger.debug('Staged: package.json');
+
+        // Rewrite version in staged package.json if buildVersion is set
+        if (this.buildVersion) {
+            const stagedPkgJsonPath = path.join(tempDir, 'package.json');
+            const pkgJson = JSON.parse(await fs.readFile(stagedPkgJsonPath, 'utf-8'));
+            pkgJson.version = this.buildVersion;
+            await fs.writeFile(stagedPkgJsonPath, JSON.stringify(pkgJson, null, 4) + '\n', 'utf-8');
+            Logger.debug(`Set staged package.json version to: ${this.buildVersion}`);
+        }
 
         // Step 2: Copy compiled Electron main process files
         const electronDistDir = path.join(electronDir, 'dist');
@@ -380,7 +393,7 @@ export class ForgeInstaller extends BaseInstaller {
      */
     private async installForgeDependencies(
         tempDir: string,
-        makers: Array<{npmPackage: string}>,
+        makers: Array<{ npmPackage: string }>,
     ): Promise<void> {
         const packages = [
             '@electron-forge/core',

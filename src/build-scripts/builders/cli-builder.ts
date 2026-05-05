@@ -11,6 +11,7 @@ import {BaseBuilder} from './base-builder';
 
 export class CLIBuilder extends BaseBuilder {
     private verbose: boolean = false;
+    private buildVersion?: string;
 
     constructor(private config: CLIBuildConfig) {
         super();
@@ -22,6 +23,7 @@ export class CLIBuilder extends BaseBuilder {
 
     async build(options: BuildOptions): Promise<void> {
         this.verbose = options.verbose ?? false;
+        this.buildVersion = options.buildVersion;
         const platformsToBuild = this.determinePlatformsToBuild(options);
 
         if (platformsToBuild.length === 0) {
@@ -81,13 +83,21 @@ export class CLIBuilder extends BaseBuilder {
         }
 
         if (this.config.ldFlags.length > 0) {
-            buildArgs.push('-ldflags', this.config.ldFlags.join(' '));
+            const ldFlags = [...this.config.ldFlags];
+
+            if (this.buildVersion) {
+                const versionFlag = `-X "main.Version=v${this.buildVersion}"`;
+                ldFlags.push(versionFlag);
+                Logger.debug(`Injecting version ldflag: ${versionFlag}`);
+            }
+
+            buildArgs.push('-ldflags', ldFlags.join(' '));
         }
 
         buildArgs.push('-o', outputPath);
         buildArgs.push('main.go');
 
-        Logger.debug(`Building CLI for ${platform.platform}/${platform.arch}...`);
+        Logger.debug(`Building CLI for ${platform.platform}/${platform.arch}${(this.verbose && ` (cmd: go ${buildArgs.join(' ')})`)}...`);
 
         const result = await CommandRunner.run('go', buildArgs, {
             cwd: PathResolver.getCLIDir(),
