@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TableGroupComponent } from './table-group.component';
 import { MatTabsModule } from '@angular/material/tabs';

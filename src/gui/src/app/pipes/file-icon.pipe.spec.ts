@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { FileIconPipe } from './file-icon.pipe';
 
 describe('FileIconPipe', () => {

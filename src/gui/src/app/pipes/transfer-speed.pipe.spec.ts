@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { TransferSpeedPipe } from './transfer-speed.pipe';
 
 describe('TransferSpeedPipe', () => {

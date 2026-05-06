@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { TextEllipsesPipe } from './text-ellipses.pipe';
 
 describe('TextEllipsesPipe', () => {

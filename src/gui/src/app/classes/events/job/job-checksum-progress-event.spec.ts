@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { JobChecksumProgressEvent } from '@events/job/job-checksum-progress-event';
 import { create } from '@bufbuild/protobuf';
 import { JobChecksumProgressEventSchema } from '@gen/es/fme/v1/job_pb';

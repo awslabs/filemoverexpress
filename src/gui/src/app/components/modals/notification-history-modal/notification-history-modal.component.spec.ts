@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NotificationHistoryModalComponent } from './notification-history-modal.component';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -16,7 +17,7 @@ describe('NotificationHistoryModalComponent', () => {
     let component: NotificationHistoryModalComponent;
     let fixture: ComponentFixture<NotificationHistoryModalComponent>;
 
-    beforeEach(async () => {
+    beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
                 StoreModule,

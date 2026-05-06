@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { NewVersionAvailableEvent } from './new-version-available-event';
 import { create } from '@bufbuild/protobuf';
 import { ListEventsResponseSchema } from '@gen/es/fme/v1/fme_service_pb';

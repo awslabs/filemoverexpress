@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { JobProgressEvent } from './job-progress-event';
 
 describe('JobProgressEvent', () => {

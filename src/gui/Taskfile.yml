@@ -9,7 +9,9 @@ tasks:
   test:
     desc: Run Angular GUI tests
     cmds:
-      - npx ng test --watch=false --code-coverage
+      - npx ng test --watch=false --coverage
+    env:
+        NODE_OPTIONS: "--no-experimental-webstorage"
 
   lint:
     desc: Run Angular ESLint

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import * as ConfigInterfaces from '@app/interfaces/config';
 import {
     Checksums,
@@ -31,19 +32,6 @@ const txpData: ConfigInterfaces.ConfigTransferProfile = {
     autoTuning: true,
     endpoint: '',
 };
-/*
- it('should create', () => {
-
- });
-
- it('should convert from protobuf', () => {
-
- });
-
- it('should convert from json', () => {
-
- });
- */
 
 describe('General', () => {
     const data: ConfigInterfaces.ConfigGeneral = {
