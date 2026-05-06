@@ -13,12 +13,12 @@ import (
 func (*FileMoverServer) GetConfiguration(
 	_ context.Context,
 	req *connect.Request[fmev1.GetConfigurationRequest],
-) (*connect.Response[fmev1.FmeConfig], error) {
+) (*connect.Response[fmev1.GRPCFmeConfig], error) {
 	cfg := config.LoadConfiguration()
 	allowConfigEdit := cfg.APIServer.Permissions.AllowUIConfiguration
 	if !isLocalClient(req.Peer()) && !allowConfigEdit {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New(strConfigurationDisabled))
 	}
 
-	return connect.NewResponse(cfg.ToProtobuf()), nil
+	return connect.NewResponse(cfg.ToGRPCProtobuf()), nil
 }

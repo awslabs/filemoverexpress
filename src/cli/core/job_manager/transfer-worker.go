@@ -33,6 +33,15 @@ func (jm *JobManager) createTransferWorker() {
 	}
 }
 
+// finishTask records that a task has completed its lifecycle and decrements the
+// job's WaitGroup exactly once, even if both the transfer worker and the cancel
+// path attempt to finish the same task. See Task.MarkFinished.
+func finishTask(job *jobmanagertypes.Job, task *jobmanagertypes.Task) {
+	if task.MarkFinished() {
+		job.WaitGroup.Done()
+	}
+}
+
 // DoSingleTransfer handles the transfer of a task, updates task/job statuses, and updates the job waitgroup.
 //
 //revive:disable:function-length
@@ -45,11 +54,13 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 
 	jobStatus := job.Status()
 	if jobStatus == jobmanagertypes.JobStatusError {
-		job.WaitGroup.Done()
+		finishTask(job, task)
 		return
 	}
 	transferProfile := job.TransferProfile()
-	if jobStatus != jobmanagertypes.JobStatusInProgress && jobStatus != jobmanagertypes.JobStatusPaused {
+	if jobStatus != jobmanagertypes.JobStatusInProgress &&
+		jobStatus != jobmanagertypes.JobStatusPaused &&
+		jobStatus != jobmanagertypes.JobStatusCancelled {
 		job.SetStatus(jobmanagertypes.JobStatusInProgress)
 	}
 
@@ -62,7 +73,7 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 			Err:       err,
 		})
 		job.SetStatus(jobmanagertypes.JobStatusError)
-		job.WaitGroup.Done()
+		finishTask(job, task)
 		return
 	}
 	task.SetStatus(jobmanagertypes.TaskStatusInProgress)
@@ -80,7 +91,7 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 					events.Events.Warn(strErrorDeletingCancelledTask, task.Destination(), err)
 				}
 			}
-			job.WaitGroup.Done()
+			finishTask(job, task)
 			return
 		}
 
@@ -127,7 +138,7 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 		})
 		task.SetStatus(jobmanagertypes.TaskStatusCompleted)
 	}
-	job.WaitGroup.Done()
+	finishTask(job, task)
 }
 
 //revive:enable:function-length

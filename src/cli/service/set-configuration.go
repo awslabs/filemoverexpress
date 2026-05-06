@@ -13,7 +13,7 @@ import (
 
 func (*FileMoverServer) SetConfiguration(
 	_ context.Context,
-	req *connect.Request[fmev1.FmeConfig],
+	req *connect.Request[fmev1.GRPCFmeConfig],
 ) (*connect.Response[fmev1.SetConfigurationResponse], error) {
 	cfg := config.LoadConfiguration()
 	allowConfigEdit := cfg.APIServer.Permissions.AllowUIConfiguration
@@ -24,8 +24,15 @@ func (*FileMoverServer) SetConfiguration(
 		}), connect.NewError(connect.CodeResourceExhausted, errors.New(strUnableToWriteConfig))
 	}
 
-	newConfig := configtypes.FromProtobuf(req.Msg, cfg.APIServer)
-	err := config.SaveConfig(&newConfig)
+	newConfig, err := configtypes.FromGRPCProtobuf(req.Msg, cfg.APIServer)
+	if err != nil {
+		return connect.NewResponse(&fmev1.SetConfigurationResponse{
+			Success: false,
+			Message: err.Error(),
+		}), connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	err = config.SaveConfig(&newConfig)
 	if err != nil {
 		return connect.NewResponse(&fmev1.SetConfigurationResponse{
 			Success: false,

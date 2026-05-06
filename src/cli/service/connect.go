@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/events"
@@ -24,27 +22,30 @@ func startServer(mux *http.ServeMux, ip string, port uint) {
 	cfg := config.LoadConfiguration()
 	address := fmt.Sprintf("%s:%d", ip, port)
 
+	srv := &http.Server{
+		Addr:    address,
+		Handler: mux,
+	}
+	srv.Protocols = new(http.Protocols)
+	srv.Protocols.SetHTTP1(true)
+	srv.Protocols.SetHTTP2(true)
+
 	if cfg.APIServer.TLSSettings.Enabled {
 		if err := validateTLSSettings(cfg.APIServer.TLSSettings.CertificateFile, cfg.APIServer.TLSSettings.KeyFile); err != nil {
 			logger.Fatal(err.Error())
 		}
 
 		logger.Info("Starting HTTPS listener")
-		err := http.ListenAndServeTLS(
-			address,
+		err := srv.ListenAndServeTLS(
 			cfg.APIServer.TLSSettings.CertificateFile,
 			cfg.APIServer.TLSSettings.KeyFile,
-			h2c.NewHandler(mux, &http2.Server{}),
 		)
 		if err != nil {
 			logger.Fatal(err.Error())
 		}
 	} else {
 		logger.Info("Starting HTTP listener")
-		err := http.ListenAndServe(
-			address,
-			h2c.NewHandler(mux, &http2.Server{}),
-		)
+		err := srv.ListenAndServe()
 		if err != nil {
 			logger.Fatal(err.Error())
 		}

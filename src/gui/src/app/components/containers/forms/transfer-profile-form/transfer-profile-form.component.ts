@@ -30,13 +30,14 @@ import {
 import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
 import { formErrorMessages } from '@app/constants/common.constants';
 import { ObjectSortPipe } from '@app/pipes/object-sort.pipe';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { MetadataEvent } from '@events/core';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { RegionsService } from '@services/regions/regions.service';
 import { Subscription } from 'rxjs';
 import { checksumAlgorithms, createTransferProfileForm, separatorKeysCodes, storageClasses } from './transfer-profile-form.constants';
 import { EditorMode, StorageClass, TransferProfileForm } from './transfer-profile-form.interfaces';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-transfer-profile-form',
@@ -74,6 +75,7 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
     private regionsService = inject(RegionsService);
     private fmeClientService = inject(FmeClientService);
     private bottomSheet = inject(MatBottomSheet);
+    private wails = inject(WailsService);
 
     tutorialMode = input<boolean>(false);
     transferProfile = input<TransferProfile | null>();
@@ -335,8 +337,8 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
     openExternalLink(event: Event, url: string) {
         event.preventDefault();
 
-        if (isElectronApp()) {
-            window.fme?.externalLink(url).then();
+        if (isPackagedApp()) {
+            this.wails.externalLink(url).subscribe();
         }
     }
 
@@ -355,4 +357,3 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
         this.awsProfiles = metadata.awsProfiles;
     }
 }
-

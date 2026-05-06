@@ -15,49 +15,66 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-protobuf:
+  generate-protobuf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/build-protobuf
+        with:
+          working-directory: src/protobuf
+      - uses: ./.github/actions/generate-protobuf
+
+  generate-bindings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/generate-bindings
 
   lint:
-    needs: [build-protobuf]
+    needs: [generate-protobuf, generate-bindings]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
       - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/download-bindings
       - uses: ./.github/actions/lint-gui
       - uses: ./.github/actions/lint-cli
       - uses: ./.github/actions/lint-protobuf
 
   test-cli:
-    needs: [build-protobuf]
+    needs: [generate-protobuf, generate-bindings]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
       - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/download-bindings
       - uses: ./.github/actions/test-cli
 
   test-gui:
-    needs: [build-protobuf]
+    needs: [generate-protobuf, generate-bindings]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
         with:
           install-go: 'false'
       - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/download-bindings
       - uses: ./.github/actions/test-gui
 
-  test-build-scripts:
+  test-wails:
+    needs: [generate-protobuf, generate-bindings]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
-        with:
-          install-go: 'false'
-      - uses: ./.github/actions/test-build-scripts
+      - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/download-bindings
+      - name: Create dummy frontend dist for embedFS
+        run: mkdir -p src/wails/frontend/dist/browser && touch src/wails/frontend/dist/browser/.gitkeep
+        shell: bash
+      - name: Run Wails tests
+        run: task test:wails

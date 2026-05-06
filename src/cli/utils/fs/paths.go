@@ -56,11 +56,13 @@ func ConvertPathToWindows(grpcPath string) (string, error) {
 		return "/", nil
 	}
 	parts := strings.SplitN(strings.TrimPrefix(grpcPath, "/"), "/", 2)
+
 	if len(parts) == 1 {
 		return constructWinPath(parts[0], "/"), nil
 	} else if len(parts) == 2 {
 		return constructWinPath(parts[0], parts[1]), nil
 	}
+
 	return "/", fmt.Errorf("invalid grpcPath given: %s", grpcPath)
 }
 

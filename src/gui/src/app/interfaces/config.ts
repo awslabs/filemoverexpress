@@ -4,7 +4,6 @@ export type FmeConfigSection =
     proto.GeneralSettings
     | proto.LoggingSettings
     | proto.ReportsSettings
-    | proto.ApiServerSettings
     | proto.Protocols
     | proto.UploadHotFolderSettings[]
     | undefined;
@@ -13,7 +12,6 @@ export interface FmeConfig {
     general: ConfigGeneral;
     logging: ConfigLogging;
     reports: ConfigReports;
-    apiServer: ConfigAPIServer;
     protocols: ConfigProtocols;
     uploadHotFolders: ConfigHotFolders[];
 }
@@ -50,40 +48,6 @@ export interface ConfigReports {
     directory: string;
 }
 
-export interface ConfigAPIServer {
-    enabled: boolean;
-    permissions: APIServerPermissions;
-    blockedPaths: string[];
-    tls: APIServerTLS;
-    remote: APIServerRemote;
-    allowedOrigins: string[];
-}
-
-export interface APIServerPermissions {
-    allowUiConfiguration: boolean;
-    allowLocalRenameDelete: boolean;
-    allowRemoteRenameDelete: boolean;
-}
-
-export interface APIServerTLS {
-    enabled: boolean;
-    certificateFile: string;
-    keyFile: string;
-}
-
-export interface APIServerPermissions {
-    allowUiConfiguration: boolean;
-    allowLocalRenameDelete: boolean;
-    allowRemoteRenameDelete: boolean;
-}
-
-export interface APIServerRemote {
-    enabled: boolean;
-    preSharedKey: string;
-    address: string;
-    ports: number[];
-}
-
 export interface ConfigProtocols {
     s3: ConfigS3;
 }
@@ -111,12 +75,6 @@ export interface ConfigTransferProfile {
     endpoint: string;
 }
 
-// export interface ConfigUploadHotFolder {
-//     enabled: boolean;
-//     basePath: string;
-//     s3Prefix: string;
-// }
-
 export interface Paths {
     local: string;
     remote: string;
@@ -126,5 +84,3 @@ export interface Checksums {
     enabled: boolean;
     algorithm: string;
 }
-
-

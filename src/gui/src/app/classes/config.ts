@@ -2,10 +2,6 @@ import * as ConfigInterfaces from '../interfaces/config';
 import { FmeConfigSection } from '../interfaces/config';
 import * as proto from '@gen/es/fme/v1/config_pb';
 import {
-    DEFAULT_API_SERVER_PERMISSIONS,
-    DEFAULT_API_SERVER_REMOTE,
-    DEFAULT_API_SERVER_SETTINGS,
-    DEFAULT_API_SERVER_TLS,
     DEFAULT_CHECKSUMS,
     DEFAULT_GENERAL_SETTINGS,
     DEFAULT_LOGGING_SETTINGS,
@@ -21,7 +17,6 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
         public general: General,
         public logging: Logging,
         public reports: Reports,
-        public apiServer: ApiServer,
         public protocols: Protocols,
         public uploadHotFolders: HotFolders[],
     ) {
@@ -36,18 +31,16 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             General.fromJson(input.general),
             Logging.fromJson(input.logging),
             Reports.fromJson(input.reports),
-            ApiServer.fromJson(input.apiServer),
             Protocols.fromJson(input.protocols),
             hotFolders,
         );
     }
 
-    public static fromProtobuf(input: proto.FmeConfig): FmeConfig {
+    public static fromProtobuf(input: proto.GRPCFmeConfig): FmeConfig {
         const fieldsToCheck: Record<string, FmeConfigSection> = {
             'general': input.general,
             'logging': input.logging,
             'reports': input.reports,
-            'apiServer': input.apiServer,
             'protocols': input.protocols,
             'hotFolders': input.uploadHotFolders,
         };
@@ -66,10 +59,21 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             input.general ? General.fromProtobuf(input.general) : General.fromJson(DEFAULT_GENERAL_SETTINGS),
             input.logging ? Logging.fromProtobuf(input.logging) : Logging.fromJson(DEFAULT_LOGGING_SETTINGS),
             input.reports ? Reports.fromProtobuf(input.reports) : Reports.fromJson(DEFAULT_REPORTS_SETTINGS),
-            input.apiServer ? ApiServer.fromProtobuf(input.apiServer) : ApiServer.fromJson(DEFAULT_API_SERVER_SETTINGS),
             input.protocols ? Protocols.fromProtobuf(input.protocols) : Protocols.fromJson(DEFAULT_PROTOCOLS_SETTINGS),
             hotFolders,
         );
+    }
+
+    public toProtobuf(): proto.GRPCFmeConfig {
+        const grpcConfig = create(proto.GRPCFmeConfigSchema);
+        grpcConfig.general = General.jsonToProtobuf(this.general);
+        grpcConfig.logging = Logging.jsonToProtobuf(this.logging);
+        grpcConfig.reports = Reports.jsonToProtobuf(this.reports);
+        grpcConfig.protocols = Protocols.jsonToProtobuf(this.protocols);
+        grpcConfig.uploadHotFolders = this.uploadHotFolders.map(
+            (itm) => HotFolders.jsonToProtobuf(itm),
+        );
+        return grpcConfig;
     }
 }
 
@@ -249,159 +253,6 @@ export class Reports implements ConfigInterfaces.ConfigReports {
         return reportsSettings;
     }
 }
-
-export class ApiServer implements ConfigInterfaces.ConfigAPIServer {
-    constructor(
-        public permissions: APIServerPermissions,
-        public enabled: boolean,
-        public tls: APIServerTLS,
-        public blockedPaths: string[],
-        public remote: APIServerRemote,
-        public allowedOrigins: string[],
-    ) {
-    }
-
-    static fromProtobuf(input: proto.ApiServerSettings): ApiServer {
-        if (!input.remote) {
-            console.debug('Got a APIServerSettings message without a remote property');
-        }
-
-        return new ApiServer(
-            input.permissions ? APIServerPermissions.fromProtobuf(input.permissions) : APIServerPermissions.fromJson(DEFAULT_API_SERVER_PERMISSIONS),
-            input.enabled,
-            input.tls ? APIServerTLS.fromProtobuf(input.tls) : APIServerTLS.fromJson(DEFAULT_API_SERVER_TLS),
-            input.blockedPaths,
-            input.remote ? APIServerRemote.fromProtobuf(input.remote) : APIServerRemote.fromJson(DEFAULT_API_SERVER_REMOTE),
-            input.allowedOrigins,
-        );
-    }
-
-    static fromJson(input: ConfigInterfaces.ConfigAPIServer): ApiServer {
-        return new ApiServer(
-            input.permissions,
-            input.enabled,
-            APIServerTLS.fromJson(input.tls),
-            input.blockedPaths,
-            APIServerRemote.fromJson(input.remote),
-            input.allowedOrigins,
-        );
-    }
-
-    static jsonToProtobuf(input: ConfigInterfaces.ConfigAPIServer): proto.ApiServerSettings {
-        const apiServerSettings = create(proto.ApiServerSettingsSchema);
-        apiServerSettings.allowedOrigins = input.allowedOrigins;
-        apiServerSettings.enabled = input.enabled;
-        apiServerSettings.blockedPaths = input.blockedPaths;
-        apiServerSettings.permissions = APIServerPermissions.jsonToProtobuf(input.permissions);
-        apiServerSettings.tls = APIServerTLS.jsonToProtobuf(input.tls);
-        apiServerSettings.remote = APIServerRemote.jsonToProtobuf(input.remote);
-        return apiServerSettings;
-    }
-}
-
-export class APIServerTLS implements APIServerTLS {
-    constructor(
-        public enabled: boolean,
-        public certificateFile: string,
-        public keyFile: string,
-    ) {
-    }
-
-    static fromProtobuf(input: proto.ApiServerTlsSettings): APIServerTLS {
-        return new APIServerTLS(
-            input.enabled,
-            input.certificateFile,
-            input.keyFile,
-        );
-    }
-
-    static fromJson(input: ConfigInterfaces.APIServerTLS): APIServerTLS {
-        return new APIServerTLS(
-            input.enabled,
-            input.certificateFile,
-            input.keyFile,
-        );
-    }
-
-    static jsonToProtobuf(input: ConfigInterfaces.APIServerTLS): proto.ApiServerTlsSettings {
-        const apiServerTLSSettings = create(proto.ApiServerTlsSettingsSchema);
-        apiServerTLSSettings.enabled = input.enabled;
-        apiServerTLSSettings.keyFile = input.keyFile;
-        apiServerTLSSettings.certificateFile = input.certificateFile;
-        return apiServerTLSSettings;
-    }
-}
-
-export class APIServerPermissions implements APIServerPermissions {
-    constructor(
-        public allowUiConfiguration: boolean,
-        public allowLocalRenameDelete: boolean,
-        public allowRemoteRenameDelete: boolean,
-    ) {
-    }
-
-    static fromProtobuf(input: proto.ApiServerPermissions): APIServerPermissions {
-        return new APIServerPermissions(
-            input.allowUiConfiguration,
-            input.allowLocalRenameDelete,
-            input.allowRemoteRenameDelete,
-        );
-    }
-
-    static fromJson(input: ConfigInterfaces.APIServerPermissions): APIServerPermissions {
-        return new APIServerPermissions(
-            input.allowUiConfiguration,
-            input.allowLocalRenameDelete,
-            input.allowRemoteRenameDelete,
-        );
-    }
-
-    static jsonToProtobuf(input: ConfigInterfaces.APIServerPermissions): proto.ApiServerPermissions {
-        const apiServerPermissions = create(proto.ApiServerPermissionsSchema);
-        apiServerPermissions.allowLocalRenameDelete = input.allowLocalRenameDelete;
-        apiServerPermissions.allowRemoteRenameDelete = input.allowRemoteRenameDelete;
-        apiServerPermissions.allowUiConfiguration = input.allowUiConfiguration;
-        return apiServerPermissions;
-    }
-}
-
-export class APIServerRemote implements APIServerRemote {
-    constructor(
-        public enabled: boolean,
-        public preSharedKey: string,
-        public address: string,
-        public ports: number[],
-    ) {
-    }
-
-    static fromProtobuf(input: proto.ApiServerRemoteSettings): APIServerRemote {
-        return new APIServerRemote(
-            input.enabled,
-            input.preSharedKey,
-            input.address,
-            input.ports,
-        );
-    }
-
-    static fromJson(input: ConfigInterfaces.APIServerRemote): APIServerRemote {
-        return new APIServerRemote(
-            input.enabled,
-            input.preSharedKey,
-            input.address,
-            input.ports,
-        );
-    }
-
-    static jsonToProtobuf(input: ConfigInterfaces.APIServerRemote): proto.ApiServerRemoteSettings {
-        const apiServerRemoteSettings = create(proto.ApiServerRemoteSettingsSchema);
-        apiServerRemoteSettings.enabled = input.enabled;
-        apiServerRemoteSettings.preSharedKey = input.preSharedKey;
-        apiServerRemoteSettings.address = input.address;
-        apiServerRemoteSettings.ports = input.ports;
-        return apiServerRemoteSettings;
-    }
-}
-
 
 export class Protocols implements ConfigInterfaces.ConfigProtocols {
     constructor(public s3: S3Config) {

@@ -36,12 +36,18 @@ func (*FileMoverServer) CancelJob(
 	taskMap := jm.GetTasks(jobId)
 	for _, task := range taskMap {
 		status := task.Status()
-		if status != jobmanagertypes.TaskStatusError && status != jobmanagertypes.TaskStatusCompleted {
-			if status != jobmanagertypes.TaskStatusInProgress {
-				job.WaitGroup.Done()
-			}
-			task.SetStatus(jobmanagertypes.TaskStatusCancelled)
+		if status == jobmanagertypes.TaskStatusError || status == jobmanagertypes.TaskStatusCompleted {
+			continue
 		}
+		// In-progress tasks are owned by the transfer worker: it will finish them
+		// (and call Done) once it observes the cancelled context. For tasks that
+		// haven't started, the cancel path owns the Done. MarkFinished guarantees
+		// the Done fires exactly once even if a worker is picking the task up right
+		// now — preventing the negative-WaitGroup-counter panic.
+		if status != jobmanagertypes.TaskStatusInProgress && task.MarkFinished() {
+			job.WaitGroup.Done()
+		}
+		task.SetStatus(jobmanagertypes.TaskStatusCancelled)
 	}
 	job.CancelFunc(fmeErrors.ErrJobCancelled)
 	events.Events.Info("Cancelled job %s", job.Name())

@@ -1,9 +1,5 @@
 import {
-    APIServerPermissions,
-    APIServerRemote,
-    APIServerTLS,
     Checksums,
-    ConfigAPIServer,
     ConfigGeneral,
     ConfigLogging,
     ConfigProtocols,
@@ -11,25 +7,6 @@ import {
     ConfigS3,
     Paths,
 } from '../interfaces/config';
-
-export const DEFAULT_API_SERVER_REMOTE: APIServerRemote = {
-    enabled: false,
-    preSharedKey: '',
-    address: '',
-    ports: [],
-};
-
-export const DEFAULT_API_SERVER_PERMISSIONS: APIServerPermissions = {
-    allowUiConfiguration: false,
-    allowLocalRenameDelete: false,
-    allowRemoteRenameDelete: false,
-};
-
-export const DEFAULT_API_SERVER_TLS: APIServerTLS = {
-    enabled: true,
-    certificateFile: '',
-    keyFile: '',
-};
 
 export const DEFAULT_S3_CONFIG: ConfigS3 = {
     transferProfiles: {},
@@ -63,15 +40,6 @@ export const DEFAULT_LOGGING_SETTINGS: ConfigLogging = {
 
 export const DEFAULT_REPORTS_SETTINGS: ConfigReports = {
     directory: '',
-};
-
-export const DEFAULT_API_SERVER_SETTINGS: ConfigAPIServer = {
-    enabled: false,
-    blockedPaths: [],
-    permissions: DEFAULT_API_SERVER_PERMISSIONS,
-    tls: DEFAULT_API_SERVER_TLS,
-    remote: DEFAULT_API_SERVER_REMOTE,
-    allowedOrigins: [],
 };
 
 export const DEFAULT_PROTOCOLS_SETTINGS: ConfigProtocols = {

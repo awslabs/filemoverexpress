@@ -1,0 +1,33 @@
+version: '3'
+
+info:
+  companyName: "Amazon Web Services"
+  productName: "File Mover Express for AWS"
+  productIdentifier: "com.amazon.filemoverexpress"
+  description: "File Mover Express for AWS"
+  copyright: "Amazon Web Services, 2026"
+  version: "1.0.0"
+
+dev_mode:
+  root_path: .
+  log_level: debug
+  debounce: 3000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - bin
+    file:
+      - .DS_Store
+      - .gitignore
+      - .gitkeep
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: wails3 task build
+      type: blocking
+    - cmd: wails3 task run
+      type: primary

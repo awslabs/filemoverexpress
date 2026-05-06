@@ -29,9 +29,6 @@ import { ConnectionState } from '@state/models/connection-state-model';
 import { logSeverities } from './config.constants';
 import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
 import {
-    ConfigFormApiServerGroup,
-    ConfigFormApiServerPermissionsGroup,
-    ConfigFormApiServerTLSGroup,
     ConfigFormGeneralGroup,
     ConfigFormGroup,
     ConfigFormLoggingGroup,
@@ -153,27 +150,6 @@ export class ConfigComponent implements OnInit {
             reports: new FormGroup<ConfigFormReportsGroup>({
                 directory: new FormControl<string>('', {nonNullable: true}),
             }),
-            apiServer: new FormGroup<ConfigFormApiServerGroup>({
-                enabled: new FormControl<boolean>(true, {nonNullable: true}),
-                permissions: new FormGroup<ConfigFormApiServerPermissionsGroup>({
-                    allowUiConfiguration: new FormControl<boolean>(false, {nonNullable: true}),
-                    allowLocalRenameDelete: new FormControl<boolean>(false, {nonNullable: true}),
-                    allowRemoteRenameDelete: new FormControl<boolean>(false, {nonNullable: true}),
-                }),
-                tls: new FormGroup<ConfigFormApiServerTLSGroup>({
-                    enabled: new FormControl<boolean>(false, {nonNullable: true}),
-                    certificateFile: new FormControl<string>('', {nonNullable: true}),
-                    keyFile: new FormControl<string>('', {nonNullable: true}),
-                }),
-                blockedPaths: new FormControl<string[]>([], {nonNullable: true}),
-                remote: new FormGroup({
-                    enabled: new FormControl<boolean>(true, {nonNullable: true}),
-                    preSharedKey: new FormControl<string>('/', {nonNullable: true}),
-                    address: new FormControl<string>('/', {nonNullable: true}),
-                    ports: new FormControl<number[]>([], {nonNullable: true}),
-                }),
-                allowedOrigins: new FormControl<string[]>([], {nonNullable: true}),
-            }),
             protocols: new FormGroup<ConfigFormProtocolsGroup>({
                 s3: new FormGroup<ConfigFormS3Group>({
                     transferProfiles: new FormControl<Record<string, TransferProfile>>({}, {nonNullable: true}),
@@ -223,7 +199,6 @@ export class ConfigComponent implements OnInit {
                     general: result.general,
                     logging: result.logging,
                     reports: result.reports,
-                    apiServer: result.apiServer,
                     protocols: result.protocols,
                     uploadHotFolders: result.uploadHotFolders,
                 });

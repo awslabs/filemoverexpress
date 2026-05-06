@@ -1,12 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { WelcomeModalComponent } from '@app/components/modals/welcome-modal/welcome-modal.component';
+import { WailsService } from '@services/wails/wails.service';
 
 @Injectable({
     providedIn: 'root',
 })
 export class StartupService {
     private dialog = inject(MatDialog);
+    private wails = inject(WailsService);
 
     constructor() {
         this.checkFirstLaunchComplete();
@@ -16,14 +18,19 @@ export class StartupService {
      * Checks if this is the first time launching the shell and opens the welcome modal if so.
      */
     checkFirstLaunchComplete(): void {
-        if (window.fme) {
-            window.fme.firstLaunchComplete().then(
-                (firstLaunchComplete) => {
-                    if (!firstLaunchComplete) {
-                        this.openWelcomeModal();
-                    }
-                },
-            );
+        try {
+            this.wails.firstLaunchComplete()
+                .subscribe(
+                    {
+                        next: (firstLaunchComplete) => {
+                            if (!firstLaunchComplete) {
+                                this.openWelcomeModal();
+                            }
+                        },
+                    },
+                );
+        } catch {
+            // intentionally blank
         }
     }
 

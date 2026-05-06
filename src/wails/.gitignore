@@ -1,0 +1,8 @@
+bin/
+frontend/dist
+frontend/node_modules
+# Include the Wails build dir as it contains sources for the build system
+build/linux/appimage/build
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+*.syso
+.task

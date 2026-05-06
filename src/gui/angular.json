@@ -25,7 +25,7 @@
                     "builder": "@angular/build:application",
                     "options": {
                         "outputPath": {
-                            "base": "dist"
+                            "base": "../wails/frontend/dist"
                         },
                         "index": "src/index.html",
                         "polyfills": [

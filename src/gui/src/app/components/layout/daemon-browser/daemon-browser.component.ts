@@ -29,7 +29,7 @@ import {
 import { tooltipMessages } from '@app/constants/common.constants';
 import { PathType } from '@app/interfaces/paths';
 import { displayPathToGrpcPath, grpcPathToDisplayPath } from '@app/utils/path-utils';
-import { basename, commonPath, createJobName, getErrorMessage, s3BasePath } from '@app/utils/utils';
+import { basename, commonPath, createJobName, getErrorMessage, isPackagedApp, s3BasePath } from '@app/utils/utils';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { RefreshButtonComponent } from '@primitives/buttons/refresh-button/refresh-button.component';
 import { DaemonSelectorDropdownComponent } from '@primitives/forms/daemon-selector-dropdown/daemon-selector-dropdown.component';
@@ -39,7 +39,6 @@ import { DEFAULT_BOOKMARK_NAME } from '@services/bookmarks/bookmarks.constants';
 import { BookmarksService } from '@services/bookmarks/bookmarks.service';
 import { isLocalDaemon } from '@services/bookmarks/bookmarks.utils';
 import { MetadataService } from '@services/metadata/metadata.service';
-import { PanelLevel } from '@services/notifications/notifications.constants';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { TransferProfileState } from '@services/transfer-profile/transfer-profile.interfaces';
@@ -68,6 +67,7 @@ import { NavigateOptions } from './daemon-browser.interfaces';
 import * as UiContextActions from '@state/ui-context/actions/ui-context.actions';
 import { Store } from '@ngrx/store';
 import { AppState } from '@app/state';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-daemon-browser',
@@ -90,6 +90,7 @@ export class DaemonBrowserComponent implements OnDestroy {
     private dialog = inject(MatDialog);
     private metadata = inject(MetadataService);
     private store = inject<Store<AppState>>(Store);
+    private wails = inject(WailsService);
 
     @ViewChild('filterField') filterField!: TextInputComponent;
     fileBrowserID = DAEMON_FILE_BROWSER_ID;
@@ -176,6 +177,15 @@ export class DaemonBrowserComponent implements OnDestroy {
                 this.selectedBookmark = bookmark;
             },
         ));
+        // Re-derive the favorite markers on the current listing whenever bookmarks change
+        // (favorite added/removed via the context menu, the daemon selector, etc.). The
+        // listing only computes markers at navigation time, so without this the favorite
+        // icon would persist/stale until a manual refresh. See issue #17.
+        this.subscriptions.push(this.bookmarks.getAllBookmarks.subscribe(
+            () => {
+                this.recomputeFavoriteMarkers();
+            },
+        ));
         // get the hot folder list and file browser type
         this.subscriptions.push(this.metadata.onUpdate.subscribe({
             next: () => {
@@ -227,6 +237,32 @@ export class DaemonBrowserComponent implements OnDestroy {
                 this.navigateToPath(this.currentDirectory, {silentRefreshNavigation: silentRefresh});
             }
         }
+    }
+
+    /**
+     * Re-derives the favorite markers on the currently displayed listing from the
+     * selected bookmark's favorite paths. Produces new object/list references so
+     * change detection updates the icons without re-listing from the daemon, which
+     * is why removing a favorite previously left a stale icon. See issue #17.
+     */
+    private recomputeFavoriteMarkers() {
+        if (this.fileBrowserData.state !== FileBrowserState.LOADED || !this.fileBrowserData.list.length) {
+            return;
+        }
+        const updatedList = this.fileBrowserData.list.map((object) => {
+            if (object.type !== FileBrowserObjectType.FOLDER) {
+                return object;
+            }
+            const displayPath = grpcPathToDisplayPath(object.name, this.fileBrowserType);
+            const isFavorite = this.selectedBookmark
+                ? this.bookmarks.hasFavoritePath(this.selectedBookmark, displayPath)
+                : false;
+            if (isFavorite === object.isFavorite) {
+                return object;
+            }
+            return {...object, isFavorite};
+        });
+        this.fileBrowserData = {...this.fileBrowserData, list: updatedList};
     }
 
     /**
@@ -509,9 +545,6 @@ export class DaemonBrowserComponent implements OnDestroy {
                 const addResult = this.bookmarks.addFavoritePath(this.selectedBookmark, favoriteDisplayPath);
                 if (addResult) {
                     this.notifications.open(addResult.message, addResult.level);
-                    if (addResult.level === PanelLevel.SUCCESS) {
-                        triggerObject.isFavorite = true;
-                    }
                 }
             }
         };
@@ -532,9 +565,6 @@ export class DaemonBrowserComponent implements OnDestroy {
                 const deleteResult = this.bookmarks.deleteFavoritePath(this.selectedBookmark, favoriteDisplayPath);
                 if (deleteResult) {
                     this.notifications.open(deleteResult.message, deleteResult.level);
-                    if (deleteResult.level === PanelLevel.SUCCESS) {
-                        triggerObject.isFavorite = false;
-                    }
                 }
             }
         };
@@ -593,9 +623,15 @@ export class DaemonBrowserComponent implements OnDestroy {
      */
     openLocalFile(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
+            if (!isPackagedApp()) {
+                return;
+            }
+
             if (triggerObject?.name && this.selectedBookmark?.name === DEFAULT_BOOKMARK_NAME) {
                 const filePath = grpcPathToDisplayPath(triggerObject?.name, this.fileBrowserType);
-                window.fme?.systemOpen(filePath);
+                if (isPackagedApp()) {
+                    this.wails.systemOpen(filePath).subscribe();
+                }
             }
         };
     }
@@ -605,9 +641,13 @@ export class DaemonBrowserComponent implements OnDestroy {
      */
     showItemInFolder(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
+            if (!isPackagedApp()) {
+                return;
+            }
+
             if (triggerObject?.name && this.selectedBookmark?.name === DEFAULT_BOOKMARK_NAME) {
                 const filePath = grpcPathToDisplayPath(triggerObject?.name, this.fileBrowserType);
-                window.fme?.systemShowItemInFolder(filePath);
+                this.wails.systemShowItemInFolder(filePath).subscribe();
             }
         };
     }
@@ -862,6 +902,15 @@ export class DaemonBrowserComponent implements OnDestroy {
                 action: this.setLocalStartingPath(),
             },
             {
+                label: 'Clear Local Starting Directory',
+                icon: 'clear',
+                iconColor: 'inherit',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['folder', this.showClearLocalStartingPathMenuRow()], ['emptySpace', this.showClearLocalStartingPathMenuRow()],
+                ]),
+                action: this.clearLocalStartingPath(),
+            },
+            {
                 label: 'Configure Hot Folder',
                 icon: 'whatshot',
                 iconColor: 'orange',
@@ -954,28 +1003,79 @@ export class DaemonBrowserComponent implements OnDestroy {
         dialogRef.afterClosed().subscribe(
             (result) => {
                 if (result !== null) {
-                    this.fmeClientService.getConfiguration().subscribe({
-                        next: (config) => {
-                            const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
-                            if (!transferProfileData) {
-                                this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file. Unable to update Local Directory.`);
-                                return;
-                            }
-                            config.protocols.s3.transferProfiles[transferProfile].paths.local = result;
-                            this.fmeClientService.setConfiguration(config).subscribe({
-                                next: () => {
-                                    this.notifications.success(`Successfully updated Local Directory for remote configuration ${transferProfile}.`);
-                                    this.refreshFileBrowser(true);
-                                },
-                                error: (error) => {
-                                    this.notifications.warning(`Error occurred when updating Local Directory for remote configuration ${transferProfile}: ${error}`);
-                                },
-                            });
-                        },
-                    });
+                    this.persistLocalStartingPath(transferProfile, result);
                 }
             },
         );
+    }
+
+    /**
+     * Persists the Local Starting Directory for a transfer profile. Passing an empty
+     * string clears it. Shared by the "Set" (modal) and "Clear" context-menu actions.
+     * See issue #18.
+     */
+    private persistLocalStartingPath(transferProfile: string, newLocalStartingPath: string) {
+        this.fmeClientService.getConfiguration().subscribe({
+            next: (config) => {
+                const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
+                if (!transferProfileData) {
+                    this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file. Unable to update Local Directory.`);
+                    return;
+                }
+                config.protocols.s3.transferProfiles[transferProfile].paths.local = newLocalStartingPath;
+                this.fmeClientService.setConfiguration(config).subscribe({
+                    next: () => {
+                        const message = newLocalStartingPath
+                            ? `Successfully updated Local Starting Directory for remote configuration ${transferProfile}.`
+                            : `Cleared Local Starting Directory for remote configuration ${transferProfile}.`;
+                        this.notifications.success(message);
+                        this.refreshFileBrowser(true);
+                    },
+                    error: (error) => {
+                        this.notifications.warning(`Error occurred when updating Local Directory for remote configuration ${transferProfile}: ${error}`);
+                    },
+                });
+            },
+        });
+    }
+
+    /**
+     * Returns true if the selected transfer profile has a Local Starting Directory set.
+     */
+    private isLocalStartingPathConfigured(): boolean {
+        const currentTransferProfile = this.selectedTransferProfile;
+        if (!currentTransferProfile) {
+            return false;
+        }
+        try {
+            const paths = this.metadata.transferProfiles[currentTransferProfile];
+            return !!cleanPath(displayPathToGrpcPath(paths.local, this.fileBrowserType));
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Context-menu visibility for "Clear Local Starting Directory": show on the
+     * folder that is the starting path, and on empty space whenever one is configured.
+     */
+    private showClearLocalStartingPathMenuRow(): FileBrowserContextMenuTriggerCondition {
+        return (fileBrowserObject: FileBrowserObject) => {
+            if (!fileBrowserObject) {
+                return this.isLocalStartingPathConfigured();
+            }
+            return this.isStartingPath(fileBrowserObject.name);
+        };
+    }
+
+    private clearLocalStartingPath(): FileBrowserContextMenuClickHandler {
+        return (__triggerType: FileBrowserContextMenuTrigger | null, __triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
+            const currentTransferProfile = this.selectedTransferProfile;
+            if (!currentTransferProfile) {
+                return;
+            }
+            this.persistLocalStartingPath(currentTransferProfile, '');
+        };
     }
 
     private renameLocalPath(): FileBrowserContextMenuClickHandler {

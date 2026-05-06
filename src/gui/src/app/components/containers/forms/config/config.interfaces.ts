@@ -22,34 +22,6 @@ export interface ConfigFormReportsGroup {
     directory: FormControl<string>;
 }
 
-export interface ConfigFormApiServerPermissionsGroup {
-    allowUiConfiguration: FormControl<boolean>;
-    allowLocalRenameDelete: FormControl<boolean>;
-    allowRemoteRenameDelete: FormControl<boolean>;
-}
-
-export interface ConfigFormApiServerTLSGroup {
-    enabled: FormControl<boolean>;
-    certificateFile: FormControl<string>;
-    keyFile: FormControl<string>;
-}
-
-export interface ConfigFormApiServerRemoteGroup {
-    enabled: FormControl<boolean>;
-    preSharedKey: FormControl<string>;
-    address: FormControl<string>;
-    ports: FormControl<number[]>;
-}
-
-export interface ConfigFormApiServerGroup {
-    enabled: FormControl<boolean>;
-    permissions: FormGroup<ConfigFormApiServerPermissionsGroup>;
-    tls: FormGroup<ConfigFormApiServerTLSGroup>;
-    blockedPaths: FormControl<string[]>;
-    remote: FormGroup<ConfigFormApiServerRemoteGroup>;
-    allowedOrigins: FormControl<string[]>;
-}
-
 export interface ConfigFormS3Group {
     transferProfiles: FormControl<Record<string, TransferProfile>>;
 }
@@ -62,7 +34,6 @@ export interface ConfigFormGroup {
     general: FormGroup<ConfigFormGeneralGroup>;
     logging: FormGroup<ConfigFormLoggingGroup>;
     reports: FormGroup<ConfigFormReportsGroup>;
-    apiServer: FormGroup<ConfigFormApiServerGroup>;
     protocols: FormGroup<ConfigFormProtocolsGroup>;
     uploadHotFolders: FormArray<FormGroup<HotFolderFormGroup>>;
 }

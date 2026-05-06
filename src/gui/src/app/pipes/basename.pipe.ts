@@ -6,6 +6,10 @@ import { basename } from '@app/utils/utils';
 })
 export class BasenamePipe implements PipeTransform {
     transform(value: string): string {
+        if (!value) {
+            return '';
+        }
+
         return basename(value);
     }
 }

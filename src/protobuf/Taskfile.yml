@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  generate:
+    desc: Generate protobuf code (Go + TypeScript)
+    cmds:
+      - npx buf generate
+    sources:
+      - '**/*.proto'
+    generates:
+      - ../cli/types/pbtypes/**/*.go
+      - ../gui/app/gen/es/**/*.ts

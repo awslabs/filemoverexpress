@@ -88,11 +88,13 @@ func (ld *LocalDiscovery) calculateDestination(source string) (string, error) {
 			return "", err
 		}
 	}
+
 	if ld.prefix != "" {
 		destination = path.Join(ld.prefix, source)
 	} else {
 		destination = source
 	}
+
 	destination = path.Clean(filepath.ToSlash(destination))
 	if transferapi.ContainsUnsafeS3Chars(destination) {
 		events.Events.Warn(discovery.StrContainsUnsafeChars, destination)

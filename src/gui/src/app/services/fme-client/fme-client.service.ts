@@ -7,7 +7,6 @@ import {
     StreamingClientError,
     StreamingClientErrorType,
 } from '@app/classes';
-import * as InventoryEvents from '@app/classes/events/inventory';
 import { FileBrowserObjectType } from '@app/components/layout/file-browser/file-browser.interfaces';
 import { NotificationMessages } from '@app/constants/common.constants';
 import { BaseEvent } from '@app/interfaces/events';
@@ -27,9 +26,7 @@ import {
 } from '@classes/grpc';
 import { CallbackClient, Code, ConnectError, createCallbackClient, Interceptor } from '@connectrpc/connect';
 import { createGrpcWebTransport } from '@connectrpc/connect-web';
-import * as CoreEvents from '@events/core';
-import * as JobEvents from '@events/job';
-import { FmeConfig as ProtoFmeConfig, GetConfigurationRequestSchema, SetConfigurationResponse } from '@gen/es/fme/v1/config_pb';
+import { GetConfigurationRequestSchema, GRPCFmeConfig, SetConfigurationResponse } from '@gen/es/fme/v1/config_pb';
 import { EventType } from '@gen/es/fme/v1/events_pb';
 import { FmeService, ListEventsRequestSchema, ListEventsResponse } from '@gen/es/fme/v1/fme_service_pb';
 import { InventoryReportRequestSchema, InventoryReportResponse } from '@gen/es/fme/v1/inventory_pb';
@@ -57,9 +54,9 @@ import {
 } from '@gen/es/fme/v1/remote_daemon_pb';
 import { ShutdownRequestSchema, ShutdownResult } from '@gen/es/fme/v1/shared_pb';
 import { CreateSupportFileRequestSchema, CreateSupportFileResponse } from '@gen/es/fme/v1/supportfile_pb';
-import * as S3Shared from '@gen/es/s3_shared/v1/s3_pb';
 import { Store } from '@ngrx/store';
 import * as ProgressActions from '@state/fme-client/actions/fme-client.actions';
+import { succeedConnect, tryConnect } from '@state/fme-client/actions/fme-client.actions';
 import { selectConnectionState } from '@state/fme-client/fme-client.selectors';
 import { FmeClientState } from '@state/fme-client/reducers/fme-client.reducer';
 import { ConnectionState } from '@state/models/connection-state-model';
@@ -70,6 +67,42 @@ import { BookmarksService } from '../bookmarks/bookmarks.service';
 import { PanelLevel } from '../notifications/notifications.constants';
 import { NotificationsService } from '../notifications/notifications.service';
 import { authKey, backoffconnectionFactors } from './fme-client.constants';
+import { WailsService } from '@services/wails/wails.service';
+import {
+    AlertEvent,
+    MessageEvent as FmeMessageEvent,
+    MetadataEvent,
+    NewVersionAvailableEvent,
+    ServerDisconnectEvent,
+    TransferStatsEvent,
+    UnsupportedVersionEvent,
+} from '@events/core';
+import {
+    CreateS3PrefixRequestSchema,
+    DeleteS3PathRequestSchema,
+    DownloadPrefixesRequestSchema,
+    DownloadPrefixesResponse,
+    RenameS3PathRequestSchema,
+    S3ListPrefixRequestSchema,
+    S3ListPrefixResponse,
+    UploadPrefixResponse as ProtoUploadPrefixResponse,
+    UploadPrefixRequestSchema,
+} from '@gen/es/s3_shared/v1/s3_pb';
+import {
+    InventoryReportCompletedEvent,
+    InventoryReportErrorEvent,
+    InventoryReportStartedEvent,
+} from '@events/inventory';
+import {
+    JobChecksumProgressEvent,
+    JobCompleteEvent,
+    JobCreateEvent,
+    JobErrorEvent,
+    JobProgressEvent,
+    JobStatusChangeEvent,
+    JobUpdateEvent,
+    TaskCompleteEvent,
+} from '@events/job';
 
 @Injectable({
     providedIn: 'root',
@@ -78,11 +111,12 @@ export class FmeClientService {
     private store = inject<Store<FmeClientState>>(Store);
     private notifications = inject(NotificationsService);
     private bookmarksService = inject(BookmarksService);
+    private wails = inject(WailsService);
 
     private readonly _events$ = new Subject<BaseEvent>();
     private connectedState = ConnectionState.DISCONNECTED;
     private readonly connectionState$ = new BehaviorSubject<ConnectionState>(ConnectionState.DISCONNECTED);
-    private readonly metadata$ = new BehaviorSubject<CoreEvents.MetadataEvent>(new CoreEvents.MetadataEvent());
+    private readonly metadata$ = new BehaviorSubject<MetadataEvent>(new MetadataEvent());
     private currentBookmark: Bookmark | null = null;
     private connectClient: CallbackClient<typeof FmeService> | null = null;
     private eventStreamCancel: (() => void | null) | null = null;
@@ -137,8 +171,8 @@ export class FmeClientService {
         return this.connectionState$.pipe(distinctUntilChanged()) as Observable<ConnectionState>;
     }
 
-    get metadata(): Observable<CoreEvents.MetadataEvent> {
-        return this.metadata$.pipe(distinctUntilChanged()) as Observable<CoreEvents.MetadataEvent>;
+    get metadata(): Observable<MetadataEvent> {
+        return this.metadata$.pipe(distinctUntilChanged()) as Observable<MetadataEvent>;
     }
 
     // endregion
@@ -152,7 +186,7 @@ export class FmeClientService {
         }
         this.connectClient.getConfiguration(
             create(GetConfigurationRequestSchema),
-            (err: ConnectError | undefined, res: ProtoFmeConfig) => {
+            (err: ConnectError | undefined, res: GRPCFmeConfig) => {
                 if (err) {
                     sub.error('Failed to get configuration');
                     return;
@@ -171,7 +205,7 @@ export class FmeClientService {
             return sub.asObservable();
         }
         this.connectClient.setConfiguration(
-            config,
+            config.toProtobuf(),
             (err: ConnectError | undefined, res: SetConfigurationResponse) => {
                 if (err) {
                     sub.error(err);
@@ -191,7 +225,7 @@ export class FmeClientService {
     // region Listing files
     listS3Prefix(txProfile: string, prefix: string): Subject<S3ListPrefix> {
         const sub = new Subject<S3ListPrefix>();
-        const req = create(S3Shared.S3ListPrefixRequestSchema);
+        const req = create(S3ListPrefixRequestSchema);
         req.transferProfile = txProfile;
         req.prefix = prefix;
 
@@ -202,7 +236,7 @@ export class FmeClientService {
 
         this.connectClient.s3ListPrefix(
             req,
-            (err: ConnectError | undefined, res: S3Shared.S3ListPrefixResponse) => {
+            (err: ConnectError | undefined, res: S3ListPrefixResponse) => {
                 if (err) {
                     sub.error(err);
                     return;
@@ -252,9 +286,9 @@ export class FmeClientService {
         destination: string,
         jobName: string,
         s3CurrentDirectory: string,
-    ): Observable<S3Shared.DownloadPrefixesResponse> {
-        const sub = new Subject<S3Shared.DownloadPrefixesResponse>();
-        const req = create(S3Shared.DownloadPrefixesRequestSchema);
+    ): Observable<DownloadPrefixesResponse> {
+        const sub = new Subject<DownloadPrefixesResponse>();
+        const req = create(DownloadPrefixesRequestSchema);
         req.transferProfile = txProfile;
         req.force = forceFlag;
         req.prefixes = prefixes;
@@ -269,7 +303,7 @@ export class FmeClientService {
 
         this.connectClient.downloadPrefixes(
             req,
-            (err: ConnectError | undefined, res: S3Shared.DownloadPrefixesResponse) => {
+            (err: ConnectError | undefined, res: DownloadPrefixesResponse) => {
                 if (err) {
                     sub.error(err);
                     return;
@@ -292,7 +326,7 @@ export class FmeClientService {
         jobName: string,
     ): Observable<UploadPrefixResponse> {
         const sub = new Subject<UploadPrefixResponse>();
-        const req = create(S3Shared.UploadPrefixRequestSchema);
+        const req = create(UploadPrefixRequestSchema);
         req.transferProfile = txProfile;
         req.force = forceFlag;
         req.basePath = basePath;
@@ -307,7 +341,7 @@ export class FmeClientService {
 
         this.connectClient.uploadPrefixes(
             req,
-            (err: ConnectError | undefined, res: S3Shared.UploadPrefixResponse) => {
+            (err: ConnectError | undefined, res: ProtoUploadPrefixResponse) => {
                 if (err) {
                     sub.error(err);
                     return;
@@ -547,7 +581,7 @@ export class FmeClientService {
      */
     createS3Prefix(prefixKey: string, transferProfile: string): Observable<CreateS3PrefixResponse> {
         const sub = new Subject<CreateS3PrefixResponse>();
-        const req = create(S3Shared.CreateS3PrefixRequestSchema);
+        const req = create(CreateS3PrefixRequestSchema);
 
         if (this.connectedState !== ConnectionState.CONNECTED) {
             sub.error('Not connected');
@@ -606,7 +640,7 @@ export class FmeClientService {
 
     deleteS3Path(pathToDelete: string, transferProfile: string, pathType: FileBrowserObjectType): Observable<DeleteS3PathResponse> {
         const sub = new Subject<DeleteS3PathResponse>();
-        const req = create(S3Shared.DeleteS3PathRequestSchema);
+        const req = create(DeleteS3PathRequestSchema);
 
         if (this.connectedState !== ConnectionState.CONNECTED) {
             sub.error('Not connected');
@@ -645,7 +679,7 @@ export class FmeClientService {
         pathType: FileBrowserObjectType,
     ): Observable<RenameS3PathResponse> {
         const sub = new Subject<RenameS3PathResponse>();
-        const req = create(S3Shared.RenameS3PathRequestSchema);
+        const req = create(RenameS3PathRequestSchema);
 
         if (this.connectedState !== ConnectionState.CONNECTED) {
             sub.error('Not connected');
@@ -843,7 +877,7 @@ export class FmeClientService {
      * but would create a circular dependency because FmeClientService depends on NotificationService.
      * @param event The alert to be displayed
      */
-    handleAlert(event: CoreEvents.AlertEvent) {
+    handleAlert(event: AlertEvent) {
         let panelLevel: PanelLevel = PanelLevel.DEFAULT;
         switch (event.level) {
             case 'info':
@@ -868,8 +902,8 @@ export class FmeClientService {
     }
 
     processStreamError(error: StreamError) {
-        if (error?.fatal && !!window.fme) {
-            window.fme.fatalShutdown().then();
+        if (error?.fatal) {
+            this.wails.fatalShutdown().subscribe();
         } else {
             if (error?.message) {
                 this.notifications.warning(error.message);
@@ -889,47 +923,47 @@ export class FmeClientService {
         try {
             switch (response.eventType) {
                 case EventType.INVENTORY_REPORT_STARTED_EVENT_TYPE:
-                    return InventoryEvents.InventoryReportStartedEvent.fromProtobuf(response);
+                    return InventoryReportStartedEvent.fromProtobuf(response);
                 case EventType.INVENTORY_REPORT_COMPLETED_EVENT_TYPE:
-                    return InventoryEvents.InventoryReportCompletedEvent.fromProtobuf(response);
+                    return InventoryReportCompletedEvent.fromProtobuf(response);
                 case EventType.INVENTORY_REPORT_ERROR_EVENT_TYPE:
-                    return InventoryEvents.InventoryReportErrorEvent.fromProtobuf(response);
+                    return InventoryReportErrorEvent.fromProtobuf(response);
                 case EventType.NEW_VERSION_AVAILABLE_EVENT_TYPE:
-                    return CoreEvents.NewVersionAvailableEvent.fromProtobuf(response);
+                    return NewVersionAvailableEvent.fromProtobuf(response);
                 case EventType.UNSUPPORTED_VERSION_EVENT_TYPE:
-                    return CoreEvents.UnsupportedVersionEvent.fromProtobuf(response);
+                    return UnsupportedVersionEvent.fromProtobuf(response);
                 case EventType.SERVER_DISCONNECT_EVENT_TYPE:
-                    return CoreEvents.ServerDisconnectEvent.fromProtobuf(response);
+                    return ServerDisconnectEvent.fromProtobuf(response);
                 case EventType.MESSAGE_EVENT_TYPE:
-                    return CoreEvents.MessageEvent.fromProtobuf(response);
+                    return FmeMessageEvent.fromProtobuf(response);
                 case EventType.METADATA_EVENT_TYPE:
                     // eslint-disable-next-line no-case-declarations
-                    const md = CoreEvents.MetadataEvent.fromProtobuf(response);
+                    const md = MetadataEvent.fromProtobuf(response);
                     this.metadata$.next(md);
                     return md;
                 case EventType.ALERT_EVENT_TYPE:
                     // eslint-disable-next-line no-case-declarations
-                    const event = CoreEvents.AlertEvent.fromProtobuf(response);
+                    const event = AlertEvent.fromProtobuf(response);
                     this.handleAlert(event);
                     return event;
                 case EventType.JOB_CREATE_EVENT_TYPE:
-                    return JobEvents.JobCreateEvent.fromProtobuf(response);
+                    return JobCreateEvent.fromProtobuf(response);
                 case EventType.JOB_PROGRESS_EVENT_TYPE:
-                    return JobEvents.JobProgressEvent.fromProtobuf(response);
+                    return JobProgressEvent.fromProtobuf(response);
                 case EventType.JOB_COMPLETE_EVENT_TYPE:
-                    return JobEvents.JobCompleteEvent.fromProtobuf(response);
+                    return JobCompleteEvent.fromProtobuf(response);
                 case EventType.JOB_STATUS_CHANGE_EVENT_TYPE:
-                    return JobEvents.JobStatusChangeEvent.fromProtobuf(response);
+                    return JobStatusChangeEvent.fromProtobuf(response);
                 case EventType.JOB_ERROR_EVENT_TYPE:
-                    return JobEvents.JobErrorEvent.fromProtobuf(response);
+                    return JobErrorEvent.fromProtobuf(response);
                 case EventType.JOB_UPDATE_EVENT_TYPE:
-                    return JobEvents.JobUpdateEvent.fromProtobuf(response);
+                    return JobUpdateEvent.fromProtobuf(response);
                 case EventType.TASK_COMPLETE_EVENT_TYPE:
-                    return JobEvents.TaskCompleteEvent.fromProtobuf(response);
+                    return TaskCompleteEvent.fromProtobuf(response);
                 case EventType.JOB_CHECKSUM_PROGRESS_EVENT:
-                    return JobEvents.JobChecksumProgressEvent.fromProtobuf(response);
+                    return JobChecksumProgressEvent.fromProtobuf(response);
                 case EventType.TRANSFER_STATS_EVENT_TYPE:
-                    return CoreEvents.TransferStatsEvent.fromProtobuf(response);
+                    return TransferStatsEvent.fromProtobuf(response);
                 default:
                     return null;
             }
@@ -970,11 +1004,11 @@ export class FmeClientService {
             }
             if (this.connectedState != ConnectionState.CONNECTING) {
                 // start process to connect
-                this.store.dispatch(ProgressActions.tryConnect());
+                this.store.dispatch(tryConnect());
             }
             // try to start the daemon if it's the default local daemon
             if (this.bookmarksService.isDefaultLocalDaemon(currentBookmark)) {
-                window.fme?.startDaemon();
+                this.wails.startDaemon();
             }
         } else if (this.connectedState === ConnectionState.CONNECTED) {
             // don't do anything if still on same bookmark and session is connected
@@ -991,7 +1025,7 @@ export class FmeClientService {
             create(ListEventsRequestSchema),
             (event) => {
                 if (this.connectedState != ConnectionState.CONNECTED) {
-                    this.store.dispatch(ProgressActions.succeedConnect());
+                    this.store.dispatch(succeedConnect());
                 }
 
                 try {

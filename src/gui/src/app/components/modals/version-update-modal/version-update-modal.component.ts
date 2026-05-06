@@ -3,6 +3,7 @@ import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { VersionService } from '@services/version/version.service';
 import { docsLinks } from '@app/constants/external-links';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-version-update-modal',
@@ -18,6 +19,7 @@ import { docsLinks } from '@app/constants/external-links';
 export class VersionUpdateModalComponent {
     private updatesService = inject(VersionService);
     private dialogRef = inject<MatDialogRef<VersionUpdateModalComponent>>(MatDialogRef);
+    private wails = inject(WailsService);
 
     nextVersion: string;
     ignoredUpdates: string[];
@@ -32,9 +34,9 @@ export class VersionUpdateModalComponent {
 
     update() {
         return () => {
-            if (window.fme) {
-                window.fme.externalLink(docsLinks.GITHUB_REPO).then();
-            } else {
+            try {
+                this.wails.externalLink(docsLinks.GITHUB_REPO).subscribe();
+            } catch {
                 window.open(docsLinks.GITHUB_REPO, '_blank');
             }
             this.dialogRef.close();

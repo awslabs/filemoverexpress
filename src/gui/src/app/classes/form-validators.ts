@@ -16,7 +16,10 @@ const invalidBucketSuffixes = [
 const ipAddressRegex = /^([0-9]+\.){3}[0-9]+$/;
 const bucketRegex = /^[a-z0-9][a-zA-Z0-9.-]{1,61}[a-z0-9]$/;
 const pre2018UsEastBucketRegex = /^[a-zA-Z0-9][a-zA-Z0-9.\-_]{1,252}[a-zA-Z0-9]$/;
-export const s3ArnRgx = new RegExp(/^s3:\/\/(?<bucket>[a-zA-Z][a-zA-Z0-9.\-_]{1,252}[a-zA-Z])$/);
+// Matches an S3 location and captures the bucket name, accepting either an
+// s3:// URI or a full S3 bucket ARN (arn:aws:s3:::bucket[/key...]). Used to
+// auto-strip a pasted URI/ARN down to just the bucket name. See issue #27.
+export const s3ArnRgx = new RegExp(/^(?:s3:\/\/|arn:aws:s3:::)(?<bucket>[a-zA-Z][a-zA-Z0-9.\-_]{1,252}[a-zA-Z])(?:\/.*)?$/);
 
 export function fileOrderListValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value || control.value.length == 0) {

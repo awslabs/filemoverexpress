@@ -18,6 +18,8 @@ import { InventoryReportStatus } from '@app/classes/inventory-report';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { BucketReportService } from '@services/bucket-report/bucket-report.service';
 import { Subscription } from 'rxjs';
+import { isPackagedApp } from '@app/utils/utils';
+import { WailsService } from '@services/wails/wails.service';
 
 
 const REMOTE_CONFIGURATION = 'remoteConfiguration';
@@ -52,6 +54,7 @@ const OUTPUT_FILE = 'outputFile';
 })
 export class ReportsTableComponent implements OnInit, OnDestroy {
     private bucketReport = inject(BucketReportService);
+    private wails = inject(WailsService);
 
     @ViewChild(MatSort, {static: true}) sort!: MatSort;
     displayedColumns: string[] = [
@@ -95,8 +98,11 @@ export class ReportsTableComponent implements OnInit, OnDestroy {
     openItemInFolder(event: Event, filePath: string): void {
         event.preventDefault();
         event.stopPropagation();
-        window.fme?.systemShowItemInFolder(filePath);
+
+        if (!isPackagedApp()) {
+            return;
+        }
+
+        this.wails.systemShowItemInFolder(filePath).subscribe();
     }
-
-
 }

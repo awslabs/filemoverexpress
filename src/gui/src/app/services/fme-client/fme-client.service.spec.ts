@@ -6,7 +6,6 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AppState } from '@app/state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('FmeClientService', () => {
     let service: FmeClientService;
@@ -19,9 +18,7 @@ describe('FmeClientService', () => {
                 Overlay,
                 provideMockStore<AppState>({initialState: initialTestState}),
             ],
-            imports: [
-                NoopAnimationsModule,
-            ],
+            imports: [],
         });
         service = TestBed.inject(FmeClientService);
     });

@@ -8,17 +8,25 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/awslabs/filemoverexpress/config"
-	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
 )
 
 // #nosec G101 -- False positives
 const (
-	originHeader   = "Origin"
-	electronOrigin = "electron://fme-app"
+	originHeader = "Origin"
 )
 
-var errInvalidOrigin = errors.New("access denied")
+var (
+	errInvalidOrigin = errors.New("access denied")
+	validOrigins     = []string{
+		"http://wails.localhost",
+		"wails://wails.localhost",
+		"wails://wails",
+		// macOS WKWebView under Wails v3 emits this origin; without it the GUI is
+		// locked out by CORS on macOS. See issue #10.
+		"wails://localhost",
+	}
+)
 
 type OriginInterceptor struct {
 	config ServiceConfig
@@ -66,12 +74,8 @@ func (i *OriginInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFu
 }
 
 func (*OriginInterceptor) validateOrigin(origin string, remoteAddr string) bool {
-	if origin == electronOrigin {
-		return true
-	}
-	if strings.Contains(globals.GetInstance().GetVersion(), "-local-dev") {
-		// Allow Angular dev-server access when running in dev mode
-		if strings.HasPrefix(origin, "http://localhost:4200") {
+	for _, v := range validOrigins {
+		if strings.HasPrefix(origin, v) {
 			return true
 		}
 	}

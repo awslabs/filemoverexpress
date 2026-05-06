@@ -2,6 +2,7 @@ package transfer_api
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -192,7 +193,11 @@ func (s3m *S3Manager) ListVersionsInPrefix(prefix string) (ListObjectVersionsOut
 
 func (s3m *S3Manager) ListVersionsForObject(objKey string) (ListObjectVersionsOutput, error) {
 	var listOutput ListObjectVersionsOutput
-	inputPrefix := FormatAsS3Object(objKey)
+	// Strip only a leading slash and preserve any trailing slash, so folder-marker
+	// objects (keys ending in "/") can be looked up by their exact key. FormatAsS3Object
+	// would strip the trailing slash and the exact-key match below would never hit,
+	// which broke deleting the marker during a prefix rename. See issue #22.
+	inputPrefix := strings.TrimPrefix(objKey, "/")
 
 	listObjectVersionsInput := &s3.ListObjectVersionsInput{
 		Bucket: &s3m.Bucket,

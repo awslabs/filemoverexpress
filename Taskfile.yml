@@ -1,0 +1,126 @@
+version: '3'
+
+vars:
+  OUTPUT_DIR: dist
+  BUILD_VERSION: '{{.BUILD_VERSION | default "0.0.0-local-dev"}}'
+
+includes:
+  cli:
+    taskfile: src/cli/Taskfile.yml
+    dir: src/cli
+    vars:
+      BUILD_VERSION: '{{.BUILD_VERSION}}'
+  gui:
+    taskfile: src/gui/Taskfile.yml
+    dir: src/gui
+  proto:
+    taskfile: src/protobuf/Taskfile.yml
+    dir: src/protobuf
+  wails:
+    taskfile: src/wails/Taskfile.yml
+    dir: src/wails
+  launcher:
+    taskfile: src/windows-daemon-launcher/Taskfile.yml
+    dir: src/windows-daemon-launcher
+
+tasks:
+  # ====================
+  # Generate
+  # ====================
+
+  generate:
+    desc: Run all code generation
+    deps: [proto:generate, generate:wails-bindings]
+
+  generate:wails-bindings:
+    desc: Generate Wails bindings for the frontend
+    dir: src/wails
+    cmds:
+      - wails3 generate bindings -clean=true -ts -d ../gui/src/gen/wails
+    sources:
+      - '**/*.go'
+    generates:
+      - ../gui/src/gen/wails/**/*.ts
+
+  # ====================
+  # Build
+  # ====================
+
+  build:
+    desc: Build CLI, GUI, and Wails app
+    cmds:
+      - task: build:cli
+      - task: build:gui
+      - task: build:wails
+
+  build:cli:
+    desc: Build CLI for the current platform
+    deps: [proto:generate]
+    cmds:
+      - task: cli:build
+      - task: launcher:build
+
+  build:cli:all:
+    desc: Build CLI for all platforms
+    deps: [proto:generate]
+    cmds:
+      - task: cli:build:all
+      - task: launcher:build
+
+  build:gui:
+    desc: Build Angular GUI (production)
+    deps: [generate:wails-bindings]
+    cmds:
+      - task: gui:build
+
+  build:wails:
+    desc: Build the Wails desktop application
+    deps: [generate, build:cli]
+    cmds:
+      - task: wails:build
+
+  dev:
+    desc: Run Wails in development mode
+    deps: [generate, build:cli]
+    dir: src/wails
+    cmds:
+      - wails3 dev
+
+  # ====================
+  # Test
+  # ====================
+
+  test:
+    desc: Run all tests
+    cmds:
+      - task: cli:test
+      - task: test:wails
+      - task: gui:test
+
+  test:wails:
+    desc: Run Wails Go tests
+    dir: src/wails
+    cmds:
+      - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out ./...
+      - go tool cover -html coverage.out -o coverage.html
+
+  # ====================
+  # Lint
+  # ====================
+
+  lint:
+    desc: Run all linters in parallel
+    deps: [cli:lint, gui:lint]
+
+  # ====================
+  # Clean
+  # ====================
+
+  clean:
+    desc: Remove build artifacts and generated code
+    cmds:
+      - rm -rf {{.OUTPUT_DIR}}
+      - rm -f src/cli/types/pbtypes/fme/v1/*.pb.go
+      - rm -rf src/cli/types/pbtypes/fme/v1/fmev1connect/
+      - rm -f src/cli/types/pbtypes/s3_shared/v1/*.pb.go
+      - rm -rf src/gui/src/gen/

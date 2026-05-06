@@ -5,6 +5,7 @@
          (dragleave)="onDragLeaveTable()"
          class="table-wrapper">
         <table mat-table matSort
+               data-file-drop-target
                [dataSource]="datasource"
                [id]="fileBrowserID"
                [class.dragging]="dragging"

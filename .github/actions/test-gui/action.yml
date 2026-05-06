@@ -1,5 +1,5 @@
 name: 'Test GUI'
-description: 'Runs Angular Karma unit tests for the GUI component via npm run test:gui'
+description: 'Runs Angular Karma unit tests for the GUI component'
 
 inputs:
   coverage:
@@ -40,14 +40,15 @@ runs:
       shell: bash
 
     - name: Run GUI tests
-      run: npm run test:gui
+      working-directory: src/gui
+      run: task test
       shell: bash
       env:
         CHROMIUM_BIN: ${{ steps.chromium.outputs.bin }}
 
     - name: Upload coverage
       if: inputs.coverage == 'true'
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@v4 # v4.6.2
       with:
         name: gui-coverage
         path: src/gui/coverage/

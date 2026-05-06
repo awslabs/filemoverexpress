@@ -705,8 +705,8 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
      * @param targetRow
      */
     onDropRow(event: DragEvent, targetRow: FileBrowserObject) {
-        event.preventDefault();
-        event.stopPropagation();
+        // event.preventDefault();
+        // event.stopPropagation();
         if (this.isPreviousDirectoryRow(targetRow) || this.fileBrowserData.state !== FileBrowserState.LOADED) {
             return;
         }
@@ -723,8 +723,8 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
      * @param event DragEvent
      */
     onDropTable(event: DragEvent) {
-        event.preventDefault();
-        event.stopPropagation();
+        // event.preventDefault();
+        // event.stopPropagation();
         if (this.fileBrowserData.state === FileBrowserState.LOADED) {
             this.emitDropResult(event, this.currentDirectory);
         }
@@ -739,7 +739,6 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
     private emitDropResult(event: DragEvent, destinationPath: string) {
         this.dragging = false;
         if (!event.dataTransfer) {
-            console.warn('emitDropResult called without dataTransfer object');
             return;
         }
 
@@ -754,6 +753,7 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
                 destination: destinationPath,
                 dragOriginSourceName: '',
             };
+
             if (sourceContainer) {
                 // drag source is within application
                 dropResult.sourceContainerID = sourceContainer;
@@ -763,30 +763,36 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
                 // drag source is outside of application
                 if (externalDropFiles?.length) {
                     dropResult.fromExternalSource = true;
-                    if (event.dataTransfer.items.length) {
-                        for (const externalDropItem of Array.from(event.dataTransfer.items)) {
-                            const externalItem = externalDropItem.getAsFile();
-                            // add the external item if it's non-null
-                            if (externalItem) {
-                                // get the object type
-                                const externalEntry = externalDropItem.webkitGetAsEntry();
-                                let objectType: FileBrowserObjectType = FileBrowserObjectType.UNKNOWN;
-                                if (externalEntry) {
-                                    objectType = externalEntry.isFile ? FileBrowserObjectType.FILE : FileBrowserObjectType.FOLDER;
-                                }
+                    const sources: FileBrowserObject[] = [];
 
-                                dropResult.sources.push({
-                                    name: externalItem.path,
-                                    size: BigInt(externalItem.size),
-                                    dateModified: new Date(externalItem.lastModified),
-                                    type: objectType,
-                                });
+                    for (const externalDropItem of Array.from(event.dataTransfer.items)) {
+                        const externalItem = externalDropItem.getAsFile();
+                        // add the external item if it's non-null
+                        if (externalItem) {
+                            // get the object type
+                            const externalEntry = externalDropItem.webkitGetAsEntry();
+                            let objectType: FileBrowserObjectType = FileBrowserObjectType.UNKNOWN;
+                            if (externalEntry) {
+                                objectType = externalEntry.isFile ? FileBrowserObjectType.FILE : FileBrowserObjectType.FOLDER;
                             }
-                        }
-                        if (dropResult.sources.length) {
-                            dropResult.dragOriginSourceName = dropResult.sources[0].name;
+
+                            const name = externalItem.name;
+                            const fo: FileBrowserObject = {
+                                name: name,
+                                size: BigInt(externalItem.size),
+                                dateModified: new Date(externalItem.lastModified),
+                                type: objectType,
+                            };
+                            sources.push(fo);
+                            dropResult.sources.push(fo);
                         }
                     }
+
+                    if (sources.length) {
+                        dropResult.dragOriginSourceName = dropResult.sources[0].name;
+                    }
+
+                    dropResult.sources = sources;
                 }
             }
             this.fileBrowserDrop.emit(dropResult);

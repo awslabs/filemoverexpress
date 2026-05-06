@@ -1,0 +1,44 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application for Windows
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:build:frontend
+      - task: common:generate:icons
+    cmds:
+      - task: generate:syso
+      - 'go build -tags devtools -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui" -o "{{.BIN_DIR}}/{{.APP_NAME}}.exe"'
+      - powershell Remove-item *.syso
+    env:
+      GOOS: windows
+      CGO_ENABLED: 0
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  package:
+    summary: Packages the application into an NSIS installer
+    deps:
+      - task: build
+    cmds:
+      - task: create:nsis:installer
+
+  generate:syso:
+    summary: Generates Windows .syso file
+    dir: build
+    cmds:
+      - 'wails3 generate syso -arch {{.ARCH | default ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../wails_windows_{{.ARCH | default ARCH}}.syso'
+
+  create:nsis:installer:
+    summary: Creates an NSIS installer
+    dir: build/windows/nsis
+    cmds:
+      - 'wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"'
+      - 'makensis -DARG_WAILS_AMD64_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" project.nsi'
+
+  run:
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}.exe'
