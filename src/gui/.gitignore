@@ -63,4 +63,5 @@ preload.js.map
 
 # Protobuf generated code
 src/gen
-
+package.json.md5
+wailsjs/
