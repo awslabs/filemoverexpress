@@ -34,6 +34,7 @@ const (
 	APIServerPermissionsAllowUIConfiguration    = APIServerPermissions + KeySeparator + "allowUIConfiguration"
 	APIServerPermissionsAllowLocalRenameDelete  = APIServerPermissions + KeySeparator + "allowLocalRenameDelete"
 	APIServerPermissionsAllowRemoteRenameDelete = APIServerPermissions + KeySeparator + "allowRemoteRenameDelete"
+	UploadHotFolders                            = "hotFolders"
 	TransferProfiles                            = "protocols.s3.transferProfiles"
 	TransferProfilesName                        = "name"
 	TransferProfilesBucket                      = "bucket"
@@ -54,5 +55,5 @@ const (
 	TransferProfilesStorageClass                = "storageClass"
 	TransferProfilesPaths                       = "paths"
 	TransferProfilesPathsLocal                  = TransferProfilesPaths + KeySeparator + "local"
-	HotFolders                                  = TransferProfilesPaths + KeySeparator + "hotFolders"
+	TransferProfilesPathsRemote                 = TransferProfilesPaths + KeySeparator + "remote"
 )

@@ -1,37 +1,39 @@
 package constants
 
 const (
-	DefaultMaxActiveTransfers = 10
-	DefaultThreads            = 10
-	DefaultChunkSize          = 25
-	DefaultChecksumAlgorithm  = AlgorithmNone
-	DefaultChecksumEnabled    = false
-	DefaultLoggingMaxAge      = 31
-	DefaultLoggingMaxSize     = 50
+	// General
+	DefaultNoSleep            = false
 	DefaultRetryCount         = 3
 	MaxRetryCount             = 10000
-	MinChunkSize              = 5
+	DefaultMaxActiveTransfers = 10
+	DefaultTargetBandwidth    = 0
 
-	DefaultNoSleep                 = false
-	DefaultTargetBandwidth         = 0
-	DefaultLoggingDirectory        = "logs"
-	DefaultLoggingSeverity         = "info"
-	DefaultLoggingCompress         = true
-	DefaultReportsDirectory        = "reports"
-	DefaultAPIServerEnabled        = true
-	DefaultAPIServerTLSEnabled     = false
-	DefaultAPIServerRemoteEnabled  = false
-	DefaultAllowUIConfiguration    = false
-	DefaultAllowLocalRenameDelete  = false
-	DefaultAllowRemoteRenameDelete = false
+	// Logging
+	DefaultLoggingDirectory = "logs"
+	DefaultLoggingSeverity  = "info"
+	DefaultLoggingMaxSize   = 50
+	DefaultLoggingMaxAge    = 31
+	DefaultLoggingCompress  = true
+
+	// Reports
+	DefaultReportsDirectory = "reports"
+
+	// APIServer
+	DefaultAPIServerEnabled            = true
+	DefaultAPIServerTLSEnabled         = false
+	DefaultAPIServerTLSCertificateFile = ""
+	DefaultAPIServerTLSKeyFile         = ""
+	DefaultAPIServerRemoteEnabled      = false
+	DefaultAPIServerRemotePreSharedKey = ""
+	DefaultAPIServerRemoteAddress      = ""
+	DefaultAllowUIConfiguration        = false
+	DefaultAllowLocalRenameDelete      = false
+	DefaultAllowRemoteRenameDelete     = false
+
+	// TransferProfile
+	DefaultThreads           = 10
+	DefaultChunkSize         = 25
+	MinChunkSize             = 5
+	DefaultChecksumAlgorithm = AlgorithmNone
+	DefaultChecksumEnabled   = false
 )
-
-var ConfigDefaults = map[string]int{
-	"max_active_checksums": DefaultMaxActiveTransfers,
-	"max_active_transfers": DefaultMaxActiveTransfers,
-	"threads":              DefaultThreads,
-	"chunk_size":           DefaultChunkSize,
-	"logging_max_age":      DefaultLoggingMaxAge,
-	"logging_max_size":     DefaultLoggingMaxSize,
-	"retry_count":          DefaultRetryCount,
-}
