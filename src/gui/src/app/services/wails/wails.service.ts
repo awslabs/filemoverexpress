@@ -2,20 +2,21 @@ import { Injectable, NgZone } from '@angular/core';
 import {
     AppVersion,
     ExternalLink,
-    FatalShutdown, FirstLaunchComplete,
+    FatalShutdown,
+    FirstLaunchComplete,
     StartDaemon,
     SystemOpen,
     SystemShowItemInFolder,
 } from '@wailsApp/App';
-import { EventsOn } from '@wailsRuntime/runtime';
+import { EventsOn, Quit, Quit as AppQuit } from '@wailsRuntime/runtime';
 import { from, Observable } from 'rxjs';
 
 @Injectable({
     providedIn: 'root',
 })
 export class WailsService {
-
-    constructor(private _zone: NgZone) {}
+    constructor(private _zone: NgZone) {
+    }
 
     // region IPC Handlers
 
@@ -96,5 +97,8 @@ export class WailsService {
         this.onEvent('fatal-shutdown', callback);
     }
 
+    quit() {
+        Quit();
+    }
     // endregion
 }

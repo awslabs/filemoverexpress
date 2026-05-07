@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -113,6 +114,7 @@ func (a *App) startup(ctx context.Context) {
 // an app-close event to the frontend and returns true to prevent immediate
 // close, allowing the frontend to handle graceful shutdown.
 func (a *App) beforeClose(ctx context.Context) bool {
+	fmt.Println("Sent close event")
 	wailsRuntime.EventsEmit(ctx, EventAppClose)
 	return true
 }

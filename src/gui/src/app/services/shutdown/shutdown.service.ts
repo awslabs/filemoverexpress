@@ -15,6 +15,7 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { ConnectionState } from '@state/models/connection-state-model';
 import { selectConnectionState } from '@state/fme-client/fme-client.selectors';
 import { Observable, Subject, Subscription, take } from 'rxjs';
+import { WailsService } from '@services/wails/wails.service';
 
 @Injectable({
     providedIn: 'root',
@@ -28,6 +29,7 @@ export class ShutdownService implements OnDestroy {
     private dialog = inject(MatDialog);
     private rf = inject(RendererFactory2);
     private zone = inject(NgZone);
+    private wails = inject(WailsService);
 
     connected = false;
     subscriptions: Subscription[] = [];
@@ -63,7 +65,7 @@ export class ShutdownService implements OnDestroy {
      */
     private fatalShutdownHandler() {
         if (isElectronApp()) {
-            window.fme?.on('fatal-shutdown', () => {
+            this.wails.onEvent('fatal-shutdown', () => {
                 if (this.connected) {
                     const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
                         ConfirmationModalComponent,
@@ -175,7 +177,8 @@ export class ShutdownService implements OnDestroy {
 
     private appCloseHandler() {
         if (isElectronApp()) {
-            window.fme?.on('app-close', () => {
+            this.wails.onEvent('app-close', () => {
+                console.log('got app-close');
                 switch (this.prefService.daemonClose) {
                     case 'always':
                         this.doShutdown();
@@ -189,7 +192,7 @@ export class ShutdownService implements OnDestroy {
                                 if (shouldKillDaemon) {
                                     this.doShutdown();
                                 } else {
-                                    window.fme?.send('closed');
+                                    this.wails.quit();
                                 }
                             },
                         );
@@ -199,30 +202,32 @@ export class ShutdownService implements OnDestroy {
     }
 
     private doShutdown() {
-        this.fmeClientService.shutdown().subscribe(
-            {
-                next: (result) => {
-                    switch (result) {
-                        case ShutdownResult.SUCCEEDED:
-                        case ShutdownResult.RESTRICTED:
-                            window.fme?.send('closed');
-                            return;
-                        case ShutdownResult.FAILED:
-                            this.showFailedShutdownModal();
-                            return;
-                        default:
-                            console.debug(`received an unexpected shutdown result ${result}`);
-                    }
-                },
-                error: (err) => {
-                    console.error(err);
-                },
+        this.fmeClientService.shutdown().subscribe({
+            next: (result) => {
+                switch (result) {
+                    case ShutdownResult.SUCCEEDED:
+                    case ShutdownResult.RESTRICTED:
+                        this.wails.quit();
+                        return;
+                    case ShutdownResult.FAILED:
+                        this.showFailedShutdownModal()
+                            .afterClosed()
+                            .subscribe(
+                                () => this.wails.quit(),
+                            );
+                        return;
+                    default:
+                        console.debug(`received an unexpected shutdown result ${result}`);
+                }
             },
-        );
+            error: (err) => {
+                console.error(err);
+            },
+        });
     }
 
     private showFailedShutdownModal() {
-        const dialogRef = this.dialog.open<MessageModalComponent, Partial<MessageModalData>>(
+        return this.dialog.open<MessageModalComponent, Partial<MessageModalData>>(
             MessageModalComponent,
             {
                 data: {
@@ -231,14 +236,7 @@ export class ShutdownService implements OnDestroy {
                 },
             },
         );
-
-        dialogRef.afterClosed().subscribe(
-            () => {
-                window.fme?.send('closed');
-            },
-        );
     }
-
 
     /**
      * Saves a support file and exports the jobs table in the event that a fatal shutdown occurs.

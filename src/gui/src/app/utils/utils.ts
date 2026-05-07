@@ -183,7 +183,7 @@ export function formatDate(d: Date, includeTime?: boolean): string {
  * ng serve.
  */
 export function isElectronApp(): boolean {
-    return !!window.fme;
+    return !!window.fme || Object.hasOwn(window, 'go');
 }
 
 /**
