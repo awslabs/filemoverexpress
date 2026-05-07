@@ -7,7 +7,7 @@
     "frontend:dev:watcher": "ng serve --configuration development",
     "frontend:dev:serverUrl": "auto",
     "frontend:dir": "../gui",
-    "wailsjsdir": "../gui/src/wailsjs",
+    "wailsjsdir": "../gui/src/gen/wailsjs",
     "author": {
         "name": "Asbjorn Kjaer",
         "email": "bunjiboys@bunjiboys.dk"
