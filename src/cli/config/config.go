@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/pflag"
 	yamlv3 "gopkg.in/yaml.v3"
 
+	"github.com/awslabs/filemoverexpress/config/configkeys"
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/logger"
@@ -39,26 +40,43 @@ var (
 
 func buildDefaultsMap() map[string]interface{} {
 	return map[string]interface{}{
-		"general.maxActiveChecksums":                    systeminfo.GetCoreCount(),
-		"general.maxActiveTransfers":                    constants.DefaultMaxActiveTransfers,
-		"general.noSleep":                               constants.DefaultNoSleep,
-		"general.retryCount":                            constants.DefaultRetryCount,
-		"general.targetBandwidth":                       constants.DefaultTargetBandwidth,
-		"logging.directory":                             constants.DefaultLoggingDirectory,
-		"logging.severity":                              constants.DefaultLoggingSeverity,
-		"logging.maxSize":                               constants.DefaultLoggingMaxSize,
-		"logging.maxAge":                                constants.DefaultLoggingMaxAge,
-		"logging.compress":                              constants.DefaultLoggingCompress,
-		"reports.directory":                             constants.DefaultReportsDirectory,
-		"protocols.s3.transferProfiles":                 map[string]interface{}{},
-		"apiServer.allowedOrigins":                      []string{},
-		"apiServer.enabled":                             constants.DefaultAPIServerEnabled,
-		"apiServer.tls.enabled":                         constants.DefaultAPIServerTLSEnabled,
-		"apiServer.remote.enabled":                      constants.DefaultAPIServerRemoteEnabled,
-		"apiServer.blockedPaths":                        getDefaultBlockedPaths(),
-		"apiServer.permissions.allowUIConfiguration":    constants.DefaultAllowUIConfiguration,
-		"apiServer.permissions.allowLocalRenameDelete":  constants.DefaultAllowLocalRenameDelete,
-		"apiServer.permissions.allowRemoteRenameDelete": constants.DefaultAllowRemoteRenameDelete,
+		// General
+		configkeys.GeneralNoSleep:            constants.DefaultNoSleep,
+		configkeys.GeneralRetryCount:         constants.DefaultRetryCount,
+		configkeys.GeneralMaxActiveChecksums: systeminfo.GetCoreCount(),
+		configkeys.GeneralMaxActiveTransfers: constants.DefaultMaxActiveTransfers,
+		configkeys.GeneralTargetBandwidth:    constants.DefaultTargetBandwidth,
+
+		// Logging
+		configkeys.LoggingDirectory: constants.DefaultLoggingDirectory,
+		configkeys.LoggingSeverity:  constants.DefaultLoggingSeverity,
+		configkeys.LoggingMaxSize:   constants.DefaultLoggingMaxSize,
+		configkeys.LoggingMaxAge:    constants.DefaultLoggingMaxAge,
+		configkeys.LoggingCompress:  constants.DefaultLoggingCompress,
+
+		// Reports
+		configkeys.ReportsDirectory: constants.DefaultReportsDirectory,
+
+		// APIServer
+		configkeys.APIServerEnabled:                            constants.DefaultAPIServerEnabled,
+		configkeys.APIServerTLSSettingsEnabled:                 constants.DefaultAPIServerTLSEnabled,
+		configkeys.APIServerTLSSettingsCertificateFile:         constants.DefaultAPIServerTLSCertificateFile,
+		configkeys.APIServerTLSSettingsKeyFile:                 constants.DefaultAPIServerTLSKeyFile,
+		configkeys.APIServerRemoteSettingsEnabled:              constants.DefaultAPIServerRemoteEnabled,
+		configkeys.APIServerRemoteSettingsPreSharedKey:         constants.DefaultAPIServerRemotePreSharedKey,
+		configkeys.APIServerRemoteSettingsPorts:                []uint32{},
+		configkeys.APIServerRemoteSettingsAddress:              constants.DefaultAPIServerRemoteAddress,
+		configkeys.APIServerBlockedPathList:                    getDefaultBlockedPaths(),
+		configkeys.APIServerAllowedOrigins:                     []string{},
+		configkeys.APIServerPermissionsAllowUIConfiguration:    constants.DefaultAllowUIConfiguration,
+		configkeys.APIServerPermissionsAllowLocalRenameDelete:  constants.DefaultAllowLocalRenameDelete,
+		configkeys.APIServerPermissionsAllowRemoteRenameDelete: constants.DefaultAllowRemoteRenameDelete,
+
+		// Protocols
+		configkeys.TransferProfiles: map[string]interface{}{},
+
+		// UploadHotFolders
+		configkeys.UploadHotFolders: []interface{}{},
 	}
 }
 
