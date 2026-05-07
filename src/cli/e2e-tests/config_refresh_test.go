@@ -20,8 +20,7 @@ func TestMetadataRefresh_ClientEdit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping e2e tests in short mode")
 	}
-	//skipping this until viper 2.0 is released without the issue (race condition)
-	//or this is fixed: https://github.com/spf13/viper/issues/174
+	//skipping this test — it needs to be reworked for the koanf-based config system
 	t.Skip()
 	setUp()
 

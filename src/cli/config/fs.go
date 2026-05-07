@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/spf13/viper"
-
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/events"
 )
@@ -23,14 +21,13 @@ func makeConfigDir(configDir string) os.FileInfo {
 	return dInfo
 }
 
-func createConfigIfNotExists(viperInstance *viper.Viper, configFile string) {
-	_, err := os.Stat(configFile)
-
-	if os.IsNotExist(err) {
+func createConfigIfNotExists(configFilePath string) {
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		configLock.Lock()
 		defer configLock.Unlock()
 
-		if cErr := viperInstance.WriteConfigAs(configFile); cErr != nil {
+		cfg := buildDefaultConfig()
+		if err := marshalConfigToFile(cfg, configFilePath); err != nil {
 			events.Events.Fatal(strFailedWritingFile, err)
 		}
 	}

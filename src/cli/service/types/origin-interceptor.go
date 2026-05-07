@@ -3,10 +3,12 @@ package types
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"connectrpc.com/connect"
 
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/globals"
 	"github.com/awslabs/filemoverexpress/logger"
 )
 
@@ -66,6 +68,12 @@ func (i *OriginInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFu
 func (*OriginInterceptor) validateOrigin(origin string, remoteAddr string) bool {
 	if origin == electronOrigin {
 		return true
+	}
+	if strings.Contains(globals.GetInstance().GetVersion(), "-local-dev") {
+		// Allow Angular dev-server access when running in dev mode
+		if strings.HasPrefix(origin, "http://localhost:4200") {
+			return true
+		}
 	}
 
 	for _, allowedOrigin := range config.LoadConfiguration().APIServer.AllowedOrigins {
