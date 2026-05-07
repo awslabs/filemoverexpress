@@ -36,6 +36,12 @@
             ],
             "@state/*": [
                 "src/app/state/*"
+            ],
+            "@wailsApp/*": [
+                "src/gen/wailsjs/go/main/*"
+            ],
+            "@wailsRuntime/*": [
+                "src/gen/wailsjs/runtime/*"
             ]
         },
         "outDir": "./dist/out-tsc",

@@ -71,7 +71,7 @@ func (*OriginInterceptor) validateOrigin(origin string, remoteAddr string) bool 
 	}
 	if strings.Contains(globals.GetInstance().GetVersion(), "-local-dev") {
 		// Allow Angular dev-server access when running in dev mode
-		if strings.HasPrefix(origin, "http://localhost:4200") {
+		if strings.HasPrefix(origin, "http://localhost:4200") || strings.HasPrefix(origin, "http://wails.localhost") {
 			return true
 		}
 	}
