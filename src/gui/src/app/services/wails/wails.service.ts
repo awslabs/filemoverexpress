@@ -15,8 +15,6 @@ import { from, Observable } from 'rxjs';
     providedIn: 'root',
 })
 export class WailsService {
-    constructor(private _zone: NgZone) {
-    }
 
     // region IPC Handlers
 
