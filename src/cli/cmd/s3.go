@@ -120,15 +120,15 @@ func setDownloadFlags(command *cobra.Command) {
 
 func bindConfigsToFlags(command *cobra.Command, _ []string) {
 	flags := map[string]string{
-		"protocols.s3.threads":            "threads",
-		"protocols.s3.chunk_size":         "chunk-size",
-		"protocols.s3.max_age":            "max-age",
-		"protocols.s3.filter":             "filter",
-		"general.max_active_transfers":    "max-active-transfers",
-		"general.max_active_checksums":    "max-active-checksums",
-		"protocols.s3.checksum_algorithm": "checksum-algorithm",
-		"general.retry_count":             "retry-count",
-		"api_server.remote.address":       "address",
+		"protocols.s3.threads":           "threads",
+		"protocols.s3.chunkSize":         "chunk-size",
+		"protocols.s3.maxAge":            "max-age",
+		"protocols.s3.filter":            "filter",
+		"general.maxActiveTransfers":     "max-active-transfers",
+		"general.maxActiveChecksums":     "max-active-checksums",
+		"protocols.s3.checksumAlgorithm": "checksum-algorithm",
+		"general.retryCount":             "retry-count",
+		"apiServer.remote.address":       "address",
 	}
 
 	// bind flags for each command

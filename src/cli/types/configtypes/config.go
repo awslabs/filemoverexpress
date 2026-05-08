@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/logger"
@@ -14,105 +13,103 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
-var ViperLock sync.Mutex
-
 // When updating the tag values, make sure to make the corresponding updates for the constants in config/config/config-keys.go
 // revive:disable:max-public-structs
 type (
 	FmeConfig struct {
-		General          General
-		Logging          Logging   `mapstructure:"logging" yaml:"logging"`
-		Reports          Reports   `mapstructure:"reports" yaml:"reports"`
-		APIServer        APIServer `mapstructure:"api_server"`
-		Protocols        ProtocolList
-		UploadHotFolders []UploadHotFolderSettings `mapstructure:"hot_folders"`
+		General          General                   `koanf:"general" yaml:"general"`
+		Logging          Logging                   `koanf:"logging" yaml:"logging"`
+		Reports          Reports                   `koanf:"reports" yaml:"reports"`
+		APIServer        APIServer                 `koanf:"apiServer" yaml:"apiServer"`
+		Protocols        ProtocolList              `koanf:"protocols" yaml:"protocols"`
+		UploadHotFolders []UploadHotFolderSettings `koanf:"hotFolders" yaml:"hotFolders"`
 	}
 	General struct {
-		NoSleep            bool   `mapstructure:"no_sleep"`
-		RetryCount         uint32 `mapstructure:"retry_count"`
-		MaxActiveChecksums int32  `mapstructure:"max_active_checksums"`
-		MaxActiveTransfers int32  `mapstructure:"max_active_transfers"`
-		TargetBandwidth    int32  `mapstructure:"target_bandwidth"`
+		NoSleep            bool   `koanf:"noSleep" yaml:"noSleep"`
+		RetryCount         uint32 `koanf:"retryCount" yaml:"retryCount"`
+		MaxActiveChecksums int32  `koanf:"maxActiveChecksums" yaml:"maxActiveChecksums"`
+		MaxActiveTransfers int32  `koanf:"maxActiveTransfers" yaml:"maxActiveTransfers"`
+		TargetBandwidth    int32  `koanf:"targetBandwidth" yaml:"targetBandwidth"`
 	}
 	Logging struct {
-		Directory string `mapstructure:"directory" yaml:"directory"`
-		Severity  string `mapstructure:"severity" yaml:"severity"`
-		MaxSize   int    `mapstructure:"max_size" yaml:"max_size"`
-		MaxAge    int    `mapstructure:"max_age" yaml:"max_age"`
-		Compress  bool   `mapstructure:"compress" yaml:"compress"`
+		Directory string `koanf:"directory" yaml:"directory"`
+		Severity  string `koanf:"severity" yaml:"severity"`
+		MaxSize   int    `koanf:"maxSize" yaml:"maxSize"`
+		MaxAge    int    `koanf:"maxAge" yaml:"maxAge"`
+		Compress  bool   `koanf:"compress" yaml:"compress"`
 	}
 	Reports struct {
-		Directory string `mapstructure:"directory" yaml:"directory"`
+		Directory string `koanf:"directory" yaml:"directory"`
 	}
 	APIServer struct {
-		Enabled         bool
-		TLSSettings     APIServerTLSSettings        `mapstructure:"tls" yaml:"tls"`
-		RemoteSettings  APIServerRemoteSettings     `mapstructure:"remote" yaml:"remote"`
-		BlockedPathList []string                    `mapstructure:"blocked_paths" yaml:"blocked_paths"`
-		AllowedOrigins  []string                    `mapstructure:"allowed_origins" yaml:"allowed_origins"`
-		Permissions     APIServerPermissionSettings `mapstructure:"permissions" yaml:"permissions"`
+		Enabled         bool                        `koanf:"enabled" yaml:"enabled"`
+		TLSSettings     APIServerTLSSettings        `koanf:"tls" yaml:"tls"`
+		RemoteSettings  APIServerRemoteSettings     `koanf:"remote" yaml:"remote"`
+		BlockedPathList []string                    `koanf:"blockedPaths" yaml:"blockedPaths"`
+		AllowedOrigins  []string                    `koanf:"allowedOrigins" yaml:"allowedOrigins"`
+		Permissions     APIServerPermissionSettings `koanf:"permissions" yaml:"permissions"`
 	}
 	APIServerRemoteSettings struct {
-		Enabled      bool
-		PreSharedKey string `mapstructure:"key" yaml:"key"`
-		Ports        []uint32
-		Address      string
+		Enabled      bool     `koanf:"enabled" yaml:"enabled"`
+		PreSharedKey string   `koanf:"key" yaml:"key"`
+		Ports        []uint32 `koanf:"ports" yaml:"ports"`
+		Address      string   `koanf:"address" yaml:"address"`
 	}
 	APIServerTLSSettings struct {
-		Enabled         bool   `mapstructure:"enabled" yaml:"enabled"`
-		CertificateFile string `mapstructure:"certificate_file" yaml:"certificate_file"`
-		KeyFile         string `mapstructure:"key_file" yaml:"key_file"`
+		Enabled         bool   `koanf:"enabled" yaml:"enabled"`
+		CertificateFile string `koanf:"certificateFile" yaml:"certificateFile"`
+		KeyFile         string `koanf:"keyFile" yaml:"keyFile"`
 	}
 	APIServerPermissionSettings struct {
-		AllowUIConfiguration    bool `mapstructure:"allow_ui_configuration" yaml:"allow_ui_configuration"`
-		AllowLocalRenameDelete  bool `mapstructure:"allow_local_rename_delete" yaml:"allow_local_rename_delete"`
-		AllowRemoteRenameDelete bool `mapstructure:"allow_remote_rename_delete" yaml:"allow_remote_rename_delete"`
+		AllowUIConfiguration    bool `koanf:"allowUIConfiguration" yaml:"allowUIConfiguration"`
+		AllowLocalRenameDelete  bool `koanf:"allowLocalRenameDelete" yaml:"allowLocalRenameDelete"`
+		AllowRemoteRenameDelete bool `koanf:"allowRemoteRenameDelete" yaml:"allowRemoteRenameDelete"`
 	}
 	ProtocolList struct {
-		S3 S3ProtocolConfig
+		S3 S3ProtocolConfig `koanf:"s3" yaml:"s3"`
 	}
 	TransferProfile struct {
-		Name     string
-		Bucket   string
-		Region   string
-		Profile  string
-		Endpoint string
+		Name     string `koanf:"name" yaml:"name"`
+		Bucket   string `koanf:"bucket" yaml:"bucket"`
+		Region   string `koanf:"region" yaml:"region"`
+		Profile  string `koanf:"profile" yaml:"profile"`
+		Endpoint string `koanf:"endpoint" yaml:"endpoint"`
 
-		Filter     string
-		AutoTuning bool             `mapstructure:"auto_tuning" yaml:"auto_tuning"`
-		Checksums  ChecksumSettings `mapstructure:"checksums" yaml:"checksums"`
-		ChunkSize  int32            `mapstructure:"chunk_size" yaml:"chunk_size"`
-		Threads    int
-		MaxAge     string `mapstructure:"max_age" yaml:"max_age"`
+		Filter     string           `koanf:"filter" yaml:"filter"`
+		AutoTuning bool             `koanf:"autoTuning" yaml:"autoTuning"`
+		Checksums  ChecksumSettings `koanf:"checksums" yaml:"checksums"`
+		ChunkSize  int32            `koanf:"chunkSize" yaml:"chunkSize"`
+		Threads    int              `koanf:"threads" yaml:"threads"`
+		MaxAge     string           `koanf:"maxAge" yaml:"maxAge"`
 
-		Accelerated bool
-		FileOrder   []string `mapstructure:"file_order" yaml:"file_order"`
+		Accelerated bool     `koanf:"accelerated" yaml:"accelerated"`
+		FileOrder   []string `koanf:"fileOrder" yaml:"fileOrder"`
 
-		EnableMetadataFilter bool   `mapstructure:"enable_metadata_filter" yaml:"enable_metadata_filter"`
-		StorageClass         string `mapstructure:"storage_class" yaml:"storage_class"`
+		EnableMetadataFilter bool   `koanf:"enableMetadataFilter" yaml:"enableMetadataFilter"`
+		StorageClass         string `koanf:"storageClass" yaml:"storageClass"`
 
-		Paths PathsSettings `mapstructure:"paths" yaml:"paths"`
+		Paths PathsSettings `koanf:"paths" yaml:"paths"`
 	}
 	ChecksumSettings struct {
-		Enabled   bool                        `mapstructure:"enabled" yaml:"enabled"`
-		Algorithm constants.ChecksumAlgorithm `mapstructure:"algorithm" yaml:"algorithm"`
+		Enabled   bool                        `koanf:"enabled" yaml:"enabled"`
+		Algorithm constants.ChecksumAlgorithm `koanf:"algorithm" yaml:"algorithm"`
 	}
 	UploadHotFolderSettings struct {
-		Enabled              bool
-		LocalSourceFolder    string                          `mapstructure:"local_source_folder" yaml:"local_source_folder"`
-		Name                 string                          `mapstructure:"name" yaml:"name"`
-		RemoteConfigurations []HotFolderRemoteConfigurations `mapstructure:"remote_configurations" yaml:"remote_configurations"`
+		Enabled              bool                            `koanf:"enabled" yaml:"enabled"`
+		LocalSourceFolder    string                          `koanf:"localSourceFolder" yaml:"localSourceFolder"`
+		Name                 string                          `koanf:"name" yaml:"name"`
+		RemoteConfigurations []HotFolderRemoteConfigurations `koanf:"remoteConfigurations" yaml:"remoteConfigurations"`
 	}
 	HotFolderRemoteConfigurations struct {
-		RemoteConfigurationName string `mapstructure:"remote_configuration_name" yaml:"remote_configuration_name"`
-		S3DestinationFolder     string `mapstructure:"s3_destination_folder" yaml:"s3_destination_folder"`
+		RemoteConfigurationName string `koanf:"remoteConfigurationName" yaml:"remoteConfigurationName"`
+		S3DestinationFolder     string `koanf:"s3DestinationFolder" yaml:"s3DestinationFolder"`
 	}
 	PathsSettings struct {
-		Local  string `mapstructure:"local" yaml:"local"`
-		Remote string `mapstructure:"remote" yaml:"remote"`
+		Local  string `koanf:"local" yaml:"local"`
+		Remote string `koanf:"remote" yaml:"remote"`
 	}
 	S3ProtocolConfig struct {
-		TransferProfiles map[string]TransferProfile `mapstructure:"transfer_profiles" yaml:"transfer_profiles"`
+		TransferProfiles map[string]TransferProfile `koanf:"transferProfiles" yaml:"transferProfiles"`
 	}
 )
 
