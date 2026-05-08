@@ -70,6 +70,7 @@ import { BookmarksService } from '../bookmarks/bookmarks.service';
 import { PanelLevel } from '../notifications/notifications.constants';
 import { NotificationsService } from '../notifications/notifications.service';
 import { authKey, backoffconnectionFactors } from './fme-client.constants';
+import { WailsService } from '@services/wails/wails.service';
 
 @Injectable({
     providedIn: 'root',
@@ -78,6 +79,7 @@ export class FmeClientService {
     private store = inject<Store<FmeClientState>>(Store);
     private notifications = inject(NotificationsService);
     private bookmarksService = inject(BookmarksService);
+    private wails = inject(WailsService);
 
     private readonly _events$ = new Subject<BaseEvent>();
     private connectedState = ConnectionState.DISCONNECTED;
@@ -868,8 +870,8 @@ export class FmeClientService {
     }
 
     processStreamError(error: StreamError) {
-        if (error?.fatal && !!window.fme) {
-            window.fme.fatalShutdown().then();
+        if (error?.fatal) {
+            this.wails.fatalShutdown().subscribe();
         } else {
             if (error?.message) {
                 this.notifications.warning(error.message);
@@ -974,7 +976,7 @@ export class FmeClientService {
             }
             // try to start the daemon if it's the default local daemon
             if (this.bookmarksService.isDefaultLocalDaemon(currentBookmark)) {
-                window.fme?.startDaemon();
+                this.wails.startDaemon();
             }
         } else if (this.connectedState === ConnectionState.CONNECTED) {
             // don't do anything if still on same bookmark and session is connected

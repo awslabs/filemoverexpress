@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
     AppVersion,
     ExternalLink,
@@ -8,8 +8,8 @@ import {
     SystemOpen,
     SystemShowItemInFolder,
 } from '@wailsApp/App';
-import { EventsOn, Quit, Quit as AppQuit } from '@wailsRuntime/runtime';
-import { from, Observable } from 'rxjs';
+import { EventsEmit, EventsOn, Quit } from '@wailsRuntime/runtime';
+import { EMPTY, from, Observable } from 'rxjs';
 
 @Injectable({
     providedIn: 'root',
@@ -22,35 +22,60 @@ export class WailsService {
      * Starts the FME daemon process if it is not already running.
      */
     startDaemon(): Observable<void> {
-        return from(StartDaemon());
+        try {
+            return from(StartDaemon());
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     /**
      * Emits a fatal-shutdown event to the frontend via the Wails event system.
      */
     fatalShutdown(): Observable<void> {
-        return from(FatalShutdown());
+        try {
+            return from(FatalShutdown());
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     /**
      * Opens a file at the specified path using the OS default application.
      */
     systemOpen(path: string): Observable<void> {
-        return from(SystemOpen(path));
+        try {
+            return from(SystemOpen(path));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     /**
      * Reveals a file in the OS file manager.
      */
     systemShowItemInFolder(path: string): Observable<void> {
-        return from(SystemShowItemInFolder(path));
+        try {
+            return from(SystemShowItemInFolder(path));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     /**
      * Opens a URL in the OS default browser.
      */
     externalLink(url: string): Observable<void> {
-        return from(ExternalLink(url));
+        try {
+            return from(ExternalLink(url));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     /**
@@ -58,7 +83,12 @@ export class WailsService {
      * Returns empty string in development mode.
      */
     appVersion(): Observable<string> {
-        return from(AppVersion());
+        try {
+            return from(AppVersion());
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     /**
@@ -66,12 +96,25 @@ export class WailsService {
      * Returns true if the marker file already existed, false if this is the first launch.
      */
     firstLaunchComplete(): Observable<boolean> {
-        return from(FirstLaunchComplete());
+        try {
+            return from(FirstLaunchComplete());
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
     }
 
     // endregion
 
-    // region Wails Event Listeners
+    // region Wails Events
+    send(eventName: string, data?: any) {
+        try {
+            EventsEmit(eventName, data);
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return;
+        }
+    }
 
     /**
      * Registers a listener for a Wails runtime event.
@@ -80,10 +123,12 @@ export class WailsService {
      * @returns A cleanup function that removes the listener when called.
      */
     onEvent(eventName: string, callback: (...data: unknown[]) => void) {
-        const wrappedCallback = (ev: { data: unknown }) => {
-            this._zone.run(() => callback(ev.data));
-        };
-        EventsOn(eventName, wrappedCallback);
+        try {
+            EventsOn(eventName, callback);
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return;
+        }
     }
 
     /**
@@ -96,7 +141,12 @@ export class WailsService {
     }
 
     quit() {
-        Quit();
+        try {
+            Quit();
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+        }
     }
+
     // endregion
 }

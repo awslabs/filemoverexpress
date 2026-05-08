@@ -3,6 +3,7 @@ import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from
 import { MARKETING_PAGE_URL } from '@app/constants/external-links';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { VersionService } from '@services/version/version.service';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-version-update-modal',
@@ -18,6 +19,7 @@ import { VersionService } from '@services/version/version.service';
 export class VersionUpdateModalComponent {
     private updatesService = inject(VersionService);
     private dialogRef = inject<MatDialogRef<VersionUpdateModalComponent>>(MatDialogRef);
+    private wails = inject(WailsService);
 
     nextVersion: string;
     ignoredUpdates: string[];
@@ -32,9 +34,9 @@ export class VersionUpdateModalComponent {
 
     update() {
         return () => {
-            if (window.fme) {
-                window.fme.externalLink(MARKETING_PAGE_URL).then();
-            } else {
+            try {
+                this.wails.externalLink(MARKETING_PAGE_URL).subscribe();
+            } catch {
                 window.open(MARKETING_PAGE_URL, '_blank');
             }
             this.dialogRef.close();

@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/pkg/browser"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,7 @@ type App struct {
 	firstLaunch   *FirstLaunchDetector
 	version       string
 	devMode       bool
+	closeEventSet *time.Time
 }
 
 // NewApp creates a new App application struct with the given version string.
@@ -113,7 +115,14 @@ func (a *App) startup(ctx context.Context) {
 // an app-close event to the frontend and returns true to prevent immediate
 // close, allowing the frontend to handle graceful shutdown.
 func (a *App) beforeClose(ctx context.Context) bool {
+	now := time.Now()
+	cutoff := now.Add(-1 * time.Duration(1) * time.Minute)
+	if a.closeEventSet != nil && !a.closeEventSet.Before(cutoff) {
+		return false
+	}
 	wailsRuntime.EventsEmit(ctx, EventAppClose)
+	a.closeEventSet = &now
+
 	return true
 }
 

@@ -178,12 +178,12 @@ export function formatDate(d: Date, includeTime?: boolean): string {
 }
 
 /**
- * Returns whether the shell is running in Electron.
- * @returns {boolean} - Returns true if the application is running with Electron. Will return false if running with
- * ng serve.
+ * Returns whether the shell is running in packaged.
+ * @returns {boolean} - Returns true if the application is running as a packaged binary. Will return false if running
+ * in dev mode
  */
-export function isElectronApp(): boolean {
-    return !!window.fme || Object.hasOwn(window, 'go');
+export function isPackagedApp(): boolean {
+    return Object.hasOwn(window, 'go');
 }
 
 /**

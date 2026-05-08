@@ -10,9 +10,10 @@ import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-pa
 import { bookmarkFormMessages } from '@app/constants/common.constants';
 import { DEFAULT_BOOKMARK_NAME } from '@app/services/bookmarks/bookmarks.constants';
 import { Bookmark as IBookmark } from '@app/services/bookmarks/bookmarks.interfaces';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { DaemonEditorModalData } from './daemon-editor-modal.interfaces';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-daemon-editor',
@@ -37,6 +38,7 @@ export class DaemonEditorModalComponent {
     data = inject<DaemonEditorModalData>(MAT_DIALOG_DATA);
     dialogRef = inject<MatDialogRef<DaemonEditorModalComponent>>(MatDialogRef);
     private bottomSheet = inject(MatBottomSheet);
+    private wails = inject(WailsService);
 
     @Output() bookmarkSaved = new EventEmitter<IBookmark>();
 
@@ -103,8 +105,8 @@ export class DaemonEditorModalComponent {
     openExternalLink(event: Event, url: string) {
         event.preventDefault();
 
-        if (isElectronApp()) {
-            window.fme?.externalLink(url).then();
+        if (isPackagedApp()) {
+            this.wails.externalLink(url).subscribe();
         }
     }
 }

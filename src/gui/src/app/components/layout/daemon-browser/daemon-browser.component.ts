@@ -29,7 +29,7 @@ import {
 import { tooltipMessages } from '@app/constants/common.constants';
 import { PathType } from '@app/interfaces/paths';
 import { displayPathToGrpcPath, grpcPathToDisplayPath } from '@app/utils/path-utils';
-import { basename, commonPath, createJobName, getErrorMessage, s3BasePath } from '@app/utils/utils';
+import { basename, commonPath, createJobName, getErrorMessage, isPackagedApp, s3BasePath } from '@app/utils/utils';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { RefreshButtonComponent } from '@primitives/buttons/refresh-button/refresh-button.component';
 import { DaemonSelectorDropdownComponent } from '@primitives/forms/daemon-selector-dropdown/daemon-selector-dropdown.component';
@@ -68,6 +68,7 @@ import { NavigateOptions } from './daemon-browser.interfaces';
 import * as UiContextActions from '@state/ui-context/actions/ui-context.actions';
 import { Store } from '@ngrx/store';
 import { AppState } from '@app/state';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-daemon-browser',
@@ -90,6 +91,7 @@ export class DaemonBrowserComponent implements OnDestroy {
     private dialog = inject(MatDialog);
     private metadata = inject(MetadataService);
     private store = inject<Store<AppState>>(Store);
+    private wails = inject(WailsService);
 
     @ViewChild('filterField') filterField!: TextInputComponent;
     fileBrowserID = DAEMON_FILE_BROWSER_ID;
@@ -593,9 +595,15 @@ export class DaemonBrowserComponent implements OnDestroy {
      */
     openLocalFile(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
+            if (!isPackagedApp()) {
+                return;
+            }
+
             if (triggerObject?.name && this.selectedBookmark?.name === DEFAULT_BOOKMARK_NAME) {
                 const filePath = grpcPathToDisplayPath(triggerObject?.name, this.fileBrowserType);
-                window.fme?.systemOpen(filePath);
+                if (isPackagedApp()) {
+                    this.wails.systemOpen(filePath);
+                }
             }
         };
     }
@@ -605,9 +613,13 @@ export class DaemonBrowserComponent implements OnDestroy {
      */
     showItemInFolder(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
+            if (!isPackagedApp()) {
+                return;
+            }
+
             if (triggerObject?.name && this.selectedBookmark?.name === DEFAULT_BOOKMARK_NAME) {
                 const filePath = grpcPathToDisplayPath(triggerObject?.name, this.fileBrowserType);
-                window.fme?.systemShowItemInFolder(filePath);
+                this.wails.systemShowItemInFolder(filePath);
             }
         };
     }

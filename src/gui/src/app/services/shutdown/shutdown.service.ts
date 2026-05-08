@@ -5,7 +5,7 @@ import { ConfirmationModalComponent } from '@app/components/modals/confirmation-
 import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
 import { MessageModalComponent } from '@app/components/modals/message-modal/message-modal.component';
 import { MessageModalData } from '@app/components/modals/message-modal/message-modal.interfaces';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { ShutdownResult } from '@gen/es/fme/v1/shared_pb';
 import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
@@ -52,11 +52,6 @@ export class ShutdownService implements OnDestroy {
     ngOnDestroy(): void {
         this.subscriptions.map((subscription) => subscription.unsubscribe());
         this.subscriptions = [];
-        if (isElectronApp()) {
-            window.fme?.removeAllListeners('closed');
-            window.fme?.removeAllListeners('executeDaemonMode');
-            window.fme?.removeAllListeners('stopDaemon');
-        }
     }
 
     /**
@@ -64,7 +59,7 @@ export class ShutdownService implements OnDestroy {
      * @private
      */
     private fatalShutdownHandler() {
-        if (isElectronApp()) {
+        if (isPackagedApp()) {
             this.wails.onEvent('fatal-shutdown', () => {
                 if (this.connected) {
                     const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
@@ -87,14 +82,14 @@ export class ShutdownService implements OnDestroy {
                                 if (result === true) {
                                     this.saveSupportFileAndExportData();
                                 } else {
-                                    window.fme?.send('closed');
+                                    this.wails.send('closed');
                                 }
                             } catch {
-                                window.fme?.send('closed');
+                                this.wails.send('closed');
                             }
                         },
                         error: () => {
-                            window.fme?.send('closed');
+                            this.wails.send('closed');
                         },
                     });
                 } else {
@@ -118,14 +113,14 @@ export class ShutdownService implements OnDestroy {
                                 if (result === true) {
                                     this.exportJobs();
                                 } else {
-                                    window.fme?.send('closed');
+                                    this.wails.send('closed');
                                 }
                             } catch {
-                                window.fme?.send('closed');
+                                this.wails.send('closed');
                             }
                         },
                         error: () => {
-                            window.fme?.send('closed');
+                            this.wails.send('closed');
                         },
                     });
                 }
@@ -165,26 +160,25 @@ export class ShutdownService implements OnDestroy {
                             });
                     });
                 } else {
-                    window.fme?.send('closed');
+                    this.wails.send('closed');
                 }
             },
             error: () => {
-                window.fme?.send('closed');
+                this.wails.send('closed');
             },
         });
         return sub.asObservable();
     }
 
     private appCloseHandler() {
-        if (isElectronApp()) {
+        if (isPackagedApp()) {
             this.wails.onEvent('app-close', () => {
-                console.log('got app-close');
                 switch (this.prefService.daemonClose) {
                     case 'always':
                         this.doShutdown();
                         break;
                     case 'never':
-                        window.fme?.send('closed');
+                        this.wails.send('closed');
                         break;
                     default:
                         this.showDaemonCloseModal().subscribe(
@@ -260,7 +254,7 @@ export class ShutdownService implements OnDestroy {
                         link.click();
                         link.remove();
                     } catch {
-                        window.fme?.send('closed');
+                        this.wails.send('closed');
                     }
                 } else {
                     this.notifications.error(result.error);
@@ -314,7 +308,7 @@ export class ShutdownService implements OnDestroy {
 
         closeDialogRef.afterClosed().subscribe((closeApp) => {
             if (closeApp) {
-                window.fme?.send('closed');
+                this.wails.send('closed');
             }
         });
 

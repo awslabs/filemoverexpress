@@ -7,10 +7,11 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { PreferencesModalComponent } from '@app/components/modals/preferences-modal/preferences-modal.component';
 import { SUPPORT_PAGE_URL } from '@app/constants/external-links';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { strSupportFileComplete } from './toolbar-dropdown.constants';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-toolbar-dropdown',
@@ -32,6 +33,7 @@ export class ToolbarDropdownComponent {
     dialog = inject(MatDialog);
     private renderer = inject(Renderer2);
     private notifications = inject(NotificationsService);
+    private wails = inject(WailsService);
 
     @Input() version = '';
     @Input() connected = false;
@@ -59,8 +61,8 @@ export class ToolbarDropdownComponent {
     }
 
     getSupport() {
-        if (isElectronApp()) {
-            window.fme?.externalLink(SUPPORT_PAGE_URL);
+        if (isPackagedApp()) {
+            this.wails.externalLink(SUPPORT_PAGE_URL);
         }
     }
 

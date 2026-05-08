@@ -12,7 +12,7 @@ import { TransferProfile } from '@app/classes/config';
 import { sectionTitles } from '@app/constants/common.constants';
 import { docsLinks } from '@app/constants/external-links';
 import { validateBucket, validateName, validateRegion } from '@app/utils/config-utils';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { TransferProfileFormComponent } from '@containers/forms/transfer-profile-form/transfer-profile-form.component';
 import { TransferProfileForm } from '@containers/forms/transfer-profile-form/transfer-profile-form.interfaces';
 import { RegionsService } from '@services/regions/regions.service';
@@ -22,6 +22,7 @@ import {
     createTransferProfileForm,
     storageClasses,
 } from '@containers/forms/transfer-profile-form/transfer-profile-form.constants';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-setup-wizard-modal',
@@ -50,6 +51,7 @@ import {
 export class SetupWizardModalComponent implements AfterViewInit {
     private dialogRef = inject<MatDialogRef<SetupWizardModalComponent>>(MatDialogRef);
     private regionsService = inject(RegionsService);
+    private wails = inject(WailsService);
 
     // non-null assertion operator (!) added for ViewChildren since they can only be initialized in AfterViewInit
     // @ViewChild('wizardStepper') wizardStepper!: MatStepper;
@@ -116,8 +118,8 @@ export class SetupWizardModalComponent implements AfterViewInit {
     }
 
     openExternalLink(link: string) {
-        if (isElectronApp()) {
-            window.fme?.externalLink(link);
+        if (isPackagedApp()) {
+            this.wails.externalLink(link);
         }
     }
 

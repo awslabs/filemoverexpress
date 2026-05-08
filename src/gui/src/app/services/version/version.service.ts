@@ -5,6 +5,7 @@ import { LocalStorageService } from '../local-storage/local-storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { compare } from 'semver-ts';
 import { MetadataService } from '../metadata/metadata.service';
+import { WailsService } from '@services/wails/wails.service';
 
 @Injectable({
     providedIn: 'root',
@@ -13,6 +14,7 @@ export class VersionService {
     private storage = inject(LocalStorageService);
     private metadata = inject(MetadataService);
     private notifications = inject(NotificationsService);
+    private wails = inject(WailsService);
 
     public onUpdate: EventEmitter<boolean>;
     private readonly versionUpdateData: VersionUpdateData;
@@ -22,15 +24,14 @@ export class VersionService {
     constructor() {
         this.onUpdate = new EventEmitter<boolean>();
 
-        if (window.fme) {
-            window.fme.appVersion().then(
-                (version) => {
-                    this.appVersion = version || VersionNumber.VERSION_DEV;
-                },
-            );
-        } else {
-            this.appVersion = VersionNumber.VERSION_DEV;
-        }
+        this.wails.appVersion().subscribe({
+            next: (version) => {
+                this.appVersion = version || VersionNumber.VERSION_DEV
+            },
+            error: () => {
+                this.appVersion = VersionNumber.VERSION_DEV
+            }
+        })
 
         if (!this.storage.exists(CACHE_KEY)) {
             this.versionUpdateData = {...defaultOptions};

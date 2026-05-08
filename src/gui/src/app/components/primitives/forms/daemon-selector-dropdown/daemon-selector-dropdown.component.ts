@@ -526,10 +526,11 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
             (result) => {
                 try {
                     if (result) {
-                        if (window.fme) {
+                        try {
                             this.fmeClientService.shutdown();
                             this.notifications.info('Attempted to stop the running local daemon.');
-                        } else {
+                        } catch(error) {
+                            console.debug(`Failed stopping daemon: ${error}`);
                             this.notifications.error('Unable to stop the local daemon.');
                         }
                     }
