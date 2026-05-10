@@ -67,7 +67,7 @@ func buildDefaultsMap() map[string]interface{} {
 		configkeys.APIServerRemoteSettingsPorts:                []uint32{},
 		configkeys.APIServerRemoteSettingsAddress:              constants.DefaultAPIServerRemoteAddress,
 		configkeys.APIServerBlockedPathList:                    getDefaultBlockedPaths(),
-		configkeys.APIServerAllowedOrigins:                     []string{},
+		configkeys.APIServerAllowedOrigins:                     getAllowedOrigins(),
 		configkeys.APIServerPermissionsAllowUIConfiguration:    constants.DefaultAllowUIConfiguration,
 		configkeys.APIServerPermissionsAllowLocalRenameDelete:  constants.DefaultAllowLocalRenameDelete,
 		configkeys.APIServerPermissionsAllowRemoteRenameDelete: constants.DefaultAllowRemoteRenameDelete,

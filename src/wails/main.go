@@ -8,7 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-//go:embed all:frontend/dist
+//go:embed all:frontend/dist/browser
 var assets embed.FS
 
 // version is set via ldflags at build time.
@@ -16,7 +16,7 @@ var assets embed.FS
 var version = "dev"
 
 func main() {
-	app := NewApp(version)
+	fmeApp := NewApp(version)
 
 	err := wails.Run(&options.App{
 		Title:            ProductName,
@@ -29,10 +29,10 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup:     app.startup,
-		OnBeforeClose: app.beforeClose,
+		OnStartup:     fmeApp.startup,
+		OnBeforeClose: fmeApp.beforeClose,
 		Bind: []interface{}{
-			app,
+			fmeApp,
 		},
 	})
 

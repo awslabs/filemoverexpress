@@ -12,3 +12,9 @@ import (
 func getDefaultBlockedPaths() []string {
 	return []string{".aws", constants.DefaultAppDir, strings.ToLower(os.Getenv("WINDIR"))}
 }
+
+func getAllowedOrigins() []string {
+	return []string{
+		"http://wails.localhost",
+	}
+}
