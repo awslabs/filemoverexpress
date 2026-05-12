@@ -31,7 +31,6 @@ The documentation has been organized into the following pages:
 ## Changes Made During Conversion
 
 ### Content Updates
-- Updated all references from "Nimble Studio File Transfer" to "File Mover Express"
 - Updated repository references to point to `github.com/awslabs/filemoverexpress`
 - Removed internal Amazon links and references where appropriate
 - Updated support information to reflect open-source nature
@@ -83,7 +82,3 @@ Feel free to:
 - Review pull requests for accuracy and clarity
 - Maintain consistency in style and formatting
 - Keep examples current and relevant
-
-## Original Source
-
-This documentation was converted from the "File Mover Express for AWS User Guide" PDF, originally created for the Nimble Studio File Transfer service. The content has been adapted for the open-source File Mover Express project while maintaining technical accuracy and completeness.
