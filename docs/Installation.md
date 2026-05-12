@@ -17,9 +17,25 @@ Download the latest installer for your platform from the [Releases page](https:/
 
 ## Install
 
-**macOS** — open the `.dmg` and drag File Mover Express to Applications.
+**macOS**
 
-**Windows** — run the installer and follow the prompts.
+1. Open the `.dmg` and drag File Mover Express to Applications.
+
+2. **Before launching for the first time**, open Terminal and run:
+
+   ```bash
+   sudo xattr -rd com.apple.quarantine /Applications/File\ Mover\ Express.app
+   ```
+
+   This removes the quarantine flag that macOS applies to unsigned apps downloaded from the internet.
+
+   > **Why is this needed?** The installers are not yet code-signed or notarized with Apple. macOS Gatekeeper will report the app as "damaged" and refuse to open it. The app is not actually damaged — it's quarantined. The command above removes that restriction. This is a known issue ([#41](https://github.com/awslabs/filemoverexpress/issues/41)) and will be resolved when code signing is added to the release pipeline.
+
+3. Launch File Mover Express from Applications as normal.
+   
+**Windows**
+
+Run the installer and follow the prompts. Windows SmartScreen may show a warning — click "More info" then "Run anyway".
 
 **Linux** — make the AppImage executable and run it:
 ```bash
