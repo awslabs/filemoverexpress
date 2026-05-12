@@ -93,4 +93,3 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 - **Bug Reports**: [GitHub Issues](https://github.com/awslabs/filemoverexpress/issues)
 - **Feature Requests**: [GitHub Issues](https://github.com/awslabs/filemoverexpress/issues)
-- **Questions**: [GitHub Discussions](https://github.com/awslabs/filemoverexpress/discussions)
