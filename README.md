@@ -25,7 +25,11 @@ File Mover Express is a high-performance file transfer application designed to a
 
 **Download a pre-built installer** from the [Releases page](https://github.com/awslabs/filemoverexpress/releases) and double-click to install.
 
-> **Note:** Installers are currently self-signed or unsigned (may depend on platform). macOS will show a Gatekeeper warning — right-click the app and choose Open to bypass it. Windows will show a SmartScreen warning — click "More info" then "Run anyway".
+> **⚠️ macOS users:** The installers are currently unsigned. macOS will report the app as "damaged" — it isn't. Before launching for the first time, run:
+> ```bash
+> sudo xattr -rd com.apple.quarantine /Applications/File\ Mover\ Express.app
+> ```
+> See the [Installation guide](docs/Installation.md#macos) for details. Windows users may see a SmartScreen warning — click "More info" then "Run anyway".
 
 Prefer to build from source? See [Building from Source](docs/Installation.md).
 
