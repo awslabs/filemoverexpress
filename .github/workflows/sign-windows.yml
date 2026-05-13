@@ -1,0 +1,114 @@
+# GitHub Actions workflow for Windows code signing via AWS Signer (Wallaby)
+# This workflow is called after the Windows build completes.
+# It uploads the unsigned .exe to S3, waits for the signing Lambda to process it,
+# then downloads the signed artifact.
+#
+# Prerequisites:
+# 1. SignerOnboardingStack deployed in AWS account 704225640822 (us-east-1)
+# 2. GitHub OIDC identity provider configured in the account
+# 3. IAM role for GitHub Actions with permission to access signing S3 buckets
+#
+# Required GitHub Secrets:
+#   AWS_SIGNING_ROLE_ARN - arn:aws:iam::704225640822:role/fme-github-actions-signing
+#
+# Required GitHub Variables:
+#   AWS_SIGNING_ACCOUNT_ID - 704225640822
+#   AWS_SIGNING_REGION - us-east-1
+
+name: Sign Windows Distribution
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Name of the GitHub Actions artifact containing the unsigned .exe'
+        required: true
+        type: string
+      exe-filename:
+        description: 'Filename of the .exe to sign (e.g. File.Mover.Express-1.0.0.Setup-windows-x64.exe)'
+        required: true
+        type: string
+    outputs:
+      signed-artifact-name:
+        description: 'Name of the GitHub Actions artifact containing the signed .exe'
+        value: ${{ jobs.sign.outputs.signed-artifact-name }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  sign:
+    name: Sign Windows Binary
+    runs-on: ubuntu-latest
+    environment: signing
+    outputs:
+      signed-artifact-name: signed-${{ inputs.artifact-name }}
+
+    env:
+      UNSIGNED_BUCKET: ${{ vars.AWS_SIGNING_ACCOUNT_ID }}-fme-unsigned
+      SIGNED_BUCKET: ${{ vars.AWS_SIGNING_ACCOUNT_ID }}-fme-signed
+      AWS_REGION: ${{ vars.AWS_SIGNING_REGION }}
+
+    steps:
+      - name: Download unsigned artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./unsigned
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload unsigned binary to S3
+        id: upload
+        run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          S3_KEY="${TIMESTAMP}/${{ inputs.exe-filename }}"
+          echo "s3-key=${S3_KEY}" >> "$GITHUB_OUTPUT"
+
+          aws s3 cp "./unsigned/${{ inputs.exe-filename }}" \
+            "s3://${UNSIGNED_BUCKET}/${S3_KEY}"
+
+          echo "Uploaded unsigned binary to s3://${UNSIGNED_BUCKET}/${S3_KEY}"
+
+      - name: Wait for signed artifact
+        id: wait-for-signed
+        run: |
+          S3_KEY="${{ steps.upload.outputs.s3-key }}"
+          MAX_ATTEMPTS=60
+          SLEEP_SECONDS=10
+
+          echo "Waiting for signed artifact at s3://${SIGNED_BUCKET}/${S3_KEY}"
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if aws s3api head-object --bucket "${SIGNED_BUCKET}" --key "${S3_KEY}" 2>/dev/null; then
+              echo "Signed artifact found after attempt ${i}"
+              echo "signed-key=${S3_KEY}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Attempt ${i}/${MAX_ATTEMPTS} - not ready yet, waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "ERROR: Timed out waiting for signed artifact after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+          exit 1
+
+      - name: Download signed binary from S3
+        run: |
+          mkdir -p ./signed
+          aws s3 cp \
+            "s3://${SIGNED_BUCKET}/${{ steps.wait-for-signed.outputs.signed-key }}" \
+            "./signed/${{ inputs.exe-filename }}"
+
+          echo "Downloaded signed binary"
+
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ inputs.artifact-name }}
+          path: ./signed/${{ inputs.exe-filename }}
+          retention-days: 30
