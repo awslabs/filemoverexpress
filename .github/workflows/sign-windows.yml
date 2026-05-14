@@ -1,4 +1,4 @@
-# GitHub Actions workflow for Windows code signing via AWS Signer (Wallaby)
+# GitHub Actions workflow for Windows code signing via AWS Signer
 # This workflow is called after the Windows build completes.
 # It uploads the unsigned .exe to S3, waits for the signing Lambda to process it,
 # then downloads the signed artifact.
