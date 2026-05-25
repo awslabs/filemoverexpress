@@ -1,0 +1,16 @@
+name: 'Build GUI'
+description: 'Builds the Angular GUI application for production via npm run build:gui'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build GUI
+      run: npm run build:gui
+      shell: bash
+
+    - name: Upload GUI dist
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: gui-dist
+        path: src/gui/dist/
+        retention-days: 7

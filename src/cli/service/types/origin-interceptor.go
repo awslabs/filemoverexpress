@@ -24,9 +24,9 @@ type OriginInterceptor struct {
 	config ServiceConfig
 }
 
-func NewOriginInterceptor(config ServiceConfig) *OriginInterceptor {
+func NewOriginInterceptor(serviceConfig ServiceConfig) *OriginInterceptor {
 	return &OriginInterceptor{
-		config: config,
+		config: serviceConfig,
 	}
 }
 

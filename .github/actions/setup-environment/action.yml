@@ -1,0 +1,83 @@
+name: 'Setup Environment'
+description: 'Provision runner with Node.js, Go, and workspace dependencies'
+
+inputs:
+  node-version:
+    description: 'Node.js version to install on the runner'
+    required: false
+    default: '22'
+  go-version:
+    description: 'Go version to install on the runner'
+    required: false
+    default: '1.25'
+  install-go:
+    description: 'Whether to install the Go toolchain'
+    required: false
+    default: 'true'
+  force-container-mode:
+    description: 'Skip tool installations regardless of container detection'
+    required: false
+    default: 'false'
+
+outputs:
+  in-container:
+    description: 'Whether the action detected it is running inside a container'
+    value: ${{ steps.container-check.outputs.in-container }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if running in container
+      id: container-check
+      run: |
+        if [ "${{ inputs.force-container-mode }}" = "true" ] || [ -n "$FME_BUILDER_CONTAINER" ]; then
+          echo "in-container=true" >> $GITHUB_OUTPUT
+        else
+          echo "in-container=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Install Node.js
+      if: steps.container-check.outputs.in-container == 'false'
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    - name: Install Go
+      if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
+      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache-dependency-path: src/cli/go.sum
+
+    - name: Configure Go build cache path
+      if: inputs.install-go == 'true'
+      run: |
+        if [ "$(uname)" = "Darwin" ]; then
+          echo "GOFLAGS=-cache=$HOME/Library/Caches/go-build" >> $GITHUB_ENV
+          echo "GOCACHE=$HOME/Library/Caches/go-build" >> $GITHUB_ENV
+        else
+          echo "GOCACHE=$HOME/.cache/go-build" >> $GITHUB_ENV
+        fi
+      shell: bash
+
+    - name: Install npm dependencies
+      run: npm ci
+      shell: bash
+
+    - name: Add node_modules/.bin to PATH
+      run: echo "${{ github.workspace }}/node_modules/.bin" >> $GITHUB_PATH
+      shell: bash
+
+    - name: Install Go protobuf plugins
+      if: inputs.install-go == 'true'
+      run: |
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+      shell: bash
+
+    - name: Install golangci-lint
+      if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
+      run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+      shell: bash

@@ -5,8 +5,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/inventory"
 	"github.com/awslabs/filemoverexpress/types/inventorytypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"

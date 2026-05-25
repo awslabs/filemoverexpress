@@ -9,8 +9,7 @@
         "build:linux": "ts-node ../build-scripts/build.ts cli build --platforms linux",
         "build:windows": "ts-node ../build-scripts/build.ts cli build --platforms windows",
         "build:all": "ts-node ../build-scripts/build.ts cli build",
-        "test": "go test -gcflags=\"all=-N -l\" -short -v -cover ./...",
-        "test:coverage": "go test -gcflags=\"all=-N -l\" -coverprofile=coverage.out $(go list ./... | grep -v e2e-tests) && go tool cover -html=coverage.out",
+        "test": "go test -gcflags=\"all=-N -l\" -short -v -cover -coverprofile coverage.out ./... && go tool cover -html coverage.out -o coverage.html",
         "test:e2e": "cross-env E2E_TEST=true go test ./e2e-tests/... -v",
         "lint": "golangci-lint run",
         "lint:fix": "golangci-lint run --fix",
@@ -24,7 +23,7 @@
         "daemon"
     ],
     "author": "Amazon Web Services",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "devDependencies": {
         "npm-run-all": "4.1.5",
         "cross-env": "10.1.0",

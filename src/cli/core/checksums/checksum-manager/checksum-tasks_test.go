@@ -1,6 +1,8 @@
 package checksum_manager
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"math"
 	"os"
 	"path/filepath"
@@ -16,16 +18,29 @@ import (
 
 var sep = string(filepath.Separator)
 
-var (
-	ld = local_discovery.NewLocalDiscovery("", "random-id", "")
+var ld = local_discovery.NewLocalDiscovery("", "random-id", "")
 
-	expectedChecksums = map[string]string{
-		filepath.Join("testdata", "checksums", "checksums.mhl"): "7440790ccaee71220b61be3f35ec04a6",
-		filepath.Join("testdata", "checksums", "test-file-1"):   "61d801940ded10755cb2641584d4a0df",
-		filepath.Join("testdata", "checksums", "test-file-2"):   "cf706ca8f8fee3319b8f739b85ab0444",
-		filepath.Join("testdata", "checksums", "test-file-3"):   "c1241921341440e5c094f440e0ceb756",
-	}
-)
+// computeExpectedChecksums reads each file from disk and computes its MD5 at test time,
+// avoiding hardcoded checksums that break when Git normalizes line endings.
+func computeExpectedChecksums(dir string) (map[string]string, error) {
+	result := make(map[string]string)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		hash := md5.Sum(data)
+		result[path] = hex.EncodeToString(hash[:])
+		return nil
+	})
+	return result, err
+}
 
 func TestChecksumManager_ChecksumTasks(t *testing.T) {
 	cwd, err := os.Getwd()
@@ -37,6 +52,13 @@ func TestChecksumManager_ChecksumTasks(t *testing.T) {
 	err = os.Chdir("../../../")
 	if err != nil {
 		t.Errorf("Failed changing directory: %s", err)
+		return
+	}
+
+	checksumDir := filepath.Join("testdata", "checksums")
+	expectedChecksums, err := computeExpectedChecksums(checksumDir)
+	if err != nil {
+		t.Errorf("Failed computing expected checksums: %s", err)
 		return
 	}
 

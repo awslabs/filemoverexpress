@@ -6,11 +6,11 @@ import { MatDivider } from '@angular/material/list';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { PreferencesModalComponent } from '@app/components/modals/preferences-modal/preferences-modal.component';
-import { SUPPORT_PAGE_URL } from '@app/constants/external-links';
 import { isElectronApp } from '@app/utils/utils';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { strSupportFileComplete } from './toolbar-dropdown.constants';
+import { docsLinks } from '@app/constants/external-links';
 
 @Component({
     selector: 'fme-toolbar-dropdown',
@@ -60,7 +60,7 @@ export class ToolbarDropdownComponent {
 
     getSupport() {
         if (isElectronApp()) {
-            window.fme?.externalLink(SUPPORT_PAGE_URL);
+            window.fme?.externalLink(docsLinks.USER_GUIDE_PAGE_URL);
         }
     }
 

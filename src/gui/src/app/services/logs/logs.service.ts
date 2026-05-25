@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { MARKETING_PAGE_URL } from '@app/constants/external-links';
 import { jobStatusToString } from '@app/utils/job-utils';
 import { formatBytes } from '@app/utils/utils';
 import * as CoreEvents from '@events/core';
@@ -10,6 +9,7 @@ import { Store } from '@ngrx/store';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { addLog } from '@state/logs/actions/logs.actions';
 import { JobStatus } from '@state/models/job.model';
+import { docsLinks } from '@app/constants/external-links';
 
 const IGNORED_EVENTS = [JobEvents.TaskCompleteEvent] as const;
 
@@ -182,7 +182,7 @@ export class LogsService {
         this.store.dispatch(addLog({
             log: {
                 level: evt.logLevel,
-                message: `Your current version is no longer supported. Current version: ${evt.currentVersion}, Newest supported version: ${evt.newVersion}. Visit ${MARKETING_PAGE_URL} to download`,
+                message: `Your current version is no longer supported. Current version: ${evt.currentVersion}, Newest supported version: ${evt.newVersion}. Visit ${docsLinks.GITHUB_REPO} to download`,
                 timestamp: new Date(),
                 jobId: null,
             },
@@ -193,7 +193,7 @@ export class LogsService {
         this.store.dispatch(addLog({
             log: {
                 level: evt.logLevel,
-                message: `A new version is available. Current version: ${evt.currentVersion}, New version: ${evt.newVersion}. Visit ${MARKETING_PAGE_URL} to download`,
+                message: `A new version is available. Current version: ${evt.currentVersion}, New version: ${evt.newVersion}. Visit ${docsLinks.GITHUB_REPO} to download`,
                 timestamp: new Date(),
                 jobId: null,
             },

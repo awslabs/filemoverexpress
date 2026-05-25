@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-protobuf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/build-protobuf
+
+  lint:
+    needs: [build-protobuf]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/lint-gui
+      - uses: ./.github/actions/lint-cli
+      - uses: ./.github/actions/lint-protobuf
+
+  test-cli:
+    needs: [build-protobuf]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/test-cli
+
+  test-gui:
+    needs: [build-protobuf]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          install-go: 'false'
+      - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/test-gui
+
+  test-build-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          install-go: 'false'
+      - uses: ./.github/actions/test-build-scripts

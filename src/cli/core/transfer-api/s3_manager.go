@@ -33,6 +33,7 @@ type (
 		Endpoint   string
 	}
 
+	//nolint:staticcheck // Pending TransferManagerV2 migration
 	S3Manager struct {
 		AwsProfile string
 		Bucket     string

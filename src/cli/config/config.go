@@ -25,10 +25,6 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/systeminfo"
 )
 
-type (
-	ReloadFn func(config configtypes.FmeConfig)
-)
-
 var (
 	configFile, configDir string
 	cachedCfg             atomic.Value // configtypes.FmeConfig
@@ -36,6 +32,10 @@ var (
 	configLock            = sync.Mutex{}
 	boundFlags            = make(map[string]*pflag.Flag)
 	fileProvider          *file.File
+)
+
+type (
+	ReloadFn func(config configtypes.FmeConfig)
 )
 
 func buildDefaultsMap() map[string]interface{} {
@@ -190,7 +190,7 @@ func GetConfigName() string {
 }
 
 func WatchConfig(watcherCallback ReloadFn) {
-	fileProvider.Watch(func(event interface{}, err error) {
+	err := fileProvider.Watch(func(_ interface{}, err error) {
 		if err != nil {
 			logger.Error("Config watch error: %v", err)
 			return
@@ -198,6 +198,9 @@ func WatchConfig(watcherCallback ReloadFn) {
 		newCfg := loadConfig()
 		watcherCallback(newCfg)
 	})
+	if err != nil {
+		logger.Error("Config watch error: %v", err)
+	}
 }
 
 func ConvertMaxAgeToInt(maxAgeStr string) int64 {
@@ -306,7 +309,12 @@ func validateTransferProfiles(cfg *configtypes.FmeConfig) bool {
 		if !utils.IsValidChecksumConfig(string(txp.Checksums.Algorithm), txp.Checksums.Enabled) {
 			logger.Warn(strInvalidFieldValue, "checksums.algorithm", string(txp.Checksums.Algorithm), constants.DefaultChecksumAlgorithm)
 			logger.Warn(strInvalidFieldValue, "checksums.enabled", txp.Checksums.Enabled, constants.DefaultChecksumEnabled)
-			events.Events.Warn(strInvalidFieldValue, "checksums.algorithm", string(txp.Checksums.Algorithm), constants.DefaultChecksumAlgorithm)
+			events.Events.Warn(
+				strInvalidFieldValue,
+				"checksums.algorithm",
+				string(txp.Checksums.Algorithm),
+				constants.DefaultChecksumAlgorithm,
+			)
 			events.Events.Warn(strInvalidFieldValue, "checksums.enabled", txp.Checksums.Enabled, constants.DefaultChecksumEnabled)
 
 			txp.Checksums.Algorithm = constants.DefaultChecksumAlgorithm

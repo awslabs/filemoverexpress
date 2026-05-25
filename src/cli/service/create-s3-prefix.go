@@ -7,8 +7,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"github.com/awslabs/filemoverexpress/core/job_manager"
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/job_manager"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 )
 

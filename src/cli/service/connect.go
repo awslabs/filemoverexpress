@@ -51,18 +51,18 @@ func startServer(mux *http.ServeMux, ip string, port uint) {
 	}
 }
 
-func startApi(config types.ServiceConfig) *FileMoverServer {
+func startApi(serviceConfig types.ServiceConfig) *FileMoverServer {
 	fmeServer := FileMoverServer{}
 	mux := http.NewServeMux()
 	interceptors := connect.WithInterceptors(
-		types.NewOriginInterceptor(config),
-		types.NewAuthInterceptor(config),
+		types.NewOriginInterceptor(serviceConfig),
+		types.NewAuthInterceptor(serviceConfig),
 	)
 	path, handler := fmev1connect.NewFmeServiceHandler(&fmeServer, interceptors)
 	mux.Handle(path, types.NewResponseHeader(handler))
 
-	for _, port := range config.Ports {
-		go startServer(mux, config.Host, port)
+	for _, port := range serviceConfig.Ports {
+		go startServer(mux, serviceConfig.Host, port)
 	}
 
 	return &fmeServer

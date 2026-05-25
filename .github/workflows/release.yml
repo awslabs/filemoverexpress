@@ -1,0 +1,113 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (semver format, e.g., 1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-protobuf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/build-protobuf
+
+  build-cli:
+    needs: [build-protobuf]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            architecture: x64
+            runner: ubuntu-latest
+          - platform: linux
+            architecture: arm64
+            runner: ubuntu-24.04-arm
+          - platform: darwin
+            architecture: x64
+            runner: macos-15-intel
+          - platform: darwin
+            architecture: arm64
+            runner: macos-latest
+          - platform: windows
+            architecture: x64
+            runner: windows-latest
+          - platform: windows
+            architecture: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/build-cli
+        with:
+          platform: ${{ matrix.platform }}
+          architecture: ${{ matrix.architecture }}
+          build-version: ${{ inputs.version || github.ref_name }}
+
+  build-gui:
+    needs: [build-protobuf]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          install-go: 'false'
+      - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/build-gui
+
+  build-electron:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          install-go: 'false'
+      - uses: ./.github/actions/build-electron
+
+  generate-installer:
+    needs: [build-cli, build-gui, build-electron]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            architecture: x64
+            runner: ubuntu-latest
+          - platform: linux
+            architecture: arm64
+            runner: ubuntu-24.04-arm
+          - platform: mac
+            architecture: x64
+            runner: macos-15-intel
+          - platform: mac
+            architecture: arm64
+            runner: macos-latest
+          - platform: win
+            architecture: x64
+            runner: windows-latest
+          - platform: win
+            architecture: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          install-go: 'false'
+      - uses: ./.github/actions/generate-installer
+        with:
+          platform: ${{ matrix.platform }}
+          architecture: ${{ matrix.architecture }}
+          build-version: ${{ inputs.version || github.ref_name }}

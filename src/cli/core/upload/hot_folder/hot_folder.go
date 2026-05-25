@@ -12,7 +12,6 @@ import (
 	"github.com/radovskyb/watcher"
 
 	"github.com/awslabs/filemoverexpress/config"
-
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"

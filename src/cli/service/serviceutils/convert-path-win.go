@@ -8,9 +8,7 @@ import (
 )
 
 func ConvertPathFromGRPC(inputPath string) string {
-	if strings.HasPrefix(inputPath, "/") {
-		inputPath = inputPath[1:]
-	}
+	inputPath = strings.TrimPrefix(inputPath, "/")
 
 	pathParts := strings.Split(inputPath, "/")
 	drive, pathParts := pathParts[0], pathParts[1:]

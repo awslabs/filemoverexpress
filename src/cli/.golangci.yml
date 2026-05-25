@@ -322,6 +322,7 @@ linters:
                     arguments:
                         - fmt.Printf
                         - fmt.Println
+                        - fmt.Fprint
                         - fmt.Fprintf
                         - fmt.Fprintln
                     severity: warning

@@ -1,0 +1,18 @@
+name: 'Build Protobuf'
+description: 'Generates protobuf code for Go and TypeScript targets via npm run build:proto'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate protobuf code
+      run: npm run build:proto
+      shell: bash
+
+    - name: Upload generated code
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: proto-gen
+        path: |
+          src/cli/types/pbtypes/
+          src/gui/src/gen/es/
+        retention-days: 7

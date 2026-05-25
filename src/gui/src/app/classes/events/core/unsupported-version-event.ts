@@ -1,7 +1,7 @@
 import { BaseEvent, EventLogLevel } from '@app/interfaces/events';
 import { UnsupportedVersionEvent as ProtoUnsupportedVersionEvent } from '@gen/es/fme/v1/events_pb';
-import { MARKETING_PAGE_URL } from '@app/constants/external-links';
 import { ListEventsResponse } from '@gen/es/fme/v1/fme_service_pb';
+import { docsLinks } from '@app/constants/external-links';
 
 export class UnsupportedVersionEvent implements BaseEvent {
     logLevel = EventLogLevel.Warning;
@@ -10,7 +10,7 @@ export class UnsupportedVersionEvent implements BaseEvent {
     }
 
     get logMessage(): string {
-        return `Your current version is no longer supported. Current version: ${this.currentVersion}, Newest supported version: ${this.newVersion}. Visit ${MARKETING_PAGE_URL} to download`;
+        return `Your current version is no longer supported. Current version: ${this.currentVersion}, Newest supported version: ${this.newVersion}. Visit ${docsLinks.GITHUB_REPO} to download`;
     }
 
     static fromProtobuf(event: ListEventsResponse): UnsupportedVersionEvent {

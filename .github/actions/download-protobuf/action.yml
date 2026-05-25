@@ -1,0 +1,21 @@
+name: 'Download Protobuf'
+description: 'Downloads the proto-gen artifact containing generated protobuf code for Go and TypeScript'
+
+inputs:
+  artifact-name:
+    description: 'Name of the artifact to download'
+    required: false
+    default: 'proto-gen'
+  path:
+    description: 'Destination path for the downloaded artifact'
+    required: false
+    default: 'src/'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download proto-gen artifact
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.path }}

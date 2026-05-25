@@ -1,0 +1,10 @@
+name: 'Lint Protobuf'
+description: 'Runs buf lint against protobuf definitions using the STANDARD rule set in src/protobuf/buf.yaml'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run buf lint
+      run: npx buf lint
+      shell: bash
+      working-directory: src/protobuf/
