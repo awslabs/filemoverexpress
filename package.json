@@ -10,7 +10,7 @@
         "s3"
     ],
     "author": "Amazon Web Services",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "workspaces": [
         "src/*"
     ],

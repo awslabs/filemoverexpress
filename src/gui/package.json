@@ -1,7 +1,7 @@
 {
     "name": "@filemoverexpress/ui",
     "productName": "File Mover Express",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "version": "1.0.0",
     "main": "../electron/out/electron-main.js",
     "private": true,

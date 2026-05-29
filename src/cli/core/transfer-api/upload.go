@@ -28,6 +28,7 @@ type UploadConfig struct {
 	Threads           int
 }
 
+//nolint:staticcheck // Pending TransferManagerV2 migration
 func (s3m *S3Manager) Upload(input UploadConfig) (*manager.UploadOutput, error) {
 	s3m.Lock.RLock()
 	uploader := s3m.Uploader

@@ -62,7 +62,6 @@ func NewService(grpcHost string, grpcWebPortList []uint, remote bool) *FileMover
 			if decryptErr != nil {
 				events.Events.Fatal(strPSKDecryptFailed, decryptErr.Error())
 			}
-
 		} else {
 			isGuiDaemon, isDaemonFound := os.LookupEnv(fmeGuiDaemonEnvVar)
 			if !isDaemonFound || isGuiDaemon != "true" {

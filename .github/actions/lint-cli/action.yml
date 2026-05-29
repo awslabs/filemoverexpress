@@ -1,0 +1,9 @@
+name: 'Lint CLI'
+description: 'Runs golangci-lint for the Go CLI component via npm run lint:cli'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLI lint
+      run: npm run lint:cli
+      shell: bash

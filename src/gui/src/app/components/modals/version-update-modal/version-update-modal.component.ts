@@ -1,8 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
-import { MARKETING_PAGE_URL } from '@app/constants/external-links';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { VersionService } from '@services/version/version.service';
+import { docsLinks } from '@app/constants/external-links';
 
 @Component({
     selector: 'fme-version-update-modal',
@@ -33,9 +33,9 @@ export class VersionUpdateModalComponent {
     update() {
         return () => {
             if (window.fme) {
-                window.fme.externalLink(MARKETING_PAGE_URL).then();
+                window.fme.externalLink(docsLinks.GITHUB_REPO).then();
             } else {
-                window.open(MARKETING_PAGE_URL, '_blank');
+                window.open(docsLinks.GITHUB_REPO, '_blank');
             }
             this.dialogRef.close();
         };

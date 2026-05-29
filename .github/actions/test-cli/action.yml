@@ -1,0 +1,33 @@
+name: 'Test CLI'
+description: 'Runs Go unit tests for the CLI component via npm run test:cli'
+
+inputs:
+  coverage:
+    description: 'Generate and upload Go coverage report'
+    required: false
+    default: 'true'
+  verbose:
+    description: 'Enable verbose test output'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare CLI test environment
+      run: mkdir -p "$HOME/.filemoverexpress"
+      shell: bash
+
+    - name: Run CLI tests
+      run: npm run test:cli
+      env:
+        GOFLAGS: -p=1
+      shell: bash
+
+    - name: Upload coverage
+      if: inputs.coverage == 'true'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: cli-coverage
+        path: src/cli/coverage.html
+        retention-days: 14

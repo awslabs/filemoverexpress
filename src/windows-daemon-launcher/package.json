@@ -4,7 +4,7 @@
     "private": true,
     "description": "Windows service launcher for FileMoverExpress daemon",
     "author": "Amazon Web Services",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "scripts": {},
     "devDependencies": {
         "cross-env": "10.1.0"

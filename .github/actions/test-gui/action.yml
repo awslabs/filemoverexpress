@@ -1,0 +1,54 @@
+name: 'Test GUI'
+description: 'Runs Angular Karma unit tests for the GUI component via npm run test:gui'
+
+inputs:
+  coverage:
+    description: 'Generate and upload GUI coverage report'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Chromium (if not present)
+      run: |
+        # Install Chrome's shared library dependencies
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+          libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+          libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libatspi2.0-0 \
+          || sudo apt-get install -y --no-install-recommends \
+          libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+          libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+          libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 libatspi2.0-0
+        # Download Chrome stable via @puppeteer/browsers
+        npx --yes @puppeteer/browsers install chrome@stable --path "$HOME/.chromium"
+        CHROME_PATH=$(find "$HOME/.chromium" -name "chrome" -type f | head -1)
+        echo "CHROMIUM_INSTALL_PATH=$CHROME_PATH" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Detect Chromium binary path
+      id: chromium
+      run: |
+        if [ -n "$CHROMIUM_INSTALL_PATH" ] && [ -x "$CHROMIUM_INSTALL_PATH" ]; then
+          echo "bin=$CHROMIUM_INSTALL_PATH" >> $GITHUB_OUTPUT
+        else
+          echo "::error::Chrome/Chromium binary not found at $CHROMIUM_INSTALL_PATH"
+          exit 1
+        fi
+      shell: bash
+
+    - name: Run GUI tests
+      run: npm run test:gui
+      shell: bash
+      env:
+        CHROMIUM_BIN: ${{ steps.chromium.outputs.bin }}
+
+    - name: Upload coverage
+      if: inputs.coverage == 'true'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: gui-coverage
+        path: src/gui/coverage/
+        retention-days: 14

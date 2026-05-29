@@ -20,6 +20,7 @@ type DownloadConfig struct {
 	Writer      io.WriterAt
 }
 
+//nolint:staticcheck // Pending TransferManagerV2 migration
 func (s3m *S3Manager) Download(input DownloadConfig) (int64, error) {
 	s3m.Lock.RLock()
 	downloader := s3m.Downloader

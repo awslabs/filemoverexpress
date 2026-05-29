@@ -5,8 +5,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/config"
+	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 )
 

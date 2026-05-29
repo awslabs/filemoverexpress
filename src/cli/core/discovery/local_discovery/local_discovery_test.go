@@ -11,6 +11,17 @@ import (
 
 var sep = string(filepath.Separator)
 
+// getFileSize returns the size of a file on disk, avoiding hardcoded sizes
+// that break when Git normalizes line endings across platforms.
+func getFileSize(t *testing.T, path string) int64 {
+	t.Helper()
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Failed to stat %s: %s", path, err)
+	}
+	return info.Size()
+}
+
 func TestLocalDiscovery_Discover(t *testing.T) {
 	type (
 		args struct {
@@ -22,6 +33,22 @@ func TestLocalDiscovery_Discover(t *testing.T) {
 			destination string
 		}
 	)
+
+	// TODO: LocalDiscovery has been updated to take absolute paths. Update this test to properly discover, instead of having to do any
+	// directory changing
+	curCwd, err := os.Getwd()
+	if err != nil {
+		t.Errorf("Failed getting current directory: %s", err)
+	}
+
+	err = os.Chdir("../../../")
+	if err != nil {
+		t.Errorf("Failed changing directory: %s", err)
+	}
+
+	// Compute expected file sizes from disk to avoid line-ending sensitivity
+	testTxtSize := getFileSize(t, filepath.Join("testdata", "discovery", "text-files", "test.txt"))
+	anotherTestTxtSize := getFileSize(t, filepath.Join("testdata", "discovery", "text-files", "another-test.txt"))
 
 	tests := []struct {
 		name          string
@@ -46,12 +73,12 @@ func TestLocalDiscovery_Discover(t *testing.T) {
 			want: []expectedFiles{
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "test.txt"),
-					size:        21,
+					size:        testTxtSize,
 					destination: "testdata/discovery/text-files/test.txt",
 				},
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "another-test.txt"),
-					size:        27,
+					size:        anotherTestTxtSize,
 					destination: "testdata/discovery/text-files/another-test.txt",
 				},
 				{
@@ -75,7 +102,7 @@ func TestLocalDiscovery_Discover(t *testing.T) {
 			want: []expectedFiles{
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "test.txt"),
-					size:        21,
+					size:        testTxtSize,
 					destination: "testdata/discovery/text-files/text.txt",
 				},
 			},
@@ -108,12 +135,12 @@ func TestLocalDiscovery_Discover(t *testing.T) {
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "test.txt"),
 					destination: "my-custom-prefix/testdata/discovery/test.txt",
-					size:        21,
+					size:        testTxtSize,
 				},
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "another-test.txt"),
 					destination: "my-custom-prefix/testdata/discovery/text-files/another-test.txt",
-					size:        27,
+					size:        anotherTestTxtSize,
 				},
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "sub-directory", "empty-file.txt"),
@@ -137,7 +164,7 @@ func TestLocalDiscovery_Discover(t *testing.T) {
 				{
 					path:        filepath.Join("testdata", "discovery", "text-files", "test.txt"),
 					destination: "my-custom-prefix/testdata/discovery/text-files/test.txt",
-					size:        21,
+					size:        testTxtSize,
 				},
 			},
 			wantErrs: false,
@@ -165,18 +192,6 @@ func TestLocalDiscovery_Discover(t *testing.T) {
 			wantErrs:      true,
 			limitOs:       "linux",
 		},
-	}
-
-	// TODO: LocalDiscovery has been updated to take absolute paths. Update this test to properly discover, instead of having to do any
-	// directory changing
-	curCwd, err := os.Getwd()
-	if err != nil {
-		t.Errorf("Failed getting current directory: %s", err)
-	}
-
-	err = os.Chdir("../../../")
-	if err != nil {
-		t.Errorf("Failed changing directory: %s", err)
 	}
 
 	for _, tt := range tests {

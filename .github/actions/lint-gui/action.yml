@@ -1,0 +1,9 @@
+name: 'Lint GUI'
+description: 'Runs ESLint for the Angular GUI component via npm run lint:gui'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run GUI lint
+      run: npm run lint:gui
+      shell: bash

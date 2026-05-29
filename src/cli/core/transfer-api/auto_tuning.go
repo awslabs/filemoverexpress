@@ -89,11 +89,13 @@ type (
 		AutoTuning  bool
 		MemoryLimit int64
 	}
+	//nolint:staticcheck // Pending TransferManagerV2 migration
 	TransferClient interface {
 		manager.Uploader | manager.Downloader
 	}
 )
 
+//nolint:staticcheck // Pending TransferManagerV2 migration
 func WithDownloadSettings(input AutoTuningConfig) func(*manager.Downloader) {
 	if !input.AutoTuning {
 		return func(_ *manager.Downloader) {}
@@ -116,6 +118,7 @@ func WithDownloadSettings(input AutoTuningConfig) func(*manager.Downloader) {
 	return func(_ *manager.Downloader) {}
 }
 
+//nolint:staticcheck // Pending TransferManagerV2 migration
 func WithUploadSettings(input AutoTuningConfig) func(uploader *manager.Uploader) {
 	if !input.AutoTuning {
 		return func(_ *manager.Uploader) {}

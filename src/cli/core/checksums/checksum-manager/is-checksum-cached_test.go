@@ -1,6 +1,8 @@
 package checksum_manager
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,11 +32,25 @@ func TestChecksumManager_isChecksumCachedValid(t *testing.T) {
 
 	validFilePath := filepath.Join("..", "..", "..", "testdata", "checksums", "checksums.mhl")
 	invalidFilePath := filepath.Join("..", "..", "..", "testdata", "checksums", "checksums2.mhl")
-	validSize := int64(1095)
-	validModTime := time.Unix(1696362208, 0)
-	validChecksum := "cea3f0256e0564683985ab382395de35"
 
-	err := os.Chtimes(validFilePath, validModTime, validModTime)
+	// Derive size and checksum from the actual file on disk to avoid
+	// line-ending mismatches across platforms (CRLF on Windows vs LF on Linux).
+	fInfo, err := os.Stat(validFilePath)
+	if err != nil {
+		t.Fatalf("Failed to stat %s: %s", validFilePath, err)
+	}
+	validSize := fInfo.Size()
+
+	fileBytes, err := os.ReadFile(validFilePath)
+	if err != nil {
+		t.Fatalf("Failed to read %s: %s", validFilePath, err)
+	}
+	hash := md5.Sum(fileBytes)
+	validChecksum := hex.EncodeToString(hash[:])
+
+	validModTime := time.Unix(1696362208, 0)
+
+	err = os.Chtimes(validFilePath, validModTime, validModTime)
 	if err != nil {
 		t.Errorf("Failed to set mod time on %s: %s", validFilePath, err)
 	}

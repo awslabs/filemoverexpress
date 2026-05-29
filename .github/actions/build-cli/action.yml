@@ -1,0 +1,37 @@
+name: 'Build CLI'
+description: 'Cross-compiles the Go CLI binary for a target platform and architecture via build-scripts'
+
+inputs:
+  platform:
+    description: 'Target platform (darwin, linux, windows)'
+    required: true
+  architecture:
+    description: 'Target architecture (x64, arm64)'
+    required: true
+  build-version:
+    description: 'Semantic version string to embed via ldflags'
+    required: false
+    default: ''
+  production:
+    description: 'Enable production build mode'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build CLI binary
+      run: |
+        npx -w @filemoverexpress/build-scripts ts-node build.ts cli \
+          --platforms ${{ inputs.platform }} \
+          --archs ${{ inputs.architecture }} \
+          ${{ inputs.production == 'true' && '--production' || '' }} \
+          ${{ inputs.build-version && format('--build-version {0}', inputs.build-version) || '' }}
+      shell: bash
+
+    - name: Upload CLI artifact
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: cli-${{ inputs.platform }}-${{ inputs.architecture }}
+        path: dist/filemoverexpress*
+        retention-days: 7
