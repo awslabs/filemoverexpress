@@ -77,7 +77,11 @@ jobs:
   # ---------------------------------------------------------------------------
   sign-macos:
     needs: [generate-installer]
-    if: vars.MACOS_SIGNING_ENABLED == 'true'
+    # Run whenever the workflow isn't cancelled (not only on full matrix success):
+    # generate-installer is a matrix, so one failing platform leg would otherwise skip
+    # this. The per-arch "download unsigned .app" step is the real guard — an arch whose
+    # build didn't produce an installer fails there, while built arches still sign.
+    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -94,7 +98,7 @@ jobs:
 
   notarize-macos:
     needs: [sign-macos]
-    if: vars.MACOS_SIGNING_ENABLED == 'true'
+    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
     strategy:
       fail-fast: false
       matrix:
