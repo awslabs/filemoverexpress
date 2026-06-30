@@ -77,6 +77,24 @@ jobs:
       BUCKET_ACCESS_ROLE: ${{ secrets.CD_SIGNER_BUCKET_ACCESS_ROLE }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
+      - name: Validate signing configuration
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "${AWS_REGION}" ]            || missing+=("CD_SIGNER_REGION (repo variable)")
+          [ -n "${CD_SIGNER_API_BASE_URL}" ] || missing+=("CD_SIGNER_API_BASE_URL (repo variable)")
+          [ -n "${SIGNING_BUCKET}" ]         || missing+=("MACOS_SIGNING_BUCKET (repo variable)")
+          [ -n "${BUNDLE_ID}" ]              || missing+=("MACOS_BUNDLE_ID (repo variable)")
+          [ -n "${BUCKET_ACCESS_ROLE}" ]     || missing+=("CD_SIGNER_BUCKET_ACCESS_ROLE (signing env secret)")
+          [ -n "${APPLE_TEAM_ID}" ]          || missing+=("APPLE_TEAM_ID (signing env secret)")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "ERROR: missing required signing configuration:" >&2
+            printf '  - %s\n' "${missing[@]}" >&2
+            echo "Set these under Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+          echo "Signing configuration present."
+
       - name: Download unsigned .app artifact
         uses: actions/download-artifact@v4
         with:
