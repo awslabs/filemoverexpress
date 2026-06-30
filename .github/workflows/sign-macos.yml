@@ -192,12 +192,20 @@ jobs:
           EOF
           echo "Submitting sign-task manifest:"
           cat manifest.json
-          SIGN_TASK_ID=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
+          echo "POST ${CD_SIGNER_API_BASE_URL}/v2/sign-tasks"
+          set +e
+          HTTP_RESPONSE=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
             -X POST --header "Content-Type: application/json" \
             --data @manifest.json \
-            "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" | jq -r '.signTaskId // empty')
+            "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1)
+          AWSCURL_RC=$?
+          set -e
+          echo "----- CD Signer response (rc=${AWSCURL_RC}) -----"
+          echo "$HTTP_RESPONSE"
+          echo "------------------------------------------------"
+          SIGN_TASK_ID=$(printf '%s' "$HTTP_RESPONSE" | jq -r '.signTaskId // empty' 2>/dev/null || true)
           if [ -z "$SIGN_TASK_ID" ]; then
-            echo "ERROR: failed to create sign-task (no signTaskId returned)" >&2
+            echo "ERROR: no signTaskId in CD Signer response (see body above)" >&2
             exit 1
           fi
           echo "sign-task-id=${SIGN_TASK_ID}" >> "$GITHUB_OUTPUT"
