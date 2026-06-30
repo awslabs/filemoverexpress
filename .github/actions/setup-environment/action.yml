@@ -37,6 +37,7 @@ runs:
   steps:
     - name: Install Linux Dependencies
       id: install-linux-dependencies
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update
