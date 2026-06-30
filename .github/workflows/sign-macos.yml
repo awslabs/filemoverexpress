@@ -1,0 +1,252 @@
+# Reusable workflow: sign the macOS Wails .app via the CD Signer ad-hoc signing API,
+# then package the signed app into a distributable read-only UDZO .dmg.
+#
+# Notarization + stapling is handled SEPARATELY by notarize-macos.yml (it is slow and
+# flaky and must be independently retryable). This workflow stops at "signed .dmg".
+#
+# Flow (per CD Signer API guide, https://docs.hub.amazon.dev/cd-signer/api-guide/getting-started/):
+#   1. download the unsigned .app artifact
+#   2. assume the macOS signing OIDC role (SigV4 creds for the CD Signer API)
+#   3. gtar double-wrap the .app into package.tar.gz and upload to pre-signed/
+#   4. POST /v2/sign-tasks, poll GET /v2/sign-tasks/{id} until success|failure
+#   5. download the signed .app from signed/
+#   6. build the .dmg from the SIGNED .app (so the container ships the real signature)
+#
+# The FME .app is a single-binary Wails app (no Electron helpers / nested code), so the
+# manifest is the simplest case: one identifier, no embedded_requirements. Frameworks/
+# dylibs (if any) are auto-detected by CD Signer.
+#
+# Required GitHub Secrets (set on the `signing` environment):
+#   AWS_MACOS_SIGNING_ROLE_ARN   - OIDC role assumed by this job (signer-builder-tools:* + iam:PassRole)
+#   CD_SIGNER_BUCKET_ACCESS_ROLE - ARN of CDSignerAccessRole (s3ArtifactLocations.bucketAccessRole)
+#   APPLE_TEAM_ID                - Apple Team ID (94KV3E626L)
+# Required GitHub Variables:
+#   CD_SIGNER_REGION       - us-west-2
+#   CD_SIGNER_API_BASE_URL - https://api.signer.builder-tools.aws.dev
+#   MACOS_SIGNING_BUCKET   - the CDSignerStack signing bucket name (cdsigner-<acct>-<region>)
+#   MACOS_BUNDLE_ID        - com.amazon.filemoverexpress (must match the app's CFBundleIdentifier)
+
+name: Sign macOS Distribution
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Name of the GitHub Actions artifact containing the unsigned .app bundle'
+        required: true
+        type: string
+      app-name:
+        description: 'Base name of the .app bundle without extension (e.g. FileMoverExpressUI)'
+        required: true
+        type: string
+      arch:
+        description: 'Target architecture label used in output filenames (x64 | arm64)'
+        required: true
+        type: string
+    outputs:
+      signed-artifact-name:
+        description: 'Name of the artifact containing the signed .dmg (signed .app inside)'
+        value: ${{ jobs.sign.outputs.signed-artifact-name }}
+      dmg-filename:
+        description: 'Filename of the produced signed .dmg'
+        value: ${{ jobs.sign.outputs.dmg-filename }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  sign:
+    name: Sign macOS app via CD Signer
+    runs-on: macos-latest
+    environment: signing
+    outputs:
+      signed-artifact-name: signed-${{ inputs.artifact-name }}
+      dmg-filename: ${{ steps.build-dmg.outputs.dmg-filename }}
+    env:
+      # Caller-supplied values are referenced ONLY through env vars (never expanded
+      # inline in shell) to prevent script injection (Req 8.3).
+      ARTIFACT_NAME: ${{ inputs.artifact-name }}
+      APP_NAME: ${{ inputs.app-name }}
+      ARCH: ${{ inputs.arch }}
+      # CD Signer config via vars/secrets — no plaintext literals (Req 8.2).
+      AWS_REGION: ${{ vars.CD_SIGNER_REGION }}
+      CD_SIGNER_API_BASE_URL: ${{ vars.CD_SIGNER_API_BASE_URL }}
+      SIGNING_BUCKET: ${{ vars.MACOS_SIGNING_BUCKET }}
+      BUNDLE_ID: ${{ vars.MACOS_BUNDLE_ID }}
+      BUCKET_ACCESS_ROLE: ${{ secrets.CD_SIGNER_BUCKET_ACCESS_ROLE }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Download unsigned .app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./dist
+
+      - name: Install signing dependencies (awscurl, gnu-tar)
+        run: |
+          set -euo pipefail
+          brew install gnu-tar
+          pipx install awscurl
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_MACOS_SIGNING_ROLE_ARN }}
+          aws-region: ${{ vars.CD_SIGNER_REGION }}
+
+      - name: Package .app for CD Signer (gtar double-wrap)
+        run: |
+          set -euo pipefail
+          APP_BUNDLE="${APP_NAME}.app"
+          if [ ! -d "dist/${APP_BUNDLE}" ]; then
+            echo "ERROR: dist/${APP_BUNDLE} not found in downloaded artifact" >&2
+            ls -la dist >&2
+            exit 1
+          fi
+          rm -rf cdsigner-pkg
+          mkdir -p cdsigner-pkg/artifact
+          cp -R "dist/${APP_BUNDLE}" "cdsigner-pkg/artifact/"
+          # CD Signer only accepts archives produced by gnu-tar (gtar) and expects the
+          # double-wrap: artifact.gz (contents of ./<App>.app) inside package.tar.gz.
+          ( cd cdsigner-pkg && gtar -czf artifact.gz -C artifact . && gtar -czf package.tar.gz artifact.gz )
+          echo "Packaged dist/${APP_BUNDLE} -> cdsigner-pkg/package.tar.gz"
+
+      - name: Upload unsigned package to pre-signed/
+        run: |
+          set -euo pipefail
+          INPUT_KEY="pre-signed/${APP_NAME}-${ARCH}.tar.gz"
+          OUTPUT_KEY="signed/${APP_NAME}-${ARCH}-signed.tar.gz"
+          aws s3 cp cdsigner-pkg/package.tar.gz "s3://${SIGNING_BUCKET}/${INPUT_KEY}"
+          echo "INPUT_KEY=${INPUT_KEY}" >> "$GITHUB_ENV"
+          echo "OUTPUT_KEY=${OUTPUT_KEY}" >> "$GITHUB_ENV"
+          echo "Uploaded package to s3://${SIGNING_BUCKET}/${INPUT_KEY}"
+
+      - name: Create CD Signer sign-task
+        id: create-task
+        run: |
+          set -euo pipefail
+          APP_BUNDLE="${APP_NAME}.app"
+          cat > manifest.json <<EOF
+          {
+            "manifest": {
+              "type": "app",
+              "os": "osx",
+              "name": "${APP_BUNDLE}",
+              "outputs": [{ "label": "macos", "path": "${APP_BUNDLE}" }],
+              "app": {
+                "identifier": "${BUNDLE_ID}",
+                "signing_requirements": {
+                  "certificate_type": "developerIDAppDistribution",
+                  "team_id": "${APPLE_TEAM_ID}"
+                }
+              }
+            },
+            "s3ArtifactLocations": {
+              "bucketAccessRole": "${BUCKET_ACCESS_ROLE}",
+              "bucket": "${SIGNING_BUCKET}",
+              "inputKey": "${INPUT_KEY}",
+              "outputKey": "${OUTPUT_KEY}"
+            }
+          }
+          EOF
+          echo "Submitting sign-task manifest:"
+          cat manifest.json
+          SIGN_TASK_ID=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
+            -X POST --header "Content-Type: application/json" \
+            --data @manifest.json \
+            "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" | jq -r '.signTaskId // empty')
+          if [ -z "$SIGN_TASK_ID" ]; then
+            echo "ERROR: failed to create sign-task (no signTaskId returned)" >&2
+            exit 1
+          fi
+          echo "sign-task-id=${SIGN_TASK_ID}" >> "$GITHUB_OUTPUT"
+          echo "Created sign-task ${SIGN_TASK_ID}"
+
+      - name: Poll sign-task until terminal
+        env:
+          SIGN_TASK_ID: ${{ steps.create-task.outputs.sign-task-id }}
+        run: |
+          set -euo pipefail
+          MAX_ATTEMPTS=90
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            RESP=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
+              -X GET --header "Content-Type: application/json" \
+              "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${SIGN_TASK_ID}")
+            STATUS=$(echo "$RESP" | jq -r '.status // "unknown"')
+            echo "Attempt ${i}/${MAX_ATTEMPTS}: status=${STATUS}"
+            case "$STATUS" in
+              success)
+                echo "Sign-task ${SIGN_TASK_ID} succeeded"
+                exit 0 ;;
+              failure)
+                echo "ERROR: sign-task ${SIGN_TASK_ID} failed" >&2
+                echo "$RESP" | jq -r '.errorMessage // "no error message provided"' >&2
+                exit 1 ;;
+              created|processing|inProgress)
+                sleep 10 ;;
+              *)
+                echo "Unexpected status '${STATUS}', continuing to poll" >&2
+                echo "$RESP" >&2
+                sleep 10 ;;
+            esac
+          done
+          echo "ERROR: timed out waiting for sign-task ${SIGN_TASK_ID}" >&2
+          exit 1
+
+      - name: Download signed .app
+        run: |
+          set -euo pipefail
+          rm -rf signed
+          mkdir -p signed
+          aws s3 cp "s3://${SIGNING_BUCKET}/${OUTPUT_KEY}" signed/signed-output
+          # CD Signer returns the signed artifact at outputKey, mirroring the uploaded
+          # package format. Extract and locate the signed .app. (Confirm the exact output
+          # shape on the first real signing run and tighten this if needed.)
+          ( cd signed
+            if gtar -tzf signed-output >/dev/null 2>&1; then
+              gtar -xzf signed-output
+              [ -f artifact.gz ] && gtar -xzf artifact.gz || true
+            fi )
+          SIGNED_APP=$(find signed -maxdepth 4 -name "${APP_NAME}.app" -type d | head -n1)
+          if [ -z "$SIGNED_APP" ]; then
+            echo "ERROR: signed ${APP_NAME}.app not found in CD Signer output" >&2
+            find signed >&2
+            exit 1
+          fi
+          rm -rf "dist/${APP_NAME}.app"
+          cp -R "$SIGNED_APP" "dist/${APP_NAME}.app"
+          echo "Recovered signed app -> dist/${APP_NAME}.app"
+
+      - name: Verify code signature (fail closed)
+        run: |
+          set -euo pipefail
+          APP="dist/${APP_NAME}.app"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign --display --verbose=4 "$APP" 2>&1 | grep -i "Authority=" || true
+          if codesign --display --verbose=2 "$APP" 2>&1 | grep -qi "Signature=adhoc"; then
+            echo "ERROR: ${APP} is still ad-hoc signed — CD Signer signature missing" >&2
+            exit 1
+          fi
+
+      - name: Build .dmg from signed .app
+        id: build-dmg
+        run: |
+          set -euo pipefail
+          DMG_NAME="${APP_NAME}-${ARCH}"
+          rm -rf dist/dmg-staging "dist/${DMG_NAME}.dmg"
+          mkdir -p dist/dmg-staging
+          cp -R "dist/${APP_NAME}.app" dist/dmg-staging/
+          ln -s /Applications dist/dmg-staging/Applications
+          hdiutil create -volname "${APP_NAME}" -srcfolder dist/dmg-staging -ov -format UDZO "dist/${DMG_NAME}.dmg"
+          rm -rf dist/dmg-staging
+          echo "dmg-filename=${DMG_NAME}.dmg" >> "$GITHUB_OUTPUT"
+          echo "Built dist/${DMG_NAME}.dmg"
+
+      - name: Upload signed artifact (.dmg containing the signed .app)
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ inputs.artifact-name }}
+          path: dist/${{ steps.build-dmg.outputs.dmg-filename }}
+          retention-days: 30

@@ -1,0 +1,105 @@
+# Reusable workflow: notarize and staple a SIGNED macOS .dmg via the Apple notary service.
+#
+# Kept SEPARATE from sign-macos.yml on purpose: notarization is slow (~15 min, up to ~1 hr)
+# and intermittently flaky, so it must be independently retryable on an already-signed
+# artifact without re-running CD Signer. Re-running this workflow on the same signed .dmg
+# is safe and idempotent.
+#
+# A notarized + stapled .dmg passes Gatekeeper (`spctl --assess --type install`) because the
+# stapled ticket validates the container and the Developer ID-signed .app inside it.
+#
+# Required GitHub Secrets (set on the `signing` environment):
+#   APPLE_ID                    - Apple ID used with notarytool (team/role account, not personal)
+#   APPLE_APP_SPECIFIC_PASSWORD - app-specific password for that Apple ID
+#   APPLE_TEAM_ID               - Apple Team ID (94KV3E626L)
+
+name: Notarize macOS Distribution
+
+on:
+  workflow_call:
+    inputs:
+      signed-artifact-name:
+        description: 'Name of the artifact containing the signed .dmg to notarize'
+        required: true
+        type: string
+      dmg-filename:
+        description: 'Filename of the signed .dmg (e.g. FileMoverExpressUI-arm64.dmg)'
+        required: true
+        type: string
+    outputs:
+      notarized-artifact-name:
+        description: 'Name of the artifact containing the notarized + stapled .dmg'
+        value: ${{ jobs.notarize.outputs.notarized-artifact-name }}
+
+permissions:
+  contents: read
+
+jobs:
+  notarize:
+    name: Notarize and staple
+    runs-on: macos-latest
+    environment: signing
+    outputs:
+      notarized-artifact-name: notarized-${{ inputs.signed-artifact-name }}
+    env:
+      # Caller-supplied value referenced only via env (injection-safe, Req 8.3).
+      DMG_FILENAME: ${{ inputs.dmg-filename }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Download signed .dmg
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.signed-artifact-name }}
+          path: ./dist
+
+      - name: Submit to Apple notary service
+        run: |
+          set -euo pipefail
+          DMG="dist/${DMG_FILENAME}"
+          if [ ! -f "$DMG" ]; then
+            echo "ERROR: ${DMG} not found in artifact" >&2
+            ls -la dist >&2
+            exit 1
+          fi
+          echo "Submitting ${DMG} to Apple notary service (can take 15+ minutes)..."
+          OUT=$(xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait --no-progress --output-format json)
+          echo "$OUT"
+          SUBMISSION_ID=$(echo "$OUT" | jq -r '.id // empty')
+          STATUS=$(echo "$OUT" | jq -r '.status // "Unknown"')
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "ERROR: notarization failed (status=${STATUS}, submission-id=${SUBMISSION_ID})" >&2
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "--- notarytool log ---" >&2
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" >&2 || true
+            fi
+            exit 1
+          fi
+          echo "Notarization accepted (submission ${SUBMISSION_ID})"
+
+      - name: Staple notarization ticket
+        run: |
+          set -euo pipefail
+          xcrun stapler staple "dist/${DMG_FILENAME}"
+
+      - name: Verify Gatekeeper + stapled ticket (fail closed)
+        run: |
+          set -euo pipefail
+          DMG="dist/${DMG_FILENAME}"
+          xcrun stapler validate "$DMG"
+          spctl --assess --type install --verbose "$DMG"
+
+      - name: Upload notarized artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notarized-${{ inputs.signed-artifact-name }}
+          path: dist/${{ inputs.dmg-filename }}
+          retention-days: 30

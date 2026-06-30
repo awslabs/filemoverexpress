@@ -41,6 +41,24 @@ tasks:
       - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
       - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.app"
 
+  create:dmg:
+    summary: Packages a (signed) .app into a distributable read-only UDZO .dmg
+    # Build the .dmg AFTER the .app has been signed by CD Signer (the signing
+    # workflow invokes this), so the container ships the real Developer ID
+    # signature. UDZO is also the read-only format CD Signer requires if the
+    # .dmg itself is later signed. Uses only macOS built-in hdiutil (no extra deps).
+    platforms:
+      - darwin
+    vars:
+      DMG_NAME: '{{.DMG_NAME | default .APP_NAME}}'
+    cmds:
+      - rm -rf "{{.BIN_DIR}}/dmg-staging" "{{.BIN_DIR}}/{{.DMG_NAME}}.dmg"
+      - mkdir -p "{{.BIN_DIR}}/dmg-staging"
+      - cp -R "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.BIN_DIR}}/dmg-staging/"
+      - ln -s /Applications "{{.BIN_DIR}}/dmg-staging/Applications"
+      - hdiutil create -volname "{{.APP_NAME}}" -srcfolder "{{.BIN_DIR}}/dmg-staging" -ov -format UDZO "{{.BIN_DIR}}/{{.DMG_NAME}}.dmg"
+      - rm -rf "{{.BIN_DIR}}/dmg-staging"
+
   run:
     platforms:
       - darwin

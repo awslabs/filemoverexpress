@@ -55,3 +55,44 @@ jobs:
           platform: ${{ matrix.platform }}
           architecture: ${{ matrix.architecture }}
           build-version: ${{ inputs.version || github.ref_name }}
+
+  # ---------------------------------------------------------------------------
+  # macOS code signing (CD Signer) + notarization (Apple notary)
+  #
+  # Gated behind the `MACOS_SIGNING_ENABLED` repository variable so releases keep
+  # working before CD Signer onboarding + the `signing` environment secrets/vars
+  # are in place. Set the variable to 'true' (and configure the secrets/vars
+  # documented in sign-macos.yml / notarize-macos.yml) to activate the chain:
+  #   build (.app) -> sign-macos (CD Signer -> signed .dmg) -> notarize-macos.
+  # ---------------------------------------------------------------------------
+  sign-macos:
+    needs: [generate-installer]
+    if: vars.MACOS_SIGNING_ENABLED == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x64, arm64]
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/sign-macos.yml
+    with:
+      artifact-name: installer-mac-${{ matrix.architecture }}
+      app-name: FileMoverExpressUI
+      arch: ${{ matrix.architecture }}
+    secrets: inherit
+
+  notarize-macos:
+    needs: [sign-macos]
+    if: vars.MACOS_SIGNING_ENABLED == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x64, arm64]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/notarize-macos.yml
+    with:
+      signed-artifact-name: signed-installer-mac-${{ matrix.architecture }}
+      dmg-filename: FileMoverExpressUI-${{ matrix.architecture }}.dmg
+    secrets: inherit
