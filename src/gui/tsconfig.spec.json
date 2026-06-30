@@ -5,7 +5,57 @@
         "outDir": "./out-tsc/spec",
         "types": [
             "jasmine"
-        ]
+        ],
+        "paths": {
+            "@app/*": [
+                "src/app/*"
+            ],
+            "@classes/*": [
+                "src/app/classes/*"
+            ],
+            "@connect/*": [
+                "src/connect/*"
+            ],
+            "@containers/*": [
+                "src/app/components/containers/*"
+            ],
+            "@events/*": [
+                "src/app/classes/events/*"
+            ],
+            "@fme/*": [
+                "src/app/modules/fme/*"
+            ],
+            "@gen/*": [
+                "src/gen/*"
+            ],
+            "@modals/*": [
+                "src/app/components/modals/*"
+            ],
+            "@primitives/*": [
+                "src/app/components/primitives/*"
+            ],
+            "@services/*": [
+                "src/app/services/*"
+            ],
+            "@state/*": [
+                "src/app/state/*"
+            ],
+            "@wailsApp/*": [
+                "src/gen/wails/frontend/bindings/FileMoverExpressUI/*"
+            ],
+            "@wailsApp/models": [
+                "src/gen/wails/github.com/awslabs/filemoverexpress/gui/models.ts"
+            ],
+            "@wailsRuntime/*": [
+                "src/gen/wails/frontend/bindings/github.com/wailsapp/wails/v3/*"
+            ],
+            "@wailsio/runtime": [
+                "src/testing/mocks/wailsio-runtime.mock.ts"
+            ],
+            "@wailsApp/fmeapp": [
+                "src/testing/mocks/wails-fmeapp.mock.ts"
+            ]
+        }
     },
     "files": [
         "src/test.ts",

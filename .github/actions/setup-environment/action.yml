@@ -1,11 +1,11 @@
 name: 'Setup Environment'
-description: 'Provision runner with Node.js, Go, and workspace dependencies'
+description: 'Provision runner with Node.js, Go, Task, and workspace dependencies'
 
 inputs:
   node-version:
     description: 'Node.js version to install on the runner'
     required: false
-    default: '22'
+    default: '25'
   go-version:
     description: 'Go version to install on the runner'
     required: false
@@ -18,15 +18,30 @@ inputs:
     description: 'Skip tool installations regardless of container detection'
     required: false
     default: 'false'
+  wails-version:
+    description: 'Wails v3 version to install'
+    required: false
+    default: 'v3.0.0-alpha2.108'
+  working-directory:
+    description: 'Working directory for commands'
+    required: false
+    default: '.'
 
 outputs:
   in-container:
     description: 'Whether the action detected it is running inside a container'
-    value: ${{ steps.container-check.outputs.in-container }}
+    value: "${{ steps.container-check.outputs.in-container }}"
 
 runs:
-  using: 'composite'
+  using: composite
   steps:
+    - name: Install Linux Dependencies
+      id: install-linux-dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential
+
     - name: Check if running in container
       id: container-check
       run: |
@@ -39,17 +54,24 @@ runs:
 
     - name: Install Node.js
       if: steps.container-check.outputs.in-container == 'false'
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
 
     - name: Install Go
       if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
-      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ inputs.go-version }}
         cache-dependency-path: src/cli/go.sum
+
+    - name: Install Task
+      if: steps.container-check.outputs.in-container == 'false'
+      uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611
+      with:
+        version: 3.x
 
     - name: Configure Go build cache path
       if: inputs.install-go == 'true'
@@ -80,4 +102,9 @@ runs:
     - name: Install golangci-lint
       if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
       run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+      shell: bash
+
+    - name: Install Wails v3
+      if: inputs.install-go == 'true'
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ inputs.wails-version }}
       shell: bash

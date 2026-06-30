@@ -178,12 +178,27 @@ export function formatDate(d: Date, includeTime?: boolean): string {
 }
 
 /**
- * Returns whether the shell is running in Electron.
- * @returns {boolean} - Returns true if the application is running with Electron. Will return false if running with
- * ng serve.
+ * Returns whether the shell is running in packaged.
+ * @returns {boolean} - Returns true if the application is running as a packaged binary. Will return false if running
+ * in dev mode
  */
-export function isElectronApp(): boolean {
-    return !!window.fme;
+export function isPackagedApp(): boolean {
+    // Detect whether we're running inside a native Wails webview (vs a plain
+    // browser under `ng serve`/tests). Mirrors the Wails v3 runtime's own
+    // native-bridge detection. The previous check (`window.go`) was a Wails v2
+    // -ism and is always false on v3, which silently disabled every
+    // native-integration feature (external links, Open/Reveal in folder). See
+    // issues #20 and #15.
+    const w = window as unknown as {
+        chrome?: { webview?: { postMessage?: unknown } };
+        webkit?: { messageHandlers?: { external?: { postMessage?: unknown } } };
+        wails?: { invoke?: unknown };
+    };
+    return Boolean(
+        w.chrome?.webview?.postMessage ||
+        w.webkit?.messageHandlers?.external?.postMessage ||
+        w.wails?.invoke,
+    );
 }
 
 /**

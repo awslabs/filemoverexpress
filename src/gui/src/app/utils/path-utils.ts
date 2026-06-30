@@ -113,6 +113,21 @@ function windowsPathToGrpcPath(displayPath: string): string {
     return `/${parts[0].toLowerCase()}/${trimPrefixSuffix(parts[1], '\\', '').split('\\').join('/')}`;
 }
 
+export function toGrpcPath(path: string): string {
+    if (!path) {
+        return '';
+    }
+
+    const isWindowsPath = path.includes(':\\');
+
+    if (isWindowsPath) {
+        const [drive, parts] = path.split(isWindowsPath ? '\\' : '/');
+        return [drive.replace(':', ''), ...parts].join('/');
+    }
+
+    return path;
+}
+
 export function getFileExtension(path: string) {
     const extensionStartIndex = path.lastIndexOf('.');
     if (extensionStartIndex <= 0) {
@@ -124,4 +139,7 @@ export function getFileExtension(path: string) {
     return path.substring(extensionStartIndex);
 }
 
-
+export function getBasename(filePath: string): string {
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    return normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1);
+}

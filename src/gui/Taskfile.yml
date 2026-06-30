@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build Angular GUI (production)
+    cmds:
+      - npx ng build --configuration=production --base-href=./
+
+  test:
+    desc: Run Angular GUI tests
+    cmds:
+      - npx ng test --watch=false --code-coverage
+
+  lint:
+    desc: Run Angular ESLint
+    cmds:
+      - npx ng lint

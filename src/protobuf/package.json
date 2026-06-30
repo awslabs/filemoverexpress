@@ -1,0 +1,22 @@
+{
+    "name": "@filemoverexpress/proto",
+    "version": "1.0.0",
+    "private": true,
+    "keywords": [
+        "aws",
+        "file-mover-express",
+        "filemoverexpress",
+        "file-transfer",
+        "s3"
+    ],
+    "author": "Amazon Web Services",
+    "license": "Apache-2.0",
+    "scripts": {
+        "generate": "task generate",
+        "lint": "task lint"
+    },
+    "devDependencies": {
+        "@bufbuild/buf": "^1.71.0",
+        "@bufbuild/protoc-gen-es": "2.12.1"
+    }
+}

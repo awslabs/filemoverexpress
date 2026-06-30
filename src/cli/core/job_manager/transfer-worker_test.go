@@ -362,3 +362,73 @@ func TestTransferTask(t *testing.T) {
 		t.Logf("TestTransferTask(): Error removing temp dir: %v", removeErr)
 	}
 }
+
+// TestFinishTask_DecrementsExactlyOnce is a regression test for the daemon crash
+// where cancelling a job while a transfer worker was picking up the same task
+// caused job.WaitGroup.Done() to be called twice, driving the counter negative
+// and panicking the whole daemon (issue: "negative WaitGroup counter" on cancel).
+//
+// finishTask must decrement the WaitGroup exactly once per task no matter how
+// many callers (cancel path + worker path) race to finish it.
+func TestFinishTask_DecrementsExactlyOnce(t *testing.T) {
+	job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
+		Name:      "raceJob",
+		Direction: transfertypes.Upload,
+		TransferProfile: &configtypes.TransferProfile{
+			Name:         "race-profile",
+			Bucket:       "test-bucket",
+			Region:       "us-west-2",
+			Profile:      "test-profile",
+			StorageClass: "standard",
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewJob() error = %v", err)
+	}
+	task, err := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+		Destination:   "/s3/path/race.txt",
+		LocalFile:     jobmanagertypes.LocalFile{Path: "/tmp/race.txt", Size: 1},
+		JobId:         job.JobId(),
+		TaskDirection: jobmanagertypes.TaskDirectionUpload,
+	})
+	if err != nil {
+		t.Fatalf("NewTask() error = %v", err)
+	}
+
+	// One Add for the single task, mirroring AddTasksForTransfer.
+	job.WaitGroup.Add(1)
+
+	// Many goroutines race to finish the same task, simulating CancelJob and the
+	// transfer worker both reaching a Done() for it. Before the fix this panicked.
+	const racers = 64
+	var start sync.WaitGroup
+	start.Add(1)
+	var done sync.WaitGroup
+	done.Add(racers)
+	for i := 0; i < racers; i++ {
+		go func() {
+			defer done.Done()
+			start.Wait()
+			finishTask(job, task)
+		}()
+	}
+	start.Done()
+	done.Wait()
+
+	// Exactly one Done should have landed, so Wait returns promptly. A hang means
+	// finishTask decremented zero times; a panic above would mean more than once.
+	waited := make(chan struct{})
+	go func() {
+		job.WaitGroup.Wait()
+		close(waited)
+	}()
+	select {
+	case <-waited:
+	case <-time.After(2 * time.Second):
+		t.Fatal("WaitGroup never reached zero; finishTask did not decrement exactly once")
+	}
+
+	if task.MarkFinished() {
+		t.Error("MarkFinished() returned true after the task was already finished")
+	}
+}

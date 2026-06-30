@@ -1,5 +1,5 @@
 import { inject, Injectable, RendererFactory2 } from '@angular/core';
-import { formatDate } from '@app/utils/utils';
+import { formatDate, isPackagedApp } from '@app/utils/utils';
 import { ExportJobConfig, ExportJobList, ExportMimeTypes } from './export.interfaces';
 import { DEFAULT_EXPORT_JOB_CONFIG } from './export.constants';
 import { TransferDirection } from '@app/interfaces/jobs-table';
@@ -7,8 +7,9 @@ import { convertTransfersToCsv, convertTransfersToExcel, convertTransfersToJson 
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { Task } from '@classes/grpc/task';
 import { switchMap } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { NotificationsService } from '@services/notifications/notifications.service';
+import { WailsService } from '@services/wails/wails.service';
 import { Job } from '@classes/grpc';
 
 @Injectable({
@@ -18,6 +19,7 @@ export class ExportService {
     private rf = inject(RendererFactory2);
     private fmeClientService = inject(FmeClientService);
     private notifications = inject(NotificationsService);
+    private wails = inject(WailsService);
 
     /**
      * Export all current jobs known to the daemon
@@ -101,7 +103,7 @@ export class ExportService {
      * @param {ExportJobList} data
      * @private
      */
-    private async processJob(config: ExportJobConfig, data: ExportJobList): Promise<void> {
+    private processJob(config: ExportJobConfig, data: ExportJobList): void {
         const timestamp = formatDate(new Date(), true);
         const cfg: ExportJobConfig = {
             ...DEFAULT_EXPORT_JOB_CONFIG,
@@ -112,24 +114,20 @@ export class ExportService {
             return;
         }
 
-        let result: string;
+        let report$: Observable<string>;
         let mt: ExportMimeTypes;
 
         switch (cfg.format) {
             case 'csv':
-                result = convertTransfersToCsv(data);
+                report$ = convertTransfersToCsv(this.wails, data);
                 mt = ExportMimeTypes.CSV;
                 break;
             case 'xlsx':
-                result = await convertTransfersToExcel(data);
-                if (!result) {
-                    this.notifications.info('There are no jobs to export. Not downloading XLSX file.');
-                    return;
-                }
+                report$ = convertTransfersToExcel(this.wails, data);
                 mt = ExportMimeTypes.XLSX;
                 break;
             case 'json':
-                result = convertTransfersToJson(data);
+                report$ = convertTransfersToJson(this.wails, data);
                 mt = ExportMimeTypes.JSON;
                 break;
             default:
@@ -137,7 +135,13 @@ export class ExportService {
                 return;
         }
 
-        this.downloadFile(`${cfg.filename}-${timestamp}.${cfg.format}`, mt, result);
+        report$.subscribe((result) => {
+            if (!result && cfg.format === 'xlsx') {
+                this.notifications.info('There are no jobs to export. Not downloading XLSX file.');
+                return;
+            }
+            this.downloadFile(`${cfg.filename}-${timestamp}.${cfg.format}`, mt, result);
+        });
     }
 
     /**
@@ -145,10 +149,29 @@ export class ExportService {
      *
      * @param {string} filename File name.
      * @param {string} mimetype MIME type of the file.
-     * @param {string} data Data of the file.
+     * @param {string} data Base64-encoded data of the file.
      * @private
      */
     private downloadFile(filename: string, mimetype: string, data: string) {
+        if (isPackagedApp()) {
+            // The packaged Wails webview ignores anchor / `data:` URL downloads, and the
+            // export data is generated in-memory (never written to disk), so there is
+            // nothing to reveal. Prompt the user with a native Save dialog instead and
+            // let the Go side write the bytes. See issue #24.
+            this.wails.saveFile(filename, data).subscribe({
+                next: (savedPath) => {
+                    if (savedPath) {
+                        this.notifications.success(`Exported to ${savedPath}`);
+                    }
+                },
+                error: (err) => {
+                    this.notifications.error(`Export failed: ${err}`);
+                },
+            });
+            return;
+        }
+
+        // Dev / browser mode: the anchor `data:` URL download works here.
         const renderer = this.rf.createRenderer(null, null);
         const link = renderer.createElement('a');
         link.href = `data:${mimetype};base64,${data}`;

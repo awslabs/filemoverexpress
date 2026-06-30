@@ -53,7 +53,7 @@ func assertMetadataRefreshOnClientEdit(t *testing.T) {
 		log.Fatalf("Unable to connect to grpc host to get configuration... exiting")
 	}
 	initialConfig := resp.Msg
-	assert.IsType(t, &fmev1.FmeConfig{}, initialConfig)
+	assert.IsType(t, &fmev1.GRPCFmeConfig{}, initialConfig)
 	assert.Equal(t, 1, len(initialConfig.Protocols.S3.TransferProfiles))
 
 	// watch for metadata events
@@ -77,7 +77,7 @@ evtLoop:
 				success := false
 				initialConfig.Protocols.S3.TransferProfiles["e2e-test"].Paths.Local = configEdit
 				for i := 0; i < 5 && !success; i++ {
-					_, setErr := client.SetConfiguration(context.TODO(), req[fmev1.FmeConfig](initialConfig))
+					_, setErr := client.SetConfiguration(context.TODO(), req[fmev1.GRPCFmeConfig](initialConfig))
 					if setErr != nil {
 						t.Logf("Failed setting configuration, attempt no %d: %s", i+1, setErr)
 						time.Sleep(time.Second)

@@ -21,7 +21,7 @@ const (
 func main() {
 	currentExe, err := os.Executable()
 	if err != nil {
-		logger.Logger.Error(fmt.Sprintf("Failed to get current directory", err))
+		logger.Logger.Error(fmt.Sprintf("Failed to get current directory: %s", err))
 		os.Exit(1)
 	}
 

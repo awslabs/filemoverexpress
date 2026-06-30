@@ -1,4 +1,4 @@
-import { fileOrderListValidator, maxActiveChecksumsValidator, noSpacesValidator } from './form-validators';
+import { fileOrderListValidator, maxActiveChecksumsValidator, noSpacesValidator, s3ArnRgx } from './form-validators';
 import { UntypedFormControl } from '@angular/forms';
 
 describe('fileOrderListValidator', () => {
@@ -60,5 +60,23 @@ describe('noSpacesValidator', () => {
         const control = new UntypedFormControl('input');
         control.setValue('hello world');
         expect(noSpacesValidator(control)).toEqual({hasSpaces: true});
+    });
+});
+
+describe('s3ArnRgx', () => {
+    it('captures the bucket from an s3:// URI', () => {
+        expect('s3://my-bucket'.match(s3ArnRgx)?.groups?.['bucket']).toBe('my-bucket');
+    });
+
+    it('captures the bucket from a full S3 ARN (issue #27)', () => {
+        expect('arn:aws:s3:::nsft2testing'.match(s3ArnRgx)?.groups?.['bucket']).toBe('nsft2testing');
+    });
+
+    it('captures the bucket from an ARN with a trailing key/path', () => {
+        expect('arn:aws:s3:::my-bucket/some/key'.match(s3ArnRgx)?.groups?.['bucket']).toBe('my-bucket');
+    });
+
+    it('does not match a bare bucket name (nothing to strip)', () => {
+        expect('nsft2testing'.match(s3ArnRgx)).toBeNull();
     });
 });

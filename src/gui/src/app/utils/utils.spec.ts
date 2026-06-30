@@ -183,3 +183,34 @@ describe('[utils] pascalCaseToSpace', () => {
         expect(utils.pascalCaseToSpace('MixedPascal and Spaces')).toBe('Mixed Pascal and Spaces');
     });
 });
+
+describe('[utils] isPackagedApp', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+
+    afterEach(() => {
+        // Only clean up bridges we added. window.chrome is non-configurable in
+        // headless Chrome, so we never mutate it here.
+        delete w.webkit;
+        delete w.wails;
+    });
+
+    it('returns false in a plain browser (no native webview bridge)', () => {
+        expect(utils.isPackagedApp()).toBe(false);
+    });
+
+    it('returns true under a macOS WKWebView (webkit.messageHandlers.external)', () => {
+        w.webkit = {messageHandlers: {external: {postMessage: () => undefined}}};
+        expect(utils.isPackagedApp()).toBe(true);
+    });
+
+    it('returns true under an Android-style window.wails.invoke bridge', () => {
+        w.wails = {invoke: () => undefined};
+        expect(utils.isPackagedApp()).toBe(true);
+    });
+
+    it('ignores a webkit object without an external message handler', () => {
+        w.webkit = {messageHandlers: {}};
+        expect(utils.isPackagedApp()).toBe(false);
+    });
+});

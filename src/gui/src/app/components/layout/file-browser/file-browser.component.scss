@@ -8,6 +8,12 @@ $drag-over-border-color: variables.$active;
 $row-icon-size: 18px;
 $row-icon-weight: 600;
 
+:host.dropZone {
+    & table {
+        --wails-drop-target: 'drop';
+    }
+}
+
 .file-browser-container {
     @extend .table-container;
 
@@ -307,4 +313,3 @@ $row-icon-weight: 600;
         overflow: hidden;
     }
 }
-

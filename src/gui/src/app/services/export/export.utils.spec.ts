@@ -1,110 +1,43 @@
-import * as exportUtils from '@services/export/export.utils';
+import { convertTransfersToCsv, convertTransfersToExcel, convertTransfersToJson } from '@services/export/export.utils';
 import { ExportJobList } from '@services/export/export.interfaces';
-import {
-    emptyJobsCaseInput,
-    emptyTasksCaseInput,
-    missingDataCaseInput,
-    mixedJobsCaseInput,
-    oneJobCaseInput,
-    twoJobsCaseInput,
-    withCommasDataCaseInput,
-} from '@services/export/export-tests-constants/export-test-case-inputs.constants';
-import {
-    csvEmptyJobsCaseExpected,
-    csvMissingDataCaseExpected,
-    csvMixedJobsCaseExpected,
-    csvOneJobCaseExpected,
-    csvTwoJobsCaseExpected,
-    csvWithCommasDataCaseExpected,
-} from '@services/export/export-tests-constants/csv-expected.constants';
-import {
-    jsonEmptyJobsCaseExpected,
-    jsonEmptyTasksCaseExpected,
-    jsonMissingDataCaseExpected,
-    jsonMixedJobsCaseExpected,
-    jsonOneJobCaseExpected,
-    jsonTwoJobsCaseExpected,
-    jsonWithCommasDataCaseExpected,
-} from '@services/export/export-tests-constants/json-expected.constants';
+import { WailsService } from '@services/wails/wails.service';
+import { of } from 'rxjs';
 
 describe('[exportUtils] convertTransfersToCsv', () => {
-    const emptyJobsCase: [ExportJobList, string] = [emptyJobsCaseInput, csvEmptyJobsCaseExpected];
-    const emptyTasksCase: [ExportJobList, string] = [emptyTasksCaseInput, csvEmptyJobsCaseExpected];
-    const oneJobCase: [ExportJobList, string] = [oneJobCaseInput, csvOneJobCaseExpected];
-    const twoJobsCase: [ExportJobList, string] = [twoJobsCaseInput, csvTwoJobsCaseExpected];
-    const mixedJobsCase: [ExportJobList, string] = [mixedJobsCaseInput, csvMixedJobsCaseExpected];
-    const missingDataCase: [ExportJobList, string] = [missingDataCaseInput, csvMissingDataCaseExpected];
-    const withCommasDataCase: [ExportJobList, string] = [withCommasDataCaseInput, csvWithCommasDataCaseExpected];
+    it('should call generateCsvReport on WailsService', (done) => {
+        const wails = jasmine.createSpyObj<WailsService>('WailsService', ['generateCsvReport']);
+        wails.generateCsvReport.and.returnValue(of('csv-base64'));
 
-    const testCases: Record<string, [ExportJobList, string]> = {
-        'should correctly generate CSV with empty job list': emptyJobsCase,
-        'should correctly generate CSV with job list with no tasks': emptyTasksCase,
-        'should correctly generate CSV with job list of one job': oneJobCase,
-        'should correctly generate CSV with job list of two jobs': twoJobsCase,
-        'should correctly generate CSV with job list of >2 jobs with uploads and downloads': mixedJobsCase,
-        'should correctly generate CSV with job list that has missing data': missingDataCase,
-        'should correctly generate CSV with job list that has commas in cell values by wrapping text call values in double quotes': withCommasDataCase,
-    };
-
-    for (const testDescription of Object.keys(testCases)) {
-        it(testDescription, () => {
-            const encodedResult = exportUtils.convertTransfersToCsv(testCases[testDescription][0]);
-            expect(atob(encodedResult)).toBe(testCases[testDescription][1]);
+        convertTransfersToCsv(wails, {} as ExportJobList).subscribe((result) => {
+            expect(wails.generateCsvReport).toHaveBeenCalled();
+            expect(result).toBe('csv-base64');
+            done();
         });
-    }
+    });
 });
 
 describe('[exportUtils] convertTransfersToJson', () => {
-    const emptyJobsCase: [ExportJobList, string] = [emptyJobsCaseInput, jsonEmptyJobsCaseExpected];
-    const emptyTasksCase: [ExportJobList, string] = [emptyTasksCaseInput, jsonEmptyTasksCaseExpected];
-    const oneJobCase: [ExportJobList, string] = [oneJobCaseInput, jsonOneJobCaseExpected];
-    const twoJobsCase: [ExportJobList, string] = [twoJobsCaseInput, jsonTwoJobsCaseExpected];
-    const mixedJobsCase: [ExportJobList, string] = [mixedJobsCaseInput, jsonMixedJobsCaseExpected];
-    const missingDataCase: [ExportJobList, string] = [missingDataCaseInput, jsonMissingDataCaseExpected];
-    const withCommasDataCase: [ExportJobList, string] = [withCommasDataCaseInput, jsonWithCommasDataCaseExpected];
+    it('should call generateJsonReport on WailsService', (done) => {
+        const wails = jasmine.createSpyObj<WailsService>('WailsService', ['generateJsonReport']);
+        wails.generateJsonReport.and.returnValue(of('json-base64'));
 
-    const testCases: Record<string, [ExportJobList, string]> = {
-        'should correctly generate JSON with empty job list': emptyJobsCase,
-        'should correctly generate JSON with job list with no tasks': emptyTasksCase,
-        'should correctly generate JSON with job list of one job': oneJobCase,
-        'should correctly generate JSON with job list of two jobs': twoJobsCase,
-        'should correctly generate JSON with job list of >2 jobs with uploads and downloads': mixedJobsCase,
-        'should correctly generate JSON with job list that has missing data': missingDataCase,
-        'should correctly generate JSON with job list that has commas in values': withCommasDataCase,
-    };
-
-    for (const testDescription of Object.keys(testCases)) {
-        it(testDescription, () => {
-            const encodedResult = exportUtils.convertTransfersToJson(testCases[testDescription][0]);
-            expect(atob(encodedResult)).toBe(testCases[testDescription][1]);
+        convertTransfersToJson(wails, {} as ExportJobList).subscribe((result) => {
+            expect(wails.generateJsonReport).toHaveBeenCalled();
+            expect(result).toBe('json-base64');
+            done();
         });
-    }
+    });
 });
 
 describe('[exportUtils] convertTransfersToExcel', () => {
-    const emptyTestCases: Record<string, ExportJobList> = {
-        'should not error when generating Excel sheet with empty job list': emptyJobsCaseInput,
-    };
-    const nonEmptyTestCases: Record<string, ExportJobList> = {
-        'should not error when generating Excel sheet with no tasks': emptyTasksCaseInput,
-        'should not error when generating Excel sheet with job list of one job': oneJobCaseInput,
-        'should not error when generating Excel sheet with job list of two jobs': twoJobsCaseInput,
-        'should not error when generating Excel sheet with job list of >2 jobs with uploads and downloads': mixedJobsCaseInput,
-        'should not error when generating Excel sheet with job list that has missing data': missingDataCaseInput,
-        'should not error when generating Excel sheet with job list that has commas in values': withCommasDataCaseInput,
-    };
+    it('should call generateExcelReport on WailsService', (done) => {
+        const wails = jasmine.createSpyObj<WailsService>('WailsService', ['generateExcelReport']);
+        wails.generateExcelReport.and.returnValue(of('xlsx-base64'));
 
-    for (const testDescription of Object.keys(emptyTestCases)) {
-        it(testDescription, async () => {
-            const result = await exportUtils.convertTransfersToExcel(emptyTestCases[testDescription]);
-            expect(result).toBe('');
+        convertTransfersToExcel(wails, {} as ExportJobList).subscribe((result) => {
+            expect(wails.generateExcelReport).toHaveBeenCalled();
+            expect(result).toBe('xlsx-base64');
+            done();
         });
-    }
-
-    for (const testDescription of Object.keys(nonEmptyTestCases)) {
-        it(testDescription, async () => {
-            const result = await exportUtils.convertTransfersToExcel(nonEmptyTestCases[testDescription]);
-            expect(result).not.toBe('');
-        });
-    }
+    });
 });

@@ -10,7 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
-<body class="mat-typography">
+<script type="text/javascript">
+    // Prevent unhandled drag and drop events from causing redirections
+    window.addEventListener("dragover", (event) => {
+        event.preventDefault();
+    });
+    window.addEventListener("drop", (event) => {
+        event.preventDefault();
+    });
+</script>
+<body class="mat-typography" autocapitalize="off" autocorrect="off" spellcheck="false">
 <fme-root></fme-root>
 </body>
 </html>

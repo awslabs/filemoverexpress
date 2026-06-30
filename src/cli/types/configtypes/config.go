@@ -136,24 +136,23 @@ func (fmeConfig FmeConfig) GetTransferProfile(profileName string) (TransferProfi
 	return TransferProfile{}, errors.New(strNoSuchTransferProfile + profileName)
 }
 
-func (fmeConfig FmeConfig) ToProtobuf() *fmev1.FmeConfig {
+func (fmeConfig FmeConfig) ToGRPCProtobuf() *fmev1.GRPCFmeConfig {
 	transferProfiles := TransferProfilesToProtobuf(fmeConfig.Protocols.S3.TransferProfiles)
 	uploadHotFolders := HotFoldersToProtobuf(fmeConfig.UploadHotFolders)
 
-	// Safe conversion for logging settings - Issues #12, #13
 	maxSize, err := safeconv.IntToInt32(fmeConfig.Logging.MaxSize)
 	if err != nil {
 		logger.Error("Invalid MaxSize value %d: %v, using default", fmeConfig.Logging.MaxSize, err)
-		maxSize = 100 // Default max size in MB
+		maxSize = 100
 	}
 
 	maxAge, err := safeconv.IntToInt32(fmeConfig.Logging.MaxAge)
 	if err != nil {
 		logger.Error("Invalid MaxAge value %d: %v, using default", fmeConfig.Logging.MaxAge, err)
-		maxAge = 28 // Default max age in days
+		maxAge = 28
 	}
 
-	return &fmev1.FmeConfig{
+	return &fmev1.GRPCFmeConfig{
 		General: &fmev1.GeneralSettings{
 			NoSleep:            fmeConfig.General.NoSleep,
 			RetryCount:         fmeConfig.General.RetryCount,
@@ -171,20 +170,6 @@ func (fmeConfig FmeConfig) ToProtobuf() *fmev1.FmeConfig {
 		Reports: &fmev1.ReportsSettings{
 			Directory: fmeConfig.Reports.Directory,
 		},
-		ApiServer: &fmev1.ApiServerSettings{
-			Enabled: fmeConfig.APIServer.Enabled,
-			Tls: &fmev1.ApiServerTlsSettings{
-				Enabled:         fmeConfig.APIServer.TLSSettings.Enabled,
-				CertificateFile: fmeConfig.APIServer.TLSSettings.CertificateFile,
-				KeyFile:         fmeConfig.APIServer.TLSSettings.KeyFile,
-			},
-			Remote: &fmev1.ApiServerRemoteSettings{
-				Enabled:      fmeConfig.APIServer.RemoteSettings.Enabled,
-				PreSharedKey: fmeConfig.APIServer.RemoteSettings.PreSharedKey,
-				Address:      fmeConfig.APIServer.RemoteSettings.Address,
-				Ports:        fmeConfig.APIServer.RemoteSettings.Ports,
-			},
-		},
 		Protocols: &fmev1.Protocols{
 			S3: &fmev1.S3Settings{
 				TransferProfiles: transferProfiles,
@@ -194,7 +179,24 @@ func (fmeConfig FmeConfig) ToProtobuf() *fmev1.FmeConfig {
 	}
 }
 
-func FromProtobuf(newConfig *fmev1.FmeConfig, apiServerConfig APIServer) FmeConfig {
+func FromGRPCProtobuf(newConfig *fmev1.GRPCFmeConfig, apiServerConfig APIServer) (FmeConfig, error) {
+	var missing []string
+	if newConfig.General == nil {
+		missing = append(missing, "general")
+	}
+	if newConfig.Logging == nil {
+		missing = append(missing, "logging")
+	}
+	if newConfig.Reports == nil {
+		missing = append(missing, "reports")
+	}
+	if newConfig.Protocols == nil {
+		missing = append(missing, "protocols")
+	}
+	if len(missing) > 0 {
+		return FmeConfig{}, fmt.Errorf("missing required fields: %s", strings.Join(missing, ", "))
+	}
+
 	return FmeConfig{
 		General: General{
 			NoSleep:            newConfig.General.NoSleep,
@@ -220,7 +222,7 @@ func FromProtobuf(newConfig *fmev1.FmeConfig, apiServerConfig APIServer) FmeConf
 			},
 		},
 		UploadHotFolders: HotFoldersFromProtobuf(newConfig.UploadHotFolders),
-	}
+	}, nil
 }
 
 func TransferProfilesFromProtobuf(profileList map[string]*fmev1.TransferProfile) (transferProfiles map[string]TransferProfile) {

@@ -1,9 +1,0 @@
-name: 'Test Build Scripts'
-description: 'Runs Vitest unit tests for the build-scripts package via npm run test:build-scripts'
-
-runs:
-  using: 'composite'
-  steps:
-    - name: Run build-scripts tests
-      run: npm run test:build-scripts
-      shell: bash

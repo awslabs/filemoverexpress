@@ -50,29 +50,6 @@ const FORM_DATA = FmeConfig.fromJson({
     reports: {
         directory: 'reports',
     },
-    apiServer: {
-        enabled: true,
-        permissions: {
-            allowUiConfiguration: true,
-            allowLocalRenameDelete: true,
-            allowRemoteRenameDelete: false,
-        },
-        blockedPaths: [],
-        tls: {
-            enabled: false,
-            certificateFile: '',
-            keyFile: '',
-        },
-        remote: {
-            enabled: false,
-            preSharedKey: '',
-            address: '0.0.0.0',
-            ports: [
-                50006,
-            ],
-        },
-        allowedOrigins: [],
-    },
     protocols: {
         s3: {
             transferProfiles: {

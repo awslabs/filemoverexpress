@@ -35,7 +35,7 @@ func (oaef *ObjectAlreadyExistsFilter) IsFiltered(taskInput *jobmanagertypes.Tas
 		if errors.As(err, &responseError) && responseError.HTTPStatusCode() == http.StatusNotFound {
 			return false, nil
 		}
-		return false, fmt.Errorf("failed to grab s3 object data: %w", err)
+		return false, fmt.Errorf("failed to grab s3 object data for destination path %s: %w", taskInput.Destination(), err)
 	}
 	if oaef.checksumSettings.Enabled {
 		return hasSizeMatch(taskInput, result) && hasChecksumMatch(result.Metadata, taskInput, oaef.checksumSettings.Algorithm), nil

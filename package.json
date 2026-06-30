@@ -15,25 +15,20 @@
         "src/*"
     ],
     "scripts": {
-        "build": "npm-run-all --parallel --aggregate-output --print-label build:cli build:gui",
-        "build:cli": "npx -w @filemoverexpress/build-scripts ts-node build.ts cli",
-        "build:gui": "npx -w @filemoverexpress/build-scripts ts-node build.ts gui",
-        "build:electron": "npx -w @filemoverexpress/build-scripts ts-node build.ts electron",
-        "build:proto": "npx -w @filemoverexpress/build-scripts ts-node build.ts proto",
+        "build": "task build",
+        "build:cli": "task cli:build",
+        "build:gui": "task gui:build",
+        "build:proto": "task proto:generate",
+        "build:wails": "task wails:build",
 
-        "installer": "npx -w @filemoverexpress/build-scripts ts-node build.ts installer",
-        "install:local": "npx -w @filemoverexpress/build-scripts ts-node build.ts install local",
+        "test": "task test",
+        "test:cli": "task cli:test",
+        "test:gui": "task gui:test",
+        "test:wails": "task wails:test",
 
-        "package": "npx -w @filemoverexpress/build-scripts ts-node build.ts package",
-
-        "test": "npm-run-all --print-label test:build-scripts test:cli test:gui",
-        "test:build-scripts": "npm run --prefix src/build-scripts test",
-        "test:cli": "npm run --prefix src/cli test",
-        "test:gui": "npm run --prefix src/gui test",
-
-        "lint": "npm-run-all --parallel --aggregate-output --print-label lint:cli lint:gui",
-        "lint:cli": "npm run --prefix src/cli lint",
-        "lint:gui": "npm run --prefix src/gui lint"
+        "lint": "task lint",
+        "lint:cli": "task cli:lint",
+        "lint:gui": "task gui:lint"
     },
     "devDependencies": {
         "@bufbuild/buf": "1.67.0",

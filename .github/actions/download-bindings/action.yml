@@ -1,0 +1,11 @@
+name: 'Download Bindings'
+description: 'Downloads the wails-bindings artifact containing generated Wails bindings for the frontend'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download wails-bindings artifact
+      uses: actions/download-artifact@v4 # v4.3.0
+      with:
+        name: wails-bindings
+        path: src/gui/src/gen/wails/

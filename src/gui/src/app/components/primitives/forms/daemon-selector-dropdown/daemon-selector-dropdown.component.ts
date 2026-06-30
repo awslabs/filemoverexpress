@@ -22,6 +22,7 @@ import { BookmarksService } from '@services/bookmarks/bookmarks.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { ConnectionState } from '@state/models/connection-state-model';
+import { ShutdownResult } from '@gen/es/fme/v1/shared_pb';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 import { CONNECTED_ICON, CONNECTING_ICON, DISCONNECTED_ICON, PLACEHOLDER_TEXT, STAR_ICON } from './daemon-selector-dropdown.constants';
@@ -524,18 +525,26 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
 
         dialogRef.afterClosed().subscribe(
             (result) => {
-                try {
-                    if (result) {
-                        if (window.fme) {
-                            this.fmeClientService.shutdown();
-                            this.notifications.info('Attempted to stop the running local daemon.');
-                        } else {
+                if (result) {
+                    this.fmeClientService.shutdown().subscribe({
+                        next: (shutdownResult) => {
+                            switch (shutdownResult) {
+                                case ShutdownResult.SUCCEEDED:
+                                    this.notifications.info('Stopped the running local daemon.');
+                                    break;
+                                case ShutdownResult.RESTRICTED:
+                                    this.notifications.warning('The local daemon cannot be stopped from here because it was not ' +
+                                        'started by the application. Stop it from the command line where it was launched.');
+                                    break;
+                                default:
+                                    this.notifications.error('Unable to stop the local daemon.');
+                            }
+                        },
+                        error: (error) => {
+                            console.debug(`Failed stopping daemon: ${error}`);
                             this.notifications.error('Unable to stop the local daemon.');
-                        }
-                    }
-                } catch (e) {
-                    console.error(e);
-                    this.notifications.error('Unable to stop the local daemon.');
+                        },
+                    });
                 }
             },
         );

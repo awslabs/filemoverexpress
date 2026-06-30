@@ -12,3 +12,6 @@ max_line_length = 140
 
 [*.go]
 indent_style = tab
+
+[{*.yml,*yaml}]
+indent_size = 2

@@ -23,6 +23,7 @@ func Uploader(job *jobmanagertypes.Job) {
 		events.Events.Error(strBasePathNotAbsolute, basePath)
 		return
 	}
+
 	job.SetDestination(utils.CleanPrefix("/", job.Destination()))
 
 	err := core.CheckLimits()

@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, ViewChild } from '@angular/core';
+import { Component, effect, inject, OnDestroy, signal, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
 import { FileBrowserComponent } from '@app/components/layout/file-browser/file-browser.component';
@@ -22,7 +22,7 @@ import {
 } from '@app/components/modals/transfer-settings-modal/transfer-settings-modal.interfaces';
 import { tooltipMessages } from '@app/constants/common.constants';
 import { PathType } from '@app/interfaces/paths';
-import { grpcPathToDisplayPath } from '@app/utils/path-utils';
+import { grpcPathToDisplayPath, toGrpcPath } from '@app/utils/path-utils';
 import { getS3BrowserError, isRetryableError, S3BrowserError } from '@app/utils/s3-utils';
 import { basename, commonPath, createJobName, dirname, getErrorMessage } from '@app/utils/utils';
 import { BucketReportButtonComponent } from '@primitives/buttons/bucket-report-button/bucket-report-button.component';
@@ -56,11 +56,18 @@ import {
     FileBrowserObjectType,
     FileBrowserState,
 } from '../file-browser/file-browser.interfaces';
-import { BUCKET_BROWSER_INITIAL_DATA, BUCKET_FILE_BROWSER_ID, fileBrowserErrors, notificationMessages } from './bucket-browser.constants';
-import { NavigateOptions } from './bucket-browser.interfaces';
+import {
+    BUCKET_BROWSER_INITIAL_DATA,
+    BUCKET_FILE_BROWSER_ID,
+    fileBrowserErrors,
+    notificationMessages,
+} from './bucket-browser.constants';
+import { NavigateOptions, WailsFileList } from './bucket-browser.interfaces';
 import { Store } from '@ngrx/store';
 import { AppState } from '@app/state';
 import * as UiContextActions from '@state/ui-context/actions/ui-context.actions';
+import { WailsService } from '@services/wails/wails.service';
+import { Events } from '@wailsio/runtime';
 
 @Component({
     selector: 'fme-bucket-browser',
@@ -84,6 +91,44 @@ export class BucketBrowserComponent implements OnDestroy {
     private metadata = inject(MetadataService);
     private bookmarks = inject(BookmarksService);
     private store = inject<Store<AppState>>(Store);
+    private wails = inject(WailsService);
+    private wailsFileList = signal<Record<string, string> | null>(null);
+    private dropResult = signal<FileBrowserDropResult | null>(null);
+    /**
+     *
+     * When a drag and drop is coming from Wails we need to get the full path from the Wails emitted event, which is
+     * provided by listening on the wails "files-dropped". Once we have both the dropResult aswell as the wailsFileList
+     * we can process the request. Once a request has triggered the modal opening, we reset both signals to `null`.
+     *
+     * @private
+     */
+    private effRef = effect(() => {
+        const wailsFileList = this.wailsFileList();
+        const dropResult = this.dropResult();
+
+        if (!dropResult || !this.selectedTransferProfile) {
+            return;
+        }
+
+        if (!dropResult.fromExternalSource) {
+            this.openTransferSettingsModal(dropResult, this.selectedTransferProfile);
+            this.wailsFileList.set(null);
+            this.dropResult.set(null);
+            return;
+        }
+
+        if (!wailsFileList) {
+            return;
+        }
+
+        for (const item of dropResult.sources) {
+            item.name = wailsFileList[item.name];
+        }
+
+        this.openTransferSettingsModal(dropResult, this.selectedTransferProfile);
+        this.wailsFileList.set(null);
+        this.dropResult.set(null);
+    });
 
     @ViewChild('filterField') filterField!: TextInputComponent;
     fileBrowserID = BUCKET_FILE_BROWSER_ID;
@@ -106,6 +151,14 @@ export class BucketBrowserComponent implements OnDestroy {
     protected readonly REFRESH_BUTTON_TOOLTIP = tooltipMessages.FILE_BROWSER_REFRESH_NOTIFICATION;
 
     constructor() {
+        this.wails.onEvent('files-dropped', (event: Events.WailsEvent) => {
+            if (event.name !== 'files-dropped') {
+                return;
+            }
+
+            const wfl = event.data as unknown as WailsFileList;
+            this.wailsFileList.set(wfl.files);
+        });
         this.setContextMenuData();
 
         this.subscriptions.push(this.transferProfileService.transferProfileState.subscribe(
@@ -161,6 +214,7 @@ export class BucketBrowserComponent implements OnDestroy {
     ngOnDestroy() {
         this.subscriptions.map((subscription) => subscription.unsubscribe());
         this.subscriptions = [];
+        this.effRef.destroy();
     }
 
     /**
@@ -318,7 +372,8 @@ export class BucketBrowserComponent implements OnDestroy {
                 return;
             }
             if (dropResult.sources.length && dropResult.destination) {
-                this.openTransferSettingsModal(dropResult, transferProfile);
+                this.dropResult.set(dropResult);
+                // this.openTransferSettingsModal(dropResult, transferProfile);
             }
         }
     }
@@ -379,7 +434,7 @@ export class BucketBrowserComponent implements OnDestroy {
      */
     uploadPrefixes(transferProfile: string, force: boolean, sources: string[], destination: string, jobName: string) {
         // gets the base name and sources list into the format required by the daemon uploader
-        const basePath = sources.length === 1 ? dirname(sources[0]) : commonPath(sources);
+        const basePath = toGrpcPath(sources.length === 1 ? dirname(sources[0]) : commonPath(sources));
         sources = sources.map((source) => basename(source));
         // send upload request
         this.fmeClientService.uploadPrefixes(transferProfile, force, basePath, sources, destination, jobName).subscribe({
@@ -658,6 +713,15 @@ export class BucketBrowserComponent implements OnDestroy {
                 ]),
                 action: this.setS3StartingPrefix(),
             },
+            {
+                label: 'Clear Bucket Starting Directory',
+                icon: 'clear',
+                iconColor: 'inherit',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['folder', this.showClearS3StartingPrefixMenuRow()], ['emptySpace', this.showClearS3StartingPrefixMenuRow()],
+                ]),
+                action: this.clearS3StartingPrefix(),
+            },
         ];
     }
 
@@ -742,28 +806,79 @@ export class BucketBrowserComponent implements OnDestroy {
         dialogRef.afterClosed().subscribe(
             (result) => {
                 if (result !== null) {
-                    this.fmeClientService.getConfiguration().subscribe({
-                        next: (config) => {
-                            const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
-                            if (!transferProfileData) {
-                                this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file. Unable to update S3 Bucket Prefix.`);
-                                return;
-                            }
-                            config.protocols.s3.transferProfiles[transferProfile].paths.remote = result;
-                            this.fmeClientService.setConfiguration(config).subscribe({
-                                next: () => {
-                                    this.notifications.success(`Successfully updated S3 Bucket Prefix for remote configuration ${transferProfile}.`);
-                                    this.refreshFileBrowser(true);
-                                },
-                                error: (error) => {
-                                    this.notifications.warning(`Error occurred when updating S3 Bucket Prefix for remote configuration ${transferProfile}: ${error}`);
-                                },
-                            });
-                        },
-                    });
+                    this.persistS3StartingPrefix(transferProfile, result);
                 }
             },
         );
+    }
+
+    /**
+     * Persists the S3 Bucket Prefix (starting prefix) for a transfer profile. Passing
+     * an empty string clears it. Shared by the "Set" (modal) and "Clear" context-menu
+     * actions. See issue #18.
+     */
+    private persistS3StartingPrefix(transferProfile: string, newS3StartingPrefix: string) {
+        this.fmeClientService.getConfiguration().subscribe({
+            next: (config) => {
+                const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
+                if (!transferProfileData) {
+                    this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file. Unable to update S3 Bucket Prefix.`);
+                    return;
+                }
+                config.protocols.s3.transferProfiles[transferProfile].paths.remote = newS3StartingPrefix;
+                this.fmeClientService.setConfiguration(config).subscribe({
+                    next: () => {
+                        const message = newS3StartingPrefix
+                            ? `Successfully updated S3 Bucket Prefix for remote configuration ${transferProfile}.`
+                            : `Cleared S3 Bucket Starting Directory for remote configuration ${transferProfile}.`;
+                        this.notifications.success(message);
+                        this.refreshFileBrowser(true);
+                    },
+                    error: (error) => {
+                        this.notifications.warning(`Error occurred when updating S3 Bucket Prefix for remote configuration ${transferProfile}: ${error}`);
+                    },
+                });
+            },
+        });
+    }
+
+    /**
+     * Returns true if the selected transfer profile has an S3 Bucket Prefix set.
+     */
+    private isS3StartingPrefixConfigured(): boolean {
+        const currentTransferProfile = this.selectedTransferProfile;
+        if (!currentTransferProfile) {
+            return false;
+        }
+        try {
+            const paths = this.metadata.transferProfiles[currentTransferProfile];
+            return !!cleanPath(paths.remote);
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Context-menu visibility for "Clear Bucket Starting Directory": show on the
+     * prefix that is the starting prefix, and on empty space whenever one is configured.
+     */
+    private showClearS3StartingPrefixMenuRow(): FileBrowserContextMenuTriggerCondition {
+        return (fileBrowserObject: FileBrowserObject) => {
+            if (!fileBrowserObject) {
+                return this.isS3StartingPrefixConfigured();
+            }
+            return this.isStartingPath(fileBrowserObject.name);
+        };
+    }
+
+    private clearS3StartingPrefix(): FileBrowserContextMenuClickHandler {
+        return (__triggerType: FileBrowserContextMenuTrigger | null, __triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
+            const currentTransferProfile = this.selectedTransferProfile;
+            if (!currentTransferProfile) {
+                return;
+            }
+            this.persistS3StartingPrefix(currentTransferProfile, '');
+        };
     }
 
     isRemoteRenameDeleteAllowed(): FileBrowserContextMenuTriggerCondition {

@@ -1,4 +1,5 @@
 import { createReducer, on } from '@ngrx/store';
+import { normalizeLogLevel } from '@app/interfaces/events';
 import { LogEntry } from '@state/models/log-entry.model';
 import * as LogsActions from '../actions/logs.actions';
 
@@ -18,7 +19,7 @@ export const reducer = createReducer(
     on(
         LogsActions.addLog,
         (state, {log}) => {
-            let newLogs = [...state.logs, log];
+            let newLogs = [...state.logs, {...log, level: normalizeLogLevel(log.level)}];
             if (newLogs.length > MAX_LOG_ENTRIES) {
                 newLogs = newLogs.splice(-MAX_LOG_ENTRIES);
             }
@@ -33,7 +34,7 @@ export const reducer = createReducer(
     on(
         LogsActions.bulkAddLog,
         (state, {logs}) => {
-            let newLogs = [...state.logs, ...logs];
+            let newLogs = [...state.logs, ...logs.map((entry) => ({...entry, level: normalizeLogLevel(entry.level)}))];
             if (newLogs.length > MAX_LOG_ENTRIES) {
                 newLogs = newLogs.splice(-MAX_LOG_ENTRIES);
             }

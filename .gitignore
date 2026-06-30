@@ -45,3 +45,4 @@ node_modules/
 .kiro/specs/
 .kiro/settings/
 .vscode/
+.task/

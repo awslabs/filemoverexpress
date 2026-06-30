@@ -1,0 +1,41 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application for Linux
+    platforms:
+      - linux
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:build:frontend
+      - task: common:generate:icons
+    cmds:
+      - go build -tags production -trimpath -buildvcs=false -ldflags="-w -s" -o "{{.BIN_DIR}}/{{.APP_NAME}}"
+    env:
+      GOOS: linux
+      CGO_ENABLED: 1
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  package:
+    summary: Packages the application for Linux
+    platforms:
+      - linux
+    deps:
+      - task: build
+    cmds:
+      - task: create:appimage
+
+  create:appimage:
+    summary: Creates an AppImage
+    dir: build/linux/appimage
+    cmds:
+      - wails3 generate appimage -binary "../../../{{.BIN_DIR}}/{{.APP_NAME}}" -icon "../../appicon.png" -desktopfile "../{{.APP_NAME}}.desktop" -outputdir "../../../{{.BIN_DIR}}" -builddir build
+
+  run:
+    platforms:
+      - linux
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}'

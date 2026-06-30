@@ -127,4 +127,12 @@ message ChecksumSettings {
     string algorithm = 2;
 }
 
+message GRPCFmeConfig {
+    GeneralSettings general = 1;
+    LoggingSettings logging = 2;
+    ReportsSettings reports = 3;
+    Protocols protocols = 4;
+    repeated UploadHotFolderSettings upload_hot_folders = 5;
+}
+
 

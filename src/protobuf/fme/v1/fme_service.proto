@@ -17,8 +17,8 @@ option go_package = "github.com/awslabs/filemoverexpress/protobuf";
 service FmeService {
     rpc ListEvents (fme.v1.ListEventsRequest) returns (stream fme.v1.ListEventsResponse) {}
     rpc Shutdown (fme.v1.ShutdownRequest) returns (fme.v1.ShutdownResponse) {}
-    rpc GetConfiguration (fme.v1.GetConfigurationRequest) returns (fme.v1.FmeConfig) {}
-    rpc SetConfiguration (fme.v1.FmeConfig) returns (fme.v1.SetConfigurationResponse) {}
+    rpc GetConfiguration (fme.v1.GetConfigurationRequest) returns (fme.v1.GRPCFmeConfig) {}
+    rpc SetConfiguration (fme.v1.GRPCFmeConfig) returns (fme.v1.SetConfigurationResponse) {}
     rpc GenerateInventoryReport (fme.v1.InventoryReportRequest) returns (fme.v1.InventoryReportResponse) {}
     rpc GenerateSupportFile (fme.v1.CreateSupportFileRequest) returns (fme.v1.CreateSupportFileResponse) {}
     rpc ListFolder (fme.v1.ListFolderRequest) returns (fme.v1.FsFolder) {}

@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "1.0.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "1.0.0",
+			"CompanyName": "Amazon Web Services",
+			"FileDescription": "File Mover Express for AWS",
+			"LegalCopyright": "Amazon Web Services, 2026",
+			"ProductName": "File Mover Express for AWS",
+			"Comments": ""
+		}
+	}
+}

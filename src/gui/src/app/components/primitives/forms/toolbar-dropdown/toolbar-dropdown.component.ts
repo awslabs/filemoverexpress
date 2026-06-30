@@ -6,11 +6,12 @@ import { MatDivider } from '@angular/material/list';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { PreferencesModalComponent } from '@app/components/modals/preferences-modal/preferences-modal.component';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { strSupportFileComplete } from './toolbar-dropdown.constants';
 import { docsLinks } from '@app/constants/external-links';
+import { WailsService } from '@services/wails/wails.service';
 
 @Component({
     selector: 'fme-toolbar-dropdown',
@@ -32,6 +33,7 @@ export class ToolbarDropdownComponent {
     dialog = inject(MatDialog);
     private renderer = inject(Renderer2);
     private notifications = inject(NotificationsService);
+    private wails = inject(WailsService);
 
     @Input() version = '';
     @Input() connected = false;
@@ -40,16 +42,25 @@ export class ToolbarDropdownComponent {
     generateSupportFile() {
         this.fmeClientService.generateSupportFile().subscribe({
             next: (result) => {
-                if (result.success) {
-                    this.notifications.success(strSupportFileComplete);
-                    const link = this.renderer.createElement('a');
-                    link.href = `data:application/zip;base64,${result.data}`;
-                    link.download = result.filename;
-                    link.click();
-                    link.remove();
-                } else {
+                if (!result.success) {
                     this.notifications.error(result.error);
+                    return;
                 }
+                if (isPackagedApp()) {
+                    // The packaged Wails webview ignores anchor / `data:` URL downloads, but the
+                    // daemon has already written the .zip to disk. Reveal it in the OS file manager
+                    // and tell the user where it was saved. See issue #14.
+                    this.wails.systemShowItemInFolder(this.joinPath(result.outputDir, result.filename)).subscribe();
+                    this.notifications.success(`${strSupportFileComplete}. Saved to ${result.outputDir}`);
+                    return;
+                }
+                // Dev / browser mode: the anchor `data:` URL download works here.
+                this.notifications.success(strSupportFileComplete);
+                const link = this.renderer.createElement('a');
+                link.href = `data:application/zip;base64,${result.data}`;
+                link.download = result.filename;
+                link.click();
+                link.remove();
             },
             error: (error) => {
                 this.notifications.error(error);
@@ -58,9 +69,22 @@ export class ToolbarDropdownComponent {
         });
     }
 
+    /**
+     * Joins a directory and file name using the directory's native path separator
+     * (Windows paths use a backslash, POSIX paths use a forward slash).
+     */
+    private joinPath(directory: string, filename: string): string {
+        // The daemon returns an absolute OS-native directory, so we infer the separator
+        // from it (backslash on Windows, otherwise forward slash). A separator-less
+        // relative path would default to '/', but that case shouldn't occur here.
+        const separator = directory.includes('\\') ? '\\' : '/';
+        const trimmedDirectory = directory.replace(/[/\\]+$/, '');
+        return `${trimmedDirectory}${separator}${filename}`;
+    }
+
     getSupport() {
-        if (isElectronApp()) {
-            window.fme?.externalLink(docsLinks.USER_GUIDE_PAGE_URL);
+        if (isPackagedApp()) {
+            this.wails.externalLink(docsLinks.USER_GUIDE_PAGE_URL).subscribe();
         }
     }
 

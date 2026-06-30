@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"path"
 	"slices"
 	"sort"
 	"strings"
@@ -166,7 +165,7 @@ func (s3m *S3Manager) RenameS3Prefix(oldPrefix string, newPrefix string) error {
 		}
 
 		objectsToRename[object.Key] = S3ObjectRenameData{
-			newName:      path.Join(newPathName, strings.TrimPrefix(object.Key, pathToRename)),
+			newName:      newPathName + strings.TrimPrefix(object.Key, pathToRename),
 			size:         object.Size,
 			storageClass: awsStorageClass,
 		}
@@ -193,8 +192,10 @@ func (s3m *S3Manager) RenameS3Prefix(oldPrefix string, newPrefix string) error {
 }
 
 func (s3m *S3Manager) PerformSingleObjectRename(objectOldName string, objectNewNameData S3ObjectRenameData) error {
-	// copy object to new name
-	copySource := path.Join(s3m.Bucket, objectOldName)
+	// copy object to new name. Use a plain join (not path.Join) so trailing slashes on
+	// folder-marker keys (e.g. "prefix/") are preserved; path.Join would clean them off
+	// and point CopyObject at a non-existent key, breaking prefix renames. See issue #22.
+	copySource := buildCopySourceString(s3m.Bucket, objectOldName)
 	if objectNewNameData.size < atomicCopyObjectSizeLimit {
 		_, err := s3m.Client.CopyObject(context.TODO(), &s3.CopyObjectInput{
 			Bucket:       &s3m.Bucket,

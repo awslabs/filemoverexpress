@@ -5,7 +5,7 @@ import { ConfirmationModalComponent } from '@app/components/modals/confirmation-
 import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
 import { MessageModalComponent } from '@app/components/modals/message-modal/message-modal.component';
 import { MessageModalData } from '@app/components/modals/message-modal/message-modal.interfaces';
-import { isElectronApp } from '@app/utils/utils';
+import { isPackagedApp } from '@app/utils/utils';
 import { ShutdownResult } from '@gen/es/fme/v1/shared_pb';
 import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
@@ -15,6 +15,7 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { ConnectionState } from '@state/models/connection-state-model';
 import { selectConnectionState } from '@state/fme-client/fme-client.selectors';
 import { Observable, Subject, Subscription, take } from 'rxjs';
+import { WailsService } from '@services/wails/wails.service';
 
 @Injectable({
     providedIn: 'root',
@@ -28,8 +29,10 @@ export class ShutdownService implements OnDestroy {
     private dialog = inject(MatDialog);
     private rf = inject(RendererFactory2);
     private zone = inject(NgZone);
+    private wails = inject(WailsService);
 
     connected = false;
+    private shutdownInProgress = false;
     subscriptions: Subscription[] = [];
 
     constructor() {
@@ -39,7 +42,16 @@ export class ShutdownService implements OnDestroy {
             handleStreamError({retryCount: 5, fatal: true}),
         ).subscribe({
             next: (connectionState) => {
+                const wasConnected = this.connected;
                 this.connected = connectionState === ConnectionState.CONNECTED;
+                // If an established connection drops abruptly (e.g. the daemon crashed or was
+                // killed), close any open dialogs so they can't be left stranded and
+                // un-dismissable (dialogs default to disableClose: true). Skip this while our
+                // own shutdown flow is running, which intentionally shows dialogs as the daemon
+                // goes away. See issue #13.
+                if (wasConnected && connectionState === ConnectionState.DISCONNECTED && !this.shutdownInProgress) {
+                    this.dialog.closeAll();
+                }
             },
             error: (error) => {
                 this.fmeClientService.processStreamError(error);
@@ -50,11 +62,6 @@ export class ShutdownService implements OnDestroy {
     ngOnDestroy(): void {
         this.subscriptions.map((subscription) => subscription.unsubscribe());
         this.subscriptions = [];
-        if (isElectronApp()) {
-            window.fme?.removeAllListeners('closed');
-            window.fme?.removeAllListeners('executeDaemonMode');
-            window.fme?.removeAllListeners('stopDaemon');
-        }
     }
 
     /**
@@ -62,8 +69,11 @@ export class ShutdownService implements OnDestroy {
      * @private
      */
     private fatalShutdownHandler() {
-        if (isElectronApp()) {
-            window.fme?.on('fatal-shutdown', () => {
+        if (isPackagedApp()) {
+            this.wails.onEvent('fatal-shutdown', () => {
+                // Our own shutdown flow shows dialogs while the daemon is going away; prevent
+                // the disconnect handler from closing them out from under the user (issue #13).
+                this.shutdownInProgress = true;
                 if (this.connected) {
                     const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
                         ConfirmationModalComponent,
@@ -85,14 +95,14 @@ export class ShutdownService implements OnDestroy {
                                 if (result === true) {
                                     this.saveSupportFileAndExportData();
                                 } else {
-                                    window.fme?.send('closed');
+                                    this.wails.send('closed');
                                 }
                             } catch {
-                                window.fme?.send('closed');
+                                this.wails.send('closed');
                             }
                         },
                         error: () => {
-                            window.fme?.send('closed');
+                            this.wails.send('closed');
                         },
                     });
                 } else {
@@ -116,14 +126,14 @@ export class ShutdownService implements OnDestroy {
                                 if (result === true) {
                                     this.exportJobs();
                                 } else {
-                                    window.fme?.send('closed');
+                                    this.wails.send('closed');
                                 }
                             } catch {
-                                window.fme?.send('closed');
+                                this.wails.send('closed');
                             }
                         },
                         error: () => {
-                            window.fme?.send('closed');
+                            this.wails.send('closed');
                         },
                     });
                 }
@@ -163,66 +173,69 @@ export class ShutdownService implements OnDestroy {
                             });
                     });
                 } else {
-                    window.fme?.send('closed');
+                    this.wails.send('closed');
                 }
             },
             error: () => {
-                window.fme?.send('closed');
+                this.wails.send('closed');
             },
         });
         return sub.asObservable();
     }
 
     private appCloseHandler() {
-        if (isElectronApp()) {
-            window.fme?.on('app-close', () => {
-                switch (this.prefService.daemonClose) {
-                    case 'always':
-                        this.doShutdown();
-                        break;
-                    case 'never':
-                        window.fme?.send('closed');
-                        break;
-                    default:
-                        this.showDaemonCloseModal().subscribe(
-                            (shouldKillDaemon) => {
-                                if (shouldKillDaemon) {
-                                    this.doShutdown();
-                                } else {
-                                    window.fme?.send('closed');
-                                }
-                            },
-                        );
-                }
-            });
-        }
+        this.wails.onEvent('app-close', () => {
+            // App is closing; our shutdown dialogs must not be auto-closed by the
+            // disconnect handler when the daemon stops (issue #13).
+            this.shutdownInProgress = true;
+            switch (this.prefService.daemonClose) {
+                case 'always':
+                    this.doShutdown();
+                    break;
+                case 'never':
+                    this.wails.send('closed');
+                    break;
+                default:
+                    this.showDaemonCloseModal().subscribe(
+                        (shouldKillDaemon) => {
+                            if (shouldKillDaemon) {
+                                this.doShutdown();
+                            } else {
+                                this.wails.quit();
+                            }
+                        },
+                    );
+            }
+        });
     }
 
     private doShutdown() {
-        this.fmeClientService.shutdown().subscribe(
-            {
-                next: (result) => {
-                    switch (result) {
-                        case ShutdownResult.SUCCEEDED:
-                        case ShutdownResult.RESTRICTED:
-                            window.fme?.send('closed');
-                            return;
-                        case ShutdownResult.FAILED:
-                            this.showFailedShutdownModal();
-                            return;
-                        default:
-                            console.debug(`received an unexpected shutdown result ${result}`);
-                    }
-                },
-                error: (err) => {
-                    console.error(err);
-                },
+        this.fmeClientService.shutdown().subscribe({
+            next: (result) => {
+                switch (result) {
+                    case ShutdownResult.SUCCEEDED:
+                    case ShutdownResult.RESTRICTED:
+                        this.wails.quit();
+                        return;
+                    case ShutdownResult.FAILED:
+                        this.showFailedShutdownModal()
+                            .afterClosed()
+                            .subscribe(
+                                () => this.wails.quit(),
+                            );
+                        return;
+                    default:
+                        console.debug(`received an unexpected shutdown result ${result}`);
+                }
             },
-        );
+            error: (err) => {
+                console.error(err);
+            },
+        });
     }
 
     private showFailedShutdownModal() {
-        const dialogRef = this.dialog.open<MessageModalComponent, Partial<MessageModalData>>(
+        return this.dialog.open<MessageModalComponent, Partial<MessageModalData>>(
             MessageModalComponent,
             {
                 data: {
@@ -231,14 +244,7 @@ export class ShutdownService implements OnDestroy {
                 },
             },
         );
-
-        dialogRef.afterClosed().subscribe(
-            () => {
-                window.fme?.send('closed');
-            },
-        );
     }
-
 
     /**
      * Saves a support file and exports the jobs table in the event that a fatal shutdown occurs.
@@ -262,7 +268,7 @@ export class ShutdownService implements OnDestroy {
                         link.click();
                         link.remove();
                     } catch {
-                        window.fme?.send('closed');
+                        this.wails.send('closed');
                     }
                 } else {
                     this.notifications.error(result.error);
@@ -316,7 +322,7 @@ export class ShutdownService implements OnDestroy {
 
         closeDialogRef.afterClosed().subscribe((closeApp) => {
             if (closeApp) {
-                window.fme?.send('closed');
+                this.wails.send('closed');
             }
         });
 

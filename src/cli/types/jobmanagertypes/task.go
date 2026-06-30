@@ -58,6 +58,7 @@ type (
 		lock             *sync.RWMutex
 		priority         int
 		err              error
+		finished         atomic.Bool
 		BytesTransferred int64
 	}
 
@@ -175,6 +176,16 @@ func (t *Task) SetStatus(status TaskStatus) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	t.status = status
+}
+
+// MarkFinished atomically marks the task as finished and returns true only the
+// first time it is called for a given task. It is used to guarantee that a
+// task's job.WaitGroup.Done() is called exactly once even when the transfer
+// worker and the cancel path race to finish the same task. Without this guard,
+// a task that is cancelled while a worker is picking it up can be Done()'d
+// twice, driving the WaitGroup counter negative and panicking the daemon.
+func (t *Task) MarkFinished() bool {
+	return t.finished.CompareAndSwap(false, true)
 }
 
 func (t *Task) SetStatusAndError(status TaskStatus, err error) {

@@ -1,0 +1,16 @@
+version: '3'
+
+vars:
+  OUTPUT_DIR: ../../dist
+  GO_BUILD_FLAGS: -trimpath
+
+tasks:
+  build:
+    desc: Build Windows daemon launcher
+    platforms: [windows]
+    env:
+      GOOS: windows
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+    cmds:
+      - go build {{.GO_BUILD_FLAGS}} -ldflags '-s -w' -o {{.OUTPUT_DIR}}/filemoverexpress-launcher.exe
