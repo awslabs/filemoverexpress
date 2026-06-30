@@ -95,6 +95,20 @@ jobs:
           fi
           echo "Signing configuration present."
 
+      - name: Normalize signing config (strip stray whitespace/newlines)
+        run: |
+          set -euo pipefail
+          # GitHub's variable "Value" textarea can capture an invisible trailing
+          # newline; an embedded newline breaks awscurl's URL parser. These values
+          # never legitimately contain whitespace, so strip it all.
+          strip() { printf '%s' "$1" | tr -d '[:space:]'; }
+          {
+            echo "AWS_REGION=$(strip "$AWS_REGION")"
+            echo "CD_SIGNER_API_BASE_URL=$(strip "$CD_SIGNER_API_BASE_URL")"
+            echo "SIGNING_BUCKET=$(strip "$SIGNING_BUCKET")"
+            echo "BUNDLE_ID=$(strip "$BUNDLE_ID")"
+          } >> "$GITHUB_ENV"
+
       - name: Download unsigned .app artifact
         uses: actions/download-artifact@v4
         with:
