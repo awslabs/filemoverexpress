@@ -101,12 +101,19 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: ./dist
 
+      - name: Set up Python for awscurl
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install signing dependencies (awscurl, gnu-tar)
         run: |
           set -euo pipefail
           brew install gnu-tar
-          pipx install awscurl
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          # Install awscurl into the pinned Python 3.12 (the runner default is 3.14,
+          # where awscurl's URL parser crashes in url_path_to_dict).
+          python3 -m pip install --upgrade awscurl
+          awscurl --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable after install" >&2; exit 1; }
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
