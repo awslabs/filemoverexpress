@@ -4,7 +4,9 @@
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>CFBundleName</key>
-        <string>File Mover Express for AWS</string>
+        <string>File Mover Express</string>
+        <key>CFBundleDisplayName</key>
+        <string>File Mover Express</string>
         <key>CFBundleExecutable</key>
         <string>FileMoverExpressUI</string>
         <key>CFBundleIdentifier</key>
