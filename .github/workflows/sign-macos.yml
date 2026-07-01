@@ -135,6 +135,84 @@ jobs:
           role-to-assume: ${{ secrets.AWS_MACOS_SIGNING_ROLE_ARN }}
           aws-region: ${{ vars.CD_SIGNER_REGION }}
 
+      - name: Pre-sign the bundled daemon (nested executable)
+        run: |
+          set -euo pipefail
+          APP="dist/${APP_NAME}.app"
+          DAEMON="$APP/Contents/MacOS/filemoverexpress"
+          if [ ! -f "$DAEMON" ]; then
+            echo "No bundled daemon at ${DAEMON}; nothing to pre-sign."
+            exit 0
+          fi
+          # CD Signer's app-sign does not deep-sign nested code, so the daemon (a bare Mach-O
+          # carrying an embedded Info.plist) is signed via the executables path first, then
+          # dropped back into the bundle so the subsequent app-sign seals a signed daemon.
+          rm -rf daemon-pkg daemon-signed
+          mkdir -p daemon-pkg/EXECUTABLES_TO_SIGN
+          cp "$DAEMON" daemon-pkg/EXECUTABLES_TO_SIGN/filemoverexpress
+          ( cd daemon-pkg && gtar -czf artifact.gz EXECUTABLES_TO_SIGN && gtar -czf package.tar.gz artifact.gz )
+          IN_KEY="pre-signed/${APP_NAME}-${ARCH}-daemon.tar.gz"
+          OUT_KEY="signed/${APP_NAME}-${ARCH}-daemon-signed.tar.gz"
+          aws s3 cp daemon-pkg/package.tar.gz "s3://${SIGNING_BUCKET}/${IN_KEY}"
+          cat > daemon-manifest.json <<EOF
+          {
+            "manifest": {
+              "type": "app",
+              "os": "osx",
+              "name": "EXECUTABLES_TO_SIGN",
+              "outputs": [{ "label": "macos", "path": "EXECUTABLES_TO_SIGN" }],
+              "app": {
+                "identifier": "${BUNDLE_ID}",
+                "signing_requirements": {
+                  "certificate_type": "developerIDAppDistribution",
+                  "team_id": "${APPLE_TEAM_ID}"
+                }
+              }
+            },
+            "s3ArtifactLocations": {
+              "bucketAccessRole": "${BUCKET_ACCESS_ROLE}",
+              "bucket": "${SIGNING_BUCKET}",
+              "inputKey": "${IN_KEY}",
+              "outputKey": "${OUT_KEY}"
+            }
+          }
+          EOF
+          echo "Submitting daemon executables sign-task:"; cat daemon-manifest.json
+          TASK_ID=""; DELAY=15
+          for attempt in 1 2 3 4 5 6; do
+            RESP=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X POST \
+              --header "Content-Type: application/json" --data @daemon-manifest.json \
+              "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1) || true
+            echo "----- daemon sign-task response (attempt ${attempt}) -----"; echo "$RESP"; echo "-----"
+            TASK_ID=$(printf '%s' "$RESP" | jq -r '.signTaskId // empty' 2>/dev/null || true)
+            [ -n "$TASK_ID" ] && break
+            if printf '%s' "$RESP" | grep -qi "Too Many Requests"; then
+              sleep "$DELAY"; DELAY=$((DELAY * 2)); continue
+            fi
+            echo "ERROR: daemon sign-task not created (non-retryable response above)" >&2; exit 1
+          done
+          [ -n "$TASK_ID" ] || { echo "ERROR: daemon sign-task not created after retries" >&2; exit 1; }
+          for i in $(seq 1 90); do
+            R=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X GET \
+              --header "Content-Type: application/json" "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${TASK_ID}")
+            S=$(printf '%s' "$R" | jq -r '.status // "unknown"'); echo "daemon sign-task ${TASK_ID}: ${S}"
+            case "$S" in
+              success) break ;;
+              failure) echo "ERROR: daemon sign failed" >&2; printf '%s' "$R" | jq -r '.errorMessage // "no message"' >&2; exit 1 ;;
+              *) sleep 10 ;;
+            esac
+          done
+          mkdir -p daemon-signed
+          aws s3 cp "s3://${SIGNING_BUCKET}/${OUT_KEY}" daemon-signed/out
+          ( cd daemon-signed
+            if file out | grep -qi 'zip archive'; then ditto -x -k out .; else tar -xpf out 2>/dev/null || true; fi
+            [ -f artifact.gz ] && tar -xpf artifact.gz 2>/dev/null || true )
+          SIGNED_DAEMON=$(find daemon-signed -maxdepth 5 -name filemoverexpress -type f | head -n1)
+          [ -n "$SIGNED_DAEMON" ] || { echo "ERROR: signed daemon not found in output" >&2; find daemon-signed >&2; exit 1; }
+          # ditto preserves the signature when copying back into the bundle.
+          ditto "$SIGNED_DAEMON" "$DAEMON"
+          echo "=== signed daemon ==="; codesign -dvv "$DAEMON" 2>&1 | head -20 || true
+
       - name: Package .app for CD Signer (gtar double-wrap)
         run: |
           set -euo pipefail
