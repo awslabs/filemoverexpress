@@ -374,6 +374,14 @@ jobs:
           rm -rf "../dist/${APP_NAME}.app"
           # ditto (not cp -R) to keep the signature intact during the copy.
           ditto "$SIGNED_APP" "../dist/${APP_NAME}.app"
+          # actions/upload-artifact + download-artifact strip the Unix execute bit, so the
+          # app's Mach-O executables arrive non-executable and the app "can't be opened".
+          # Restore +x. POSIX mode is not part of the code signature, so this is safe and
+          # does not invalidate signing/notarization.
+          chmod +x "../dist/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+          if [ -f "../dist/${APP_NAME}.app/Contents/MacOS/filemoverexpress" ]; then
+            chmod +x "../dist/${APP_NAME}.app/Contents/MacOS/filemoverexpress"
+          fi
           echo "Recovered signed app -> dist/${APP_NAME}.app"
 
       - name: Verify code signature (fail closed)
