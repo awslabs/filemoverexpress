@@ -310,6 +310,20 @@ jobs:
             echo "ERROR: ${APP} is still ad-hoc signed — CD Signer signature missing" >&2
             exit 1
           fi
+          # The bundled CLI daemon is nested code; it must carry a real (non-adhoc)
+          # Developer ID signature too, or notarization will reject it. Catch it here
+          # (cheap) rather than at notarization (slow).
+          DAEMON="$APP/Contents/MacOS/filemoverexpress"
+          if [ -f "$DAEMON" ]; then
+            echo "=== bundled daemon signature ==="
+            codesign -dvvv "$DAEMON" 2>&1 | head -30 || true
+            if codesign --display --verbose=2 "$DAEMON" 2>&1 | grep -qi "Signature=adhoc"; then
+              echo "ERROR: bundled daemon is ad-hoc signed — CD Signer did not deep-sign nested code; a separate executable pre-sign is needed" >&2
+              exit 1
+            fi
+          else
+            echo "WARN: bundled daemon not found at ${DAEMON}" >&2
+          fi
 
       - name: Build .dmg from signed .app
         id: build-dmg

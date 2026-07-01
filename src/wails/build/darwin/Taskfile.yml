@@ -31,13 +31,30 @@ tasks:
     cmds:
       - task: create:app:bundle
 
+  build:cli:
+    summary: Builds the bundled CLI daemon (filemoverexpress) for macOS
+    platforms:
+      - darwin
+    env:
+      GOOS: darwin
+      GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -C ../cli -trimpath -ldflags "-s -w -X main.Version=v${BUILD_VERSION:-0.0.0-local-dev}" -o ../../dist/filemoverexpress main.go
+
   create:app:bundle:
-    summary: Creates a .app bundle
+    summary: Creates a .app bundle (GUI + bundled CLI daemon)
+    deps:
+      - build:cli
     cmds:
       - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
       - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
       - cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
+      # The GUI spawns Contents/MacOS/filemoverexpress ("filemoverexpress daemon") at
+      # runtime (see daemon_unix.go getBinaryPath), so the CLI daemon must ship inside
+      # the bundle next to the GUI binary or the app can't function.
+      - cp "{{.BIN_DIR}}/filemoverexpress" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS/filemoverexpress"
       - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
       - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.app"
 
