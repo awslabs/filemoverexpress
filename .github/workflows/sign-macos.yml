@@ -193,19 +193,34 @@ jobs:
           echo "Submitting sign-task manifest:"
           cat manifest.json
           echo "POST ${CD_SIGNER_API_BASE_URL}/v2/sign-tasks"
-          set +e
-          HTTP_RESPONSE=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
-            -X POST --header "Content-Type: application/json" \
-            --data @manifest.json \
-            "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1)
-          AWSCURL_RC=$?
-          set -e
-          echo "----- CD Signer response (rc=${AWSCURL_RC}) -----"
-          echo "$HTTP_RESPONSE"
-          echo "------------------------------------------------"
-          SIGN_TASK_ID=$(printf '%s' "$HTTP_RESPONSE" | jq -r '.signTaskId // empty' 2>/dev/null || true)
+          SIGN_TASK_ID=""
+          DELAY=15
+          for attempt in 1 2 3 4 5 6; do
+            set +e
+            HTTP_RESPONSE=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
+              -X POST --header "Content-Type: application/json" \
+              --data @manifest.json \
+              "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1)
+            AWSCURL_RC=$?
+            set -e
+            echo "----- CD Signer response (attempt ${attempt}, rc=${AWSCURL_RC}) -----"
+            echo "$HTTP_RESPONSE"
+            echo "----------------------------------------------------------------"
+            SIGN_TASK_ID=$(printf '%s' "$HTTP_RESPONSE" | jq -r '.signTaskId // empty' 2>/dev/null || true)
+            if [ -n "$SIGN_TASK_ID" ]; then
+              break
+            fi
+            if printf '%s' "$HTTP_RESPONSE" | grep -qi "Too Many Requests"; then
+              echo "Rate limited by CD Signer; retrying in ${DELAY}s..."
+              sleep "$DELAY"
+              DELAY=$((DELAY * 2))
+              continue
+            fi
+            echo "ERROR: sign-task not created (non-retryable response above)" >&2
+            exit 1
+          done
           if [ -z "$SIGN_TASK_ID" ]; then
-            echo "ERROR: no signTaskId in CD Signer response (see body above)" >&2
+            echo "ERROR: sign-task not created after retries (rate limited)" >&2
             exit 1
           fi
           echo "sign-task-id=${SIGN_TASK_ID}" >> "$GITHUB_OUTPUT"
@@ -251,20 +266,24 @@ jobs:
           cd signed
           echo "=== signed-output type ==="
           file signed-output || true
-          # CD Signer's macOS output format isn't documented; auto-detect it. macOS bsdtar
-          # transparently handles gzip and plain tar; fall back to unzip for a zip payload.
-          if tar -xf signed-output -C extracted 2>/dev/null; then
-            echo "Extracted signed-output via tar (auto-detected compression)."
-          elif unzip -q signed-output -d extracted 2>/dev/null; then
-            echo "Extracted signed-output via unzip."
+          # Preserve the code signature: macOS signed .apps are transported as ditto-made
+          # zips; extracting those with tar/libarchive mangles the sealed resources. Use
+          # ditto for zip, tar -xpf for tar/gzip.
+          if file signed-output | grep -qi 'zip archive'; then
+            echo "Extracting zip via ditto (signature-preserving)."
+            ditto -x -k signed-output extracted
+          elif tar -xpf signed-output -C extracted 2>/dev/null; then
+            echo "Extracted via tar (auto-detected compression)."
+          elif ditto -x -k signed-output extracted 2>/dev/null; then
+            echo "Extracted via ditto (fallback)."
           else
-            echo "WARN: signed-output is neither tar nor zip; leaving as-is." >&2
+            echo "WARN: signed-output is neither zip nor tar; leaving as-is." >&2
           fi
           # Unwrap a nested archive if the output mirrors our double-wrapped input.
           for inner in extracted/artifact.gz extracted/artifact; do
             if [ -f "$inner" ]; then
               echo "Unwrapping nested archive: $inner"
-              tar -xf "$inner" -C extracted 2>/dev/null || true
+              tar -xpf "$inner" -C extracted 2>/dev/null || true
             fi
           done
           echo "=== extracted tree (first 200 entries) ==="
@@ -275,15 +294,18 @@ jobs:
             exit 1
           fi
           rm -rf "../dist/${APP_NAME}.app"
-          cp -R "$SIGNED_APP" "../dist/${APP_NAME}.app"
+          # ditto (not cp -R) to keep the signature intact during the copy.
+          ditto "$SIGNED_APP" "../dist/${APP_NAME}.app"
           echo "Recovered signed app -> dist/${APP_NAME}.app"
 
       - name: Verify code signature (fail closed)
         run: |
           set -euo pipefail
           APP="dist/${APP_NAME}.app"
+          echo "=== codesign signature details ==="
+          codesign -dvvv "$APP" 2>&1 | head -40 || true
+          echo "=== verify ==="
           codesign --verify --deep --strict --verbose=2 "$APP"
-          codesign --display --verbose=4 "$APP" 2>&1 | grep -i "Authority=" || true
           if codesign --display --verbose=2 "$APP" 2>&1 | grep -qi "Signature=adhoc"; then
             echo "ERROR: ${APP} is still ad-hoc signed — CD Signer signature missing" >&2
             exit 1
