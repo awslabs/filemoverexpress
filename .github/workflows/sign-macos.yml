@@ -246,24 +246,36 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf signed
-          mkdir -p signed
+          mkdir -p signed/extracted
           aws s3 cp "s3://${SIGNING_BUCKET}/${OUTPUT_KEY}" signed/signed-output
-          # CD Signer returns the signed artifact at outputKey, mirroring the uploaded
-          # package format. Extract and locate the signed .app. (Confirm the exact output
-          # shape on the first real signing run and tighten this if needed.)
-          ( cd signed
-            if gtar -tzf signed-output >/dev/null 2>&1; then
-              gtar -xzf signed-output
-              [ -f artifact.gz ] && gtar -xzf artifact.gz || true
-            fi )
-          SIGNED_APP=$(find signed -maxdepth 4 -name "${APP_NAME}.app" -type d | head -n1)
+          cd signed
+          echo "=== signed-output type ==="
+          file signed-output || true
+          # CD Signer's macOS output format isn't documented; auto-detect it. macOS bsdtar
+          # transparently handles gzip and plain tar; fall back to unzip for a zip payload.
+          if tar -xf signed-output -C extracted 2>/dev/null; then
+            echo "Extracted signed-output via tar (auto-detected compression)."
+          elif unzip -q signed-output -d extracted 2>/dev/null; then
+            echo "Extracted signed-output via unzip."
+          else
+            echo "WARN: signed-output is neither tar nor zip; leaving as-is." >&2
+          fi
+          # Unwrap a nested archive if the output mirrors our double-wrapped input.
+          for inner in extracted/artifact.gz extracted/artifact; do
+            if [ -f "$inner" ]; then
+              echo "Unwrapping nested archive: $inner"
+              tar -xf "$inner" -C extracted 2>/dev/null || true
+            fi
+          done
+          echo "=== extracted tree (first 200 entries) ==="
+          find extracted | head -200
+          SIGNED_APP=$(find extracted -maxdepth 8 -name "${APP_NAME}.app" -type d | head -n1)
           if [ -z "$SIGNED_APP" ]; then
-            echo "ERROR: signed ${APP_NAME}.app not found in CD Signer output" >&2
-            find signed >&2
+            echo "ERROR: signed ${APP_NAME}.app not found in CD Signer output (see tree above)" >&2
             exit 1
           fi
-          rm -rf "dist/${APP_NAME}.app"
-          cp -R "$SIGNED_APP" "dist/${APP_NAME}.app"
+          rm -rf "../dist/${APP_NAME}.app"
+          cp -R "$SIGNED_APP" "../dist/${APP_NAME}.app"
           echo "Recovered signed app -> dist/${APP_NAME}.app"
 
       - name: Verify code signature (fail closed)
