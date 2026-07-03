@@ -31,15 +31,60 @@ tasks:
     cmds:
       - task: create:app:bundle
 
+  build:cli:
+    summary: Builds the bundled CLI daemon (filemoverexpress) for macOS with an embedded Info.plist
+    platforms:
+      - darwin
+    env:
+      GOOS: darwin
+      GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_ENABLED: '1'
+      CGO_CFLAGS: "-mmacosx-version-min=12.0"
+      CGO_LDFLAGS: "-mmacosx-version-min=12.0"
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+    cmds:
+      # Embed an Info.plist (__TEXT,__info_plist) via the external linker. CD Signer's
+      # executables signing path requires the bundled daemon to carry an Info.plist with
+      # CFBundleIdentifier/CFBundleName; a bare Go binary has none.
+      - |
+        PLIST="$(pwd)/build/darwin/daemon-info.plist"
+        go build -C ../cli -trimpath \
+          -ldflags "-s -w -X main.Version=v${BUILD_VERSION:-0.0.0-local-dev} -extldflags=-Wl,-sectcreate,__TEXT,__info_plist,${PLIST}" \
+          -o ../../dist/filemoverexpress main.go
+
   create:app:bundle:
-    summary: Creates a .app bundle
+    summary: Creates a .app bundle (GUI + bundled CLI daemon)
+    deps:
+      - build:cli
     cmds:
       - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
       - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
       - cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
+      # The GUI spawns Contents/MacOS/filemoverexpress ("filemoverexpress daemon") at
+      # runtime (see daemon_unix.go getBinaryPath), so the CLI daemon must ship inside
+      # the bundle next to the GUI binary or the app can't function.
+      - cp "{{.BIN_DIR}}/filemoverexpress" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS/filemoverexpress"
       - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
       - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.app"
+
+  create:dmg:
+    summary: Packages a (signed) .app into a distributable read-only UDZO .dmg
+    # Build the .dmg AFTER the .app has been signed by CD Signer (the signing
+    # workflow invokes this), so the container ships the real Developer ID
+    # signature. UDZO is also the read-only format CD Signer requires if the
+    # .dmg itself is later signed. Uses only macOS built-in hdiutil (no extra deps).
+    platforms:
+      - darwin
+    vars:
+      DMG_NAME: '{{.DMG_NAME | default .APP_NAME}}'
+    cmds:
+      - rm -rf "{{.BIN_DIR}}/dmg-staging" "{{.BIN_DIR}}/{{.DMG_NAME}}.dmg"
+      - mkdir -p "{{.BIN_DIR}}/dmg-staging"
+      - cp -R "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.BIN_DIR}}/dmg-staging/"
+      - ln -s /Applications "{{.BIN_DIR}}/dmg-staging/Applications"
+      - hdiutil create -volname "{{.APP_NAME}}" -srcfolder "{{.BIN_DIR}}/dmg-staging" -ov -format UDZO "{{.BIN_DIR}}/{{.DMG_NAME}}.dmg"
+      - rm -rf "{{.BIN_DIR}}/dmg-staging"
 
   run:
     platforms:

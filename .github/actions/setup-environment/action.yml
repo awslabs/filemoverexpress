@@ -37,6 +37,7 @@ runs:
   steps:
     - name: Install Linux Dependencies
       id: install-linux-dependencies
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update
@@ -72,6 +73,7 @@ runs:
       uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611
       with:
         version: 3.x
+        repo-token: ${{ github.token }}
 
     - name: Configure Go build cache path
       if: inputs.install-go == 'true'

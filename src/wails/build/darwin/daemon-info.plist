@@ -1,0 +1,18 @@
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <!-- Distinct from the Wails app's com.amazon.filemoverexpress so the bundled
+             daemon and the app don't share a bundle identifier. Kept as a dotted child
+             of the app id so CD Signer authorization (if prefix-scoped) still applies. -->
+        <key>CFBundleIdentifier</key>
+        <string>com.amazon.filemoverexpress.daemon</string>
+        <key>CFBundleName</key>
+        <string>filemoverexpress</string>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0.0</string>
+        <key>CFBundleVersion</key>
+        <string>1.0.0</string>
+    </dict>
+</plist>

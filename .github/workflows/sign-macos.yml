@@ -1,0 +1,472 @@
+# Reusable workflow: sign the macOS Wails .app via the CD Signer ad-hoc signing API,
+# then package the signed app into a distributable read-only UDZO .dmg.
+#
+# Notarization + stapling is handled SEPARATELY by notarize-macos.yml (it is slow and
+# flaky and must be independently retryable). This workflow stops at "signed .dmg".
+#
+# Flow (per CD Signer API guide, https://docs.hub.amazon.dev/cd-signer/api-guide/getting-started/):
+#   1. download the unsigned .app artifact
+#   2. assume the macOS signing OIDC role (SigV4 creds for the CD Signer API)
+#   3. gtar double-wrap the .app into package.tar.gz and upload to pre-signed/
+#   4. POST /v2/sign-tasks, poll GET /v2/sign-tasks/{id} until success|failure
+#   5. download the signed .app from signed/
+#   6. build the .dmg from the SIGNED .app (so the container ships the real signature)
+#
+# The FME .app is a single-binary Wails app (no Electron helpers / nested code), so the
+# manifest is the simplest case: one identifier, no embedded_requirements. Frameworks/
+# dylibs (if any) are auto-detected by CD Signer.
+#
+# Required GitHub Secrets (set on the `signing` environment):
+#   AWS_MACOS_SIGNING_ROLE_ARN   - OIDC role assumed by this job (signer-builder-tools:* + iam:PassRole)
+#   CD_SIGNER_BUCKET_ACCESS_ROLE - ARN of CDSignerAccessRole (s3ArtifactLocations.bucketAccessRole)
+#   APPLE_TEAM_ID                - Apple Team ID (94KV3E626L)
+# Required GitHub Variables:
+#   CD_SIGNER_REGION       - us-west-2
+#   CD_SIGNER_API_BASE_URL - https://api.signer.builder-tools.aws.dev
+#   MACOS_SIGNING_BUCKET   - the CDSignerStack signing bucket name (cdsigner-<acct>-<region>)
+#   MACOS_BUNDLE_ID        - com.amazon.filemoverexpress (must match the app's CFBundleIdentifier)
+
+name: Sign macOS Distribution
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Name of the GitHub Actions artifact containing the unsigned .app bundle'
+        required: true
+        type: string
+      app-name:
+        description: 'Base name of the .app bundle without extension (e.g. FileMoverExpressUI)'
+        required: true
+        type: string
+      arch:
+        description: 'Target architecture label used in output filenames (x64 | arm64)'
+        required: true
+        type: string
+    secrets:
+      # Declared explicitly (instead of `secrets: inherit` in the caller) so this
+      # workflow only ever receives the secrets it actually uses.
+      AWS_MACOS_SIGNING_ROLE_ARN:
+        description: 'OIDC role assumed for the CD Signer API (signer-builder-tools:* + iam:PassRole)'
+        required: true
+      CD_SIGNER_BUCKET_ACCESS_ROLE:
+        description: 'ARN of CDSignerAccessRole (s3ArtifactLocations.bucketAccessRole)'
+        required: true
+      APPLE_TEAM_ID:
+        description: 'Apple Team ID'
+        required: true
+    outputs:
+      signed-artifact-name:
+        description: 'Name of the artifact containing the signed .dmg (signed .app inside)'
+        value: ${{ jobs.sign.outputs.signed-artifact-name }}
+      dmg-filename:
+        description: 'Filename of the produced signed .dmg'
+        value: ${{ jobs.sign.outputs.dmg-filename }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  sign:
+    name: Sign macOS app via CD Signer
+    # Pinned to an explicit macOS version (not macos-latest) for the same reason as the
+    # notarize job: avoid silent runner drift when GitHub re-points the "latest" alias.
+    # Signing/notarization tools are arch-independent (we operate on a downloaded
+    # artifact), so a single arm64 macos-15 runner serves both the x64 and arm64 legs.
+    runs-on: macos-15
+    # Timing budget (worst case): each CD Signer operation is a create-task retry loop
+    # (backoff capped at MAX_DELAY=120s, 6 attempts => ~10 min of sleeping max) plus a
+    # poll loop (90 x 10s => up to 15 min). Two operations run here (daemon pre-sign +
+    # app sign) => ~50 min worst case for this single arch leg. release.yml runs the two
+    # arch legs serially (max-parallel: 1). timeout-minutes fails the leg fast instead of
+    # burning through the 6-hour GitHub Actions default if CD Signer is stuck.
+    timeout-minutes: 45
+    environment: signing
+    outputs:
+      signed-artifact-name: signed-${{ inputs.artifact-name }}
+      dmg-filename: ${{ steps.build-dmg.outputs.dmg-filename }}
+    env:
+      # Caller-supplied values are referenced ONLY through env vars (never expanded
+      # inline in shell) to prevent script injection (Req 8.3).
+      ARTIFACT_NAME: ${{ inputs.artifact-name }}
+      APP_NAME: ${{ inputs.app-name }}
+      ARCH: ${{ inputs.arch }}
+      # CD Signer config via vars/secrets — no plaintext literals (Req 8.2).
+      AWS_REGION: ${{ vars.CD_SIGNER_REGION }}
+      CD_SIGNER_API_BASE_URL: ${{ vars.CD_SIGNER_API_BASE_URL }}
+      SIGNING_BUCKET: ${{ vars.MACOS_SIGNING_BUCKET }}
+      BUNDLE_ID: ${{ vars.MACOS_BUNDLE_ID }}
+      BUCKET_ACCESS_ROLE: ${{ secrets.CD_SIGNER_BUCKET_ACCESS_ROLE }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Validate signing configuration
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "${AWS_REGION}" ]            || missing+=("CD_SIGNER_REGION (repo variable)")
+          [ -n "${CD_SIGNER_API_BASE_URL}" ] || missing+=("CD_SIGNER_API_BASE_URL (repo variable)")
+          [ -n "${SIGNING_BUCKET}" ]         || missing+=("MACOS_SIGNING_BUCKET (repo variable)")
+          [ -n "${BUNDLE_ID}" ]              || missing+=("MACOS_BUNDLE_ID (repo variable)")
+          [ -n "${BUCKET_ACCESS_ROLE}" ]     || missing+=("CD_SIGNER_BUCKET_ACCESS_ROLE (signing env secret)")
+          [ -n "${APPLE_TEAM_ID}" ]          || missing+=("APPLE_TEAM_ID (signing env secret)")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "ERROR: missing required signing configuration:" >&2
+            printf '  - %s\n' "${missing[@]}" >&2
+            echo "Set these under Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+          echo "Signing configuration present."
+
+      - name: Normalize signing config (strip stray whitespace/newlines)
+        run: |
+          set -euo pipefail
+          # GitHub's variable "Value" textarea can capture an invisible trailing
+          # newline; an embedded newline breaks awscurl's URL parser. These values
+          # never legitimately contain whitespace, so strip it all.
+          strip() { printf '%s' "$1" | tr -d '[:space:]'; }
+          {
+            echo "AWS_REGION=$(strip "$AWS_REGION")"
+            echo "CD_SIGNER_API_BASE_URL=$(strip "$CD_SIGNER_API_BASE_URL")"
+            echo "SIGNING_BUCKET=$(strip "$SIGNING_BUCKET")"
+            echo "BUNDLE_ID=$(strip "$BUNDLE_ID")"
+          } >> "$GITHUB_ENV"
+
+      - name: Download unsigned .app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./dist
+
+      - name: Set up Python for awscurl
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install signing dependencies (awscurl, gnu-tar)
+        run: |
+          set -euo pipefail
+          brew install gnu-tar
+          # Install awscurl into the pinned Python 3.12 (the runner default is 3.14,
+          # where awscurl's URL parser crashes in url_path_to_dict).
+          python3 -m pip install --upgrade awscurl
+          awscurl --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable after install" >&2; exit 1; }
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_MACOS_SIGNING_ROLE_ARN }}
+          aws-region: ${{ vars.CD_SIGNER_REGION }}
+
+      - name: Pre-sign the bundled daemon (nested executable)
+        run: |
+          set -euo pipefail
+          APP="dist/${APP_NAME}.app"
+          DAEMON="$APP/Contents/MacOS/filemoverexpress"
+          if [ ! -f "$DAEMON" ]; then
+            echo "No bundled daemon at ${DAEMON}; nothing to pre-sign."
+            exit 0
+          fi
+          # CD Signer's app-sign does not deep-sign nested code, so the daemon (a bare Mach-O
+          # carrying an embedded Info.plist) is signed via the executables path first, then
+          # dropped back into the bundle so the subsequent app-sign seals a signed daemon.
+          rm -rf daemon-pkg daemon-signed
+          mkdir -p daemon-pkg/EXECUTABLES_TO_SIGN
+          cp "$DAEMON" daemon-pkg/EXECUTABLES_TO_SIGN/filemoverexpress
+          ( cd daemon-pkg && gtar -czf artifact.gz EXECUTABLES_TO_SIGN && gtar -czf package.tar.gz artifact.gz )
+          IN_KEY="pre-signed/${APP_NAME}-${ARCH}-daemon.tar.gz"
+          OUT_KEY="signed/${APP_NAME}-${ARCH}-daemon-signed.tar.gz"
+          aws s3 cp daemon-pkg/package.tar.gz "s3://${SIGNING_BUCKET}/${IN_KEY}"
+          cat > daemon-manifest.json <<EOF
+          {
+            "manifest": {
+              "type": "app",
+              "os": "osx",
+              "name": "EXECUTABLES_TO_SIGN",
+              "outputs": [{ "label": "macos", "path": "EXECUTABLES_TO_SIGN" }],
+              "app": {
+                "identifier": "${BUNDLE_ID}.daemon",
+                "signing_requirements": {
+                  "certificate_type": "developerIDAppDistribution",
+                  "team_id": "${APPLE_TEAM_ID}"
+                }
+              }
+            },
+            "s3ArtifactLocations": {
+              "bucketAccessRole": "${BUCKET_ACCESS_ROLE}",
+              "bucket": "${SIGNING_BUCKET}",
+              "inputKey": "${IN_KEY}",
+              "outputKey": "${OUT_KEY}"
+            }
+          }
+          EOF
+          echo "Submitting daemon executables sign-task:"; cat daemon-manifest.json
+          TASK_ID=""; DELAY=15; MAX_DELAY=120
+          for attempt in 1 2 3 4 5 6; do
+            RESP=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X POST \
+              --header "Content-Type: application/json" --data @daemon-manifest.json \
+              "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1) || true
+            echo "----- daemon sign-task response (attempt ${attempt}) -----"; echo "$RESP"; echo "-----"
+            TASK_ID=$(printf '%s' "$RESP" | jq -r '.signTaskId // empty' 2>/dev/null || true)
+            [ -n "$TASK_ID" ] && break
+            if printf '%s' "$RESP" | grep -qi "Too Many Requests"; then
+              sleep "$DELAY"; DELAY=$(( DELAY * 2 > MAX_DELAY ? MAX_DELAY : DELAY * 2 )); continue
+            fi
+            echo "ERROR: daemon sign-task not created (non-retryable response above)" >&2; exit 1
+          done
+          [ -n "$TASK_ID" ] || { echo "ERROR: daemon sign-task not created after retries" >&2; exit 1; }
+          for i in $(seq 1 90); do
+            R=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X GET \
+              --header "Content-Type: application/json" "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${TASK_ID}")
+            S=$(printf '%s' "$R" | jq -r '.status // "unknown"'); echo "daemon sign-task ${TASK_ID}: ${S}"
+            case "$S" in
+              success) break ;;
+              failure) echo "ERROR: daemon sign failed" >&2; printf '%s' "$R" | jq -r '.errorMessage // "no message"' >&2; exit 1 ;;
+              *) sleep 10 ;;
+            esac
+          done
+          mkdir -p daemon-signed
+          aws s3 cp "s3://${SIGNING_BUCKET}/${OUT_KEY}" daemon-signed/out
+          ( cd daemon-signed
+            if file out | grep -qi 'zip archive'; then ditto -x -k out .; else tar -xpf out 2>/dev/null || true; fi
+            [ -f artifact.gz ] && tar -xpf artifact.gz 2>/dev/null || true )
+          SIGNED_DAEMON=$(find daemon-signed -maxdepth 5 -name filemoverexpress -type f | head -n1)
+          [ -n "$SIGNED_DAEMON" ] || { echo "ERROR: signed daemon not found in output" >&2; find daemon-signed >&2; exit 1; }
+          # ditto preserves the signature when copying back into the bundle.
+          ditto "$SIGNED_DAEMON" "$DAEMON"
+          echo "=== signed daemon ==="; codesign -dvv "$DAEMON" 2>&1 | head -20 || true
+
+      - name: Package .app for CD Signer (gtar double-wrap)
+        run: |
+          set -euo pipefail
+          APP_BUNDLE="${APP_NAME}.app"
+          if [ ! -d "dist/${APP_BUNDLE}" ]; then
+            echo "ERROR: dist/${APP_BUNDLE} not found in downloaded artifact" >&2
+            ls -la dist >&2
+            exit 1
+          fi
+          rm -rf cdsigner-pkg
+          mkdir -p cdsigner-pkg/artifact
+          cp -R "dist/${APP_BUNDLE}" "cdsigner-pkg/artifact/"
+          # CD Signer only accepts archives produced by gnu-tar (gtar) and expects the
+          # double-wrap: artifact.gz (contents of ./<App>.app) inside package.tar.gz.
+          ( cd cdsigner-pkg && gtar -czf artifact.gz -C artifact . && gtar -czf package.tar.gz artifact.gz )
+          echo "Packaged dist/${APP_BUNDLE} -> cdsigner-pkg/package.tar.gz"
+
+      - name: Upload unsigned package to pre-signed/
+        run: |
+          set -euo pipefail
+          INPUT_KEY="pre-signed/${APP_NAME}-${ARCH}.tar.gz"
+          OUTPUT_KEY="signed/${APP_NAME}-${ARCH}-signed.tar.gz"
+          aws s3 cp cdsigner-pkg/package.tar.gz "s3://${SIGNING_BUCKET}/${INPUT_KEY}"
+          echo "INPUT_KEY=${INPUT_KEY}" >> "$GITHUB_ENV"
+          echo "OUTPUT_KEY=${OUTPUT_KEY}" >> "$GITHUB_ENV"
+          echo "Uploaded package to s3://${SIGNING_BUCKET}/${INPUT_KEY}"
+
+      - name: Create CD Signer sign-task
+        id: create-task
+        run: |
+          set -euo pipefail
+          APP_BUNDLE="${APP_NAME}.app"
+          cat > manifest.json <<EOF
+          {
+            "manifest": {
+              "type": "app",
+              "os": "osx",
+              "name": "${APP_BUNDLE}",
+              "outputs": [{ "label": "macos", "path": "${APP_BUNDLE}" }],
+              "app": {
+                "identifier": "${BUNDLE_ID}",
+                "signing_requirements": {
+                  "certificate_type": "developerIDAppDistribution",
+                  "team_id": "${APPLE_TEAM_ID}"
+                }
+              }
+            },
+            "s3ArtifactLocations": {
+              "bucketAccessRole": "${BUCKET_ACCESS_ROLE}",
+              "bucket": "${SIGNING_BUCKET}",
+              "inputKey": "${INPUT_KEY}",
+              "outputKey": "${OUTPUT_KEY}"
+            }
+          }
+          EOF
+          echo "Submitting sign-task manifest:"
+          cat manifest.json
+          echo "POST ${CD_SIGNER_API_BASE_URL}/v2/sign-tasks"
+          SIGN_TASK_ID=""
+          DELAY=15
+          MAX_DELAY=120
+          for attempt in 1 2 3 4 5 6; do
+            set +e
+            HTTP_RESPONSE=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
+              -X POST --header "Content-Type: application/json" \
+              --data @manifest.json \
+              "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1)
+            AWSCURL_RC=$?
+            set -e
+            echo "----- CD Signer response (attempt ${attempt}, rc=${AWSCURL_RC}) -----"
+            echo "$HTTP_RESPONSE"
+            echo "----------------------------------------------------------------"
+            SIGN_TASK_ID=$(printf '%s' "$HTTP_RESPONSE" | jq -r '.signTaskId // empty' 2>/dev/null || true)
+            if [ -n "$SIGN_TASK_ID" ]; then
+              break
+            fi
+            if printf '%s' "$HTTP_RESPONSE" | grep -qi "Too Many Requests"; then
+              echo "Rate limited by CD Signer; retrying in ${DELAY}s..."
+              sleep "$DELAY"
+              # Cap the backoff so a final attempt doesn't sleep 8 min (480s) on a retry
+              # that's unlikely to succeed if the previous ones didn't.
+              DELAY=$(( DELAY * 2 > MAX_DELAY ? MAX_DELAY : DELAY * 2 ))
+              continue
+            fi
+            echo "ERROR: sign-task not created (non-retryable response above)" >&2
+            exit 1
+          done
+          if [ -z "$SIGN_TASK_ID" ]; then
+            echo "ERROR: sign-task not created after retries (rate limited)" >&2
+            exit 1
+          fi
+          echo "sign-task-id=${SIGN_TASK_ID}" >> "$GITHUB_OUTPUT"
+          echo "Created sign-task ${SIGN_TASK_ID}"
+
+      - name: Poll sign-task until terminal
+        env:
+          SIGN_TASK_ID: ${{ steps.create-task.outputs.sign-task-id }}
+        run: |
+          set -euo pipefail
+          MAX_ATTEMPTS=90
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            RESP=$(awscurl --service signer-builder-tools --region "$AWS_REGION" \
+              -X GET --header "Content-Type: application/json" \
+              "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${SIGN_TASK_ID}")
+            STATUS=$(echo "$RESP" | jq -r '.status // "unknown"')
+            echo "Attempt ${i}/${MAX_ATTEMPTS}: status=${STATUS}"
+            case "$STATUS" in
+              success)
+                echo "Sign-task ${SIGN_TASK_ID} succeeded"
+                exit 0 ;;
+              failure)
+                echo "ERROR: sign-task ${SIGN_TASK_ID} failed" >&2
+                echo "$RESP" | jq -r '.errorMessage // "no error message provided"' >&2
+                exit 1 ;;
+              created|processing|inProgress)
+                sleep 10 ;;
+              *)
+                echo "Unexpected status '${STATUS}', continuing to poll" >&2
+                echo "$RESP" >&2
+                sleep 10 ;;
+            esac
+          done
+          echo "ERROR: timed out waiting for sign-task ${SIGN_TASK_ID}" >&2
+          exit 1
+
+      - name: Download signed .app
+        run: |
+          set -euo pipefail
+          rm -rf signed
+          mkdir -p signed/extracted
+          aws s3 cp "s3://${SIGNING_BUCKET}/${OUTPUT_KEY}" signed/signed-output
+          cd signed
+          echo "=== signed-output type ==="
+          file signed-output || true
+          # Preserve the code signature: macOS signed .apps are transported as ditto-made
+          # zips; extracting those with tar/libarchive mangles the sealed resources. Use
+          # ditto for zip, tar -xpf for tar/gzip.
+          if file signed-output | grep -qi 'zip archive'; then
+            echo "Extracting zip via ditto (signature-preserving)."
+            ditto -x -k signed-output extracted
+          elif tar -xpf signed-output -C extracted 2>/dev/null; then
+            echo "Extracted via tar (auto-detected compression)."
+          elif ditto -x -k signed-output extracted 2>/dev/null; then
+            echo "Extracted via ditto (fallback)."
+          else
+            echo "WARN: signed-output is neither zip nor tar; leaving as-is." >&2
+          fi
+          # Unwrap a nested archive if the output mirrors our double-wrapped input.
+          for inner in extracted/artifact.gz extracted/artifact; do
+            if [ -f "$inner" ]; then
+              echo "Unwrapping nested archive: $inner"
+              tar -xpf "$inner" -C extracted 2>/dev/null || true
+            fi
+          done
+          echo "=== extracted tree (first 200 entries) ==="
+          find extracted | head -200
+          # Prefer the explicit expected location. Our package wraps the app at the archive
+          # root (gtar -C artifact . => ./<App>.app), and the nested-unwrap above lands it at
+          # extracted/<App>.app, so that is where CD Signer's signed output should appear.
+          EXPECTED_APP="extracted/${APP_NAME}.app"
+          if [ -d "$EXPECTED_APP" ]; then
+            SIGNED_APP="$EXPECTED_APP"
+          else
+            # Narrow fallback (maxdepth 2, not 8) in case CD Signer nests the output one level
+            # deeper; take the shallowest match deterministically rather than the first the
+            # filesystem happens to return, so we never grab an unexpected deep look-alike.
+            echo "WARN: ${EXPECTED_APP} not found; searching shallowly for ${APP_NAME}.app" >&2
+            SIGNED_APP=$(find extracted -maxdepth 2 -name "${APP_NAME}.app" -type d | sort | head -n1)
+          fi
+          if [ -z "$SIGNED_APP" ] || [ ! -d "$SIGNED_APP" ]; then
+            echo "ERROR: signed ${APP_NAME}.app not found at ${EXPECTED_APP} or one level below (see tree above)" >&2
+            exit 1
+          fi
+          echo "Using signed app at: ${SIGNED_APP}"
+          rm -rf "../dist/${APP_NAME}.app"
+          # ditto (not cp -R) to keep the signature intact during the copy.
+          ditto "$SIGNED_APP" "../dist/${APP_NAME}.app"
+          # actions/upload-artifact + download-artifact strip the Unix execute bit, so the
+          # app's Mach-O executables arrive non-executable and the app "can't be opened".
+          # Restore +x. POSIX mode is not part of the code signature, so this is safe and
+          # does not invalidate signing/notarization.
+          chmod +x "../dist/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+          if [ -f "../dist/${APP_NAME}.app/Contents/MacOS/filemoverexpress" ]; then
+            chmod +x "../dist/${APP_NAME}.app/Contents/MacOS/filemoverexpress"
+          fi
+          echo "Recovered signed app -> dist/${APP_NAME}.app"
+
+      - name: Verify code signature (fail closed)
+        run: |
+          set -euo pipefail
+          APP="dist/${APP_NAME}.app"
+          echo "=== codesign signature details ==="
+          codesign -dvvv "$APP" 2>&1 | head -40 || true
+          echo "=== verify ==="
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          if codesign --display --verbose=2 "$APP" 2>&1 | grep -qi "Signature=adhoc"; then
+            echo "ERROR: ${APP} is still ad-hoc signed — CD Signer signature missing" >&2
+            exit 1
+          fi
+          # The bundled CLI daemon is nested code; it must carry a real (non-adhoc)
+          # Developer ID signature too, or notarization will reject it. Catch it here
+          # (cheap) rather than at notarization (slow).
+          DAEMON="$APP/Contents/MacOS/filemoverexpress"
+          if [ -f "$DAEMON" ]; then
+            echo "=== bundled daemon signature ==="
+            codesign -dvvv "$DAEMON" 2>&1 | head -30 || true
+            if codesign --display --verbose=2 "$DAEMON" 2>&1 | grep -qi "Signature=adhoc"; then
+              echo "ERROR: bundled daemon is ad-hoc signed — CD Signer did not deep-sign nested code; a separate executable pre-sign is needed" >&2
+              exit 1
+            fi
+          else
+            echo "WARN: bundled daemon not found at ${DAEMON}" >&2
+          fi
+
+      - name: Build .dmg from signed .app
+        id: build-dmg
+        run: |
+          set -euo pipefail
+          DMG_NAME="${APP_NAME}-${ARCH}"
+          rm -rf dist/dmg-staging "dist/${DMG_NAME}.dmg"
+          mkdir -p dist/dmg-staging
+          cp -R "dist/${APP_NAME}.app" dist/dmg-staging/
+          ln -s /Applications dist/dmg-staging/Applications
+          hdiutil create -volname "${APP_NAME}" -srcfolder dist/dmg-staging -ov -format UDZO "dist/${DMG_NAME}.dmg"
+          rm -rf dist/dmg-staging
+          echo "dmg-filename=${DMG_NAME}.dmg" >> "$GITHUB_OUTPUT"
+          echo "Built dist/${DMG_NAME}.dmg"
+
+      - name: Upload signed artifact (.dmg containing the signed .app)
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ inputs.artifact-name }}
+          path: dist/${{ steps.build-dmg.outputs.dmg-filename }}
+          retention-days: 30

@@ -14,15 +14,24 @@ permissions:
   contents: read
 
 jobs:
-  build-protobuf:
+  generate-protobuf:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/build-protobuf
+        with:
+          working-directory: src/protobuf
+      - uses: ./.github/actions/generate-protobuf
+
+  generate-bindings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/generate-bindings
 
   generate-installer:
-    needs: [build-protobuf]
+    needs: [generate-protobuf, generate-bindings]
     strategy:
       fail-fast: false
       matrix:
@@ -50,8 +59,64 @@ jobs:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
       - uses: ./.github/actions/download-protobuf
+      - uses: ./.github/actions/download-bindings
       - uses: ./.github/actions/generate-installer
         with:
           platform: ${{ matrix.platform }}
           architecture: ${{ matrix.architecture }}
           build-version: ${{ inputs.version || github.ref_name }}
+
+  # ---------------------------------------------------------------------------
+  # macOS code signing (CD Signer) + notarization (Apple notary)
+  #
+  # Gated behind the `MACOS_SIGNING_ENABLED` repository variable so releases keep
+  # working before CD Signer onboarding + the `signing` environment secrets/vars
+  # are in place. Set the variable to 'true' (and configure the secrets/vars
+  # documented in sign-macos.yml / notarize-macos.yml) to activate the chain:
+  #   build (.app) -> sign-macos (CD Signer -> signed .dmg) -> notarize-macos.
+  # ---------------------------------------------------------------------------
+  sign-macos:
+    needs: [generate-installer]
+    # Run whenever the workflow isn't cancelled (not only on full matrix success):
+    # generate-installer is a matrix, so one failing platform leg would otherwise skip
+    # this. The per-arch "download unsigned .app" step is the real guard — an arch whose
+    # build didn't produce an installer fails there, while built arches still sign.
+    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        architecture: [x64, arm64]
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/sign-macos.yml
+    with:
+      artifact-name: installer-mac-${{ matrix.architecture }}
+      app-name: FileMoverExpressUI
+      arch: ${{ matrix.architecture }}
+    # Pass only the secrets sign-macos.yml declares (not `secrets: inherit`, which would
+    # forward every repo/env secret to the reusable workflow).
+    secrets:
+      AWS_MACOS_SIGNING_ROLE_ARN: ${{ secrets.AWS_MACOS_SIGNING_ROLE_ARN }}
+      CD_SIGNER_BUCKET_ACCESS_ROLE: ${{ secrets.CD_SIGNER_BUCKET_ACCESS_ROLE }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+  notarize-macos:
+    needs: [sign-macos]
+    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x64, arm64]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/notarize-macos.yml
+    with:
+      signed-artifact-name: signed-installer-mac-${{ matrix.architecture }}
+      dmg-filename: FileMoverExpressUI-${{ matrix.architecture }}.dmg
+    # Pass only the secrets notarize-macos.yml declares (not `secrets: inherit`).
+    secrets:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
