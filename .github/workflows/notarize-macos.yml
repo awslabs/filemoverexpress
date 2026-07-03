@@ -49,7 +49,10 @@ permissions:
 jobs:
   notarize:
     name: Notarize and staple
-    runs-on: macos-latest
+    # Pinned to an explicit macOS version rather than macos-latest: Apple changes
+    # notarization/stapler behavior across OS versions, and we don't want the runner
+    # silently drifting when GitHub re-points the "latest" alias.
+    runs-on: macos-15
     environment: signing
     outputs:
       notarized-artifact-name: notarized-${{ inputs.signed-artifact-name }}

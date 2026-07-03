@@ -70,7 +70,11 @@ permissions:
 jobs:
   sign:
     name: Sign macOS app via CD Signer
-    runs-on: macos-latest
+    # Pinned to an explicit macOS version (not macos-latest) for the same reason as the
+    # notarize job: avoid silent runner drift when GitHub re-points the "latest" alias.
+    # Signing/notarization tools are arch-independent (we operate on a downloaded
+    # artifact), so a single arm64 macos-15 runner serves both the x64 and arm64 legs.
+    runs-on: macos-15
     # Timing budget (worst case): each CD Signer operation is a create-task retry loop
     # (backoff capped at MAX_DELAY=120s, 6 attempts => ~10 min of sleeping max) plus a
     # poll loop (90 x 10s => up to 15 min). Two operations run here (daemon pre-sign +
@@ -181,7 +185,7 @@ jobs:
               "name": "EXECUTABLES_TO_SIGN",
               "outputs": [{ "label": "macos", "path": "EXECUTABLES_TO_SIGN" }],
               "app": {
-                "identifier": "${BUNDLE_ID}",
+                "identifier": "${BUNDLE_ID}.daemon",
                 "signing_requirements": {
                   "certificate_type": "developerIDAppDistribution",
                   "team_id": "${APPLE_TEAM_ID}"
