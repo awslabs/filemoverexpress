@@ -26,6 +26,18 @@ on:
         description: 'Filename of the signed .dmg (e.g. FileMoverExpressUI-arm64.dmg)'
         required: true
         type: string
+    secrets:
+      # Declared explicitly (instead of `secrets: inherit` in the caller) so this
+      # workflow only ever receives the secrets it actually uses.
+      APPLE_ID:
+        description: 'Apple ID used with notarytool (team/role account)'
+        required: true
+      APPLE_APP_SPECIFIC_PASSWORD:
+        description: 'App-specific password for the Apple ID'
+        required: true
+      APPLE_TEAM_ID:
+        description: 'Apple Team ID'
+        required: true
     outputs:
       notarized-artifact-name:
         description: 'Name of the artifact containing the notarized + stapled .dmg'

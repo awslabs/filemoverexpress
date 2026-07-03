@@ -95,7 +95,12 @@ jobs:
       artifact-name: installer-mac-${{ matrix.architecture }}
       app-name: FileMoverExpressUI
       arch: ${{ matrix.architecture }}
-    secrets: inherit
+    # Pass only the secrets sign-macos.yml declares (not `secrets: inherit`, which would
+    # forward every repo/env secret to the reusable workflow).
+    secrets:
+      AWS_MACOS_SIGNING_ROLE_ARN: ${{ secrets.AWS_MACOS_SIGNING_ROLE_ARN }}
+      CD_SIGNER_BUCKET_ACCESS_ROLE: ${{ secrets.CD_SIGNER_BUCKET_ACCESS_ROLE }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
   notarize-macos:
     needs: [sign-macos]
@@ -110,4 +115,8 @@ jobs:
     with:
       signed-artifact-name: signed-installer-mac-${{ matrix.architecture }}
       dmg-filename: FileMoverExpressUI-${{ matrix.architecture }}.dmg
-    secrets: inherit
+    # Pass only the secrets notarize-macos.yml declares (not `secrets: inherit`).
+    secrets:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
