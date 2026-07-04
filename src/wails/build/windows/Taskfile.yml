@@ -81,6 +81,9 @@ tasks:
         # `File "tmp\MicrosoftEdgeWebview2Setup.exe"` (relative to makensis cwd) resolves.
         # (`-dir .` drops it in the cwd, where the NSIS macro can't find it.)
         mkdir -p tmp
+        # project.nsi's OutFile writes to ../../bin (src/wails/build/bin), which is
+        # gitignored and absent in a fresh checkout — create it so NSIS can write there.
+        mkdir -p ../../bin
         wails3 generate webview2bootstrapper -dir tmp
         # Copy the three binaries next to project.nsi and reference them by BARE FILENAME.
         # NSIS `File` resolves relative to its cwd (this dir) and wants backslash paths;
