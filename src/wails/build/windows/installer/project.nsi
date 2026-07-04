@@ -88,6 +88,17 @@ Section
 
     !insertmacro wails.files
 
+    ; Bundle the Windows daemon launcher + CLI daemon alongside the GUI. The GUI spawns
+    ; filemoverexpress-launcher.exe (see daemon_windows.go), which in turn runs
+    ; "filemoverexpress.exe daemon", so both MUST be installed next to ${PRODUCT_EXECUTABLE}
+    ; or the app cannot start its daemon. Paths are supplied via makensis -D defines.
+    !ifdef ARG_FME_LAUNCHER_BINARY
+        File "/oname=filemoverexpress-launcher.exe" "${ARG_FME_LAUNCHER_BINARY}"
+    !endif
+    !ifdef ARG_FME_CLI_BINARY
+        File "/oname=filemoverexpress.exe" "${ARG_FME_CLI_BINARY}"
+    !endif
+
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 

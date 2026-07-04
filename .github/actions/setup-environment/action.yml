@@ -110,3 +110,16 @@ runs:
       if: inputs.install-go == 'true'
       run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ inputs.wails-version }}
       shell: bash
+
+    # NSIS (makensis) is required to package the Windows installer .exe. Only the
+    # Windows runners need it; installed via the preinstalled Chocolatey.
+    - name: Install NSIS (makensis) on Windows
+      if: runner.os == 'Windows'
+      # choco adds NSIS to the machine PATH via the registry, which does NOT propagate to
+      # the already-running job's environment. Append the install dir to GITHUB_PATH so
+      # subsequent steps (the `task wails:package` build) can find makensis. NSIS is an x86
+      # app and installs under "Program Files (x86)" on both x64 and arm64 runners.
+      run: |
+        choco install nsis --no-progress -y
+        "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      shell: pwsh
