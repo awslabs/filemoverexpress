@@ -65,8 +65,11 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        # Resolve the repo-root dist/ dir (installer is 5 levels below the repo root).
-        DIST="$(cd ../../../../.. && pwd)/dist"
+        # dist/ relative to this dir (installer is 5 levels below the repo root). Use a
+        # forward-slash RELATIVE path for shell ops (cp/mv/rm) — the shell handles those
+        # fine on Windows, whereas an absolute path from `pwd` comes back as a native
+        # Windows path with mixed separators that NSIS `File` can't resolve.
+        DIST_REL="../../../../../dist"
         GOARCH_TARGET="{{.ARCH | default ARCH}}"
         # project.nsi picks the binary define + the ${ARCH} filename token by GOARCH.
         if [ "$GOARCH_TARGET" = "arm64" ]; then
@@ -79,6 +82,13 @@ tasks:
         # (`-dir .` drops it in the cwd, where the NSIS macro can't find it.)
         mkdir -p tmp
         wails3 generate webview2bootstrapper -dir tmp
+        # Copy the three binaries next to project.nsi and reference them by BARE FILENAME.
+        # NSIS `File` resolves relative to its cwd (this dir) and wants backslash paths;
+        # passing an absolute mixed-separator path (D:\a\...\repo/dist/x.exe) fails with
+        # "no files found". Bare filenames in the cwd sidestep the separator problem.
+        cp "${DIST_REL}/{{.APP_NAME}}.exe" .
+        cp "${DIST_REL}/filemoverexpress-launcher.exe" .
+        cp "${DIST_REL}/filemoverexpress.exe" .
         # wails_tools.nsh is a Wails Go-template whose INFO_* defaults are unrendered
         # placeholders ("{{.Info.ProductVersion}}" etc.) in this build flow, which makes
         # VIFileVersion invalid. Pass concrete values (from build/config.yml + info.json)
@@ -91,17 +101,18 @@ tasks:
           "-DINFO_PRODUCTNAME=File Mover Express for AWS" \
           "-DINFO_PRODUCTVERSION=1.0.0" \
           "-DINFO_COPYRIGHT=Amazon Web Services, 2026" \
-          "-D${BIN_DEFINE}=${DIST}/{{.APP_NAME}}.exe" \
-          "-DARG_FME_LAUNCHER_BINARY=${DIST}/filemoverexpress-launcher.exe" \
-          "-DARG_FME_CLI_BINARY=${DIST}/filemoverexpress.exe" \
+          "-D${BIN_DEFINE}={{.APP_NAME}}.exe" \
+          "-DARG_FME_LAUNCHER_BINARY=filemoverexpress-launcher.exe" \
+          "-DARG_FME_CLI_BINARY=filemoverexpress.exe" \
           project.nsi
-        # project.nsi writes the installer to ../../bin (src/wails/build/bin) relative to
-        # cwd. Move it into dist/ (generate-installer globs dist/*.exe) and drop the
-        # intermediate binaries so the published artifact contains ONLY the installer.
-        INSTALLER="../../bin/{{.APP_NAME}}-${GOARCH_TARGET}-installer.exe"
-        mv "${INSTALLER}" "${DIST}/"
-        rm -f "${DIST}/{{.APP_NAME}}.exe" "${DIST}/filemoverexpress-launcher.exe" "${DIST}/filemoverexpress.exe"
-        echo "Installer -> ${DIST}/{{.APP_NAME}}-${GOARCH_TARGET}-installer.exe"
+        # Remove the local copies; project.nsi writes the installer to ../../bin
+        # (src/wails/build/bin) relative to cwd. Move it into dist/ (generate-installer
+        # globs dist/*.exe) and drop the intermediate binaries so the published artifact
+        # contains ONLY the installer.
+        rm -f "{{.APP_NAME}}.exe" filemoverexpress-launcher.exe filemoverexpress.exe
+        mv "../../bin/{{.APP_NAME}}-${GOARCH_TARGET}-installer.exe" "${DIST_REL}/"
+        rm -f "${DIST_REL}/{{.APP_NAME}}.exe" "${DIST_REL}/filemoverexpress-launcher.exe" "${DIST_REL}/filemoverexpress.exe"
+        echo "Installer -> dist/{{.APP_NAME}}-${GOARCH_TARGET}-installer.exe"
 
   run:
     cmds:
