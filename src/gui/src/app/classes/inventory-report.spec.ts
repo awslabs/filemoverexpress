@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { InventoryReportRequest, InventoryReportStatus } from './inventory-report';
 
 describe('InventoryReportStatus', () => {

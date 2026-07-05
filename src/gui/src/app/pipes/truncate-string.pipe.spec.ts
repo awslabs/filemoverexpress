@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TruncateStringPipe } from '@app/pipes/truncate-string.pipe';
 
 describe('TruncateStringPipe', () => {
@@ -48,5 +49,4 @@ describe('TruncateStringPipe', () => {
         const result = pipe.transform(input, maxLength);
         expect(result).toEqual(expected);
     });
-
 });

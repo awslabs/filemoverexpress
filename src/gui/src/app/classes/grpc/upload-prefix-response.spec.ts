@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { UploadPrefixResponse } from './upload-prefix-response';
 
 describe('UploadPrefixResponse', () => {

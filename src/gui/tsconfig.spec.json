@@ -1,10 +1,10 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "outDir": "./out-tsc/spec",
+        "outDir": "./out-tsc/vitest",
         "types": [
-            "jasmine"
+            "vitest/globals",
+            "node"
         ],
         "paths": {
             "@app/*": [
@@ -57,12 +57,9 @@
             ]
         }
     },
-    "files": [
-        "src/test.ts",
-        "src/polyfills.ts"
-    ],
     "include": [
         "src/**/*.spec.ts",
-        "src/**/*.d.ts"
+        "src/**/*.d.ts",
+        "src/testing/**/*.ts"
     ]
 }

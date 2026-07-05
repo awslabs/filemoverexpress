@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { FSFile } from './fsfile';
 import { create } from '@bufbuild/protobuf';
 import { TimestampSchema } from '@bufbuild/protobuf/wkt';

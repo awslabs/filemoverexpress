@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { FileBrowserIconPipe } from './file-browser-icon.pipe';
 
 describe('FileBrowserIconPipe', () => {

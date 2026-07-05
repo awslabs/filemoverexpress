@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { TaskCompleteEvent } from './task-complete-event';
 import { TransferDirection } from '@app/interfaces/jobs-table';
 

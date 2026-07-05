@@ -1,3 +1,4 @@
+import { describe, it, expect, afterEach } from 'vitest';
 import * as utils from './utils';
 import { ConnectError } from '@connectrpc/connect';
 import { JobStatus, TaskStatus } from '@state/models/job.model';
@@ -200,17 +201,17 @@ describe('[utils] isPackagedApp', () => {
     });
 
     it('returns true under a macOS WKWebView (webkit.messageHandlers.external)', () => {
-        w.webkit = {messageHandlers: {external: {postMessage: () => undefined}}};
+        w.webkit = { messageHandlers: { external: { postMessage: () => undefined } } };
         expect(utils.isPackagedApp()).toBe(true);
     });
 
     it('returns true under an Android-style window.wails.invoke bridge', () => {
-        w.wails = {invoke: () => undefined};
+        w.wails = { invoke: () => undefined };
         expect(utils.isPackagedApp()).toBe(true);
     });
 
     it('ignores a webkit object without an external message handler', () => {
-        w.webkit = {messageHandlers: {}};
+        w.webkit = { messageHandlers: {} };
         expect(utils.isPackagedApp()).toBe(false);
     });
 });

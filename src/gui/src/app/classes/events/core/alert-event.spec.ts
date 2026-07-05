@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { AlertEvent } from './alert-event';
 import { create } from '@bufbuild/protobuf';
 import { ListEventsResponseSchema } from '@gen/es/fme/v1/fme_service_pb';

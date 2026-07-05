@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SetupWizardModalComponent } from './setup-wizard-modal.component';
 import { AppState } from '@app/state';

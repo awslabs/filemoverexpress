@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { WelcomeModalComponent } from './welcome-modal.component';
 import { MatIconModule } from '@angular/material/icon';

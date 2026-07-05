@@ -1,4 +1,5 @@
-import { fakeAsync, TestBed } from '@angular/core/testing';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppState } from '@app/state';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
@@ -10,10 +11,24 @@ import { Router } from '@angular/router';
 import { initialTestState } from '@state/test.state';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { appRoutes } from '@app/components/layout/shell/app.routes';
+import { BehaviorSubject } from 'rxjs';
+import { MetadataEvent } from '@events/core';
+import { ConnectionState } from '@state/models/connection-state-model';
 
 describe('configRouteGuard', () => {
     let location: Location;
     let router: Router;
+    const mockMetadata$ = new BehaviorSubject<MetadataEvent>(new MetadataEvent());
+    const mockConnectionState$ = new BehaviorSubject<ConnectionState>(ConnectionState.DISCONNECTED);
+
+    const mockFmeClientService = {
+        get metadata() {
+            return mockMetadata$.asObservable();
+        },
+        get connectionState() {
+            return mockConnectionState$.asObservable();
+        },
+    };
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -24,7 +39,7 @@ describe('configRouteGuard', () => {
                 NoopAnimationsModule,
             ],
             providers: [
-                FmeClientService, provideMockStore<AppState>({initialState: initialTestState}),
+                { provide: FmeClientService, useValue: mockFmeClientService }, provideMockStore<AppState>({ initialState: initialTestState }),
             ],
         });
         location = TestBed.inject(Location);
@@ -32,9 +47,8 @@ describe('configRouteGuard', () => {
         router.initialNavigation();
     });
 
-    it('should guard when edit config disabled', fakeAsync(() => {
-        router.navigate(['/home/config']).then(() => {
-            expect(location.path()).toBe('/home');
-        });
-    }));
+    it('should guard when edit config disabled', async () => {
+        await router.navigate(['/home/config']);
+        expect(location.path()).toBe('/home');
+    });
 });

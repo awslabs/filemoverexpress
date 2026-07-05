@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { InventoryReportCompletedEvent } from '../inventory';
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
