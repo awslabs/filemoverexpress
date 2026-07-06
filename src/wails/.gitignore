@@ -3,6 +3,7 @@ frontend/dist
 frontend/node_modules
 # Include the Wails build dir as it contains sources for the build system
 build/linux/appimage/build
-build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+# The WebView2 bootstrapper is generated into the NSIS installer dir at package time.
+build/windows/installer/tmp/
 *.syso
 .task

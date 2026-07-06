@@ -120,3 +120,39 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+  # ---------------------------------------------------------------------------
+  # Windows code signing (AWS Code Signer / Wallaby, Authenticode)
+  #
+  # Gated behind the `WINDOWS_SIGNING_ENABLED` repository variable so releases keep
+  # working before the `signing` environment secret/vars are in place. Set the variable
+  # to 'true' (and configure AWS_SIGNING_ROLE_ARN + AWS_SIGNING_ACCOUNT_ID +
+  # AWS_SIGNING_REGION, documented in sign-windows.yml) to activate signing the NSIS
+  # installer .exe via the S3-bridge.
+  #
+  # architecture is the build matrix label (x64/arm64); nsis-arch is the token the
+  # NSIS installer filename uses (amd64/arm64, chosen by GOARCH in the Windows Taskfile).
+  # ---------------------------------------------------------------------------
+  sign-windows:
+    needs: [generate-installer]
+    # Same rationale as sign-macos: run whenever not cancelled so a failing non-Windows
+    # matrix leg doesn't skip this; the per-arch "download unsigned .exe" step is the guard.
+    if: ${{ !cancelled() && vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            nsis-arch: amd64
+          - architecture: arm64
+            nsis-arch: arm64
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/sign-windows.yml
+    with:
+      artifact-name: installer-win-${{ matrix.architecture }}
+      exe-filename: FileMoverExpressUI-${{ matrix.nsis-arch }}-installer.exe
+    # Pass only the secret sign-windows.yml declares (not `secrets: inherit`).
+    secrets:
+      AWS_SIGNING_ROLE_ARN: ${{ secrets.AWS_SIGNING_ROLE_ARN }}

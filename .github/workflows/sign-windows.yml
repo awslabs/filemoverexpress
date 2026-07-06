@@ -1,0 +1,220 @@
+# Reusable workflow: Authenticode-sign the Windows NSIS installer .exe via the AWS
+# Code Signer (Wallaby) S3-bridge.
+#
+# Flow (per the Wallaby SigningLambda contract — see SignerOnboardingTemplate's
+# signer_handler.py):
+#   1. download the unsigned installer .exe artifact
+#   2. assume the signing OIDC role (direct S3 access to the signing buckets)
+#   3. upload the unsigned .exe to the UNSIGNED bucket under the key
+#        {profileIdentifier}/{signingPlatform}/{run}-{attempt}/{exe}
+#      The SigningLambda parses the first two path segments to look up the signing
+#      profile from SSM ({APPLICATION_NAME}.{profileIdentifier}.{signingPlatform}.
+#      ProfileName/.ProfileOwner), so the profile/platform prefix is MANDATORY — a key
+#      without it makes the Lambda raise "Unable to parse profile info from S3 Object Key".
+#   4. the Lambda auto-starts an AWS Signer StartSigningJob whose destination prefix is
+#        "{unsignedKey}-", so the signed object lands at "{unsignedKey}-{jobId}" in the
+#      SIGNED bucket (NOT at the same key). We poll by listing that prefix.
+#   5. download the signed .exe, verify the Authenticode signature (fail closed), and
+#      republish it as a signed artifact.
+#
+# Infra (deployed by SignerOnboardingStack in the signing account): the unsigned/signed
+# buckets, the signing Lambda, and the OIDC role assumed here (granted direct bucket
+# access by github-oidc-role.yml).
+#
+# Required GitHub Secrets (on the `signing` environment):
+#   AWS_SIGNING_ROLE_ARN  - OIDC role with access to the signing buckets
+# Required GitHub Variables:
+#   AWS_SIGNING_ACCOUNT_ID - signing AWS account id (used to derive bucket names)
+#   AWS_SIGNING_REGION     - region of the signing buckets (e.g. us-east-1)
+# Optional GitHub Variables (defaulted to the known FME values so test runs work
+# out-of-the-box; the same identifier/platform is retained when prod profiles swap in —
+# only the SSM ProfileName/ProfileOwner values change):
+#   WINDOWS_SIGNING_PROFILE_IDENTIFIER    - default FileMoverExpressforAWS_authenticode
+#   WINDOWS_SIGNING_PLATFORM              - default AuthenticodeSigner-SHA256-RSA
+#   WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN - 'true' to require a fully trusted cert chain
+#                                           (prod EV cert). Defaults to lenient (signature
+#                                           must be present) so test-profile signatures,
+#                                           whose chain is not publicly trusted, still pass.
+
+name: Sign Windows Distribution
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Name of the artifact containing the unsigned installer .exe'
+        required: true
+        type: string
+      exe-filename:
+        description: 'Filename of the .exe to sign'
+        required: true
+        type: string
+    secrets:
+      # Declared explicitly (instead of `secrets: inherit` in the caller) so this
+      # workflow only ever receives the secrets it actually uses.
+      AWS_SIGNING_ROLE_ARN:
+        description: 'OIDC role assumed for signing-bucket access'
+        required: true
+    outputs:
+      signed-artifact-name:
+        description: 'Name of the artifact containing the signed .exe'
+        value: ${{ jobs.sign.outputs.signed-artifact-name }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  sign:
+    name: Sign Windows installer via AWS Code Signer
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: signing
+    outputs:
+      signed-artifact-name: signed-${{ inputs.artifact-name }}
+    env:
+      # Caller-supplied values are referenced ONLY through env vars (never expanded
+      # inline in shell) to prevent script injection (Req 8.3).
+      ARTIFACT_NAME: ${{ inputs.artifact-name }}
+      EXE_FILENAME: ${{ inputs.exe-filename }}
+      # Resource ids via vars/secrets — no plaintext account id in the public repo (Req 8.2).
+      AWS_REGION: ${{ vars.AWS_SIGNING_REGION }}
+      ACCOUNT_ID: ${{ vars.AWS_SIGNING_ACCOUNT_ID }}
+      UNSIGNED_BUCKET: ${{ vars.AWS_SIGNING_ACCOUNT_ID }}-fme-unsigned
+      SIGNED_BUCKET: ${{ vars.AWS_SIGNING_ACCOUNT_ID }}-fme-signed
+      # Non-sensitive profile identifiers — defaulted to the known FME values.
+      PROFILE_IDENTIFIER: ${{ vars.WINDOWS_SIGNING_PROFILE_IDENTIFIER || 'FileMoverExpressforAWS_authenticode' }}
+      SIGNING_PLATFORM: ${{ vars.WINDOWS_SIGNING_PLATFORM || 'AuthenticodeSigner-SHA256-RSA' }}
+      REQUIRE_TRUSTED_CHAIN: ${{ vars.WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN || 'false' }}
+    steps:
+      - name: Validate signing configuration
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "${AWS_REGION}" ]         || missing+=("AWS_SIGNING_REGION (repo variable)")
+          [ -n "${ACCOUNT_ID}" ]         || missing+=("AWS_SIGNING_ACCOUNT_ID (repo variable)")
+          [ -n "${PROFILE_IDENTIFIER}" ] || missing+=("WINDOWS_SIGNING_PROFILE_IDENTIFIER (repo variable)")
+          [ -n "${SIGNING_PLATFORM}" ]   || missing+=("WINDOWS_SIGNING_PLATFORM (repo variable)")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "ERROR: missing required signing configuration:" >&2
+            printf '  - %s\n' "${missing[@]}" >&2
+            echo "Set these under Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+          echo "Signing configuration present."
+
+      - name: Download unsigned artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./unsigned
+
+      - name: Install verification tooling (osslsigncode)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y osslsigncode
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_SIGNING_REGION }}
+
+      - name: Upload unsigned .exe to the signer
+        id: upload
+        run: |
+          set -euo pipefail
+          if [ ! -f "unsigned/${EXE_FILENAME}" ]; then
+            echo "ERROR: unsigned/${EXE_FILENAME} not found in artifact" >&2
+            ls -la unsigned >&2
+            exit 1
+          fi
+          # The SigningLambda derives the signing profile from the FIRST TWO key segments
+          # ({profileIdentifier}/{signingPlatform}); the remainder is a free-form, per-run
+          # unique path so re-runs don't collide. Do NOT set an ACL: the bucket uses the
+          # BucketOwnerEnforced default (ACLs disabled) and the uploader is the bucket owner.
+          UNSIGNED_KEY="${PROFILE_IDENTIFIER}/${SIGNING_PLATFORM}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/${EXE_FILENAME}"
+          aws s3 cp "unsigned/${EXE_FILENAME}" "s3://${UNSIGNED_BUCKET}/${UNSIGNED_KEY}"
+          echo "unsigned-key=${UNSIGNED_KEY}" >> "$GITHUB_OUTPUT"
+          echo "Uploaded to s3://${UNSIGNED_BUCKET}/${UNSIGNED_KEY}"
+
+      - name: Wait for the signed .exe
+        id: wait
+        env:
+          UNSIGNED_KEY: ${{ steps.upload.outputs.unsigned-key }}
+        run: |
+          set -euo pipefail
+          # AWS Signer writes the signed object at "{unsignedKey}-{jobId}", so list the
+          # signed bucket under that prefix until the object appears. The object only
+          # appears when the signing job SUCCEEDS, so a timeout here is a fail-closed signal.
+          SIGNED_PREFIX="${UNSIGNED_KEY}-"
+          MAX_ATTEMPTS=60
+          SLEEP_SECONDS=10
+          echo "Waiting for a signed object under s3://${SIGNED_BUCKET}/${SIGNED_PREFIX}"
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            SIGNED_KEY=$(aws s3api list-objects-v2 \
+              --bucket "${SIGNED_BUCKET}" \
+              --prefix "${SIGNED_PREFIX}" \
+              --query 'Contents[0].Key' \
+              --output text 2>/dev/null || echo "None")
+            if [ -n "${SIGNED_KEY}" ] && [ "${SIGNED_KEY}" != "None" ]; then
+              echo "Signed object ready after attempt ${i}: ${SIGNED_KEY}"
+              echo "signed-key=${SIGNED_KEY}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Attempt ${i}/${MAX_ATTEMPTS}: not ready, sleeping ${SLEEP_SECONDS}s..."
+            sleep "$SLEEP_SECONDS"
+          done
+          echo "ERROR: timed out waiting for a signed object under s3://${SIGNED_BUCKET}/${SIGNED_PREFIX}" >&2
+          echo "(No object appears if the signing job failed — check the SigningLambda logs.)" >&2
+          exit 1
+
+      - name: Download signed .exe
+        env:
+          SIGNED_KEY: ${{ steps.wait.outputs.signed-key }}
+        run: |
+          set -euo pipefail
+          mkdir -p signed
+          aws s3 cp "s3://${SIGNED_BUCKET}/${SIGNED_KEY}" "signed/${EXE_FILENAME}"
+
+      - name: Verify Authenticode signature (fail closed)
+        run: |
+          set -euo pipefail
+          echo "=== osslsigncode verify ==="
+          set +e
+          VERIFY_OUT=$(osslsigncode verify -in "signed/${EXE_FILENAME}" 2>&1)
+          VERIFY_RC=$?
+          set -e
+          echo "${VERIFY_OUT}"
+          echo "=========================="
+          # Fail closed if the artifact is not signed at all.
+          if printf '%s' "${VERIFY_OUT}" | grep -qiE 'no signature found|0 signature'; then
+            echo "ERROR: ${EXE_FILENAME} has no Authenticode signature" >&2
+            exit 1
+          fi
+          if [ "${REQUIRE_TRUSTED_CHAIN}" = "true" ]; then
+            # Prod (EV cert): require a fully trusted verification (exit 0).
+            if [ "${VERIFY_RC}" -ne 0 ]; then
+              echo "ERROR: ${EXE_FILENAME} failed strict Authenticode verification (untrusted or invalid)" >&2
+              exit 1
+            fi
+            echo "Authenticode signature verified (trusted chain)."
+          else
+            # Test profiles: the signing cert chain is not publicly trusted, so
+            # osslsigncode may exit non-zero on chain validation even though a valid
+            # signature is present. A present signature (checked above) is sufficient
+            # here; set WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN=true for prod to tighten.
+            if [ "${VERIFY_RC}" -ne 0 ]; then
+              echo "NOTE: signature present but chain not fully trusted (expected with test profiles)."
+            else
+              echo "Authenticode signature verified (trusted chain)."
+            fi
+          fi
+
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ inputs.artifact-name }}
+          path: signed/${{ inputs.exe-filename }}
+          retention-days: 30
