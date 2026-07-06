@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConfigComponent } from './config.component';
 import { AppState } from '@app/state';
@@ -29,7 +30,6 @@ import { create } from '@bufbuild/protobuf';
 import { appRoutes } from '@app/components/layout/shell/app.routes';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { SetConfigurationResponse, SetConfigurationResponseSchema } from '@gen/es/fme/v1/config_pb';
-import Spy = jasmine.Spy;
 
 const FORM_DATA = FmeConfig.fromJson({
     general: {
@@ -134,9 +134,8 @@ const FORM_DATA = FmeConfig.fromJson({
 describe('ConfigComponent', () => {
     let component: ConfigComponent;
     let fixture: ComponentFixture<ConfigComponent>;
-    let redirectSpy: Spy;
-    let submitSpy: Spy;
-    const defTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    let redirectSpy: ReturnType<typeof vi.spyOn>;
+    let submitSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -175,12 +174,12 @@ describe('ConfigComponent', () => {
         const notificationsService = TestBed.inject(NotificationsService);
 
         // Spy on the notifications service to prevent hangups due to running threads
-        spyOn(notificationsService, 'info').and.callFake(() => null);
-        spyOn(notificationsService, 'warning').and.callFake(() => null);
-        spyOn(notificationsService, 'success').and.callFake(() => null);
+        vi.spyOn(notificationsService, 'info').mockImplementation(() => undefined);
+        vi.spyOn(notificationsService, 'warning').mockImplementation(() => undefined);
+        vi.spyOn(notificationsService, 'success').mockImplementation(() => undefined);
 
         // Spy on the metadata getter and return a faked value
-        spyOnProperty(fmeClientService, 'metadata', 'get').and.callFake(() => {
+        vi.spyOn(fmeClientService, 'metadata', 'get').mockImplementation(() => {
             const sub = new Subject<MetadataEvent>();
             sub.next(new MetadataEvent(
                 false,
@@ -203,53 +202,40 @@ describe('ConfigComponent', () => {
         });
 
         // Return the configuration object from the static content instead of using grpc
-        spyOn(fmeClientService, 'getConfiguration').and.returnValue(new BehaviorSubject(FORM_DATA).asObservable());
+        vi.spyOn(fmeClientService, 'getConfiguration').mockReturnValue(new BehaviorSubject(FORM_DATA).asObservable());
 
         // Fake the setConfiguration call to simply succeed
         const setConfigurationResponse = create(SetConfigurationResponseSchema);
         setConfigurationResponse.success = true;
         setConfigurationResponse.message = '';
-        spyOn(fmeClientService, 'setConfiguration')
-            .and
-            .returnValue(new BehaviorSubject<SetConfigurationResponse>(setConfigurationResponse).asObservable());
+        vi.spyOn(fmeClientService, 'setConfiguration')
+            .mockReturnValue(new BehaviorSubject<SetConfigurationResponse>(setConfigurationResponse).asObservable());
 
         // Fake the redirect call from history service, to not trigger any navigation events
-        redirectSpy = spyOn(historyService, 'redirectToPrevious').and.callFake(() => {
+        redirectSpy = vi.spyOn(historyService, 'redirectToPrevious').mockImplementation(() => {
             /* intentionally empty */
         });
 
         fixture = TestBed.createComponent(ConfigComponent);
         component = fixture.componentInstance;
-        submitSpy = spyOn(component, 'onSubmit').and.callThrough();
+        submitSpy = vi.spyOn(component, 'onSubmit');
         fixture.detectChanges();
-    });
-
-    beforeAll(() => {
-        jasmine.DEFAULT_TIMEOUT_INTERVAL = 15000;
-    });
-
-    afterAll(() => {
-        jasmine.DEFAULT_TIMEOUT_INTERVAL = defTimeout;
     });
 
     it('should create', () => {
         expect(component).toBeTruthy();
     });
 
-    it('form should submit without errors', (done) => {
-        fixture.whenStable().then(() => {
-            component.onSubmit();
-            fixture.detectChanges();
-            expect(submitSpy).toHaveBeenCalled();
-            done();
-        });
+    it('form should submit without errors', async () => {
+        await fixture.whenStable();
+        component.onSubmit();
+        fixture.detectChanges();
+        expect(submitSpy).toHaveBeenCalled();
     });
 
-    it('cancel should redirect', (done) => {
-        fixture.whenStable().then(() => {
-            component.onCancel();
-            expect(redirectSpy).toHaveBeenCalled();
-            done();
-        });
+    it('cancel should redirect', async () => {
+        await fixture.whenStable();
+        component.onCancel();
+        expect(redirectSpy).toHaveBeenCalled();
     });
-});
+}, 15000);

@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { ShutdownService } from '@services/shutdown/shutdown.service';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -16,7 +17,6 @@ describe('ShutdownService', () => {
                 StoreModule,
                 MatSnackBarModule,
                 MatDialogModule,
-
             ],
             providers: [
                 provideMockStore<AppState>({initialState: initialTestState}),

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { JobStatusPipe } from './jobs-table-status.pipe';
 
 describe('JobsTableStatusPipe', () => {

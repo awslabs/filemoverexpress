@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { ObjectSortPipe } from './object-sort.pipe';
 
 describe('ListSortPipe', () => {

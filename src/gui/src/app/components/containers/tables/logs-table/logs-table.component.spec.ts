@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LogsTableComponent } from './logs-table.component';
 import { StoreModule } from '@ngrx/store';

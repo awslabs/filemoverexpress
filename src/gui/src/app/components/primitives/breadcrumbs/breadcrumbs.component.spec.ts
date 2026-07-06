@@ -1,5 +1,6 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DebugElement } from '@angular/core';
-import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { By } from '@angular/platform-browser';
@@ -137,26 +138,26 @@ describe('BreadcrumbsComponent', () => {
     /**
      * hasEllipse is assigned to correct boolean
      */
-    it('should set hasEllipse to true when the length of folder path arr is greater than upperbound', fakeAsync(() => {
+    it('should set hasEllipse to true when the length of folder path arr is greater than upperbound', async () => {
         const numOfFolders = 6;
         const testFolders = generateTestFolderPath(numOfFolders);
         component.breadcrumbPath.set(testFolders.path);
-        tick();
+        fixture.detectChanges();
+        await fixture.whenStable();
         expect(component.hasEllipse()).toBeTruthy();
-    }));
+    });
 
     /**
      * HTML render correctly for different input
      */
-    it('should show the valid child folder path when the input path is valid', fakeAsync(() => {
+    it('should show the valid child folder path when the input path is valid', async () => {
         component.breadcrumbPath.set('testFolderPath');
-        // component.breadCrumbArr = ['testFolderPath'];
         fixture.detectChanges();
-        tick();
+        await fixture.whenStable();
         const element = fixture.debugElement.query(By.css('#current-folder'));
         expect(element).toBeTruthy();
         expect(element.nativeElement.textContent).toEqual('testFolderPath');
-    }));
+    });
 
     it('should not show child folder breadcrumb when the input path is the root', () => {
         component.breadcrumbPath.set('/');
@@ -169,7 +170,7 @@ describe('BreadcrumbsComponent', () => {
     });
 
     it('should call emit with root path when calling clickBreadcrumb with -1 idx', () => {
-        const breadcrumbNavSpy = spyOn(component.navigate, 'emit');
+        const breadcrumbNavSpy = vi.spyOn(component.navigate, 'emit');
         component.clickBreadcrumb(-1);
         expect(breadcrumbNavSpy).toHaveBeenCalledWith('/');
         expect(component.breadcrumbPath()).toEqual('/');
@@ -177,21 +178,21 @@ describe('BreadcrumbsComponent', () => {
 
     it('should emit folder path being called when calling clickBreadcrumb', () => {
         component.breadcrumbPath.set('folder1/folder2/folder3');
-        const breadcrumbNavSpy = spyOn(component.navigate, 'emit');
+        const breadcrumbNavSpy = vi.spyOn(component.navigate, 'emit');
         component.clickBreadcrumb(1);
         expect(breadcrumbNavSpy).toHaveBeenCalledWith('/folder1/folder2');
     });
 
-    it('should click event method be called when the single breadcrumb is clicked', fakeAsync(() => {
+    it('should click event method be called when the single breadcrumb is clicked', async () => {
         component.breadcrumbPath.set('testFolderPath1/testFolderPath2');
         fixture.detectChanges();
-        spyOn(component, 'clickBreadcrumb');
+        vi.spyOn(component, 'clickBreadcrumb');
         const singleBreadcrumb = fixture.debugElement.query(By.css('.breadcrumb-single-clickable'));
         singleBreadcrumb.nativeElement.click();
         fixture.detectChanges();
-        tick();
+        await fixture.whenStable();
         expect(component.clickBreadcrumb).toHaveBeenCalled();
-    }));
+    });
 });
 
 interface TestFolder {

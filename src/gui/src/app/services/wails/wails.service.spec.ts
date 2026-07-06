@@ -1,4 +1,6 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
+
 import { WailsService } from './wails.service';
 
 describe('WailsService', () => {

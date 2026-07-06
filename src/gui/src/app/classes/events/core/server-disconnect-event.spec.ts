@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { ServerDisconnectEvent } from './server-disconnect-event';
 import { create } from '@bufbuild/protobuf';
 import { DisconnectType, EventType, ServerDisconnectEventSchema } from '@gen/es/fme/v1/events_pb';

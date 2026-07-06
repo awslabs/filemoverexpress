@@ -1,11 +1,12 @@
 // @ts-check
-const tsEslint = require('typescript-eslint');
-const eslint = require('@eslint/js');
-const stylistic = require('@stylistic/eslint-plugin');
-const angularEslint = require('@angular-eslint/eslint-plugin');
-const angularTemplateEslint = require('@angular-eslint/eslint-plugin-template');
+import tsEslint from 'typescript-eslint';
+import eslint from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
+import angularEslint from '@angular-eslint/eslint-plugin';
+import angularTemplateEslint from '@angular-eslint/eslint-plugin-template';
+import angularTemplateParser from '@angular-eslint/template-parser';
 
-module.exports = tsEslint.config(
+export default tsEslint.config(
     // Global ignores
     {
         ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.angular/**', 'src/gen/**'],
@@ -79,7 +80,7 @@ module.exports = tsEslint.config(
             '@angular-eslint/template': angularTemplateEslint,
         },
         languageOptions: {
-            parser: require('@angular-eslint/template-parser'),
+            parser: angularTemplateParser,
         },
         rules: {
             ...angularTemplateEslint.configs.recommended.rules, ...angularTemplateEslint.configs.accessibility.rules,

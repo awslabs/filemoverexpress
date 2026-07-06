@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { PascalCaseToSpacesPipe } from './pascal-case-to-spaces.pipe';
 
 describe('PascalCaseToSpacesPipe', () => {

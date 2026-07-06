@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { Bookmark } from './bookmarks.classes';
 
 const UNENCRYPTED = {

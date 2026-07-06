@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { JobRenameModalComponent } from './job-rename-modal.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';

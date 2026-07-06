@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { UnsupportedVersionEvent } from './unsupported-version-event';
 import { create } from '@bufbuild/protobuf';
 import { ListEventsResponseSchema } from '@gen/es/fme/v1/fme_service_pb';

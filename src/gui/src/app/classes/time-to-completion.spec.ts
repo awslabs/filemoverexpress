@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { calculateTimeToCompletion } from '@classes/time-to-completion';
 
 describe('calculateTimeToCompletion', () => {
@@ -13,5 +14,4 @@ describe('calculateTimeToCompletion', () => {
         ).toEqual('Just now');
         expect(calculateTimeToCompletion(new Date(), 10000, 10000)).toBe('Unknown');
     });
-
 });

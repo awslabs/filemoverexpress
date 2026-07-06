@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { JobDetailsModalComponent } from './job-details-modal.component';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -20,10 +21,11 @@ describe('JobDetailsModalComponent', () => {
     let component: JobDetailsModalComponent;
     let fixture: ComponentFixture<JobDetailsModalComponent>;
 
-    const fmeClientSpy = jasmine.createSpyObj('FmeClientService', ['listTasksForJob']);
-    fmeClientSpy.listTasksForJob.and.callFake((__unused: string) => {
-        return of();
-    });
+    const fmeClientSpy = {
+        listTasksForJob: vi.fn().mockImplementation((__unused: string) => {
+            return of();
+        }),
+    };
 
     beforeEach(() => {
         TestBed.configureTestingModule({

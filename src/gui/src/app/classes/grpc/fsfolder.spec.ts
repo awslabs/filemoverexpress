@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { FSFolder } from './fsfolder';
 import { create } from '@bufbuild/protobuf';
 import { FsFolderSchema } from '@gen/es/fme/v1/remote_daemon_pb';
