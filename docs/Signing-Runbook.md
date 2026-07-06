@@ -3,8 +3,9 @@
 How File Mover Express signs and notarizes its desktop release artifacts in CI, how to
 operate the pipeline, and how to troubleshoot it.
 
-> Status: **macOS signing is implemented.** Windows (Authenticode) signing is planned and
-> not yet wired into the release. Linux artifacts are published unsigned.
+> Status: **macOS and Windows signing are implemented.** macOS is signed + notarized; the
+> Windows installer is Authenticode-signed via AWS Code Signer (validated against a test
+> profile — production profiles pending Wallaby onboarding). Linux artifacts are unsigned.
 
 ## Overview
 
@@ -13,11 +14,14 @@ Release artifacts are built and signed entirely in GitHub Actions (`.github/work
 - **macOS** — the Wails `.app` is signed with an Apple **Developer ID** certificate via an
   internal signing service, packaged into a `.dmg`, then **notarized and stapled** with the
   Apple notary service so it passes Gatekeeper.
-- **Windows** — *(planned)* the NSIS installer `.exe` will be Authenticode-signed.
+- **Windows** — the NSIS installer `.exe` is **Authenticode-signed** via the AWS Code Signer
+  (Wallaby) **S3-bridge**: the unsigned `.exe` is uploaded to a signing bucket, an in-account
+  Lambda auto-signs it with AWS Signer, and the signed `.exe` is downloaded and verified.
 - **Linux** — published as-is (unsigned).
 
-Signing is **gated behind a repository variable** (`MACOS_SIGNING_ENABLED`) so the normal
-build keeps working before the signing infrastructure and credentials are configured.
+Signing is **gated behind repository variables** (`MACOS_SIGNING_ENABLED`,
+`WINDOWS_SIGNING_ENABLED`) so the normal build keeps working before the signing
+infrastructure and credentials are configured.
 
 ## Workflows
 
@@ -26,6 +30,7 @@ build keeps working before the signing infrastructure and credentials are config
 | `release.yml` | tag `v*` or manual dispatch | per-platform | Builds installers, then (if enabled) calls the signing workflows and uses their output |
 | `sign-macos.yml` | `workflow_call` | macOS | Signs the `.app`, then builds a `.dmg` from the signed app |
 | `notarize-macos.yml` | `workflow_call` | macOS | Notarizes + staples the `.dmg`; independently re-runnable |
+| `sign-windows.yml` | `workflow_call` | Ubuntu | Uploads the NSIS `.exe` to the AWS Code Signer S3-bridge, waits for the signed object, verifies Authenticode (fail closed) |
 
 The macOS path is split on purpose: notarization is slow and occasionally flaky, so it is a
 separate, idempotent workflow that can be re-run on an already-signed artifact without
@@ -34,10 +39,14 @@ re-signing.
 ### Flow
 
 ```
-release.yml (generate-installer: builds the .app)
-   └─ sign-macos.yml      → signed .app → .dmg
-        └─ notarize-macos.yml → notarized + stapled .dmg → published
+release.yml (generate-installer)
+   ├─ macOS:   sign-macos.yml → signed .app → .dmg
+   │              └─ notarize-macos.yml → notarized + stapled .dmg → published
+   └─ Windows: sign-windows.yml → Authenticode-signed .exe → published
 ```
+
+`sign-macos` and `sign-windows` are independent jobs (both only `needs: generate-installer`,
+`fail-fast: false`, `if: !cancelled()`), so a failure on one platform does not block the other.
 
 ## Required GitHub configuration
 
@@ -74,6 +83,38 @@ Create a GitHub **environment** named `signing` (with branch protection) and add
 > ARNs and Apple credentials are environment secrets so they are branch-protected and
 > rotatable. Authentication to AWS is via GitHub OIDC — there are no long-lived AWS keys.
 
+### Windows (AWS Code Signer)
+
+Repository variables:
+
+| Variable | Purpose |
+|---|---|
+| `WINDOWS_SIGNING_ENABLED` | `true` to turn on the `sign-windows` job in `release.yml` (must be a **repository** variable — read by a job `if:`) |
+| `AWS_SIGNING_ACCOUNT_ID` | Signing AWS account id; the unsigned/signed bucket names are derived from it (`<acct>-fme-unsigned` / `-fme-signed`) |
+| `AWS_SIGNING_REGION` | AWS region of the signing buckets |
+| `WINDOWS_SIGNING_PROFILE_IDENTIFIER` | *(optional)* Signer profile identifier; defaults to the app's known value |
+| `WINDOWS_SIGNING_PLATFORM` | *(optional)* Signer platform id; defaults to `AuthenticodeSigner-SHA256-RSA` |
+| `WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN` | *(optional)* `true` to require a fully trusted cert chain (production EV cert). Leave unset for **test** profiles, whose chain is not publicly trusted |
+
+`signing` environment secret:
+
+| Secret | Purpose |
+|---|---|
+| `AWS_SIGNING_ROLE_ARN` | IAM role assumed via OIDC with direct access to the signing S3 buckets |
+
+**How the S3-bridge works (the key contract matters):** the workflow uploads the unsigned
+`.exe` to `s3://<acct>-fme-unsigned/{profileIdentifier}/{signingPlatform}/{run}-{attempt}/<exe>`.
+The SigningLambda parses the **first two key segments** to resolve the signing profile from SSM
+(`{ApplicationName}.{profileIdentifier}.{signingPlatform}.ProfileName`/`.ProfileOwner`), so that
+prefix is **mandatory**. AWS Signer writes the signed object to `{uploadedKey}-{jobId}` in the
+signed bucket, so the workflow polls that prefix (a timeout means the signing job failed —
+fail closed) rather than the original key.
+
+> **Test vs production profiles:** the same profile identifier/platform is retained when
+> production profiles are issued — only the SSM `ProfileName`/`ProfileOwner` values change. So
+> no workflow change is needed to move to production; just set
+> `WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN=true` once the production (EV) profile is active.
+
 ## Infrastructure prerequisites
 
 These are provisioned once (outside this repo) and are required before signing can run:
@@ -85,6 +126,11 @@ These are provisioned once (outside this repo) and are required before signing c
   permissions. (Provisioned by the internal signer CDK package.)
 - **Signing-service onboarding** completed and the app/team allowlisted to sign.
 - An **Apple Developer Program** account/team and an app-specific password for notarization.
+- For **Windows**: **Wallaby / AWS Code Signer onboarding** completed in the signing account —
+  the unsigned/signed S3 buckets + auto-signing Lambda deployed, the OIDC caller role granted
+  direct bucket access, and signing profiles issued (SSM `ProfileName`/`ProfileOwner`
+  parameters present). Test profiles are enough to validate the pipeline; production EV
+  profiles are issued after the application security review is approved.
 
 If you run from a fork, the OIDC role trust policy must be widened to that fork's repo path,
 or OIDC `AssumeRoleWithWebIdentity` will be denied.
@@ -109,6 +155,11 @@ or OIDC `AssumeRoleWithWebIdentity` will be denied.
   `signed-installer-mac-<arch>` artifact is produced.
 - `notarize-macos`: `notarytool` returns `Accepted`; `stapler validate` and
   `spctl --assess --type install` pass; a `notarized-installer-mac-<arch>` artifact is produced.
+- `sign-windows`: the signed object appears in the signed bucket, `osslsigncode verify` finds a
+  signature (fail closed if none), and a `signed-installer-win-<arch>` artifact is produced.
+  With a **test** profile the cert chain is not publicly trusted, so leave
+  `WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN` unset (signature-present is the gate); set it `true`
+  for production.
 
 ## Notarization retry procedure
 
@@ -133,6 +184,10 @@ see why a submission was rejected.
 | Sign-task times out | The signer never wrote to `signed/`; check the signing-service status and that the bucket-access role is passed correctly. |
 | `release.yml` macOS/Windows build fails in `setup-environment` | The Linux dependency step must be guarded to Linux runners only (it is, via `if: runner.os == 'Linux'`). |
 | Gatekeeper assessment fails on a downloaded `.dmg` | The ticket wasn't stapled, or the app inside isn't Developer ID-signed; re-check the sign + staple steps. |
+| `sign-windows` times out waiting for the signed object | The SigningLambda never produced output — usually the upload key was wrong (it MUST be `{profileIdentifier}/{signingPlatform}/…` so the Lambda can resolve the SSM profile), or the profile SSM params don't exist. Check the Lambda logs in the signing account. |
+| `sign-windows` fails "no Authenticode signature" | The downloaded object isn't signed; confirm the signing job succeeded and that the profile is active. |
+| `sign-windows` verify fails on chain trust | Expected with **test** profiles (chain not publicly trusted). Leave `WINDOWS_SIGNING_REQUIRE_TRUSTED_CHAIN` unset for test; set `true` only once a production EV profile is active. |
+| Windows build fails at `makensis`/NSIS | makensis must be on PATH (installed on Windows runners in `setup-environment`); NSIS template placeholders must be resolved (the Windows Taskfile passes `INFO_*` defines and renders the association macros). |
 
 ## Verifying a build locally
 
@@ -145,8 +200,23 @@ spctl --assess --type install --verbose "File Mover Express.dmg"
 codesign --verify --deep --strict --verbose=2 "/Volumes/.../FileMoverExpressUI.app"
 ```
 
+For a Windows installer `.exe`:
+
+```powershell
+# Windows
+Get-AuthenticodeSignature .\FileMoverExpressUI-amd64-installer.exe | Format-List
+```
+
+```bash
+# any platform with osslsigncode
+osslsigncode verify -in FileMoverExpressUI-amd64-installer.exe
+```
+
+A **test**-profile signature will show a valid signature but an untrusted chain; a production
+EV signature verifies fully and clears SmartScreen over time.
+
 ## Related
 
 - Installation status of signed artifacts: `docs/Installation.md`
 - Workflow sources: `.github/workflows/sign-macos.yml`, `.github/workflows/notarize-macos.yml`,
-  `.github/workflows/release.yml`
+  `.github/workflows/sign-windows.yml`, `.github/workflows/release.yml`
