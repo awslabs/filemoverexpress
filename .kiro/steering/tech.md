@@ -28,31 +28,34 @@ npm workspaces monorepo. Each `src/*` directory is a workspace package.
 - UI: Angular Material + Angular CDK
 - Styling: SCSS (4-space indent)
 - RPC client: @connectrpc/connect-web + @bufbuild/protobuf
-- Testing: Karma + Jasmine
+- Testing: Vitest (run via `ng test`); property-based via @fast-check/vitest — replaced Karma/Jasmine
 - Linting: ESLint with @angular-eslint + @stylistic
   - Component prefix: `fme` (kebab-case elements, camelCase attributes)
   - 4-space indentation, single quotes, semicolons required
   - Trailing commas on multiline arrays/objects/imports/function params
   - Unused vars allowed only if prefixed with `__`
 
-## Electron
+## Desktop App (Wails 3)
 
-- Wraps the Angular GUI for desktop distribution
-- TypeScript-based main process
+- `src/wails/` — Wails 3 desktop app written in Go; embeds the Angular GUI as its frontend
+- The transfer daemon is compiled into the Wails binary; the standalone `filemoverexpress` CLI still ships for scripting/headless use
+- Frontend bindings generated via `wails3 generate bindings` → `src/gui/src/gen/wails/`
+- Dev loop: `task dev` (runs `wails3 dev`)
+- Replaced the former Electron wrapper (`src/electron/` is legacy/removed)
 
 ## Protobuf / Code Generation
 
 - Definitions: `src/protobuf/` (buf v2 toolchain)
 - Go codegen: protoc-gen-go + protoc-gen-connect-go → `src/cli/types/pbtypes/`
 - TS codegen: protoc-gen-es → `src/gui/src/gen/es/`
-- Generate command: `npm run build:proto`
+- Generate command: `npm run build:proto` (also generates Wails bindings)
 
-## Build Scripts
+## Build System (Task)
 
-- Location: `src/build-scripts/`
-- Language: TypeScript (ts-node)
-- Testing: Vitest
-- Entry point: `build.ts` — handles CLI builds (cross-compilation), GUI builds, Electron packaging, protobuf generation
+- Driven by [Task](https://taskfile.dev): root `Taskfile.yml` + a `Taskfile.yml` in each `src/*` package
+- The `npm run *` scripts are thin wrappers around `task <name>` — either works
+- Handles protobuf + Wails binding generation, CLI cross-compilation, GUI builds, and Wails packaging
+- Replaced the former TypeScript `src/build-scripts/` pipeline
 
 ## Common Commands
 
@@ -64,20 +67,26 @@ npm install
 npm run build:proto
 
 # Build
-npm run build              # CLI + GUI in parallel
-npm run build:cli          # CLI for all platforms
+npm run build              # CLI + GUI + Wails app
+npm run build:cli          # CLI for current platform
 npm run build:gui          # GUI production build
+npm run build:wails        # Wails desktop app
 
 # Test
-npm run test               # All tests (build-scripts + CLI + GUI)
-npm run test:cli           # Go tests (short mode, verbose, with coverage)
-npm run test:gui           # Angular tests via Karma (single run)
-npm run test:build-scripts # Vitest for build scripts
+npm run test               # All tests (CLI + Wails + GUI)
+npm run test:cli           # Go CLI tests (short mode, verbose, with coverage)
+npm run test:wails         # Wails (Go) tests
+npm run test:gui           # GUI tests (Vitest, via ng test)
 
 # Lint
 npm run lint               # CLI (golangci-lint) + GUI (ESLint)
 npm run lint:cli           # golangci-lint run
 npm run lint:gui           # ng lint
+
+# Dev / clean
+task dev                   # Desktop app hot reload (wails3 dev)
+task clean                 # Remove build artifacts + generated code
+task --list                # List all available targets
 
 # CLI-specific (run from src/cli/)
 go test -short -v -cover ./...
@@ -85,7 +94,7 @@ golangci-lint run
 golangci-lint run --fix
 
 # GUI-specific (run from src/gui/)
-ng test --watch=false --code-coverage
+ng test --watch=false --coverage
 ng lint
 ng lint --fix
 ```
