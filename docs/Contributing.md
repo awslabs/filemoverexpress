@@ -88,23 +88,25 @@ Follow the [Installation](Installation) guide to set up your development environ
 
 Before submitting your changes:
 
+The project uses [Task](https://taskfile.dev) as its build runner; each `npm run` script maps to
+a `task` target, so you can use either.
+
 **Backend (Go) Testing:**
 ```bash
-cd src/cli
-make test
-make lint
+npm run test:cli            # or: task cli:test
+npm run lint:cli            # or: task cli:lint
 ```
 
 **Frontend (Angular) Testing:**
 ```bash
-cd src/gui
-npm test
-npm run lint
+npm run test:gui            # GUI unit tests (Vitest)
+npm run lint:gui            # ESLint
 ```
 
-**Integration Testing:**
+**Everything at once:**
 ```bash
-make e2e-test  # Requires proper configuration
+npm run test                # all tests (CLI, Wails, GUI)
+npm run lint                # all linters
 ```
 
 ### 4. Committing Changes
@@ -205,43 +207,37 @@ Code contributions should:
 
 Ensure you have the required tools installed:
 - **Go**: Version 1.25 or higher
-- **Node.js**: Version 22 or higher
-- **npm**: Latest version
-- **Angular CLI**: `npm install -g @angular/cli`
+- **Node.js**: Version 22 or higher, plus **npm**
+- **Task**: The build runner ([install guide](https://taskfile.dev/installation/))
+- **Wails CLI** (`wails3`): For building the desktop app (`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`)
 - **Git**: Latest version
-- **Make**: For build automation (Linux/macOS)
+
+See the [Development guide](Development.md) for full setup instructions and platform-specific
+install commands.
 
 ### Building the Project
 
-**Full Build:**
 ```bash
-make build-all  # All platforms
-make build-mac  # macOS only
-make build-linux  # Linux only
-make build-win  # Windows only
+npm install                 # install workspace dependencies
+npm run build:proto         # generate protobuf + Wails bindings
+npm run build               # build CLI, GUI, and desktop app for the current platform
 ```
 
-**Development Build:**
-```bash
-make setup      # Install dependencies and generate protobuf
-make build      # Build for current platform
-```
+Individual targets: `npm run build:cli`, `npm run build:gui`, `npm run build:wails` (or the
+matching `task cli:build` / `task gui:build` / `task wails:build`).
 
 ### Running Tests
 
-**Unit Tests:**
 ```bash
-make test       # Run all unit tests
+npm run test                # all unit tests (CLI, Wails, GUI)
+npm run test:cli            # Go CLI tests
+npm run test:gui            # GUI tests (Vitest)
 ```
 
-**End-to-End Tests:**
-```bash
-make e2e-test   # Requires configuration
-```
+### Linting
 
-**Linting:**
 ```bash
-make lint       # Run all linters
+npm run lint                # run all linters
 ```
 
 ## Community Guidelines
