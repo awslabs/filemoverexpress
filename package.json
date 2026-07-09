@@ -24,7 +24,7 @@
         "test": "task test",
         "test:cli": "task cli:test",
         "test:gui": "task gui:test",
-        "test:wails": "task wails:test",
+        "test:wails": "task test:wails",
 
         "lint": "task lint",
         "lint:cli": "task cli:lint",
