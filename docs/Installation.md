@@ -11,7 +11,17 @@ Download the latest installer for your platform from the [Releases page](https:/
 | Windows | `File Mover Express-win32-x64-setup.exe` |
 | Linux | `File Mover Express-linux-x64.AppImage` |
 
-> **Note:** Installers are currently self-signed or unsigned (may depend on platform). macOS will show a Gatekeeper warning — right-click the app and choose Open to bypass it. Windows will show a SmartScreen warning — click "More info" then "Run anyway".
+> **Note on code signing:** macOS `.dmg` releases are signed with an **Apple Developer ID
+> Application** certificate belonging to Amazon's Apple Developer team (**AMZN Mobile LLC**, Apple
+> **Team ID `94KV3E626L`**) and **notarized** by Apple, so they install and launch without a
+> Gatekeeper workaround. Windows installers are **Authenticode-signed** via AWS Code Signer under
+> the organization **"Amazon Web Services, Inc."**; SmartScreen may still show a warning until the
+> certificate builds reputation — click "More info" then "Run anyway" if so. Linux artifacts are
+> unsigned.
+>
+> Because anyone could build and self-sign an app named "File Mover Express", confirm the
+> signature is Amazon's before trusting a download — see [Verifying the signature](#verifying-the-signature).
+> For how signing works in the release pipeline, see the [Code Signing Runbook](Signing-Runbook.md).
 
 ---
 
@@ -20,28 +30,76 @@ Download the latest installer for your platform from the [Releases page](https:/
 **macOS**
 
 1. Open the `.dmg` and drag File Mover Express to Applications.
+2. Launch File Mover Express from Applications as normal.
 
-2. **Before launching for the first time**, open Terminal and run:
+   Because the app is signed and notarized, macOS Gatekeeper opens it without any warning or
+   workaround.
 
-   ```bash
-   sudo xattr -rd com.apple.quarantine /Applications/File\ Mover\ Express.app
-   ```
+   > **Older or self-built apps:** If you have an older unsigned build (or one you built from
+   > source) and macOS reports it as "damaged", the app is quarantined, not broken. Remove the
+   > quarantine flag with:
+   > ```bash
+   > sudo xattr -rd com.apple.quarantine /Applications/File\ Mover\ Express.app
+   > ```
 
-   This removes the quarantine flag that macOS applies to unsigned apps downloaded from the internet.
-
-   > **Why is this needed?** The installers are not yet code-signed or notarized with Apple. macOS Gatekeeper will report the app as "damaged" and refuse to open it. The app is not actually damaged — it's quarantined. The command above removes that restriction. This is a known issue ([#41](https://github.com/awslabs/filemoverexpress/issues/41)) and will be resolved when code signing is added to the release pipeline.
-
-3. Launch File Mover Express from Applications as normal.
-   
 **Windows**
 
-Run the installer and follow the prompts. Windows SmartScreen may show a warning — click "More info" then "Run anyway".
+Run the installer and follow the prompts. The installer is Authenticode-signed; if SmartScreen
+still shows a warning (the certificate reputation builds over time), click "More info" then
+"Run anyway".
 
 **Linux** — make the AppImage executable and run it:
 ```bash
 chmod +x "File Mover Express-linux-x64.AppImage"
 ./"File Mover Express-linux-x64.AppImage"
 ```
+
+---
+
+## Verifying the signature
+
+Anyone can build and self-sign an app called "File Mover Express", so a signature alone doesn't
+prove it came from Amazon. Before trusting a download, confirm the signing **identity** matches
+the values below. If it doesn't match, don't run it.
+
+**macOS** — check notarization and the signing identity (replace the `.dmg` name with the file you
+downloaded):
+
+```bash
+# 1. Gatekeeper / notarization: expect "accepted" and "source=Notarized Developer ID"
+spctl --assess --type install --verbose=2 "File Mover Express-darwin-arm64.dmg"
+
+# 2. Signing identity of the installed app (the on-disk bundle is FileMoverExpressUI.app;
+#    Finder displays it as "File Mover Express")
+codesign -dv --verbose=4 "/Applications/FileMoverExpressUI.app" 2>&1 \
+  | grep -E "^Identifier=|^TeamIdentifier=|^Authority="
+```
+
+Expect the output to include:
+
+- `Identifier=com.amazon.filemoverexpress`
+- `TeamIdentifier=94KV3E626L`
+- an `Authority=Developer ID Application: …` line ending in `(94KV3E626L)`, followed by Apple's
+  `Developer ID Certification Authority` / `Apple Root CA` authorities
+
+The **Team ID `94KV3E626L`** is the decisive check — it identifies Amazon's Apple Developer team
+(AMZN Mobile LLC). If it's anything else, the app was not signed by Amazon.
+
+**Windows** — check the Authenticode signer (PowerShell):
+
+```powershell
+$sig = Get-AuthenticodeSignature ".\File Mover Express-win32-x64-setup.exe"
+$sig.Status                         # expect: Valid
+$sig.SignerCertificate.Subject      # expect organization O="Amazon Web Services, Inc."
+```
+
+Expect `Status: Valid` and a certificate subject whose organization (`O=`) is
+**"Amazon Web Services, Inc."**. If the organization is anything else, the installer was not signed
+by Amazon.
+
+> Until the production (EV) certificate builds SmartScreen reputation, Windows may still warn even
+> for a correctly signed installer — the signer-organization check above is the reliable way to
+> confirm authenticity.
 
 ---
 
