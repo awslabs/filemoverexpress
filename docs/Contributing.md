@@ -88,25 +88,25 @@ Follow the [Installation](Installation) guide to set up your development environ
 
 Before submitting your changes:
 
-The project uses [Task](https://taskfile.dev) as its build runner; each `npm run` script maps to
-a `task` target, so you can use either.
+The project uses [Task](https://taskfile.dev) as its build runner. Most targets also have a
+matching `npm run` wrapper, but the `task` commands are the primary interface.
 
 **Backend (Go) Testing:**
 ```bash
-npm run test:cli            # or: task cli:test
-npm run lint:cli            # or: task cli:lint
+task cli:test               # Go CLI tests
+task cli:lint               # Go linter
 ```
 
 **Frontend (Angular) Testing:**
 ```bash
-npm run test:gui            # GUI unit tests (Vitest)
-npm run lint:gui            # ESLint
+task gui:test               # GUI unit tests (Vitest)
+task gui:lint               # ESLint
 ```
 
 **Everything at once:**
 ```bash
-npm run test                # all tests (CLI, Wails, GUI)
-npm run lint                # all linters
+task test                   # all tests (CLI, Wails, GUI)
+task lint                   # all linters
 ```
 
 ### 4. Committing Changes
@@ -219,25 +219,24 @@ install commands.
 
 ```bash
 npm install                 # install workspace dependencies
-npm run build:proto         # generate protobuf + Wails bindings
-npm run build               # build CLI, GUI, and desktop app for the current platform
+task generate               # generate protobuf + Wails bindings
+task build                  # build CLI, GUI, and desktop app for the current platform
 ```
 
-Individual targets: `npm run build:cli`, `npm run build:gui`, `npm run build:wails` (or the
-matching `task cli:build` / `task gui:build` / `task wails:build`).
+Individual targets: `task cli:build`, `task gui:build`, `task wails:build`.
 
 ### Running Tests
 
 ```bash
-npm run test                # all unit tests (CLI, Wails, GUI)
-npm run test:cli            # Go CLI tests
-npm run test:gui            # GUI tests (Vitest)
+task test                   # all unit tests (CLI, Wails, GUI)
+task cli:test               # Go CLI tests
+task gui:test               # GUI tests (Vitest)
 ```
 
 ### Linting
 
 ```bash
-npm run lint                # run all linters
+task lint                   # run all linters
 ```
 
 ## Community Guidelines

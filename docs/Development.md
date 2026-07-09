@@ -80,18 +80,19 @@ for scripting and headless operation.
 
 ### Quick build (recommended)
 
-`task build` (or `npm run build`) runs the build in the correct order — protobuf generation,
-CLI, GUI, and the Wails desktop app.
+`task build` runs the build in the correct order — CLI, GUI, and the Wails desktop app.
 
 ```bash
 git clone https://github.com/awslabs/filemoverexpress.git
 cd filemoverexpress
 npm install
-npm run build:proto     # generate protobuf + Wails bindings (first build only, or after proto changes)
-npm run build
+task generate           # generate protobuf + Wails bindings (first build only, or after proto/Go changes)
+task build
 ```
 
 Build outputs land in `dist/` (CLI binaries) and `src/wails/build/bin/` (the desktop app).
+The `npm run *` scripts (e.g. `npm run build`) are thin wrappers around these tasks if you
+prefer npm.
 
 > **Tip:** Task caches by input checksums, so re-running `task build` only rebuilds what changed.
 > On a corporate/VPN network where `proxy.golang.org` is blocked, prefix Go builds with
@@ -99,40 +100,43 @@ Build outputs land in `dist/` (CLI binaries) and `src/wails/build/bin/` (the des
 
 ### Individual build steps
 
-If you need to run steps individually (via `task` or the matching `npm run` script):
+If you need to run steps individually:
 
 ```bash
-# Generate protobuf code and Wails bindings
-npm run build:proto
+# Generate all code (protobuf + Wails bindings)
+task generate
+
+# Generate protobuf code only (Go + TypeScript)
+task proto:generate
 
 # Build the CLI only (auto-detects your OS and architecture)
-npm run build:cli
+task cli:build
 
 # Build the GUI only
-npm run build:gui
+task gui:build
 
 # Build the Wails desktop app
-npm run build:wails
+task wails:build
 ```
 
 ### Running tests
 
 ```bash
-npm run test                # Run all tests (CLI, Wails, GUI)
-npm run test:cli            # Go CLI unit tests
-npm run test:wails          # Wails (Go) tests
-npm run test:gui            # GUI unit tests (Vitest, via ng test)
+task test                   # Run all tests (CLI, Wails, GUI)
+task cli:test               # Go CLI unit tests
+task test:wails             # Wails (Go) tests
+task gui:test               # GUI unit tests (Vitest, via ng test)
 ```
 
-The GUI test suite runs on [Vitest](https://vitest.dev/) (it replaced Karma). `npm run test:gui`
+The GUI test suite runs on [Vitest](https://vitest.dev/) (it replaced Karma). `task gui:test`
 invokes `ng test --watch=false --coverage`.
 
 ### Linting
 
 ```bash
-npm run lint                # Lint all code (CLI + GUI)
-npm run lint:cli            # golangci-lint on Go code
-npm run lint:gui            # ESLint on TypeScript/Angular code
+task lint                   # Lint all code (CLI + GUI)
+task cli:lint               # golangci-lint on Go code
+task gui:lint               # ESLint on TypeScript/Angular code
 ```
 
 ### Cleaning build artifacts
@@ -145,22 +149,26 @@ task clean                  # Remove build artifacts and generated code
 
 ## Available Commands
 
-Each `npm run` script maps to a `task` target (`task <name>`), so both work.
+Task is the primary interface; most targets have a matching `npm run` wrapper.
 
-| Command | Task | Description |
-|---------|------|-------------|
-| `npm run build` | `task build` | Build CLI, GUI, and the Wails desktop app |
-| `npm run build:proto` | `task proto:generate` | Generate protobuf code and Wails bindings |
-| `npm run build:cli` | `task cli:build` | Build CLI for current platform |
-| `npm run build:gui` | `task gui:build` | Build GUI production bundle |
-| `npm run build:wails` | `task wails:build` | Build the Wails desktop app |
-| `npm run test` | `task test` | Run all tests |
-| `npm run test:cli` | `task cli:test` | Run CLI unit and integration tests |
-| `npm run test:wails` | `task wails:test` | Run Wails (Go) tests |
-| `npm run test:gui` | `task gui:test` | Run GUI unit tests via Vitest |
-| `npm run lint` | `task lint` | Lint all code |
-| — | `task dev` | Run the desktop app in hot-reload dev mode (`wails3 dev`) |
-| — | `task clean` | Remove all build artifacts and generated code |
+| Task | npm wrapper | Description |
+|------|-------------|-------------|
+| `task build` | `npm run build` | Build CLI, GUI, and the Wails desktop app |
+| `task generate` | — | Generate all code (protobuf + Wails bindings) |
+| `task proto:generate` | `npm run build:proto` | Generate protobuf code only (Go + TypeScript) |
+| `task cli:build` | `npm run build:cli` | Build CLI for current platform |
+| `task gui:build` | `npm run build:gui` | Build GUI production bundle |
+| `task wails:build` | `npm run build:wails` | Build the Wails desktop app |
+| `task test` | `npm run test` | Run all tests |
+| `task cli:test` | `npm run test:cli` | Run CLI unit and integration tests |
+| `task test:wails` | `npm run test:wails`* | Run Wails (Go) tests |
+| `task gui:test` | `npm run test:gui` | Run GUI unit tests via Vitest |
+| `task lint` | `npm run lint` | Lint all code |
+| `task dev` | — | Run the desktop app in hot-reload dev mode (`wails3 dev`) |
+| `task clean` | — | Remove all build artifacts and generated code |
+
+<sub>* `npm run test:wails` currently maps to a non-existent `task wails:test` in `package.json`;
+use `task test:wails` until that wrapper is fixed.</sub>
 
 Run `task --list` to see every available target.
 
@@ -215,12 +223,12 @@ running separately (`filemoverexpress daemon`) for the GUI to connect to.
 
 ## Troubleshooting
 
-**`npm run build:proto` fails with "no such host" or DNS error**
+**`task generate` / `task proto:generate` fails with "no such host" or DNS error**
 On corporate or VPN networks, `proxy.golang.org` may be blocked:
 
 ```bash
 export GOPROXY=direct
-npm run build:proto
+task generate          # or: task proto:generate for protobuf only
 ```
 
 **`protoc-gen-go` or `wails3` not found**

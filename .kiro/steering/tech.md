@@ -48,7 +48,7 @@ npm workspaces monorepo. Each `src/*` directory is a workspace package.
 - Definitions: `src/protobuf/` (buf v2 toolchain)
 - Go codegen: protoc-gen-go + protoc-gen-connect-go → `src/cli/types/pbtypes/`
 - TS codegen: protoc-gen-es → `src/gui/src/gen/es/`
-- Generate command: `npm run build:proto` (also generates Wails bindings)
+- Generate command: `task generate` (protobuf + Wails bindings); or `task proto:generate` for protobuf only. `npm run build:proto` maps to `task proto:generate` (protobuf only).
 
 ## Build System (Task)
 
@@ -63,30 +63,34 @@ npm workspaces monorepo. Each `src/*` directory is a workspace package.
 # Install dependencies
 npm install
 
-# Generate protobuf code (must run before building)
-npm run build:proto
+# Generate code (must run before building)
+task generate              # protobuf + Wails bindings
 
 # Build
-npm run build              # CLI + GUI + Wails app
-npm run build:cli          # CLI for current platform
-npm run build:gui          # GUI production build
-npm run build:wails        # Wails desktop app
+task build                 # CLI + GUI + Wails app
+task cli:build             # CLI for current platform
+task gui:build             # GUI production build
+task wails:build           # Wails desktop app
 
 # Test
-npm run test               # All tests (CLI + Wails + GUI)
-npm run test:cli           # Go CLI tests (short mode, verbose, with coverage)
-npm run test:wails         # Wails (Go) tests
-npm run test:gui           # GUI tests (Vitest, via ng test)
+task test                  # All tests (CLI + Wails + GUI)
+task cli:test              # Go CLI tests (short mode, verbose, with coverage)
+task test:wails            # Wails (Go) tests
+task gui:test              # GUI tests (Vitest, via ng test)
 
 # Lint
-npm run lint               # CLI (golangci-lint) + GUI (ESLint)
-npm run lint:cli           # golangci-lint run
-npm run lint:gui           # ng lint
+task lint                  # CLI (golangci-lint) + GUI (ESLint)
+task cli:lint              # golangci-lint run
+task gui:lint              # ESLint (ng lint)
 
 # Dev / clean
 task dev                   # Desktop app hot reload (wails3 dev)
 task clean                 # Remove build artifacts + generated code
 task --list                # List all available targets
+
+# npm wrappers exist for most targets (e.g. npm run build, npm run test:cli),
+# but `task` is the primary interface. Note: `npm run test:wails` is currently
+# broken (maps to a non-existent `task wails:test`); use `task test:wails`.
 
 # CLI-specific (run from src/cli/)
 go test -short -v -cover ./...
