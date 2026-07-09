@@ -25,11 +25,13 @@ File Mover Express is a high-performance file transfer application designed to a
 
 **Download a pre-built installer** from the [Releases page](https://github.com/awslabs/filemoverexpress/releases) and double-click to install.
 
-> macOS releases are signed and notarized, so they open without a Gatekeeper workaround. Windows
-> installers are Authenticode-signed; SmartScreen may still warn until the certificate builds
-> reputation — click "More info" then "Run anyway" if so. See the
-> [Installation guide](docs/Installation.md#macos) for details, including how to clear the
-> quarantine flag on older unsigned or self-built apps.
+> macOS releases are signed with Amazon's Apple Developer ID (Team ID `94KV3E626L`, AMZN Mobile
+> LLC) and notarized, so they open without a Gatekeeper workaround. Windows installers are
+> Authenticode-signed as "Amazon Web Services, Inc."; SmartScreen may still warn until the
+> certificate builds reputation — click "More info" then "Run anyway" if so. Since anyone could
+> self-sign an app by this name, see [Verifying the signature](docs/Installation.md#verifying-the-signature)
+> to confirm a download is really Amazon's (and how to clear the quarantine flag on older unsigned
+> or self-built apps).
 
 Prefer to build from source? See [Building from Source](docs/Installation.md).
 
