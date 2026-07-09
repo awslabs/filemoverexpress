@@ -27,7 +27,7 @@ filemoverexpress/
 │   │   ├── e2e-tests/              # End-to-end tests (require E2E_TEST=true)
 │   │   └── testdata/               # Test fixtures
 │   │
-│   ├── gui/                        # Angular GUI application
+│   ├── gui/                        # Angular GUI application (Wails frontend)
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── components/     # UI components (containers/, layout/, modals/, primitives/)
@@ -40,22 +40,26 @@ filemoverexpress/
 │   │       │   ├── guards/         # Route guards
 │   │       │   ├── constants/      # App constants
 │   │       │   └── utils/          # Utility functions
-│   │       ├── gen/                # Generated protobuf TS code (do not edit)
+│   │       ├── gen/                # Generated protobuf + Wails TS bindings (do not edit)
 │   │       ├── environments/       # Angular environment configs
 │   │       ├── assets/             # Static assets
 │   │       └── styles/             # Global SCSS styles
 │   │
-│   ├── electron/                   # Electron desktop wrapper
+│   ├── wails/                      # Wails 3 desktop app (Go); embeds the GUI + the daemon
 │   ├── protobuf/                   # Protobuf service definitions (buf v2)
 │   │   ├── fme/                    # FME service protos
 │   │   └── s3_shared/              # Shared S3 message types
-│   ├── build-scripts/              # TypeScript build system (cross-platform builds, packaging)
 │   └── windows-daemon-launcher/    # Go-based Windows daemon launcher
 │
+├── Taskfile.yml                    # Root build orchestration (Task)
 ├── docs/                           # Documentation (wiki source)
 ├── docker/                         # Docker support
 └── dist/                           # Build output
 ```
+
+> Build is driven by [Task](https://taskfile.dev) (root `Taskfile.yml` + per-package
+> `src/*/Taskfile.yml`); the former `src/electron/` and `src/build-scripts/` directories are
+> legacy and no longer part of the build.
 
 ## Key Conventions
 
