@@ -2,6 +2,7 @@ version: '3'
 
 vars:
   CLI_BINARY: filemoverexpress
+  MCP_BINARY: fme-mcp
   OUTPUT_DIR: ../../dist
   BUILD_VERSION: '{{.BUILD_VERSION | default "0.0.0-local-dev"}}'
   GO_LDFLAGS: '-s -w -X "main.Version=v{{.BUILD_VERSION}}"'
@@ -9,24 +10,42 @@ vars:
 
 tasks:
   build:
-    desc: Build CLI for the current platform
+    desc: Build CLI and MCP server for the current platform
     cmds:
       - task: build:target
-        vars: { GOOS: '{{OS}}', GOARCH: '{{ARCH}}', OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}{{if eq OS "windows"}}.exe{{end}}' }
+        vars: { GOOS: '{{OS}}', GOARCH: '{{ARCH}}', OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}{{if eq OS "windows"}}.exe{{end}}', ENTRY: main.go }
+      - task: build:target
+        vars: { GOOS: '{{OS}}', GOARCH: '{{ARCH}}', OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}{{if eq OS "windows"}}.exe{{end}}', ENTRY: mcp-main.go }
 
   build:all:
-    desc: Build CLI for all platforms
+    desc: Build CLI and MCP server for all platforms
     cmds:
       - task: build:target
-        vars: { GOOS: darwin, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-darwin' }
+        vars: { GOOS: darwin, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-darwin', ENTRY: main.go }
       - task: build:target
-        vars: { GOOS: darwin, GOARCH: arm64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-darwin-arm64' }
+        vars: { GOOS: darwin, GOARCH: arm64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-darwin-arm64', ENTRY: main.go }
       - task: build:target
-        vars: { GOOS: linux, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-linux' }
+        vars: { GOOS: linux, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-linux', ENTRY: main.go }
       - task: build:target
-        vars: { GOOS: linux, GOARCH: arm64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-linux-arm64' }
+        vars: { GOOS: linux, GOARCH: arm64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}-linux-arm64', ENTRY: main.go }
       - task: build:target
-        vars: { GOOS: windows, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}.exe' }
+        vars: { GOOS: windows, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.CLI_BINARY}}.exe', ENTRY: main.go }
+      - task: build:target
+        vars: { GOOS: darwin, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}-darwin', ENTRY: mcp-main.go }
+      - task: build:target
+        vars: { GOOS: darwin, GOARCH: arm64, OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}-darwin-arm64', ENTRY: mcp-main.go }
+      - task: build:target
+        vars: { GOOS: linux, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}-linux', ENTRY: mcp-main.go }
+      - task: build:target
+        vars: { GOOS: linux, GOARCH: arm64, OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}-linux-arm64', ENTRY: mcp-main.go }
+      - task: build:target
+        vars: { GOOS: windows, GOARCH: amd64, OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}.exe', ENTRY: mcp-main.go }
+
+  build:mcp:
+    desc: Build MCP server for the current platform
+    cmds:
+      - task: build:target
+        vars: { GOOS: '{{OS}}', GOARCH: '{{ARCH}}', OUTPUT: '{{.OUTPUT_DIR}}/{{.MCP_BINARY}}{{if eq OS "windows"}}.exe{{end}}', ENTRY: mcp-main.go }
 
   build:target:
     internal: true
@@ -35,15 +54,15 @@ tasks:
       GOARCH: '{{.GOARCH}}'
       CGO_ENABLED: '0'
     cmds:
-      - go build {{.GO_BUILD_FLAGS}} -ldflags '{{.GO_LDFLAGS}}' -o {{.OUTPUT}} main.go
+      - go build {{.GO_BUILD_FLAGS}} -ldflags '{{.GO_LDFLAGS}}' -o {{.OUTPUT}} {{.ENTRY}}
 
   test:
     desc: Run Go CLI tests
     cmds:
-      - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out ./...
+      - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out {{.CLI_ARGS | default "./..."}}
       - go tool cover -html coverage.out -o coverage.html
 
   lint:
     desc: Run golangci-lint
     cmds:
-      - golangci-lint run
+      - golangci-lint run {{.CLI_ARGS}}
