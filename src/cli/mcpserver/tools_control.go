@@ -4,13 +4,15 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	fmev1 "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // pauseJobHandler returns a handler function for the fme_pause_job tool.
-func pauseJobHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
+func pauseJobHandler(
+	cm *ClientManager,
+) func(ctx context.Context, req *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
 		client, err := cm.Client()
 		if err != nil {
@@ -28,7 +30,9 @@ func pauseJobHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallT
 }
 
 // resumeJobHandler returns a handler function for the fme_resume_job tool.
-func resumeJobHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
+func resumeJobHandler(
+	cm *ClientManager,
+) func(ctx context.Context, req *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
 		client, err := cm.Client()
 		if err != nil {
@@ -46,7 +50,9 @@ func resumeJobHandler(cm *ClientManager) func(ctx context.Context, req *mcp.Call
 }
 
 // cancelJobHandler returns a handler function for the fme_cancel_job tool.
-func cancelJobHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
+func cancelJobHandler(
+	cm *ClientManager,
+) func(ctx context.Context, req *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input JobIDInput) (*mcp.CallToolResult, JobActionOutput, error) {
 		client, err := cm.Client()
 		if err != nil {

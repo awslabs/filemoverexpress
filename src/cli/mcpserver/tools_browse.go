@@ -5,15 +5,17 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	fmev1 "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	s3sharedv1 "github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // browseLocalFolderHandler returns a handler function for the fme_browse_local_folder tool.
-func browseLocalFolderHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallToolRequest, input BrowseLocalInput) (*mcp.CallToolResult, LocalFolderOutput, error) {
+func browseLocalFolderHandler(
+	cm *ClientManager,
+) func(ctx context.Context, req *mcp.CallToolRequest, input BrowseLocalInput) (*mcp.CallToolResult, LocalFolderOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input BrowseLocalInput) (*mcp.CallToolResult, LocalFolderOutput, error) {
 		client, err := cm.Client()
 		if err != nil {
@@ -28,7 +30,9 @@ func browseLocalFolderHandler(cm *ClientManager) func(ctx context.Context, req *
 }
 
 // browseS3PrefixHandler returns a handler function for the fme_browse_s3_prefix tool.
-func browseS3PrefixHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallToolRequest, input BrowseS3Input) (*mcp.CallToolResult, S3FolderOutput, error) {
+func browseS3PrefixHandler(
+	cm *ClientManager,
+) func(ctx context.Context, req *mcp.CallToolRequest, input BrowseS3Input) (*mcp.CallToolResult, S3FolderOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input BrowseS3Input) (*mcp.CallToolResult, S3FolderOutput, error) {
 		client, err := cm.Client()
 		if err != nil {

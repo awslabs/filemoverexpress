@@ -4,13 +4,15 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	fmev1 "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // listJobsHandler returns a handler function for the fme_list_jobs tool.
-func listJobsHandler(cm *ClientManager) func(ctx context.Context, req *mcp.CallToolRequest, input ListJobsInput) (*mcp.CallToolResult, ListJobsOutput, error) {
+func listJobsHandler(
+	cm *ClientManager,
+) func(ctx context.Context, req *mcp.CallToolRequest, input ListJobsInput) (*mcp.CallToolResult, ListJobsOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, _ ListJobsInput) (*mcp.CallToolResult, ListJobsOutput, error) {
 		client, err := cm.Client()
 		if err != nil {

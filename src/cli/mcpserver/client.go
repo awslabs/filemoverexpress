@@ -14,8 +14,25 @@ import (
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1/fmev1connect"
 )
 
-// originOnlyInterceptor attaches the Origin header without auth (for local daemons).
-type originOnlyInterceptor struct{}
+type (
+	// originOnlyInterceptor attaches the Origin header without auth (for local daemons).
+	originOnlyInterceptor struct{}
+
+	// pskInterceptor attaches Origin and x-fme-key headers (for remote daemons).
+	pskInterceptor struct {
+		key string
+	}
+
+	// ClientManager holds the active ConnectRPC client and manages connection state.
+	ClientManager struct {
+		mu      sync.RWMutex
+		client  fmev1connect.FmeServiceClient
+		status  string // "connected", "retrying", "disconnected"
+		address string
+		authKey string
+		cancel  context.CancelFunc
+	}
+)
 
 func newOriginOnlyInterceptor() *originOnlyInterceptor {
 	return &originOnlyInterceptor{}
@@ -40,11 +57,6 @@ func (*originOnlyInterceptor) WrapStreamingHandler(next connect.StreamingHandler
 	return next
 }
 
-// pskInterceptor attaches Origin and x-fme-key headers (for remote daemons).
-type pskInterceptor struct {
-	key string
-}
-
 func newPSKInterceptor(key string) *pskInterceptor {
 	return &pskInterceptor{key: key}
 }
@@ -66,18 +78,8 @@ func (i *pskInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) c
 	}
 }
 
-func (i *pskInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+func (*pskInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return next
-}
-
-// ClientManager holds the active ConnectRPC client and manages connection state.
-type ClientManager struct {
-	mu      sync.RWMutex
-	client  fmev1connect.FmeServiceClient
-	status  string // "connected", "retrying", "disconnected"
-	address string
-	authKey string
-	cancel  context.CancelFunc
 }
 
 // NewClientManager creates a manager and auto-connects to the default address.
