@@ -225,15 +225,27 @@ jobs:
           python-version: '3.12'
 
       - name: Install signing dependencies
-        id: install-deps
         run: |
           set -euo pipefail
           brew install gnu-tar
-          PYTHON_BIN="$(which python3)"
-          echo "Using Python at: ${PYTHON_BIN}"
-          "${PYTHON_BIN}" -m pip install --upgrade --force-reinstall awscurl
-          "${PYTHON_BIN}" -m awscurl --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable" >&2; exit 1; }
-          echo "python-bin=${PYTHON_BIN}" >> "$GITHUB_OUTPUT"
+          # Install awscurl into an isolated directory to avoid conflicts with
+          # the system Python's site-packages on macOS arm64 runners.
+          AWSCURL_DIR="${RUNNER_TEMP}/awscurl-lib"
+          mkdir -p "${AWSCURL_DIR}"
+          python3 -m pip install --target "${AWSCURL_DIR}" awscurl
+          # Create a wrapper script that uses the isolated install
+          cat > "${RUNNER_TEMP}/awscurl" <<'WRAPPER'
+          #!/usr/bin/env python3
+          import sys, os
+          sys.path.insert(0, os.environ["AWSCURL_DIR"])
+          from awscurl.awscurl import main
+          sys.exit(main())
+          WRAPPER
+          chmod +x "${RUNNER_TEMP}/awscurl"
+          echo "AWSCURL_DIR=${AWSCURL_DIR}" >> "$GITHUB_ENV"
+          echo "${RUNNER_TEMP}" >> "$GITHUB_PATH"
+          # Verify
+          "${RUNNER_TEMP}/awscurl" --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable" >&2; exit 1; }
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -242,8 +254,6 @@ jobs:
           aws-region: ${{ vars.CD_SIGNER_REGION }}
 
       - name: Sign fme-mcp via CD Signer (executables path)
-        env:
-          PYTHON_BIN: ${{ steps.install-deps.outputs.python-bin }}
         run: ./.github/workflows/scripts/sign-mcp-macos.sh
 
       - name: Upload signed fme-mcp

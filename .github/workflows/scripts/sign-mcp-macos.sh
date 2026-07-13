@@ -9,13 +9,8 @@
 # Requires: awscurl installed in the active Python (python3 -m awscurl).
 set -euo pipefail
 
-# Wrapper function to invoke awscurl via the explicit Python binary from setup-python,
-# avoiding conflicts with stale system-installed versions on macOS GitHub runners.
-# PYTHON_BIN is set by the workflow's install-deps step.
-PYTHON="${PYTHON_BIN:-python3}"
-awscurl() {
-  "${PYTHON}" -m awscurl "$@"
-}
+# awscurl is expected on PATH (installed by the workflow's install-deps step
+# into an isolated directory with a wrapper script).
 
 rm -rf mcp-pkg mcp-signed
 mkdir -p mcp-pkg/EXECUTABLES_TO_SIGN
