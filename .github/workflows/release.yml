@@ -229,6 +229,7 @@ jobs:
           set -euo pipefail
           brew install gnu-tar
           python3 -m pip install --upgrade awscurl
+          python3 -m awscurl --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable" >&2; exit 1; }
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4

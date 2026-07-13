@@ -6,7 +6,11 @@
 #   BUCKET_ACCESS_ROLE, APPLE_TEAM_ID, ARCH
 #
 # Expected: unsigned/fme-mcp exists in the current working directory.
+# Requires: awscurl installed in the active Python (python3 -m awscurl).
 set -euo pipefail
+
+# Use python3 -m awscurl to avoid PATH conflicts with system Python on macOS runners.
+AWSCURL="python3 -m awscurl"
 
 rm -rf mcp-pkg mcp-signed
 mkdir -p mcp-pkg/EXECUTABLES_TO_SIGN
@@ -49,7 +53,7 @@ TASK_ID=""
 DELAY=15
 MAX_DELAY=120
 for attempt in 1 2 3 4 5 6; do
-  RESP=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X POST \
+  RESP=$(${AWSCURL} --service signer-builder-tools --region "$AWS_REGION" -X POST \
     --header "Content-Type: application/json" --data @manifest.json \
     "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1) || true
   echo "----- response (attempt ${attempt}) -----"
@@ -70,7 +74,7 @@ echo "Created sign-task: ${TASK_ID}"
 
 # --- Poll until terminal ---
 for i in $(seq 1 90); do
-  R=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X GET \
+  R=$(${AWSCURL} --service signer-builder-tools --region "$AWS_REGION" -X GET \
     --header "Content-Type: application/json" \
     "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${TASK_ID}")
   S=$(printf '%s' "$R" | jq -r '.status // "unknown"')
