@@ -67,6 +67,66 @@ jobs:
           build-version: ${{ inputs.version || github.ref_name }}
 
   # ---------------------------------------------------------------------------
+  # MCP server binary build (fme-mcp)
+  #
+  # Builds the standalone MCP server binary for all platforms. macOS and Windows
+  # binaries are fed into the signing chains below.
+  # ---------------------------------------------------------------------------
+  build-mcp:
+    needs: [generate-protobuf]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac
+            architecture: x64
+            runner: macos-15-intel
+            goos: darwin
+            goarch: amd64
+          - platform: mac
+            architecture: arm64
+            runner: macos-latest
+            goos: darwin
+            goarch: arm64
+          - platform: win
+            architecture: x64
+            runner: windows-latest
+            goos: windows
+            goarch: amd64
+          - platform: linux
+            architecture: x64
+            runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - platform: linux
+            architecture: arm64
+            runner: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/download-protobuf
+      - name: Build fme-mcp
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          BUILD_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          cd src/cli
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X \"main.Version=v${BUILD_VERSION}\"" \
+            -o "../../dist/fme-mcp${{ matrix.goos == 'windows' && '.exe' || '' }}" \
+            mcp-main.go
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mcp-${{ matrix.platform }}-${{ matrix.architecture }}
+          path: dist/fme-mcp*
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
   # macOS code signing (CD Signer) + notarization (Apple notary)
   #
   # Gated behind the `MACOS_SIGNING_ENABLED` repository variable so releases keep
@@ -122,6 +182,71 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
   # ---------------------------------------------------------------------------
+  # MCP server macOS code signing (CD Signer, executables path)
+  #
+  # Signs the standalone fme-mcp binary using the same CD Signer infrastructure as
+  # the main app. Uses the executables path (bare Mach-O, not a .app bundle) with
+  # identifier com.amazon.filemoverexpress.mcp.
+  # ---------------------------------------------------------------------------
+  sign-mcp-macos:
+    needs: [build-mcp]
+    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        architecture: [x64, arm64]
+    runs-on: macos-15
+    timeout-minutes: 30
+    environment: signing
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: ${{ vars.CD_SIGNER_REGION }}
+      CD_SIGNER_API_BASE_URL: ${{ vars.CD_SIGNER_API_BASE_URL }}
+      SIGNING_BUCKET: ${{ vars.MACOS_SIGNING_BUCKET }}
+      BUNDLE_ID: ${{ vars.MACOS_BUNDLE_ID }}
+      BUCKET_ACCESS_ROLE: ${{ secrets.CD_SIGNER_BUCKET_ACCESS_ROLE }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ARCH: ${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download unsigned fme-mcp
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-mac-${{ matrix.architecture }}
+          path: ./unsigned
+
+      - name: Set up Python for awscurl
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install signing dependencies
+        run: |
+          set -euo pipefail
+          brew install gnu-tar
+          python3 -m pip install --upgrade awscurl
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_MACOS_SIGNING_ROLE_ARN }}
+          aws-region: ${{ vars.CD_SIGNER_REGION }}
+
+      - name: Sign fme-mcp via CD Signer (executables path)
+        run: ./.github/workflows/scripts/sign-mcp-macos.sh
+
+      - name: Upload signed fme-mcp
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-mcp-mac-${{ matrix.architecture }}
+          path: signed-fme-mcp
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
   # Windows code signing (AWS Code Signer / Wallaby, Authenticode)
   #
   # Gated behind the `WINDOWS_SIGNING_ENABLED` repository variable so releases keep
@@ -154,5 +279,24 @@ jobs:
       artifact-name: installer-win-${{ matrix.architecture }}
       exe-filename: FileMoverExpressUI-${{ matrix.nsis-arch }}-installer.exe
     # Pass only the secret sign-windows.yml declares (not `secrets: inherit`).
+    secrets:
+      AWS_SIGNING_ROLE_ARN: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
+
+  # ---------------------------------------------------------------------------
+  # MCP server Windows code signing (Wallaby / AWS Code Signer, Authenticode)
+  #
+  # Reuses the existing sign-windows.yml reusable workflow. Signs fme-mcp.exe using the
+  # same Authenticode profile as the main installer.
+  # ---------------------------------------------------------------------------
+  sign-mcp-windows:
+    needs: [build-mcp]
+    if: ${{ !cancelled() && vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/sign-windows.yml
+    with:
+      artifact-name: mcp-win-x64
+      exe-filename: fme-mcp.exe
     secrets:
       AWS_SIGNING_ROLE_ARN: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
