@@ -3,14 +3,45 @@
 #
 # Expected environment variables:
 #   AWS_REGION, CD_SIGNER_API_BASE_URL, SIGNING_BUCKET, BUNDLE_ID,
-#   BUCKET_ACCESS_ROLE, APPLE_TEAM_ID, ARCH
+#   BUCKET_ACCESS_ROLE, APPLE_TEAM_ID, ARCH,
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (from OIDC)
 #
 # Expected: unsigned/fme-mcp exists in the current working directory.
-# Requires: awscurl installed in the active Python (python3 -m awscurl).
+# Requires: python3 with requests + botocore installed.
 set -euo pipefail
 
-# awscurl is expected on PATH (installed by the workflow's install-deps step
-# into an isolated directory with a wrapper script).
+# --- sigv4_request: a Python helper replacing awscurl ---
+# awscurl is broken on macOS arm64 GitHub runners (system site-packages conflict).
+# This uses botocore's SigV4 signer directly.
+sigv4_request() {
+  local method="$1" url="$2" body="${3:-}"
+  python3 - "$method" "$url" "$body" <<'PYTHON'
+import sys, os, json
+import requests
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+from botocore.credentials import Credentials
+
+method, url, body = sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else ""
+region = os.environ["AWS_REGION"]
+credentials = Credentials(
+    os.environ["AWS_ACCESS_KEY_ID"],
+    os.environ["AWS_SECRET_ACCESS_KEY"],
+    os.environ.get("AWS_SESSION_TOKEN", ""),
+)
+headers = {"Content-Type": "application/json"}
+request = AWSRequest(method=method, url=url, data=body, headers=headers)
+SigV4Auth(credentials, "signer-builder-tools", region).add_auth(request)
+response = requests.request(
+    method=method,
+    url=url,
+    headers=dict(request.headers),
+    data=body,
+    timeout=30,
+)
+print(response.text)
+PYTHON
+}
 
 rm -rf mcp-pkg mcp-signed
 mkdir -p mcp-pkg/EXECUTABLES_TO_SIGN
@@ -53,9 +84,7 @@ TASK_ID=""
 DELAY=15
 MAX_DELAY=120
 for attempt in 1 2 3 4 5 6; do
-  RESP=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X POST \
-    --header "Content-Type: application/json" --data @manifest.json \
-    "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" 2>&1) || true
+  RESP=$(sigv4_request POST "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks" "$(cat manifest.json)" 2>&1) || true
   echo "----- response (attempt ${attempt}) -----"
   echo "$RESP"
   echo "-----"
@@ -74,9 +103,7 @@ echo "Created sign-task: ${TASK_ID}"
 
 # --- Poll until terminal ---
 for i in $(seq 1 90); do
-  R=$(awscurl --service signer-builder-tools --region "$AWS_REGION" -X GET \
-    --header "Content-Type: application/json" \
-    "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${TASK_ID}")
+  R=$(sigv4_request GET "${CD_SIGNER_API_BASE_URL}/v2/sign-tasks/${TASK_ID}")
   S=$(printf '%s' "$R" | jq -r '.status // "unknown"')
   echo "Poll ${i}: ${S}"
   case "$S" in
