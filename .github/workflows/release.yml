@@ -225,11 +225,15 @@ jobs:
           python-version: '3.12'
 
       - name: Install signing dependencies
+        id: install-deps
         run: |
           set -euo pipefail
           brew install gnu-tar
-          python3 -m pip install --upgrade awscurl
-          python3 -m awscurl --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable" >&2; exit 1; }
+          PYTHON_BIN="$(which python3)"
+          echo "Using Python at: ${PYTHON_BIN}"
+          "${PYTHON_BIN}" -m pip install --upgrade --force-reinstall awscurl
+          "${PYTHON_BIN}" -m awscurl --help >/dev/null 2>&1 || { echo "ERROR: awscurl not runnable" >&2; exit 1; }
+          echo "python-bin=${PYTHON_BIN}" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -238,6 +242,8 @@ jobs:
           aws-region: ${{ vars.CD_SIGNER_REGION }}
 
       - name: Sign fme-mcp via CD Signer (executables path)
+        env:
+          PYTHON_BIN: ${{ steps.install-deps.outputs.python-bin }}
         run: ./.github/workflows/scripts/sign-mcp-macos.sh
 
       - name: Upload signed fme-mcp
