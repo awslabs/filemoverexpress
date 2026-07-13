@@ -10,6 +10,13 @@
 # Requires: python3 with requests + botocore installed.
 set -euo pipefail
 
+# Strip stray whitespace/newlines from env vars (GitHub variable textarea can add CRLF)
+CD_SIGNER_API_BASE_URL=$(printf '%s' "$CD_SIGNER_API_BASE_URL" | tr -d '[:space:]')
+SIGNING_BUCKET=$(printf '%s' "$SIGNING_BUCKET" | tr -d '[:space:]')
+BUNDLE_ID=$(printf '%s' "$BUNDLE_ID" | tr -d '[:space:]')
+AWS_REGION=$(printf '%s' "$AWS_REGION" | tr -d '[:space:]')
+export CD_SIGNER_API_BASE_URL SIGNING_BUCKET BUNDLE_ID AWS_REGION
+
 # --- sigv4_request: a Python helper replacing awscurl ---
 # awscurl is broken on macOS arm64 GitHub runners (system site-packages conflict).
 # This uses botocore's SigV4 signer directly.
