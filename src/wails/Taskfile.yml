@@ -4,12 +4,22 @@ vars:
   APP_NAME: "FileMoverExpressUI"
   BIN_DIR: "../../dist"
   VITE_PORT: '{{.WAILS_VITE_PORT | default 4200}}'
+  BUILD_VERSION: '{{.BUILD_VERSION | default "0.0.0-local-dev"}}'
 
 includes:
   common: ./build/Taskfile.yml
-  windows: ./build/windows/Taskfile.yml
-  darwin: ./build/darwin/Taskfile.yml
-  linux: ./build/linux/Taskfile.yml
+  windows:
+    taskfile: ./build/windows/Taskfile.yml
+    vars:
+      BUILD_VERSION: '{{.BUILD_VERSION}}'
+  darwin:
+    taskfile: ./build/darwin/Taskfile.yml
+    vars:
+      BUILD_VERSION: '{{.BUILD_VERSION}}'
+  linux:
+    taskfile: ./build/linux/Taskfile.yml
+    vars:
+      BUILD_VERSION: '{{.BUILD_VERSION}}'
 
 tasks:
   build:
