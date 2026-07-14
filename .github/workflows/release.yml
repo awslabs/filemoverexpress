@@ -533,25 +533,81 @@ jobs:
           name: File Mover Express ${{ env.VERSION }}
           draft: false
           prerelease: ${{ steps.prerelease.outputs.is_prerelease == 'true' }}
-          generate_release_notes: true
+          generate_release_notes: false
           files: release-assets/*
           fail_on_unmatched_files: false
           body: |
-            ## Installation
+            ## Features
 
-            | Platform | Architecture | Download |
-            |----------|-------------|----------|
-            | macOS | Apple Silicon (arm64) | `.dmg` |
-            | macOS | Intel (x64) | `.dmg` |
-            | Windows | x64 | `.exe` installer |
-            | Windows | arm64 | `.exe` installer |
-            | Linux | — | Build from source (see [docs](docs/Installation.md)) |
+            **High-Performance S3 Transfers**
+            - Auto-tuned parallel transfers using native S3 APIs with no intermediary servers
+            - Multipart upload/download with configurable chunk sizes and retry on failure
+            - Pause, resume, and cancel active transfers
+            - Transfer priority scheduling and job queue management
 
-            ### MCP Server (fme-mcp)
+            **Desktop Application**
+            - Native desktop app for macOS (Apple Silicon + Intel) and Windows (x64 + arm64)
+            - Drag-and-drop file management between local filesystem and S3
+            - Real-time transfer progress, speed, and ETA display
+            - File browser for both local and S3 with search and filtering
 
-            Standalone MCP server binaries are included for all platforms. See
-            [MCP documentation](docs/MCP.md) for setup instructions.
+            **Hot Folders**
+            - Monitor local directories for new files and automatically upload to S3
+            - Configurable inclusion/exclusion filters and deduplication
 
-            > **Note:** Linux desktop app is not distributed as a pre-built binary.
-            > See the [Installation guide](docs/Installation.md) for build-from-source
-            > instructions.
+            **Checksums & Media Integrity**
+            - XXH3, XXHash64, XXHash, and MD5 checksum algorithms
+            - MHL (Media Hash List) support for camera-to-cloud verification workflows
+            - Post-transfer integrity verification
+
+            **Remote Daemon Architecture**
+            - Run the transfer engine on any machine (workstation, server, or EC2 instance)
+            - Control remotely from the GUI or CLI over an encrypted ConnectRPC connection
+            - Transfer profiles for managing multiple daemon connections
+
+            **Command-Line Interface**
+            - Full CLI for scripting, automation, and headless environments
+            - All GUI features accessible via command line
+            - Scriptable job control (start, pause, resume, cancel)
+
+            **MCP Server (fme-mcp)**
+            - Standalone [Model Context Protocol](https://modelcontextprotocol.io/) server for AI-assisted file transfers
+            - 9 tools: connect, browse local/S3, start upload/download, pause, resume, cancel, list jobs
+            - Supports stdio and streamable-http transports
+            - Enables AI coding assistants to manage S3 transfers directly
+
+            **Security**
+            - All transfers over HTTPS
+            - AWS IAM integration for authentication and authorization
+            - macOS builds signed with Apple Developer ID and notarized
+            - Windows installers Authenticode-signed
+
+            **Cross-Platform**
+            - macOS: Apple Silicon (arm64) and Intel (x64)
+            - Windows: x64 and arm64
+            - Linux: x64 and arm64 (build from source, or use CLI/MCP binaries)
+
+            ---
+
+            ## Downloads
+
+            | Platform | Architecture | Asset |
+            |----------|-------------|-------|
+            | macOS | Apple Silicon (arm64) | `FileMoverExpressUI-arm64.dmg` |
+            | macOS | Intel (x64) | `FileMoverExpressUI-x64.dmg` |
+            | Windows | x64 | `FileMoverExpressUI-amd64-installer.exe` |
+            | Windows | arm64 | `FileMoverExpressUI-arm64-installer.exe` |
+
+            ### MCP Server Binaries
+
+            | Platform | Architecture | Asset |
+            |----------|-------------|-------|
+            | macOS | Apple Silicon | `fme-mcp-darwin-arm64` |
+            | macOS | Intel | `fme-mcp-darwin-amd64` |
+            | Windows | x64 | `fme-mcp-windows-amd64.exe` |
+            | Linux | x64 | `fme-mcp-linux-amd64` |
+            | Linux | arm64 | `fme-mcp-linux-arm64` |
+
+            > **Linux desktop app** is not distributed as a pre-built binary due to
+            > native dependencies. See the [Installation guide](docs/Installation.md)
+            > for build-from-source instructions.
