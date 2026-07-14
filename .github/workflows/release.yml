@@ -188,10 +188,14 @@ jobs:
   # Signs the standalone fme-mcp binary using the same CD Signer infrastructure as
   # the main app. Uses the executables path (bare Mach-O, not a .app bundle) with
   # identifier com.amazon.filemoverexpress.mcp.
+  #
+  # Gated behind `MCP_SIGNING_ENABLED` (separate from MACOS_SIGNING_ENABLED) because
+  # the MCP bundle ID requires its own signing permissions in the CD Signer bindle.
+  # Set the variable to 'true' once the permissions are granted.
   # ---------------------------------------------------------------------------
   sign-mcp-macos:
     needs: [build-mcp]
-    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
+    if: ${{ !cancelled() && vars.MCP_SIGNING_ENABLED == 'true' }}
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -288,10 +292,14 @@ jobs:
   #
   # Reuses the existing sign-windows.yml reusable workflow. Signs fme-mcp.exe using the
   # same Authenticode profile as the main installer.
+  #
+  # Gated behind `MCP_SIGNING_ENABLED` (separate from WINDOWS_SIGNING_ENABLED) because
+  # the MCP signing profile may require separate permissions. Set the variable to 'true'
+  # once the permissions are granted.
   # ---------------------------------------------------------------------------
   sign-mcp-windows:
     needs: [build-mcp]
-    if: ${{ !cancelled() && vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+    if: ${{ !cancelled() && vars.MCP_SIGNING_ENABLED == 'true' }}
     permissions:
       id-token: write
       contents: read
