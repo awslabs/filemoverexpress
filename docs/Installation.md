@@ -11,6 +11,10 @@ Download the latest installer for your platform from the [Releases page](https:/
 | Windows | `File Mover Express-win32-x64-setup.exe` |
 | Linux | `File Mover Express-linux-x64.AppImage` |
 
+> **Headless / server deployments:** If you need to run File Mover Express on a Linux server
+> without a desktop environment (render farms, cloud instances, remote daemon), see the
+> [Headless Linux Installation](Headless-Linux-Installation.md) guide instead.
+
 > **Note on code signing:** macOS `.dmg` releases are signed with an **Apple Developer ID
 > Application** certificate belonging to Amazon's Apple Developer team (**AMZN Mobile LLC**, Apple
 > **Team ID `94KV3E626L`**) and **notarized** by Apple, so they install and launch without a

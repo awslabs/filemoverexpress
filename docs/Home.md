@@ -6,6 +6,7 @@ File Mover Express for AWS is a solution designed to accelerate media asset tran
 
 - [Getting Started](Getting-Started)
 - [Installation](Installation)
+- [Headless Linux Installation](Headless-Linux-Installation)
 - [Configuration](Configuration)
 - [Using the GUI](Using-the-GUI)
 - [Using the CLI](Using-the-CLI)
