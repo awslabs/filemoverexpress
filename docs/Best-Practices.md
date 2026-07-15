@@ -175,7 +175,7 @@ To maximize benefits from File Mover Express, follow these recommended practices
 - Consider VPN for additional security layer
 
 **Blocked Paths:**
-- Configure `api_server.blocked_paths` to restrict access
+- Configure `apiServer.blockedPaths` to restrict access
 - Default blocks include `.aws`, `.filemoverexpress`, system directories
 - Use absolute paths for specific restrictions
 - Test path blocking thoroughly

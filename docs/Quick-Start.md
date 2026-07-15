@@ -155,30 +155,30 @@ Now you're ready to transfer files!
 ### Pre-Configure Settings
 Create a `configuration.yaml` file with your settings:
 ```yaml
-api_server:
-  blocked_paths:
+apiServer:
+  blockedPaths:
     - .aws
     - .filemoverexpress
     - /dev
     - /etc
   enabled: true  # Required for GUI functionality
   permissions:
-    allow_local_rename_delete: false
-    allow_remote_rename_delete: false
-    allow_ui_configuration: false
+    allowLocalRenameDelete: false
+    allowRemoteRenameDelete: false
+    allowUIConfiguration: false
   remote:
     enabled: false
   tls:
     enabled: false
 
 general:
-  max_active_checksums: 11
-  max_active_transfers: 10
+  maxActiveChecksums: 11
+  maxActiveTransfers: 10
   no_sleep: false
   retry_count: 3
   target_bandwidth: 0
 
-hot_folders: []
+hotFolders: []
 
 logging:
   compress: true
@@ -189,27 +189,27 @@ logging:
 
 protocols:
   s3:
-    transfer_profiles:
+    transferProfiles:
       your-config-name:  # CHANGE: Choose a unique profile name
         accelerated: false
-        auto_tuning: true
+        autoTuning: true
         bucket: "your-studio-bucket"  # CHANGE: Your actual S3 bucket name
         checksums:
           algorithm: none  # Default: off (admin can enable if needed)
           enabled: false   # Default: off (admin can enable if needed)
-        chunk_size: 25
-        enable_metadata_filter: true
+        chunkSize: 25
+        enableMetadataFilter: true
         endpoint: ""
-        file_order: []
+        fileOrder: []
         filter: ""
-        max_age: ""
+        maxAge: ""
         name: "Your Studio Name"  # CHANGE: Display name for users
         paths:
           local: ""
           remote: ""
         profile: "your-aws-profile"  # CHANGE: AWS CLI profile name
         region: "us-west-2"  # CHANGE: Your AWS region
-        storage_class: "standard"  # CHANGE: Choose storage class (standard, glacier, etc.)
+        storageClass: "standard"  # CHANGE: Choose storage class (standard, glacier, etc.)
         threads: 10
 
 reports:
@@ -233,8 +233,8 @@ Before distributing, update these required fields:
   - `xxh3`: **Fastest** - Recommended for most users
   - `xxhash` or `xxhash64`: **Fast** - Good balance of speed and reliability
   - `md5-hex`: **Slowest** - Legacy option, can significantly impact transfer speeds
-- `max_active_transfers: 10`: Adjust based on your network capacity
-- `max_active_checksums: 11`: Adjust based on CPU capacity
+- `maxActiveTransfers: 10`: Adjust based on your network capacity
+- `maxActiveChecksums: 11`: Adjust based on CPU capacity
 
 ### Performance Considerations
 

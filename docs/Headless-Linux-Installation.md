@@ -54,14 +54,14 @@ mkdir -p ~/.filemoverexpress
 Create `~/.filemoverexpress/configuration.yaml`:
 
 ```yaml
-transfer_profiles:
-  - name: my-studio
-    aws_profile: my-studio
+transferProfiles:
+  my-studio:
+    profile: my-studio
     bucket: your-bucket-name
     region: us-west-2
-    remote_configurations:
-      - remote_configuration_name: rushes
-        s3_destination_folder: incoming/rushes
+    remoteConfigurations:
+      - remoteConfigurationName: rushes
+        s3DestinationFolder: incoming/rushes
 ```
 
 See [Configuration](Configuration.md) for all available options including checksums, bandwidth throttling, and hot folders.

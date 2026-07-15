@@ -173,7 +173,7 @@ In the Jobs tab, you can:
 - Enable S3 Transfer Acceleration if geographically distant
 
 ### GUI Won't Connect
-- Ensure `api_server.enabled` is `true` in configuration
+- Ensure `apiServer.enabled` is `true` in configuration
 - Restart File Mover Express daemon
 - Check for port conflicts (default: 50005)
 

@@ -40,7 +40,7 @@ filemoverexpress support-file
 
 1. **Check API Server Configuration**
    - Open configuration file: `~/.filemoverexpress/configuration.yaml`
-   - Verify `api_server.enabled` is set to `true`
+   - Verify `apiServer.enabled` is set to `true`
    - If missing or `false`, GUI cannot communicate with CLI
 
 2. **Restart the Daemon**
@@ -117,8 +117,8 @@ ExpiredToken: The provided token has expired.
    ```yaml
    protocols:
      s3:
-       transfer_profiles:
-         - name: "my-config"
+       transferProfiles:
+         my-config:
            bucket: "my-bucket"
            region: "us-west-2"
            profile: "my-aws-profile"
@@ -255,7 +255,7 @@ ExpiredToken: The provided token has expired.
    ```
 
 2. **Limit Checksum Operations**
-   - Reduce `max_active_checksums` in configuration
+   - Reduce `maxActiveChecksums` in configuration
    - Consider disabling checksums for non-critical transfers
    - Use faster checksum algorithms (XXH3 vs MD5)
 
@@ -274,12 +274,12 @@ ExpiredToken: The provided token has expired.
 
 2. **Verify Configuration**
    ```yaml
-   hot_folders:
+   hotFolders:
      - enabled: true  # Must be true
-       local_source_folder: /full/path/to/folder  # Must be absolute path
+       localSourceFolder: /full/path/to/folder  # Must be absolute path
        name: unique_name
-       remote_configurations:
-         - remote_configuration_name: valid_config_name
+       remoteConfigurations:
+         - remoteConfigurationName: valid_config_name
    ```
 
 3. **Check Permissions**
@@ -313,16 +313,16 @@ ExpiredToken: The provided token has expired.
 
 3. **Validate Configuration**
    ```yaml
-   api_server:
+   apiServer:
      remote:
        enabled: true
        key: "secure-key"
-       ports: 50006
+       ports: [50006]
        address: "0.0.0.0"
      tls:
        enabled: true
-       certificate_file: "/path/to/cert.pem"
-       key_file: "/path/to/key.pem"
+       certificateFile: "/path/to/cert.pem"
+       keyFile: "/path/to/key.pem"
    ```
 
 ### Remote Daemon Performance Issues
