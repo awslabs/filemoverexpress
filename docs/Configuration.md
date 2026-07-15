@@ -227,6 +227,61 @@ filemoverexpress crypto decrypt
 - The `key` field in the config must contain the **encrypted output** from `crypto encrypt`, not your raw password
 - The `blocked_paths` list is a good way to prevent remote users from accessing sensitive folders on the host machine
 
+#### Connecting from the GUI
+
+Once the remote daemon is running, connect to it from the File Mover Express desktop app on another machine.
+
+**Step 1 — Trust the daemon's TLS certificate on your local machine**
+
+The GUI uses HTTPS to connect to the remote daemon. If the daemon uses a self-signed certificate (common for internal servers), your local machine must trust it or the connection will fail silently.
+
+Copy the certificate from the daemon machine to your local machine, then:
+
+**macOS:**
+```bash
+# Copy cert from remote (e.g., via scp)
+scp user@remote-host:/etc/fme/cert.pem ~/Desktop/fme-cert.pem
+
+# Add to Keychain and trust it
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain ~/Desktop/fme-cert.pem
+```
+
+Alternatively, double-click the `.pem` file to open it in Keychain Access, then right-click → Get Info → Trust → set "When using this certificate" to **Always Trust**.
+
+**Windows:**
+1. Rename the `.pem` file to `.crt`
+2. Double-click it → Install Certificate → Local Machine → Place in "Trusted Root Certification Authorities"
+
+> If you skip this step, the GUI will show "An unexpected connection error occurred" with no further details.
+
+**Step 2 — Add the daemon in the GUI**
+
+1. Open File Mover Express on your local machine
+2. Click the daemon selector dropdown (top-left, shows "Local" by default)
+3. Click **Add Daemon**
+4. Fill in the fields:
+   - **Name**: A label for this connection (e.g., "Render Farm", "EC2 Server")
+   - **Host**: The IP address or hostname of the remote machine
+   - **Port**: The port the daemon is listening on (default: `50006`)
+   - **Key**: Your **plaintext pre-shared key** — the raw password you chose in Step 1 of the daemon setup (NOT the encrypted value from the config file)
+5. **Use encryption (TLS)** will be enabled automatically (required for remote daemons)
+6. Click **Save**
+
+**Step 3 — Connect**
+
+Select the new daemon from the dropdown. The GUI will connect and you'll see the remote machine's local filesystem on the left and S3 on the right, just like a local session.
+
+#### Troubleshooting remote connections
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| "An unexpected connection error occurred" | TLS certificate not trusted locally | Install the daemon's cert on your machine (see Step 1 above) |
+| "An unexpected connection error occurred" | Firewall blocking the port | Open port 50006 (or your configured port) in the security group / firewall |
+| "No Active Session" after clicking Connect | Wrong host, port, or daemon not running | Verify the daemon is running on the remote machine (`ps aux \| grep filemoverexpress`) |
+| Connection drops intermittently | Network timeout or unstable connection | Check network path; consider a stable VPN or direct connection |
+| "Authentication failed" | Wrong pre-shared key | Enter the **plaintext** password, not the encrypted value from the config |
+
 ## Validating Configuration
 
 After configuring File Mover Express, validate your setup:
