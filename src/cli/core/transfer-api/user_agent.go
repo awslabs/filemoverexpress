@@ -30,7 +30,7 @@ func buildUserAgentMiddleware() middleware.BuildMiddleware {
 		}
 
 		var userAgent = fmt.Sprintf(
-			"S3A/FME-AWS/%s",
+			"FME-AWS/%s",
 			version,
 		)
 
