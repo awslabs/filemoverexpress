@@ -42,6 +42,7 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		ShouldQuit: fmeApp.ShouldQuit,
 	})
 
 	//app.Menu.Set(createMenu(app))
