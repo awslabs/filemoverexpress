@@ -319,18 +319,22 @@
         <section>
             <h2>Key</h2>
             <p>
-                The key used to connect to the daemon. It must match the key set for <code>api_server.remote.key</code>
-                in the configuration file on the daemon's machine.
+                The plaintext pre-shared key (password) used to authenticate with the daemon. This is the raw
+                password you chose when setting up remote access — <strong>not</strong> the encrypted value stored
+                in the daemon's configuration file. The daemon decrypts its stored key at startup and compares it
+                to what you enter here.
             </p>
         </section>
         <section>
             <h2>Use encryption (TLS)</h2>
             <p>
-                This must be enabled to connect to a daemon running on a machine with
-                <code>api_server.tls_enabled</code>
-                set to true in its configuration file, which indicates that the daemon is running using TLS instead of
-                HTTPS.
-                This must be enabled for all remote daemons, but is not required for the local daemon.
+                Enables HTTPS for the connection to the remote daemon. This must be enabled for all remote daemons
+                (the daemon requires <code>apiServer.tls.enabled: true</code> for remote access).
+            </p>
+            <p>
+                If the daemon uses a self-signed TLS certificate, you must install and trust that certificate on
+                your local machine before connecting. On macOS, add it to Keychain Access and mark it as trusted.
+                On Windows, import it into the Trusted Root Certification Authorities store.
             </p>
         </section>
     </div>
