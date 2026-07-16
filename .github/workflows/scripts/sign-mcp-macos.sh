@@ -122,13 +122,14 @@ for i in $(seq 1 90); do
     *) sleep 10 ;;
   esac
 done
+[ "$S" = "success" ] || { echo "ERROR: sign-task timed out after 90 polls (status: $S)" >&2; exit 1; }
 
 # --- Download and extract signed binary ---
 mkdir -p mcp-signed
 aws s3 cp "s3://${SIGNING_BUCKET}/${OUT_KEY}" mcp-signed/out
 ( cd mcp-signed
-  if file out | grep -qi 'zip archive'; then ditto -x -k out .; else tar -xpf out 2>/dev/null || true; fi
-  [ -f artifact.gz ] && tar -xpf artifact.gz 2>/dev/null || true )
+  if file out | grep -qi 'zip archive'; then ditto -x -k out .; else tar -xpf out; fi
+  [ -f artifact.gz ] && tar -xpf artifact.gz )
 
 SIGNED=$(find mcp-signed -name fme-mcp -type f | head -n1)
 [ -n "$SIGNED" ] || { echo "ERROR: signed binary not found" >&2; find mcp-signed >&2; exit 1; }
