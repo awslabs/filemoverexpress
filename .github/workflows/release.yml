@@ -11,8 +11,7 @@ on:
         type: string
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   generate-protobuf:
@@ -224,7 +223,7 @@ jobs:
           name: mcp-mac-${{ matrix.architecture }}
           path: ./unsigned
 
-      - name: Set up Python for awscurl
+      - name: Set up Python for SigV4 signing
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -515,6 +514,10 @@ jobs:
             echo "ERROR: no release assets found — all upstream jobs may have failed" >&2
             exit 1
           fi
+          MCP_COUNT=$(find release-assets -type f -name "fme-mcp*" | wc -l)
+          if [ "$MCP_COUNT" -eq 0 ]; then
+            echo "::warning::No MCP server binaries in release assets. If build-mcp failed, this release will ship without the MCP server."
+          fi
 
       # ----- Create GitHub Release -----
       - name: Determine if prerelease
@@ -533,7 +536,7 @@ jobs:
           name: File Mover Express ${{ env.VERSION }}
           draft: false
           prerelease: ${{ steps.prerelease.outputs.is_prerelease == 'true' }}
-          generate_release_notes: false
+          generate_release_notes: true
           files: release-assets/*
           fail_on_unmatched_files: false
           body: |

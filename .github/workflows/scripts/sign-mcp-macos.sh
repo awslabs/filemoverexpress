@@ -122,13 +122,39 @@ for i in $(seq 1 90); do
     *) sleep 10 ;;
   esac
 done
+[ "$S" = "success" ] || { echo "ERROR: sign-task timed out after 90 polls (status: $S)" >&2; exit 1; }
 
 # --- Download and extract signed binary ---
 mkdir -p mcp-signed
 aws s3 cp "s3://${SIGNING_BUCKET}/${OUT_KEY}" mcp-signed/out
-( cd mcp-signed
-  if file out | grep -qi 'zip archive'; then ditto -x -k out .; else tar -xpf out 2>/dev/null || true; fi
-  [ -f artifact.gz ] && tar -xpf artifact.gz 2>/dev/null || true )
+
+echo "=== Downloaded signed output ==="
+file mcp-signed/out || true
+ls -la mcp-signed/out
+
+cd mcp-signed
+if file out | grep -qi 'zip archive'; then
+  echo "Extracting as zip via ditto"
+  ditto -x -k out .
+elif file out | grep -qi 'gzip\|tar'; then
+  echo "Extracting as tar/gzip"
+  tar -xzf out
+else
+  echo "Unknown archive format, attempting tar then ditto"
+  tar -xzf out 2>/dev/null || tar -xpf out 2>/dev/null || ditto -x -k out . 2>/dev/null || {
+    echo "ERROR: could not extract signed output" >&2; exit 1
+  }
+fi
+
+# CD Signer double-wraps: outer tar contains artifact.gz which contains the signed files
+if [ -f artifact.gz ]; then
+  echo "Unwrapping nested artifact.gz"
+  tar -xzf artifact.gz
+fi
+
+echo "=== Extracted tree ==="
+find . -type f | head -50
+cd ..
 
 SIGNED=$(find mcp-signed -name fme-mcp -type f | head -n1)
 [ -n "$SIGNED" ] || { echo "ERROR: signed binary not found" >&2; find mcp-signed >&2; exit 1; }
