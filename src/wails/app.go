@@ -146,15 +146,44 @@ func (a *FMEApp) FirstLaunchComplete() bool {
 // It emits an app-close event to the frontend and cancels the close to allow
 // the frontend to handle graceful shutdown.
 func (a *FMEApp) HandleBeforeClose(e *application.WindowEvent) {
-	now := time.Now()
-	cutoff := now.Add(-1 * time.Minute)
-	if a.closeEventSet != nil && !a.closeEventSet.Before(cutoff) {
+	if a.shouldAllowClose() {
 		// Allow close — don't cancel
 		return
 	}
+	a.emitAppClose()
+	e.Cancel()
+}
+
+// ShouldQuit is called by Wails when the application is about to terminate
+// (e.g. Cmd+Q on macOS). It emits an app-close event to the frontend and
+// returns false to cancel the quit, letting the frontend handle graceful
+// shutdown. Once the frontend finishes, it emits the 'closed' event which
+// triggers app.Quit() — at that point shouldAllowClose() returns true and
+// the quit proceeds.
+func (a *FMEApp) ShouldQuit() bool {
+	if a.shouldAllowClose() {
+		return true
+	}
+	a.emitAppClose()
+	return false
+}
+
+// shouldAllowClose returns true if a close/quit event was already emitted
+// within the last minute (meaning the frontend has been notified and the
+// second quit/close is the result of the frontend completing its shutdown
+// flow).
+func (a *FMEApp) shouldAllowClose() bool {
+	now := time.Now()
+	cutoff := now.Add(-1 * time.Minute)
+	return a.closeEventSet != nil && !a.closeEventSet.Before(cutoff)
+}
+
+// emitAppClose emits the app-close event to the frontend and records the
+// timestamp for deduplication.
+func (a *FMEApp) emitAppClose() {
+	now := time.Now()
 	a.app.Event.Emit(EventAppClose)
 	a.closeEventSet = &now
-	e.Cancel()
 }
 
 // systemOpen opens a file path using the platform-specific open command.

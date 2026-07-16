@@ -66,7 +66,7 @@ import { Bookmark } from '../bookmarks/bookmarks.classes';
 import { BookmarksService } from '../bookmarks/bookmarks.service';
 import { PanelLevel } from '../notifications/notifications.constants';
 import { NotificationsService } from '../notifications/notifications.service';
-import { authKey, backoffconnectionFactors } from './fme-client.constants';
+import { authKey, backoffconnectionFactors, initialConnectionGracePeriod } from './fme-client.constants';
 import { WailsService } from '@services/wails/wails.service';
 import {
     AlertEvent,
@@ -1057,7 +1057,11 @@ export class FmeClientService {
                             this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
                             return;
                         default:
-                            if (err.rawMessage !== 'Failed to fetch') {
+                            // Suppress the error notification during initial connection attempts
+                            // (e.g. when the daemon is still starting up). Only show after the
+                            // first few backoff retries have been exhausted to avoid alarming
+                            // users with a transient startup race condition.
+                            if (err.rawMessage !== 'Failed to fetch' && this.connectionAttempts >= initialConnectionGracePeriod) {
                                 this.notifications.error(
                                     'An unexpected connection error occurred. Attempting to reconnect. Clearing jobs table due to disconnection.');
                             }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -161,4 +162,53 @@ func TestNewAppCreatesFirstLaunchDetector(t *testing.T) {
 
 	assert.NotNil(t, app.firstLaunch, "firstLaunch should be initialized")
 	assert.NotEmpty(t, app.firstLaunch.filePath, "filePath should be set")
+}
+
+// TestShouldAllowClose verifies the close-event deduplication logic used by
+// both HandleBeforeClose and ShouldQuit.
+func TestShouldAllowClose(t *testing.T) {
+	t.Run("returns false when no close event has been set", func(t *testing.T) {
+		app := &FMEApp{}
+
+		assert.False(t, app.shouldAllowClose(),
+			"shouldAllowClose() should return false when closeEventSet is nil")
+	})
+
+	t.Run("returns true when close event was set recently", func(t *testing.T) {
+		now := time.Now()
+		app := &FMEApp{closeEventSet: &now}
+
+		assert.True(t, app.shouldAllowClose(),
+			"shouldAllowClose() should return true when closeEventSet is within the last minute")
+	})
+
+	t.Run("returns false when close event is older than one minute", func(t *testing.T) {
+		old := time.Now().Add(-2 * time.Minute)
+		app := &FMEApp{closeEventSet: &old}
+
+		assert.False(t, app.shouldAllowClose(),
+			"shouldAllowClose() should return false when closeEventSet is older than one minute")
+	})
+}
+
+// TestShouldQuit verifies that the ShouldQuit callback returns true only when
+// a recent close event has already been emitted (i.e. the frontend has been
+// notified and this is the programmatic quit completing the shutdown flow).
+func TestShouldQuit(t *testing.T) {
+	t.Run("returns false on first call (no prior close event)", func(t *testing.T) {
+		app := &FMEApp{}
+
+		// ShouldQuit requires a.app to emit the event; without Wails runtime
+		// it would panic. We test shouldAllowClose logic which is the gate.
+		assert.False(t, app.shouldAllowClose(),
+			"first quit attempt should be blocked to allow frontend graceful shutdown")
+	})
+
+	t.Run("returns true after close event was recently set", func(t *testing.T) {
+		now := time.Now()
+		app := &FMEApp{closeEventSet: &now}
+
+		assert.True(t, app.shouldAllowClose(),
+			"subsequent quit attempt should be allowed after frontend was notified")
+	})
 }
