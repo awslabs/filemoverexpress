@@ -158,8 +158,8 @@ export class ShutdownService implements OnDestroy {
                                 data: {
                                     cancelText: 'Leave running',
                                     confirmText: 'Stop daemon',
-                                    message: 'File Transfer can leave the daemon running in the background to complete pending transfers. Would you like File Transfer to leave the background process running?',
-                                    title: 'Stop Daemon?',
+                                    message: 'Leaving the daemon running will allow in-progress transfers and hot folders to continue to progress.',
+                                    title: 'Leave daemon running?',
                                     confirmClass: 'warn',
                                     confirmType: 'stroked',
                                 },

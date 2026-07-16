@@ -246,7 +246,7 @@ Connect to File Mover Express running on other machines:
 
 ### Connection Problems
 1. Check that daemon is running: `filemoverexpress daemon`
-2. Verify `api_server.enabled` is `true` in configuration
+2. Verify `apiServer.enabled` is `true` in configuration
 3. Restart File Mover Express if connection fails
 
 ### Performance Issues

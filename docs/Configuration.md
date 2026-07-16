@@ -60,29 +60,30 @@ If you aren't using an OS with a desktop, you can configure File Mover Express u
 
 2. **Define global settings** in the configuration file:
    ```yaml
-   max_active_checksums: 8  # Number of checksums processed simultaneously
-   max_active_transfers: 10  # Number of files processed simultaneously
+   general:
+     maxActiveChecksums: 8    # Number of checksums processed simultaneously
+     maxActiveTransfers: 10   # Number of files processed simultaneously
    ```
 
 3. **Define at least one remote configuration**:
    ```yaml
    protocols:
      s3:
-       transfer_profiles:
-         - name: "my-configuration"
+       transferProfiles:
+         my-configuration:
            bucket: "my-s3-bucket"
            region: "us-west-2"
            profile: "my-aws-profile"
-           storage_class: "standard"
-           auto_tuning: true
-           checksum_algorithm: "md5-hex"
+           storageClass: "standard"
+           autoTuning: true
+           checksums:
+             algorithm: "md5-hex"
    ```
 
 ### Configuration Parameters
 
 #### Required Parameters
 
-- **name**: Name for your remote configuration
 - **bucket**: S3 bucket name for uploads and downloads
 - **region**: AWS Region where your bucket is located
 - **profile**: AWS named profile for S3 access
@@ -90,21 +91,21 @@ If you aren't using an OS with a desktop, you can configure File Mover Express u
 #### Optional Parameters
 
 **Storage Settings:**
-- **storage_class**: Storage class for uploads (default: `standard`)
+- **storageClass**: Storage class for uploads (default: `standard`)
   - Accepted values: `reduced_redundancy`, `standard_ia`, `onezone_ia`, `intelligent_tiering`, `glacier`, `deep_archive`, `glacier_ir`
 
 **Performance Settings:**
-- **auto_tuning**: Automatically tune chunk size and threads (default: `true`)
-- **chunk_size**: Chunk size in MB (not required if auto_tuning is true)
-- **threads**: Number of threads per file (not required if auto_tuning is true)
+- **autoTuning**: Automatically tune chunk size and threads (default: `true`)
+- **chunkSize**: Chunk size in MB (not required if autoTuning is true)
+- **threads**: Number of threads per file (not required if autoTuning is true)
 
 **File Processing:**
-- **checksum_algorithm**: Algorithm for file integrity (default: `md5-hex`)
+- **checksums.algorithm**: Algorithm for file integrity (default: `md5-hex`)
   - Options: `md5-hex`, `xxhash`, `xxhash64`, `xxh3`
-- **max_age**: Only transfer files within time window (e.g., `2d`, `3500`)
-- **file_order**: Comma-separated file extensions for transfer priority (e.g., `".mov,.txt"`)
+- **maxAge**: Only transfer files within time window (e.g., `2d`, `3500`)
+- **fileOrder**: Comma-separated file extensions for transfer priority (e.g., `".mov,.txt"`)
 - **filter**: Regular expression for file filtering (e.g., `"^.*\.(mov)$"`)
-- **enable_metadata_filter**: Filter system metadata files (default: `false`)
+- **enableMetadataFilter**: Filter system metadata files (default: `false`)
 
 **Network Settings:**
 - **accelerated**: Use S3 Transfer Acceleration (default: `false`)
@@ -114,18 +115,21 @@ If you aren't using an OS with a desktop, you can configure File Mover Express u
   - **local**: Default local path for transfers
   - **remote**: Default S3 path for transfers
 
+> **Note:** Configuration keys use camelCase (e.g., `transferProfiles`, `storageClass`, `autoTuning`).
+> Snake_case variants like `transfer_profiles` or `storage_class` are **not** recognized and will be silently ignored.
+
 ### Hot Folder Configuration
 
 Configure hot folders to automatically upload files when they're added to monitored directories:
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /Users/user/myhotfolder
+    localSourceFolder: /Users/user/myhotfolder
     name: my_hot_folder
-    remote_configurations:
-      - remote_configuration_name: example_configuration
-        s3_destination_folder: my/s3/prefix
+    remoteConfigurations:
+      - remoteConfigurationName: my-configuration
+        s3DestinationFolder: my/s3/prefix
 ```
 
 ### Remote Daemon Configuration
@@ -145,6 +149,8 @@ When remote access is enabled, all communication is encrypted and protected by a
 **Step 1 — Choose a password for your connection**
 
 This is your pre-shared key. Pick something strong — at least 8 characters. You'll need it on both the host machine and any machine connecting to it.
+
+> **Important:** Use alphanumeric characters for both your password and your secret passphrase. Special characters like `$`, `!`, `#`, backticks, and quotes can be interpreted by the shell during interactive input or when setting environment variables, causing encryption/decryption mismatches. If you must use special characters, wrap values in single quotes (e.g., `export FME_PSK_SECRET='my$ecret'`).
 
 **Step 2 — Encrypt your password**
 
@@ -183,26 +189,26 @@ TLS certificates encrypt the connection between machines. Remote access requires
 #### Configuration reference
 
 ```yaml
-api_server:
+apiServer:
   enabled: true
   remote:
     enabled: true                  # Turn on remote access
     key: "<encrypted-psk>"         # Paste the encrypted value from Step 2
-    ports: 50006                   # Port to listen on
+    ports: [50006]                 # Port(s) to listen on (must be an array)
     address: "0.0.0.0"             # Listen on all network interfaces
   tls:
     enabled: true                  # Required for remote access
-    certificate_file: "/path/to/cert.pem"
-    key_file: "/path/to/key.pem"
-  blocked_paths:                   # Folders the remote user cannot access
+    certificateFile: "/path/to/cert.pem"
+    keyFile: "/path/to/key.pem"
+  blockedPaths:                    # Folders the remote user cannot access
     - ".aws"
     - ".ssh"
-  allowed_origins:                 # Origins allowed to connect (for CORS)
+  allowedOrigins:                  # Origins allowed to connect (for CORS)
     - "http://localhost:4200"      # Required if using ng serve for GUI development
   permissions:
-    allow_ui_configuration: false  # Allow remote user to change settings
-    allow_local_rename_delete: false   # Allow remote user to rename/delete local files
-    allow_remote_rename_delete: false  # Allow remote user to rename/delete S3 files
+    allowUIConfiguration: false    # Allow remote user to change settings
+    allowLocalRenameDelete: false  # Allow remote user to rename/delete local files
+    allowRemoteRenameDelete: false # Allow remote user to rename/delete S3 files
 ```
 
 #### If you need to recover your password
@@ -215,9 +221,66 @@ filemoverexpress crypto decrypt
 
 #### Tips
 
+- Use alphanumeric characters for your secret passphrase and PSK to avoid shell interpolation issues
 - Keep your secret passphrase somewhere safe — if you lose it, you'll need to re-encrypt your PSK
 - Never share your secret passphrase or commit it to version control
+- The `key` field in the config must contain the **encrypted output** from `crypto encrypt`, not your raw password
 - The `blocked_paths` list is a good way to prevent remote users from accessing sensitive folders on the host machine
+
+#### Connecting from the GUI
+
+Once the remote daemon is running, connect to it from the File Mover Express desktop app on another machine.
+
+**Step 1 — Trust the daemon's TLS certificate on your local machine**
+
+The GUI uses HTTPS to connect to the remote daemon. If the daemon uses a self-signed certificate (common for internal servers), your local machine must trust it or the connection will fail silently.
+
+Copy the certificate from the daemon machine to your local machine, then:
+
+**macOS:**
+```bash
+# Copy cert from remote (e.g., via scp)
+scp user@remote-host:/etc/fme/cert.pem ~/Desktop/fme-cert.pem
+
+# Add to Keychain and trust it
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain ~/Desktop/fme-cert.pem
+```
+
+Alternatively, double-click the `.pem` file to open it in Keychain Access, then right-click → Get Info → Trust → set "When using this certificate" to **Always Trust**.
+
+**Windows:**
+1. Rename the `.pem` file to `.crt`
+2. Double-click it → Install Certificate → Local Machine → Place in "Trusted Root Certification Authorities"
+
+> If you skip this step, the GUI will show "An unexpected connection error occurred" with no further details.
+
+**Step 2 — Add the daemon in the GUI**
+
+1. Open File Mover Express on your local machine
+2. Click the daemon selector dropdown (top-left, shows "Local" by default)
+3. Click **Add Daemon**
+4. Fill in the fields:
+   - **Name**: A label for this connection (e.g., "Render Farm", "EC2 Server")
+   - **Host**: The IP address or hostname of the remote machine
+   - **Port**: The port the daemon is listening on (default: `50006`)
+   - **Key**: Your **plaintext pre-shared key** — the raw password you chose in Step 1 of the daemon setup (NOT the encrypted value from the config file)
+5. **Use encryption (TLS)** will be enabled automatically (required for remote daemons)
+6. Click **Save**
+
+**Step 3 — Connect**
+
+Select the new daemon from the dropdown. The GUI will connect and you'll see the remote machine's local filesystem on the left and S3 on the right, just like a local session.
+
+#### Troubleshooting remote connections
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| "An unexpected connection error occurred" | TLS certificate not trusted locally | Install the daemon's cert on your machine (see Step 1 above) |
+| "An unexpected connection error occurred" | Firewall blocking the port | Open port 50006 (or your configured port) in the security group / firewall |
+| "No Active Session" after clicking Connect | Wrong host, port, or daemon not running | Verify the daemon is running on the remote machine (`ps aux \| grep filemoverexpress`) |
+| Connection drops intermittently | Network timeout or unstable connection | Check network path; consider a stable VPN or direct connection |
+| "Authentication failed" | Wrong pre-shared key | Enter the **plaintext** password, not the encrypted value from the config |
 
 ## Validating Configuration
 

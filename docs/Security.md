@@ -47,7 +47,7 @@ File Mover Express operates under AWS's shared responsibility model:
 - Access is protected by a password you choose (pre-shared key / PSK)
 - Your PSK is never stored in plain text — it must be encrypted before saving to the config file using `filemoverexpress crypto encrypt`
 - The daemon unlocks your PSK at startup using a secret passphrase you store as the `FME_PSK_SECRET` environment variable, keeping sensitive credentials out of config files
-- Use `blocked_paths` to prevent remote users from accessing sensitive folders on the host machine
+- Use `blockedPaths` to prevent remote users from accessing sensitive folders on the host machine
 - Use `permissions` to control what actions remote users are allowed to perform
 
 ## Security Best Practices
@@ -200,26 +200,26 @@ File Mover Express uses the following S3 and STS API calls. The policy below cov
 ### Secure Remote Daemon Configuration
 
 ```yaml
-api_server:
+apiServer:
   remote:
     enabled: true
     key: "<encrypted-psk>"  # Must be AES-GCM encrypted — use: filemoverexpress crypto encrypt
     address: "0.0.0.0"  # Or specific IP for restricted access
-    ports: 50006
+    ports: [50006]
   tls:
     enabled: true  # Required for remote daemon
-    certificate_file: "/path/to/cert.pem"
-    key_file: "/path/to/key.pem"
-  blocked_paths:
+    certificateFile: "/path/to/cert.pem"
+    keyFile: "/path/to/key.pem"
+  blockedPaths:
     - ".aws"
     - ".ssh"
     - "/etc"
     - "/root"
     - "sensitive-directory"
   permissions:
-    allow_ui_configuration: false  # Restrict configuration changes
-    allow_local_rename_delete: false  # Restrict file operations
-    allow_remote_rename_delete: false  # Restrict S3 operations
+    allowUIConfiguration: false  # Restrict configuration changes
+    allowLocalRenameDelete: false  # Restrict file operations
+    allowRemoteRenameDelete: false  # Restrict S3 operations
 ```
 
 ### TLS Certificate Setup

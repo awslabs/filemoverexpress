@@ -70,34 +70,34 @@ Edit your `configuration.yaml` file to add hot folder configurations:
 #### Basic Hot Folder
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /Users/user/myhotfolder
+    localSourceFolder: /Users/user/myhotfolder
     name: my_hot_folder
-    remote_configurations:
-      - remote_configuration_name: example_configuration
-        s3_destination_folder: my/s3/prefix
+    remoteConfigurations:
+      - remoteConfigurationName: example_configuration
+        s3DestinationFolder: my/s3/prefix
 ```
 
 #### Multiple Hot Folders
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /Media/drive
+    localSourceFolder: /Media/drive
     name: camera_footage
-    remote_configurations:
-      - remote_configuration_name: production_bucket
-        s3_destination_folder: camera-1/daily/
-      - remote_configuration_name: backup_bucket
-        s3_destination_folder: camera-1-backup/
+    remoteConfigurations:
+      - remoteConfigurationName: production_bucket
+        s3DestinationFolder: camera-1/daily/
+      - remoteConfigurationName: backup_bucket
+        s3DestinationFolder: camera-1-backup/
   
   - enabled: true
-    local_source_folder: /Users/editor/projects
+    localSourceFolder: /Users/editor/projects
     name: project_sync
-    remote_configurations:
-      - remote_configuration_name: work_bucket
-        s3_destination_folder: projects/active/
+    remoteConfigurations:
+      - remoteConfigurationName: work_bucket
+        s3DestinationFolder: projects/active/
 ```
 
 #### Configuration Parameters
@@ -105,15 +105,15 @@ hot_folders:
 | Parameter | Required | Description | Example |
 |-----------|----------|-------------|---------|
 | `enabled` | Yes | Enable/disable this hot folder | `true` |
-| `local_source_folder` | Yes | Full path to monitor | `/path/to/folder` |
+| `localSourceFolder` | Yes | Full path to monitor | `/path/to/folder` |
 | `name` | Yes | Unique identifier | `camera_uploads` |
-| `remote_configurations` | Yes | Array of S3 destinations | See examples below |
+| `remoteConfigurations` | Yes | Array of S3 destinations | See examples below |
 
 **Remote Configuration Parameters:**
 | Parameter | Required | Description | Example |
 |-----------|----------|-------------|---------|
-| `remote_configuration_name` | Yes | Name of S3 configuration | `my_bucket_config` |
-| `s3_destination_folder` | No | S3 prefix for uploads | `uploads/camera/` |
+| `remoteConfigurationName` | Yes | Name of S3 configuration | `my_bucket_config` |
+| `s3DestinationFolder` | No | S3 prefix for uploads | `uploads/camera/` |
 
 ## Usage Examples
 
@@ -122,15 +122,15 @@ hot_folders:
 **Scenario**: Automatically upload camera footage as it's captured
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /Volumes/CameraCard/DCIM
+    localSourceFolder: /Volumes/CameraCard/DCIM
     name: camera_auto_upload
-    remote_configurations:
-      - remote_configuration_name: production_footage
-        s3_destination_folder: daily-footage/
-      - remote_configuration_name: backup_storage
-        s3_destination_folder: camera-backup/
+    remoteConfigurations:
+      - remoteConfigurationName: production_footage
+        s3DestinationFolder: daily-footage/
+      - remoteConfigurationName: backup_storage
+        s3DestinationFolder: camera-backup/
 ```
 
 **Workflow:**
@@ -144,20 +144,20 @@ hot_folders:
 **Scenario**: Multiple cameras uploading to organized S3 structure
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /media/camera-A
+    localSourceFolder: /media/camera-A
     name: camera_a_uploads
-    remote_configurations:
-      - remote_configuration_name: project_bucket
-        s3_destination_folder: shoot-2024/camera-A/
+    remoteConfigurations:
+      - remoteConfigurationName: project_bucket
+        s3DestinationFolder: shoot-2024/camera-A/
   
   - enabled: true
-    local_source_folder: /media/camera-B
+    localSourceFolder: /media/camera-B
     name: camera_b_uploads
-    remote_configurations:
-      - remote_configuration_name: project_bucket
-        s3_destination_folder: shoot-2024/camera-B/
+    remoteConfigurations:
+      - remoteConfigurationName: project_bucket
+        s3DestinationFolder: shoot-2024/camera-B/
 ```
 
 ### Post-Production Sync
@@ -165,15 +165,15 @@ hot_folders:
 **Scenario**: Automatically sync edited content to cloud storage
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /projects/current/exports
+    localSourceFolder: /projects/current/exports
     name: export_sync
-    remote_configurations:
-      - remote_configuration_name: client_delivery
-        s3_destination_folder: client-deliverables/
-      - remote_configuration_name: archive_storage
-        s3_destination_folder: project-archive/exports/
+    remoteConfigurations:
+      - remoteConfigurationName: client_delivery
+        s3DestinationFolder: client-deliverables/
+      - remoteConfigurationName: archive_storage
+        s3DestinationFolder: project-archive/exports/
 ```
 
 ## Operational Behavior
@@ -264,52 +264,52 @@ Combine hot folders with file filtering for selective uploads:
 ```yaml
 protocols:
   s3:
-    transfer_profiles:
-      - name: "video_only_config"
+    transferProfiles:
+      video_only_config:
         bucket: "my-bucket"
         region: "us-west-2"
         profile: "my-profile"
         filter: "^.*\\.(mov|mp4|avi)$"  # Only video files
 
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /media/mixed-content
+    localSourceFolder: /media/mixed-content
     name: video_filter_upload
-    remote_configurations:
-      - remote_configuration_name: video_only_config
-        s3_destination_folder: video-content/
+    remoteConfigurations:
+      - remoteConfigurationName: video_only_config
+        s3DestinationFolder: video-content/
 ```
 
 ### Multiple Destination Strategies
 
 **Redundancy Strategy:**
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /critical/footage
+    localSourceFolder: /critical/footage
     name: critical_backup
-    remote_configurations:
-      - remote_configuration_name: primary_storage
-        s3_destination_folder: primary/
-      - remote_configuration_name: backup_storage
-        s3_destination_folder: backup/
-      - remote_configuration_name: archive_storage
-        s3_destination_folder: archive/
+    remoteConfigurations:
+      - remoteConfigurationName: primary_storage
+        s3DestinationFolder: primary/
+      - remoteConfigurationName: backup_storage
+        s3DestinationFolder: backup/
+      - remoteConfigurationName: archive_storage
+        s3DestinationFolder: archive/
 ```
 
 **Workflow Distribution:**
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /incoming/raw
+    localSourceFolder: /incoming/raw
     name: workflow_distribution
-    remote_configurations:
-      - remote_configuration_name: editing_bucket
-        s3_destination_folder: raw-footage/
-      - remote_configuration_name: backup_bucket
-        s3_destination_folder: raw-backup/
-      - remote_configuration_name: archive_bucket
-        s3_destination_folder: long-term-archive/
+    remoteConfigurations:
+      - remoteConfigurationName: editing_bucket
+        s3DestinationFolder: raw-footage/
+      - remoteConfigurationName: backup_bucket
+        s3DestinationFolder: raw-backup/
+      - remoteConfigurationName: archive_bucket
+        s3DestinationFolder: long-term-archive/
 ```
 
 ## Troubleshooting
@@ -325,14 +325,14 @@ touch /path/to/hotfolder/test-file.txt
 
 **Verify Configuration:**
 - Ensure `enabled: true` in configuration
-- Check that `local_source_folder` path exists and is accessible
-- Verify `remote_configuration_name` matches existing configuration
+- Check that `localSourceFolder` path exists and is accessible
+- Verify `remoteConfigurationName` matches existing configuration
 - Confirm File Mover Express has read permissions on directory
 
 **Common Issues:**
 - **Network File Systems**: May not support change notifications
 - **Permissions**: File Mover Express needs read access to monitored directory
-- **Path Format**: Use absolute paths for `local_source_folder`
+- **Path Format**: Use absolute paths for `localSourceFolder`
 
 ### Performance Issues
 

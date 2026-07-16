@@ -65,9 +65,10 @@ File Mover Express supports multiple checksum algorithms:
 ```yaml
 protocols:
   s3:
-    transfer_profiles:
-      - name: "my-config"
-        checksum_algorithm: "xxh3"  # md5-hex, xxhash, xxhash64, xxh3
+    transferProfiles:
+      my-config:
+        checksums:
+          algorithm: "xxh3"  # md5-hex, xxhash, xxhash64, xxh3
 ```
 
 ## Configurable Checksums
@@ -82,7 +83,8 @@ protocols:
 
 **Configuration:**
 ```yaml
-max_active_checksums: 8  # Adjust based on your CPU cores
+general:
+  maxActiveChecksums: 8  # Adjust based on your CPU cores
 ```
 
 **Recommended Value:**
@@ -237,9 +239,10 @@ logging:
 ```yaml
 protocols:
   s3:
-    transfer_profiles:
-      - name: "fast-transfer"
-        checksum_algorithm: "none"  # Disables checksums
+    transferProfiles:
+      fast-transfer:
+        checksums:
+          algorithm: "none"  # Disables checksums
 ```
 
 **Use Cases for Disabled Checksums:**

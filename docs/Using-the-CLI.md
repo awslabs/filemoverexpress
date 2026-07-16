@@ -212,34 +212,34 @@ Configure hot folders in the configuration file for automatic uploads:
 ### Configuration Example
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /Users/user/watch-folder
+    localSourceFolder: /Users/user/watch-folder
     name: auto_upload
-    remote_configurations:
-      - remote_configuration_name: my-config
-        s3_destination_folder: auto-uploads/
+    remoteConfigurations:
+      - remoteConfigurationName: my-config
+        s3DestinationFolder: auto-uploads/
 ```
 
 ### Multiple Hot Folders
 
 ```yaml
-hot_folders:
+hotFolders:
   - enabled: true
-    local_source_folder: /media/camera-1
+    localSourceFolder: /media/camera-1
     name: camera_1_upload
-    remote_configurations:
-      - remote_configuration_name: production
-        s3_destination_folder: camera-1/
-      - remote_configuration_name: backup
-        s3_destination_folder: camera-1-backup/
+    remoteConfigurations:
+      - remoteConfigurationName: production
+        s3DestinationFolder: camera-1/
+      - remoteConfigurationName: backup
+        s3DestinationFolder: camera-1-backup/
   
   - enabled: true
-    local_source_folder: /media/camera-2
+    localSourceFolder: /media/camera-2
     name: camera_2_upload
-    remote_configurations:
-      - remote_configuration_name: production
-        s3_destination_folder: camera-2/
+    remoteConfigurations:
+      - remoteConfigurationName: production
+        s3DestinationFolder: camera-2/
 ```
 
 ## Utility Commands
