@@ -19,6 +19,8 @@ includes:
   wails:
     taskfile: src/wails/Taskfile.yml
     dir: src/wails
+    vars:
+      BUILD_VERSION: '{{.BUILD_VERSION}}'
   launcher:
     taskfile: src/windows-daemon-launcher/Taskfile.yml
     dir: src/windows-daemon-launcher
