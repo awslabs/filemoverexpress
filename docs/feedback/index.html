@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Mover Express - Feedback</title>
+  <style>
+    :root {
+      --color-bg: #0d1117;
+      --color-surface: #161b22;
+      --color-border: #30363d;
+      --color-text: #e6edf3;
+      --color-text-muted: #8b949e;
+      --color-accent: #58a6ff;
+      --color-accent-hover: #79c0ff;
+      --color-success: #3fb950;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+
+    .notice {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    .notice strong {
+      color: var(--color-text);
+    }
+
+    form {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+
+    label .optional {
+      color: var(--color-text-muted);
+      font-weight: 400;
+      font-size: 0.8rem;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      color: var(--color-text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e'%3E%3Cpath d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.763L10.825 4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+
+    .submit-btn {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .submit-btn:hover {
+      background: var(--color-accent-hover);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.99);
+    }
+
+    .submit-note {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    footer a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 1rem 0.75rem;
+      }
+      form {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>File Mover Express Feedback</h1>
+      <p>Help us improve FME. Your feedback goes directly to the maintainers.</p>
+    </header>
+
+    <div class="notice">
+      <strong>How it works:</strong> Fill out the form below and click Send.
+      Your email client will open with the feedback pre-filled &mdash; just hit send.
+      You can remove your signature or any identifying info before sending if you prefer to stay anonymous.
+    </div>
+
+    <form id="feedback-form" onsubmit="return submitFeedback()">
+
+      <div class="form-group">
+        <label for="feedback-type">Feedback type</label>
+        <select id="feedback-type" name="feedback_type" required>
+          <option value="" disabled selected>Select a category...</option>
+          <option value="General feedback">General feedback</option>
+          <option value="Feature idea">Feature idea</option>
+          <option value="Bug report">Bug report</option>
+          <option value="Performance issue">Performance issue</option>
+          <option value="Usability / UX">Usability / UX</option>
+          <option value="Documentation">Documentation</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="interface">Interface used <span class="optional">(optional)</span></label>
+        <select id="interface" name="interface">
+          <option value="" selected>Not specified</option>
+          <option value="GUI (Desktop app)">GUI (Desktop app)</option>
+          <option value="CLI (Command line)">CLI (Command line)</option>
+          <option value="Both">Both</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="os">Operating system <span class="optional">(optional)</span></label>
+        <select id="os" name="operating_system">
+          <option value="" selected>Not specified</option>
+          <option value="macOS">macOS</option>
+          <option value="Windows">Windows</option>
+          <option value="Linux">Linux</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="version">FME version <span class="optional">(optional)</span></label>
+        <input type="text" id="version" name="fme_version" placeholder="e.g. 1.2.0">
+      </div>
+
+      <div class="form-group">
+        <label for="message">Your feedback</label>
+        <textarea id="message" name="message" placeholder="Tell us what's on your mind..." required></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">Send Feedback</button>
+      <p class="submit-note">Opens your email client. You can review before sending.</p>
+    </form>
+
+    <footer>
+      <p><a href="https://github.com/awslabs/file-mover-express">File Mover Express</a> &mdash; open source, built by AWS</p>
+    </footer>
+  </div>
+
+  <script>
+    function submitFeedback() {
+      var type = document.getElementById('feedback-type').value;
+      var iface = document.getElementById('interface').value;
+      var os = document.getElementById('os').value;
+      var version = document.getElementById('version').value;
+      var message = document.getElementById('message').value;
+
+      var body = '';
+      body += 'Feedback Type: ' + type + '\n';
+      if (iface) body += 'Interface: ' + iface + '\n';
+      if (os) body += 'OS: ' + os + '\n';
+      if (version) body += 'Version: ' + version + '\n';
+      body += '\n---\n\n';
+      body += message;
+
+      var subject = '[FME Feedback] ' + type;
+      var recipient = 'fme-feedback@amazon.com';
+
+      var mailto = 'mailto:' + encodeURIComponent(recipient)
+        + '?subject=' + encodeURIComponent(subject)
+        + '&body=' + encodeURIComponent(body);
+
+      window.location.href = mailto;
+      return false;
+    }
+  </script>
+</body>
+</html>
