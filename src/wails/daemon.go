@@ -27,15 +27,13 @@ func NewDaemonManager(binaryPath string) *DaemonManager {
 	}
 }
 
-// Start spawns the daemon process as a detached child. If the daemon is
-// already running, it returns nil without spawning a new process.
+// Start spawns the daemon process as a detached child. It uses CheckExisting
+// to determine whether the daemon is already running; if so it returns nil
+// without spawning a new process.
 func (d *DaemonManager) Start() error {
-	d.mu.Lock()
-	if d.running {
-		d.mu.Unlock()
+	if d.CheckExisting() {
 		return nil
 	}
-	d.mu.Unlock()
 
 	args := getDaemonArgs()
 	cmd := exec.Command(d.binaryPath, args...)
@@ -68,8 +66,19 @@ func (d *DaemonManager) IsRunning() bool {
 	return d.running
 }
 
-// CheckExisting reads the PID file and checks if the daemon process is alive.
+// CheckExisting is the single source of truth for whether the daemon is alive.
+// It reads the PID file, verifies the process is still running, and updates
+// the internal running state accordingly. Returns true if the daemon is alive.
 func (d *DaemonManager) CheckExisting() bool {
+	// Fast path: if we spawned the process ourselves and monitorExit is
+	// watching it, trust the in-memory state without hitting the filesystem.
+	d.mu.Lock()
+	if d.running && d.process != nil {
+		d.mu.Unlock()
+		return true
+	}
+	d.mu.Unlock()
+
 	pidFilePath := filepath.Join(os.Getenv("HOME"), ConfigDirName, PIDFileName)
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		pidFilePath = filepath.Join(homeDir, ConfigDirName, PIDFileName)
@@ -77,12 +86,18 @@ func (d *DaemonManager) CheckExisting() bool {
 
 	data, err := os.ReadFile(pidFilePath)
 	if err != nil {
+		d.mu.Lock()
+		d.running = false
+		d.mu.Unlock()
 		return false
 	}
 
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
 		log.Warnf("Invalid PID file content: %v", err)
+		d.mu.Lock()
+		d.running = false
+		d.mu.Unlock()
 		return false
 	}
 
@@ -91,6 +106,9 @@ func (d *DaemonManager) CheckExisting() bool {
 		log.Warnf("Error checking process %d: %v", pid, err)
 	}
 	if !alive {
+		d.mu.Lock()
+		d.running = false
+		d.mu.Unlock()
 		return false
 	}
 
