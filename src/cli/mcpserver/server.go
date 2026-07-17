@@ -9,7 +9,7 @@ import (
 )
 
 // Run initializes the MCP server and blocks on the selected transport.
-func Run(transport string, httpPort uint) error {
+func Run(transport string, httpPort uint, httpAddress string) error {
 	cm := NewClientManager()
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "filemoverexpress",
@@ -24,7 +24,7 @@ func Run(transport string, httpPort uint) error {
 		handler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 			return server
 		}, nil)
-		return http.ListenAndServe(fmt.Sprintf(":%d", httpPort), handler)
+		return http.ListenAndServe(fmt.Sprintf("%s:%d", httpAddress, httpPort), handler)
 	default:
 		return fmt.Errorf("unsupported transport: %s (supported: stdio, streamable-http)", transport)
 	}

@@ -485,7 +485,7 @@ func TestFmeConnectHandler_RemoteWithoutAuth(t *testing.T) {
 // --- Run function tests ---
 
 func TestRun_UnsupportedTransport(t *testing.T) {
-	err := Run("invalid-transport", 8080)
+	err := Run("invalid-transport", 8080, "127.0.0.1")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported transport")
 	assert.Contains(t, err.Error(), "invalid-transport")
