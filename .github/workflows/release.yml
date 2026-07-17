@@ -187,10 +187,14 @@ jobs:
   # Signs the standalone fme-mcp binary using the same CD Signer infrastructure as
   # the main app. Uses the executables path (bare Mach-O, not a .app bundle) with
   # identifier com.amazon.filemoverexpress.mcp.
+  #
+  # Gated behind `MCP_SIGNING_ENABLED` (separate from MACOS_SIGNING_ENABLED) because
+  # the MCP bundle ID requires its own signing permissions in the CD Signer bindle.
+  # Set the variable to 'true' once the permissions are granted.
   # ---------------------------------------------------------------------------
   sign-mcp-macos:
     needs: [build-mcp]
-    if: ${{ !cancelled() && vars.MACOS_SIGNING_ENABLED == 'true' }}
+    if: ${{ !cancelled() && vars.MCP_SIGNING_ENABLED == 'true' }}
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -219,7 +223,7 @@ jobs:
           name: mcp-mac-${{ matrix.architecture }}
           path: ./unsigned
 
-      - name: Set up Python for awscurl
+      - name: Set up Python for SigV4 signing
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -228,7 +232,7 @@ jobs:
         run: |
           set -euo pipefail
           brew install gnu-tar
-          python3 -m pip install --upgrade awscurl
+          python3 -m pip install requests botocore
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -287,10 +291,14 @@ jobs:
   #
   # Reuses the existing sign-windows.yml reusable workflow. Signs fme-mcp.exe using the
   # same Authenticode profile as the main installer.
+  #
+  # Gated behind `MCP_SIGNING_ENABLED` (separate from WINDOWS_SIGNING_ENABLED) because
+  # the MCP signing profile may require separate permissions. Set the variable to 'true'
+  # once the permissions are granted.
   # ---------------------------------------------------------------------------
   sign-mcp-windows:
     needs: [build-mcp]
-    if: ${{ !cancelled() && vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+    if: ${{ !cancelled() && vars.MCP_SIGNING_ENABLED == 'true' }}
     permissions:
       id-token: write
       contents: read
@@ -300,3 +308,309 @@ jobs:
       exe-filename: fme-mcp.exe
     secrets:
       AWS_SIGNING_ROLE_ARN: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
+
+  # ---------------------------------------------------------------------------
+  # Create GitHub Release
+  #
+  # Collects all signed (or unsigned fallback) artifacts and publishes them as a
+  # GitHub Release. Runs even if some upstream jobs fail (Linux installer builds
+  # require native dependencies unavailable on CI runners; signing may be disabled).
+  #
+  # Included assets:
+  #   - macOS desktop app (.dmg): notarized > signed > unsigned, per arch
+  #   - Windows installer (.exe): signed > unsigned, per arch
+  #   - MCP server binaries: signed where available, unsigned for Linux
+  #
+  # NOT included: Linux desktop installers (require source-code build with
+  # CGo/webkit dependencies not available on CI runners).
+  # ---------------------------------------------------------------------------
+  create-release:
+    needs:
+      - generate-installer
+      - build-mcp
+      - notarize-macos
+      - sign-macos
+      - sign-windows
+      - sign-mcp-macos
+      - sign-mcp-windows
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare release directory
+        run: mkdir -p release-assets
+
+      # ----- macOS desktop app (prefer notarized > signed > unsigned) -----
+      - name: Download notarized macOS x64 .dmg
+        id: notarized-mac-x64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: notarized-signed-installer-mac-x64
+          path: release-assets
+
+      - name: Download signed macOS x64 .dmg (fallback)
+        if: steps.notarized-mac-x64.outcome != 'success'
+        id: signed-mac-x64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-installer-mac-x64
+          path: release-assets
+
+      - name: Download notarized macOS arm64 .dmg
+        id: notarized-mac-arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: notarized-signed-installer-mac-arm64
+          path: release-assets
+
+      - name: Download signed macOS arm64 .dmg (fallback)
+        if: steps.notarized-mac-arm64.outcome != 'success'
+        id: signed-mac-arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-installer-mac-arm64
+          path: release-assets
+
+      # ----- Windows installer (prefer signed > unsigned) -----
+      - name: Download signed Windows x64 installer
+        id: signed-win-x64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-installer-win-x64
+          path: release-assets
+
+      - name: Download unsigned Windows x64 installer (fallback)
+        if: steps.signed-win-x64.outcome != 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-win-x64
+          path: release-assets
+
+      - name: Download signed Windows arm64 installer
+        id: signed-win-arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-installer-win-arm64
+          path: release-assets
+
+      - name: Download unsigned Windows arm64 installer (fallback)
+        if: steps.signed-win-arm64.outcome != 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-win-arm64
+          path: release-assets
+
+      # ----- MCP server: macOS (prefer signed > unsigned) -----
+      - name: Download signed MCP macOS x64
+        id: signed-mcp-mac-x64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-mcp-mac-x64
+          path: release-assets/mcp-mac-x64
+
+      - name: Download unsigned MCP macOS x64 (fallback)
+        if: steps.signed-mcp-mac-x64.outcome != 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-mac-x64
+          path: release-assets/mcp-mac-x64
+
+      - name: Download signed MCP macOS arm64
+        id: signed-mcp-mac-arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-mcp-mac-arm64
+          path: release-assets/mcp-mac-arm64
+
+      - name: Download unsigned MCP macOS arm64 (fallback)
+        if: steps.signed-mcp-mac-arm64.outcome != 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-mac-arm64
+          path: release-assets/mcp-mac-arm64
+
+      # ----- MCP server: Windows (prefer signed > unsigned) -----
+      - name: Download signed MCP Windows x64
+        id: signed-mcp-win-x64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-mcp-win-x64
+          path: release-assets/mcp-win-x64
+
+      - name: Download unsigned MCP Windows x64 (fallback)
+        if: steps.signed-mcp-win-x64.outcome != 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-win-x64
+          path: release-assets/mcp-win-x64
+
+      # ----- MCP server: Linux (unsigned, no signing needed) -----
+      - name: Download MCP Linux x64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-linux-x64
+          path: release-assets/mcp-linux-x64
+
+      - name: Download MCP Linux arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-linux-arm64
+          path: release-assets/mcp-linux-arm64
+
+      # ----- Rename MCP binaries for clarity -----
+      - name: Rename MCP binaries with platform/arch suffix
+        run: |
+          set -euo pipefail
+          rename_mcp() {
+            local dir="$1" platform="$2" arch="$3" ext="${4:-}"
+            local src="release-assets/${dir}/fme-mcp${ext}"
+            # Handle the signed-mcp artifact which may place the binary in a
+            # subdirectory named "signed-fme-mcp" (the upload path in sign-mcp-macos).
+            if [ ! -f "$src" ]; then
+              src=$(find "release-assets/${dir}" -name "fme-mcp${ext}" -type f 2>/dev/null | head -n1)
+            fi
+            if [ -f "$src" ]; then
+              mv "$src" "release-assets/fme-mcp-${platform}-${arch}${ext}"
+              echo "Renamed: fme-mcp-${platform}-${arch}${ext}"
+            fi
+          }
+          rename_mcp "mcp-mac-x64"     "darwin"  "amd64"
+          rename_mcp "mcp-mac-arm64"   "darwin"  "arm64"
+          rename_mcp "mcp-win-x64"     "windows" "amd64" ".exe"
+          rename_mcp "mcp-linux-x64"   "linux"   "amd64"
+          rename_mcp "mcp-linux-arm64" "linux"   "arm64"
+          # Clean up subdirectories
+          rm -rf release-assets/mcp-*
+
+      # ----- List final assets -----
+      - name: List release assets
+        run: |
+          echo "=== Release assets ==="
+          find release-assets -type f | sort
+          ASSET_COUNT=$(find release-assets -type f | wc -l)
+          echo "Total: ${ASSET_COUNT} files"
+          if [ "$ASSET_COUNT" -eq 0 ]; then
+            echo "ERROR: no release assets found — all upstream jobs may have failed" >&2
+            exit 1
+          fi
+          MCP_COUNT=$(find release-assets -type f -name "fme-mcp*" | wc -l)
+          if [ "$MCP_COUNT" -eq 0 ]; then
+            echo "::warning::No MCP server binaries in release assets. If build-mcp failed, this release will ship without the MCP server."
+          fi
+
+      # ----- Create GitHub Release -----
+      - name: Determine if prerelease
+        id: prerelease
+        run: |
+          if echo "${VERSION}" | grep -qE '\-'; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: File Mover Express ${{ env.VERSION }}
+          draft: false
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease == 'true' }}
+          generate_release_notes: true
+          files: release-assets/*
+          fail_on_unmatched_files: false
+          body: |
+            ## Features
+
+            **High-Performance S3 Transfers**
+            - Auto-tuned parallel transfers using native S3 APIs with no intermediary servers
+            - Multipart upload/download with configurable chunk sizes and retry on failure
+            - Pause, resume, and cancel active transfers
+            - Transfer priority scheduling and job queue management
+
+            **Desktop Application**
+            - Native desktop app for macOS (Apple Silicon + Intel) and Windows (x64 + arm64)
+            - Drag-and-drop file management between local filesystem and S3
+            - Real-time transfer progress, speed, and ETA display
+            - File browser for both local and S3 with search and filtering
+
+            **Hot Folders**
+            - Monitor local directories for new files and automatically upload to S3
+            - Configurable inclusion/exclusion filters and deduplication
+
+            **Checksums & Media Integrity**
+            - XXH3, XXHash64, XXHash, and MD5 checksum algorithms
+            - MHL (Media Hash List) support for camera-to-cloud verification workflows
+            - Post-transfer integrity verification
+
+            **Remote Daemon Architecture**
+            - Run the transfer engine on any machine (workstation, server, or EC2 instance)
+            - Control remotely from the GUI or CLI over an encrypted ConnectRPC connection
+            - Transfer profiles for managing multiple daemon connections
+
+            **Command-Line Interface**
+            - Full CLI for scripting, automation, and headless environments
+            - All GUI features accessible via command line
+            - Scriptable job control (start, pause, resume, cancel)
+
+            **MCP Server (fme-mcp)**
+            - Standalone [Model Context Protocol](https://modelcontextprotocol.io/) server for AI-assisted file transfers
+            - 9 tools: connect, browse local/S3, start upload/download, pause, resume, cancel, list jobs
+            - Supports stdio and streamable-http transports
+            - Enables AI coding assistants to manage S3 transfers directly
+
+            **Security**
+            - All transfers over HTTPS
+            - AWS IAM integration for authentication and authorization
+            - macOS builds signed with Apple Developer ID and notarized
+            - Windows installers Authenticode-signed
+
+            **Cross-Platform**
+            - macOS: Apple Silicon (arm64) and Intel (x64)
+            - Windows: x64 and arm64
+            - Linux: x64 and arm64 (build from source, or use CLI/MCP binaries)
+
+            ---
+
+            ## Downloads
+
+            | Platform | Architecture | Asset |
+            |----------|-------------|-------|
+            | macOS | Apple Silicon (arm64) | `FileMoverExpressUI-arm64.dmg` |
+            | macOS | Intel (x64) | `FileMoverExpressUI-x64.dmg` |
+            | Windows | x64 | `FileMoverExpressUI-amd64-installer.exe` |
+            | Windows | arm64 | `FileMoverExpressUI-arm64-installer.exe` |
+
+            ### MCP Server Binaries
+
+            | Platform | Architecture | Asset |
+            |----------|-------------|-------|
+            | macOS | Apple Silicon | `fme-mcp-darwin-arm64` |
+            | macOS | Intel | `fme-mcp-darwin-amd64` |
+            | Windows | x64 | `fme-mcp-windows-amd64.exe` |
+            | Linux | x64 | `fme-mcp-linux-amd64` |
+            | Linux | arm64 | `fme-mcp-linux-arm64` |
+
+            > **Linux desktop app** is not distributed as a pre-built binary due to
+            > native dependencies. See the [Installation guide](docs/Installation.md)
+            > for build-from-source instructions.

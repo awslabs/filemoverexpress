@@ -10,9 +10,11 @@ tasks:
       - task: common:go:mod:tidy
       - task: common:build:frontend
       - task: common:generate:icons
+    vars:
+      BUILD_VERSION: '{{.BUILD_VERSION | default "0.0.0-local-dev"}}'
     cmds:
       - task: generate:syso
-      - 'go build -tags devtools -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui" -o "{{.BIN_DIR}}/{{.APP_NAME}}.exe"'
+      - 'go build -tags devtools -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui -X main.version=v{{.BUILD_VERSION}}" -o "{{.BIN_DIR}}/{{.APP_NAME}}.exe"'
       - powershell Remove-item *.syso
     env:
       GOOS: windows
