@@ -14,7 +14,7 @@ import (
 // message includes the unsupported value and lists supported transports.
 // **Validates: Requirements 2.4, 2.5**
 func TestRun_UnsupportedTransport_Websocket(t *testing.T) {
-	err := Run("websocket", 8080)
+	err := Run("websocket", 8080, "127.0.0.1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported transport")
 	assert.Contains(t, err.Error(), "websocket")
@@ -26,7 +26,7 @@ func TestRun_UnsupportedTransport_Websocket(t *testing.T) {
 // when transport is an empty string.
 // **Validates: Requirements 2.4, 2.5**
 func TestRun_UnsupportedTransport_EmptyString(t *testing.T) {
-	err := Run("", 8080)
+	err := Run("", 8080, "127.0.0.1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported transport")
 }
