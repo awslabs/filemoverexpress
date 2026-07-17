@@ -75,11 +75,28 @@ OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the inst
 InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
 
+## Stop any running File Mover Express processes so their executables aren't locked.
+## The bundled daemon (filemoverexpress.exe) keeps running in the background, so an
+## in-place upgrade over a previous version otherwise fails with "Error opening file for
+## writing" because Windows locks a running executable. taskkill is a Windows built-in and
+## nsExec ships with NSIS; /T also terminates child processes. A process that isn't running
+## just returns an error, which we ignore. The installer runs elevated, so it may kill them.
+!macro fme.stopProcesses
+    DetailPrint "Stopping any running File Mover Express processes..."
+    nsExec::Exec 'taskkill /F /T /IM FileMoverExpressUI.exe'
+    nsExec::Exec 'taskkill /F /T /IM filemoverexpress-launcher.exe'
+    nsExec::Exec 'taskkill /F /T /IM filemoverexpress.exe'
+    Sleep 1000
+!macroend
+
 Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
 
 Section
+    ; Stop running instances first so their .exe files aren't locked during an upgrade.
+    !insertmacro fme.stopProcesses
+
     !insertmacro wails.setShellContext
 
     !insertmacro wails.webview2runtime
@@ -109,6 +126,9 @@ Section
 SectionEnd
 
 Section "uninstall"
+    ; Stop running instances first so their .exe files aren't locked during removal.
+    !insertmacro fme.stopProcesses
+
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
