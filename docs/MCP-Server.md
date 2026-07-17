@@ -110,7 +110,7 @@ The MCP server exposes 9 tools:
 
 | Tool | Description |
 |------|-------------|
-| `fme_list_jobs` | List all active and completed transfer jobs |
+| `fme_list_jobs` | List all active transfer jobs |
 | `fme_pause_job` | Pause a running transfer |
 | `fme_resume_job` | Resume a paused transfer |
 | `fme_cancel_job` | Cancel a transfer |
