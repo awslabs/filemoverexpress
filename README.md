@@ -15,6 +15,7 @@ File Mover Express is a high-performance file transfer application designed to a
 - **Hot Folders**: Point File Mover Express at a folder and it will automatically upload anything new that appears in it
 - **Secure**: All transfers use HTTPS, and AWS IAM controls who can access your S3 buckets
 - **Remote Daemon**: Run File Mover Express on one machine and control it from another over an encrypted connection, protected by a password you set
+- **AI Assistant Integration (MCP)**: Built-in [Model Context Protocol](https://modelcontextprotocol.io/) server lets you control transfers through natural language with Claude Desktop, Kiro, Cursor, or any MCP-compatible AI assistant — browse S3, start uploads/downloads, and manage jobs conversationally
 - **Checksumming & MHL Support**: Optional file integrity verification, with XXH3 being the fastest option. XXHash, XXHash64 and MD5 are available for workflows that require them. Reads MHL files for camera-to-cloud verification workflows.
 - **Cross-Platform**: Works on macOS, Windows, and Linux
 - **Multi-Region**: Works with any AWS region where S3 is available
@@ -73,6 +74,7 @@ Launch File Mover Express and add a Remote Configuration pointing to your S3 buc
 - [Configuration](docs/Configuration.md) — Setup and configuration options
 - [Using the GUI](docs/Using-the-GUI.md) — Graphical interface guide
 - [Using the CLI](docs/Using-the-CLI.md) — Command-line usage and scripting
+- [MCP Server](docs/MCP-Server.md) — AI assistant integration (Claude Desktop, Kiro, Cursor)
 - [Best Practices](docs/Best-Practices.md) — Performance optimization and security
 - [Troubleshooting](docs/Troubleshooting.md) — Common issues and solutions
 - [Development](docs/Development.md) — Building from source, architecture, and contributing
