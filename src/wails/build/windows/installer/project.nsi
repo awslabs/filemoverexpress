@@ -100,9 +100,15 @@ ShowInstDetails show # This will always show the installation details.
         Abort
     fme_dokill_${UNIQ}:
         DetailPrint "Stopping File Mover Express..."
+        ; Pop each nsExec return code off the stack to keep it clean (we don't need to check
+        ; it — it's fine if a process had already exited).
         nsExec::Exec 'taskkill /F /T /IM FileMoverExpressUI.exe'
+        Pop $R0
         nsExec::Exec 'taskkill /F /T /IM filemoverexpress-launcher.exe'
+        Pop $R0
         nsExec::Exec 'taskkill /F /T /IM filemoverexpress.exe'
+        Pop $R0
+        ; Brief pause so Windows releases the executable file locks before the File steps run.
         Sleep 1000
     fme_notrunning_${UNIQ}:
 !macroend
