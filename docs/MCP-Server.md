@@ -38,7 +38,7 @@ apiServer:
         - mcp://fme
 ```
 
-The daemon reads this on every request — no restart needed.
+The daemon watches this file for changes and reloads automatically — no restart needed.
 
 ### 3. Configure your MCP client
 
@@ -68,7 +68,15 @@ Add the FME MCP server to your client's configuration. The exact location depend
 }
 ```
 
-Replace `/path/to/fme-mcp` with the actual path to the binary (e.g., `/Applications/FileMoverExpressUI.app/Contents/MacOS/fme-mcp` on macOS, or wherever you installed it).
+Replace `/path/to/fme-mcp` with the actual path to the binary. Typical locations by platform:
+
+| Platform | Typical Location |
+|----------|-----------------|
+| macOS | `/usr/local/bin/fme-mcp` |
+| Windows | `C:\Program Files\FileMoverExpress\fme-mcp.exe` |
+| Linux | `/usr/local/bin/fme-mcp` |
+
+Download the correct binary for your platform from the [Releases page](https://github.com/awslabs/filemoverexpress/releases) and place it in one of the locations above (or anywhere on your PATH).
 
 ### 4. Verify the connection
 
@@ -126,6 +134,8 @@ For network-accessible deployments or browser-based MCP clients:
 ```bash
 fme-mcp --transport streamable-http --http-port 8080
 ```
+
+By default, streamable HTTP binds to all interfaces (`0.0.0.0`). In production, place it behind a reverse proxy or firewall — do not expose it directly to the internet without authentication.
 
 ## Remote Daemon Connections
 
