@@ -25,13 +25,23 @@
     min-width: 0;
     display: flex;
     flex-direction: row;
+    align-items: center;
     gap: 8px;
 }
 
 .inputs-row-form-field {
-    min-width: 160px;
+    // Let the search + profile fields yield width first on narrow windows so the action
+    // buttons (incl. the fixed-width "Bucket Report") all stay visible. Min lowered from
+    // 160 so the full S3 toolbar — search, profile, report, new-folder, refresh — fits at
+    // the 1024px window minimum without clipping the trailing refresh button.
+    min-width: 90px;
     width: 30%;
     max-width: 300px;
+}
+
+// Keep the "Bucket Report" action button at its natural width; the fields shrink instead.
+fme-bucket-report-button {
+    flex-shrink: 0;
 }
 
 .spacer {
