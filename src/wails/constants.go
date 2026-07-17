@@ -11,9 +11,17 @@ const (
 )
 
 // Window dimension constants.
+//
+// The minimum is sized to fit common low-resolution displays (e.g. 1366x768 laptops)
+// so the whole window — including the title bar — stays on screen and the user can
+// resize down. The default is a comfortable larger size that is clamped to the display's
+// work area at runtime (see main.go) so it never opens larger than the screen.
 const (
-	MinWindowWidth  = 1450
-	MinWindowHeight = 1000
+	MinWindowWidth  = 1024
+	MinWindowHeight = 640
+
+	DefaultWindowWidth  = 1280
+	DefaultWindowHeight = 800
 )
 
 // Environment variable names.
