@@ -105,6 +105,7 @@ func TestStartDaemonDelegatesToDaemonManager(t *testing.T) {
 		dm := NewDaemonManager("nonexistent-binary")
 		dm.mu.Lock()
 		dm.running = true
+		dm.process = &os.Process{Pid: os.Getpid()}
 		dm.mu.Unlock()
 
 		app := &FMEApp{daemonManager: dm}

@@ -40,19 +40,124 @@ func TestStartSpawnsProcessWithCorrectArgsAndEnv(t *testing.T) {
 }
 
 // TestStartWhenAlreadyRunningReturnsNil verifies that calling Start() when the
-// daemon is already running returns nil without spawning a new process.
+// daemon is already running (spawned by us) returns nil without spawning a new process.
 // Requirements: 3.2
 func TestStartWhenAlreadyRunningReturnsNil(t *testing.T) {
 	dm := NewDaemonManager("nonexistent-binary")
 
-	// Manually set running to true to simulate an already-running daemon
+	// Simulate a daemon that was spawned by us (process is non-nil).
+	// CheckExisting uses the fast path when process != nil.
 	dm.mu.Lock()
 	dm.running = true
+	dm.process = &os.Process{Pid: os.Getpid()}
 	dm.mu.Unlock()
 
 	err := dm.Start()
 	assert.NoError(t, err, "Start() should return nil when already running")
-	assert.Nil(t, dm.process, "no process should be spawned when already running")
+}
+
+// TestStartRestartsAfterAdoptedDaemonDies verifies that Start() re-spawns the
+// daemon when it was adopted via CheckExisting but has since exited (PID file
+// gone or process dead). This is the "Retry Connection" bug fix.
+func TestStartRestartsAfterAdoptedDaemonDies(t *testing.T) {
+	// Use a temp dir with no PID file so CheckExisting returns false,
+	// simulating the daemon having been shut down.
+	tmpDir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", tmpDir)
+	} else {
+		t.Setenv("HOME", tmpDir)
+	}
+
+	// Use "true" on Unix (exits 0) so Start() succeeds.
+	var binaryPath string
+	if runtime.GOOS == "windows" {
+		binaryPath = "cmd"
+	} else {
+		binaryPath = "true"
+	}
+
+	dm := NewDaemonManager(binaryPath)
+
+	// Simulate the state after CheckExisting found a running daemon:
+	// running=true, process=nil (we didn't spawn it).
+	dm.mu.Lock()
+	dm.running = true
+	dm.process = nil
+	dm.mu.Unlock()
+
+	// Start() should detect the adopted daemon is gone and spawn a new one.
+	err := dm.Start()
+	require.NoError(t, err, "Start() should spawn a new daemon when adopted process is dead")
+	assert.True(t, dm.IsRunning(), "daemon should be marked as running after restart")
+
+	dm.mu.Lock()
+	assert.NotNil(t, dm.process, "process should be set after restart")
+	dm.mu.Unlock()
+}
+
+// TestStartSkipsRestartWhenAdoptedDaemonStillAlive verifies that Start()
+// returns nil when the adopted daemon is still alive (CheckExisting succeeds).
+func TestStartSkipsRestartWhenAdoptedDaemonStillAlive(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	require.NoError(t, os.MkdirAll(configDir, 0o755))
+
+	// Write current process PID — guaranteed alive.
+	pidFile := filepath.Join(configDir, PIDFileName)
+	require.NoError(t, os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", os.Getpid())), 0o644))
+
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", tmpDir)
+	} else {
+		t.Setenv("HOME", tmpDir)
+	}
+
+	dm := NewDaemonManager("nonexistent-binary-should-not-be-called")
+
+	// Simulate adopted daemon state.
+	dm.mu.Lock()
+	dm.running = true
+	dm.process = nil
+	dm.mu.Unlock()
+
+	// Start() should confirm it's still alive via CheckExisting and return nil.
+	err := dm.Start()
+	assert.NoError(t, err, "Start() should return nil when adopted daemon is still alive")
+	assert.True(t, dm.IsRunning(), "daemon should remain marked as running")
+
+	dm.mu.Lock()
+	assert.Nil(t, dm.process, "process should remain nil — no new spawn needed")
+	dm.mu.Unlock()
+}
+
+// TestCheckExistingResetsStaleRunningState verifies that CheckExisting()
+// clears the running flag when the previously-adopted daemon has died.
+func TestCheckExistingResetsStaleRunningState(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	require.NoError(t, os.MkdirAll(configDir, 0o755))
+
+	// PID file with a dead process
+	pidFile := filepath.Join(configDir, PIDFileName)
+	require.NoError(t, os.WriteFile(pidFile, []byte("4999999"), 0o644))
+
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", tmpDir)
+	} else {
+		t.Setenv("HOME", tmpDir)
+	}
+
+	dm := NewDaemonManager("some-binary")
+
+	// Simulate stale state from a previous CheckExisting that found a live daemon
+	dm.mu.Lock()
+	dm.running = true
+	dm.mu.Unlock()
+
+	result := dm.CheckExisting()
+	assert.False(t, result, "CheckExisting() should return false when process is dead")
+	assert.False(t, dm.IsRunning(), "CheckExisting() should reset running to false")
 }
 
 // TestCheckExistingWithValidPIDFileAndRunningProcess verifies that CheckExisting()
