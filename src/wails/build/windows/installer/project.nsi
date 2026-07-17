@@ -75,11 +75,52 @@ OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the inst
 InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
 
+## Stop any running File Mover Express processes so their executables aren't locked.
+## The bundled daemon (filemoverexpress.exe) keeps running in the background, so an
+## in-place upgrade over a previous version otherwise fails with "Error opening file for
+## writing" because Windows locks a running executable.
+##
+## Rather than silently force-killing (which would interrupt an in-progress transfer with
+## no warning), first detect whether FME is running and, if so, ASK the user: OK stops all
+## instances, Cancel aborts the (un)install so nothing is overwritten. Only prompts when a
+## process is actually running, so fresh installs are unaffected.
+##
+## Uses only Windows built-ins (tasklist/find/taskkill) via nsExec (bundled with NSIS) —
+## no external plugin. taskkill /T also terminates child processes. The installer runs
+## elevated, so it has permission. UNIQ makes the internal labels unique per insertion so
+## the macro can be used in both the install and uninstall sections.
+!macro fme.stopProcesses UNIQ
+    ; tasklist | find returns exit code 0 when a matching image is found. "filemoverexpress"
+    ; (case-insensitive) matches the GUI (FileMoverExpressUI.exe), the launcher, and the daemon.
+    nsExec::Exec 'cmd /c tasklist /NH | find /I "filemoverexpress"'
+    Pop $R0
+    StrCmp $R0 "0" 0 fme_notrunning_${UNIQ}
+        MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "File Mover Express is currently running and must be closed to continue.$\n$\nStop all running File Mover Express processes now? Any transfers in progress will be interrupted." /SD IDOK IDOK fme_dokill_${UNIQ}
+        ; Cancel: leave the running app alone and stop here (don't overwrite locked files).
+        Abort
+    fme_dokill_${UNIQ}:
+        DetailPrint "Stopping File Mover Express..."
+        ; Pop each nsExec return code off the stack to keep it clean (we don't need to check
+        ; it — it's fine if a process had already exited).
+        nsExec::Exec 'taskkill /F /T /IM FileMoverExpressUI.exe'
+        Pop $R0
+        nsExec::Exec 'taskkill /F /T /IM filemoverexpress-launcher.exe'
+        Pop $R0
+        nsExec::Exec 'taskkill /F /T /IM filemoverexpress.exe'
+        Pop $R0
+        ; Brief pause so Windows releases the executable file locks before the File steps run.
+        Sleep 1000
+    fme_notrunning_${UNIQ}:
+!macroend
+
 Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
 
 Section
+    ; Stop running instances first (with confirmation) so their .exe files aren't locked.
+    !insertmacro fme.stopProcesses "INSTALL"
+
     !insertmacro wails.setShellContext
 
     !insertmacro wails.webview2runtime
@@ -109,6 +150,9 @@ Section
 SectionEnd
 
 Section "uninstall"
+    ; Stop running instances first (with confirmation) so their .exe files aren't locked.
+    !insertmacro fme.stopProcesses "UNINSTALL"
+
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
