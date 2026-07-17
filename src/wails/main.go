@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -54,10 +55,11 @@ func main() {
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:               "main",
 		Title:              ProductName,
-		Width:              MinWindowWidth,
-		Height:             MinWindowHeight,
+		Width:              DefaultWindowWidth,
+		Height:             DefaultWindowHeight,
 		MinWidth:           MinWindowWidth,
 		MinHeight:          MinWindowHeight,
+		InitialPosition:    application.WindowCentered,
 		URL:                "/",
 		EnableFileDrop:     true,
 		DevToolsEnabled:    true,
@@ -69,6 +71,33 @@ func main() {
 
 	window.OnWindowEvent(events.Common.WindowFilesDropped, func(event *application.WindowEvent) {
 		app.Event.Emit("files-dropped", DroppedFileResult{}.fromEvent(event))
+	})
+
+	// On first show, clamp the window to the display's work area and center it so it never
+	// opens larger than the screen — otherwise a window taller/wider than the display pushes
+	// the title bar off-screen or behind the taskbar on low-resolution / multi-monitor setups.
+	// Native window methods are no-ops until the window is realized in Run(), so this runs on
+	// the WindowShow event; sync.Once limits it to the initial show (restoring from minimize
+	// won't re-center a window the user has moved).
+	var fitWindowOnce sync.Once
+	window.OnWindowEvent(events.Common.WindowShow, func(_ *application.WindowEvent) {
+		fitWindowOnce.Do(func() {
+			screen, err := window.GetScreen()
+			if err != nil || screen == nil {
+				return
+			}
+			if wa := screen.WorkArea; wa.Width > 0 && wa.Height > 0 {
+				w, h := window.Size()
+				if w > wa.Width {
+					w = wa.Width
+				}
+				if h > wa.Height {
+					h = wa.Height
+				}
+				window.SetSize(w, h)
+			}
+			window.Center()
+		})
 	})
 
 	// Listen for the 'closed' event from frontend to quit the app.

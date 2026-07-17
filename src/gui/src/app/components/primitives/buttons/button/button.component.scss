@@ -102,6 +102,10 @@ button {
     align-content: center;
     flex-direction: column;
     font-size: 15px;
+    // Keep multi-word labels (e.g. "Bucket Report") on a single line. Without this, a
+    // button squeezed by a tight flex row wraps the label to two lines, which overflows
+    // the fixed button height and overlaps neighbouring controls.
+    white-space: nowrap;
 }
 
 .inline-button-icon {

@@ -6,7 +6,10 @@
     margin: 0;
     min-width: 0;
     display: grid;
-    grid-template-rows: minmax(400px, 1fr) minmax(300px, 40%);
+    // Lower row floors so the two stacked panes fit a small window (down to the 1024x640
+    // window minimum); each pane scrolls internally when short. Previously 400px + 300px
+    // (+ nav/footer) required ~798px of height, which didn't fit 1366x768 screens.
+    grid-template-rows: minmax(200px, 1fr) minmax(160px, 40%);
     grid-gap: 16px;
     grid-template-areas:
         'file-browser-section'
