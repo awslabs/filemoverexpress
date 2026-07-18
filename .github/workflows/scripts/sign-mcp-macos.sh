@@ -56,8 +56,7 @@ cp unsigned/fme-mcp mcp-pkg/EXECUTABLES_TO_SIGN/fme-mcp
 ( cd mcp-pkg && gtar -czf artifact.gz EXECUTABLES_TO_SIGN && gtar -czf package.tar.gz artifact.gz )
 
 IN_KEY="pre-signed/fme-mcp-${ARCH}.tar.gz"
-ARTIFACT_NAME="fme-mcp-${ARCH}-signed.tar.gz"
-OUT_KEY="signed/${ARTIFACT_NAME}"
+OUT_KEY="signed/fme-mcp-${ARCH}-signed.tar.gz"
 aws s3 cp mcp-pkg/package.tar.gz "s3://${SIGNING_BUCKET}/${IN_KEY}"
 
 cat > manifest.json <<EOF
@@ -129,7 +128,7 @@ done
 mkdir -p mcp-signed
 aws s3 cp "s3://${SIGNING_BUCKET}/${OUT_KEY}" mcp-signed/out
 ( cd mcp-signed
-  if file "out/${ARTIFACT_NAME}" | grep -qi 'zip archive'; then ditto -x -k "out/${ARTIFACT_NAME}" .; else tar -xpf "out/${ARTIFACT_NAME}"; fi
+  if file out | grep -qi 'zip archive'; then ditto -x -k out .; else tar -xpf out; fi
   [ -f artifact.gz ] && tar -xpf artifact.gz )
 
 SIGNED=$(find mcp-signed -name fme-mcp -type f | head -n1)
