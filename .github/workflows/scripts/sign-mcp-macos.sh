@@ -250,11 +250,6 @@ download_and_extract_signed_binary() {
     fi
     info "Downloaded artifact size: ${file_size} bytes"
 
-    # --- Debug: show first bytes as hex to help identify format ---
-    # od is POSIX-specified and always available on macOS runners.
-    info "File header (hex):"
-    od -A x -t x1z -N 32 mcp-signed/out
-
     (
         cd mcp-signed
 
