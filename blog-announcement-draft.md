@@ -1,10 +1,10 @@
-# Introducing File Mover Express: open source high-performance file transfer to Amazon S3 for media workflows
+# Introducing File Mover Express: open source, high-performance file transfer to Amazon S3 for media workflows
 
 *Draft — for review*
 
 Media production teams routinely move terabytes of assets between on-premises storage and the cloud. Whether it is a digital imaging technician (DIT) offloading camera cards on set, a post-production facility feeding an archive, a content creator pushing dailies for review, or the production operations and pipeline engineers who keep all of that running, these workflows share a common set of challenges: transfers are large, deadlines are tight, and the person who starts a transfer is often not the person, or the machine, that finishes it. Traditional transfer clients tie the transfer to a desktop session, so a closed laptop lid or an expired session can mean hours of lost progress. Commercial alternatives solve some of these problems, but often at the cost of per-seat licensing, proprietary protocols, or routing your content through third-party infrastructure.
 
-Today, we are announcing **File Mover Express (FME)**, an open source, high-performance file transfer application that accelerates media asset workflows between local systems and [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/). File Mover Express is available now on [GitHub](https://github.com/awslabs/filemoverexpress) under the Apache 2.0 license, with installers for macOS, Windows, and Linux.
+Today, we are announcing **File Mover Express**, an open source, high-performance file transfer application that accelerates media asset workflows between local systems and [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/). File Mover Express is available now on [GitHub](https://github.com/awslabs/filemoverexpress) under the Apache 2.0 license, with pre-built packages for macOS, Windows, and Linux.
 
 In this post, we introduce File Mover Express, explain the value it delivers for media workflows, and show you how to get started with your first transfer.
 
@@ -12,17 +12,17 @@ In this post, we introduce File Mover Express, explain the value it delivers for
 
 At the core of File Mover Express is a daemon-based transfer engine that decouples transfers from your desktop session. The daemon can run on any machine, whether that is your workstation, a server in the data center, or an [Amazon Elastic Compute Cloud (Amazon EC2)](https://aws.amazon.com/ec2/) instance, while you control it from a drag-and-drop GUI or a scriptable command line interface (CLI) over an encrypted, password-protected connection. You can start a transfer from your laptop on set, disconnect, and check on its progress from the facility later. The daemon continues the work.
 
-Transfers go directly to Amazon S3 using native S3 APIs, with no intermediary servers, no relay infrastructure, and no third-party services in the data path. Large files are automatically split into chunks and uploaded in parallel using multipart upload, with auto-tuned parallelism, configurable retries, and the ability to pause and resume active transfers. Transfers work in both directions: the same engine that uploads camera originals can pull footage back down from Amazon S3 for conform, review, or restore. File Mover Express runs on macOS, Windows, and Linux, including headless Linux servers, and works with any AWS Region where Amazon S3 is available.
+Transfers go directly to Amazon S3 using native S3 APIs, with no intermediary servers, no relay infrastructure, and no third-party services in the data path. Large files are automatically split into chunks and uploaded in parallel using multipart upload. Transfer autotuning dynamically adjusts the number of parallel streams and the chunk size to optimize transfer speed for your connection, so you get high throughput without manual tuning. Transfers also support configurable retries and the ability to pause and resume. Transfers work in both directions: the same engine that uploads camera originals can pull footage back down from Amazon S3 for conform, review, or restore. File Mover Express runs everywhere your pipeline does, including headless Linux servers, and works with any AWS Region where Amazon S3 is available.
 
 ## Why File Mover Express
 
 ### Your time back: transfers that finish without you
 
-The most expensive part of a slow transfer is rarely the bandwidth. It is the person waiting on it. Because File Mover Express auto-tunes its parallelism to saturate the available connection, and because the daemon keeps running after you disconnect, transfers finish on the network's schedule instead of yours. Pause and resume means an interrupted 4 TB upload picks up where it left off rather than starting over, and configurable retries mean transient network failures are absorbed silently instead of paging someone at 2 AM.
+The most expensive part of a slow transfer is rarely the bandwidth. It is the person waiting on it. Because autotuning keeps the available connection fully utilized, and because the daemon keeps running after you disconnect, transfers finish on the network's schedule instead of yours. An interrupted 4 TB upload picks up where it left off rather than starting over, and transient network failures are absorbed silently instead of paging someone at 2 AM.
 
 Hot folders extend this further: point File Mover Express at a folder and it automatically uploads anything new that appears. A DIT can offload camera cards into a watch folder and walk away. Footage flows to Amazon S3 with no manual step, turning camera-to-cloud from a job someone does into something that simply happens.
 
-Saturating the connection does not have to mean monopolizing it. Bandwidth throttling lets you cap how much of the network File Mover Express uses, so a large overnight archive push can share a facility connection with video calls and remote editing sessions instead of competing with them.
+Fully utilizing the connection does not have to mean monopolizing it. Bandwidth throttling lets you cap how much of the network File Mover Express uses, so a large overnight archive push can share a facility connection with video calls and remote editing sessions instead of competing with them.
 
 ### Lower cost and no lock-in: direct to S3, open source, standard formats
 
@@ -56,7 +56,7 @@ All three interfaces connect to the same daemon, so there is no duplicate transf
 
 To start transferring files with File Mover Express, complete the following steps:
 
-1. **Install File Mover Express** – Download a pre-built installer from the [Releases page](https://github.com/awslabs/filemoverexpress/releases) and run it.
+1. **Install File Mover Express** – Download the pre-built package for your platform from the [Releases page](https://github.com/awslabs/filemoverexpress/releases) and install it.
 2. **Set up AWS** – Create an S3 bucket, apply the [minimum IAM policy](https://github.com/awslabs/filemoverexpress/blob/main/docs/Security.md), and configure your credentials with `aws configure`.
 3. **Configure a destination** – Launch File Mover Express and add a Remote Configuration pointing to your S3 bucket.
 4. **Start transferring** – Drag files into the GUI, script transfers with the CLI, or ask your AI assistant.
