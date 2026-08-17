@@ -73,6 +73,14 @@ export interface ConfigTransferProfile {
     checksums: Checksums;
     autoTuning: boolean;
     endpoint: string;
+    authMethod?: string;
+    oidcIssuerUrl?: string;
+    oidcClientId?: string;
+    oidcRoleArn?: string;
+    oidcScopes?: string;
+    oidcSessionDurationSeconds?: number;
+    oidcPersistSession?: boolean;
+    oidcCustomCaBundle?: string;
 }
 
 export interface Paths {

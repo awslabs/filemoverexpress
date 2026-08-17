@@ -1,0 +1,117 @@
+.oidc-auth-status {
+    padding: 8px 0;
+}
+
+.status-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--mdc-theme-error, #f44336);
+
+    .error-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+    }
+
+    .error-message {
+        flex: 1;
+        font-size: 13px;
+    }
+}
+
+.status-pending {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.status-authenticated {
+    position: relative;
+    display: inline-block;
+
+    .compact-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .auth-icon {
+        color: #4caf50;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+    }
+
+    .badge {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+        cursor: default;
+
+        &.valid {
+            background: rgba(76, 175, 80, 0.15);
+            color: #81c784;
+        }
+
+        &.warning {
+            background: rgba(255, 152, 0, 0.15);
+            color: #ffb74d;
+        }
+
+        &.expired {
+            background: rgba(244, 67, 54, 0.15);
+            color: #ef5350;
+        }
+    }
+
+    .badge-wrapper {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .details-popup {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        margin-bottom: 8px;
+        padding: 12px 16px;
+        background: var(--mat-sys-surface-container, #2a2a2e);
+        border: 1px solid var(--mat-sys-outline-variant, #444);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        z-index: 100;
+        min-width: 280px;
+        white-space: nowrap;
+
+        .details-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 6px 0;
+
+            &:not(:last-child) {
+                border-bottom: 1px solid var(--mat-sys-outline-variant, #3a3a3e);
+            }
+        }
+
+        .details-label {
+            font-size: 12px;
+            color: var(--mat-sys-on-surface-variant, #aaa);
+            font-weight: 500;
+        }
+
+        .details-value {
+            font-size: 12px;
+            color: var(--mat-sys-on-surface, #e0e0e0);
+        }
+    }
+}
+
+.status-unauthenticated {
+    display: flex;
+    align-items: center;
+}

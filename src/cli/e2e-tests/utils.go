@@ -72,12 +72,7 @@ func DeleteS3Object(key string, transferProfileName string) {
 		log.Fatalf("Failed to load transfer profile: %s", err.Error())
 	}
 
-	s3m, err := transferApi.NewS3Manager(transferApi.S3ManagerConfig{
-		AwsProfile: transferProfile.Profile,
-		Bucket:     transferProfile.Bucket,
-		Region:     transferProfile.Region,
-		Endpoint:   transferProfile.Endpoint,
-	})
+	s3m, err := transferApi.NewS3Manager(transferProfile)
 	if err != nil {
 		log.Fatalf("Failed to load session: %s", err.Error())
 	}
@@ -102,12 +97,7 @@ func DeleteS3Prefix(prefix string, transferProfileName string) {
 		log.Fatalf("Failed to load transfer profile: %s", err.Error())
 	}
 
-	s3m, err := transferApi.NewS3Manager(transferApi.S3ManagerConfig{
-		AwsProfile: transferProfile.Profile,
-		Bucket:     transferProfile.Bucket,
-		Region:     transferProfile.Region,
-		Endpoint:   transferProfile.Endpoint,
-	})
+	s3m, err := transferApi.NewS3Manager(transferProfile)
 	if err != nil {
 		log.Fatalf("Failed to load session: %s", err.Error())
 	}

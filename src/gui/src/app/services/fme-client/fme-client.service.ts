@@ -94,6 +94,14 @@ import {
     InventoryReportStartedEvent,
 } from '@events/inventory';
 import {
+    OIDCLoginRequestSchema,
+    OIDCLoginResponse,
+    OIDCLogoutRequestSchema,
+    OIDCLogoutResponse,
+    OIDCStatusRequestSchema,
+    OIDCStatusResponse,
+} from '@gen/es/fme/v1/fme_service_pb';
+import {
     JobChecksumProgressEvent,
     JobCompleteEvent,
     JobCreateEvent,
@@ -1086,6 +1094,72 @@ export class FmeClientService {
                 }, retryConnectionTime);
             },
         );
+    }
+
+    initiateOIDCLogin(profileName: string): Observable<OIDCLoginResponse> {
+        const sub = new Subject<OIDCLoginResponse>();
+        const req = create(OIDCLoginRequestSchema);
+        req.transferProfile = profileName;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.initiateOIDCLogin(
+            req,
+            (err: ConnectError | undefined, res: OIDCLoginResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    getOIDCStatus(profileName: string): Observable<OIDCStatusResponse> {
+        const sub = new Subject<OIDCStatusResponse>();
+        const req = create(OIDCStatusRequestSchema);
+        req.transferProfile = profileName;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.getOIDCStatus(
+            req,
+            (err: ConnectError | undefined, res: OIDCStatusResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    logoutOIDC(profileName: string): Observable<OIDCLogoutResponse> {
+        const sub = new Subject<OIDCLogoutResponse>();
+        const req = create(OIDCLogoutRequestSchema);
+        req.transferProfile = profileName;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.logoutOIDC(
+            req,
+            (err: ConnectError | undefined, res: OIDCLogoutResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
     }
 }
 

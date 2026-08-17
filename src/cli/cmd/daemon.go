@@ -13,6 +13,8 @@ import (
 
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
+	"github.com/awslabs/filemoverexpress/core/auth"
+	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/core/transferstats"
 	hotFolder "github.com/awslabs/filemoverexpress/core/upload/hot_folder"
 	"github.com/awslabs/filemoverexpress/events"
@@ -73,6 +75,7 @@ func runDaemon(cmd *cobra.Command, _ []string) {
 	checkRemoteFlagUsage(cmd)
 	transferstats.Initialize()
 	hotFolder.Init()
+	initOIDCProvider()
 
 	addressFlagUsed := cmd.Flags().Lookup("address").Changed
 	portsFlagUsed := cmd.Flags().Lookup("ports").Changed
@@ -102,6 +105,14 @@ func runDaemon(cmd *cobra.Command, _ []string) {
 }
 
 //revive:enable:function-length,cognitive-complexity
+
+func initOIDCProvider() {
+	cacheDir := filepath.Join(config.GetConfigDir(), "oidc-tokens")
+	stsClient := auth.NewRealSTSClient()
+	provider := auth.NewOIDCProvider(cacheDir, stsClient)
+	service.SetOIDCProvider(provider)
+	transferapi.SetOIDCProvider(provider)
+}
 
 func hasValidTransferProfiles() {
 	if (len(config.LoadConfiguration().Protocols.S3.TransferProfiles)) == 0 {

@@ -2,17 +2,21 @@ package transfer_api
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go/middleware"
 
 	fmeconfig "github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/auth"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 )
 
 var (
@@ -23,6 +27,11 @@ var (
 	// to allow tests to stub out AWS SDK calls without requiring real credentials.
 	loadConfigFunc       = loadDefaultConfig
 	sessionValidatorFunc = isSessionValid
+
+	// oidcProvider is the package-level OIDC provider instance, set during daemon initialization.
+	oidcProvider *auth.OIDCProvider
+
+	errOIDCProviderNotInitialized = fmt.Errorf("OIDC provider not initialized")
 )
 
 type (
@@ -44,6 +53,11 @@ type (
 		Lock       *sync.RWMutex
 	}
 )
+
+// SetOIDCProvider sets the package-level OIDC provider used for OIDC-authenticated sessions.
+func SetOIDCProvider(provider *auth.OIDCProvider) {
+	oidcProvider = provider
+}
 
 func isSessionValid(awsConfig aws.Config) bool {
 	client := sts.NewFromConfig(awsConfig)
@@ -98,18 +112,102 @@ func GetSession(profile string, region string) (*aws.Config, error) {
 	return configCache[key], nil
 }
 
-func NewS3Manager(input S3ManagerConfig) (*S3Manager, error) {
+// GetSessionForTransferProfile resolves an AWS config for the given transfer profile,
+// routing to OIDC credential provider when auth_method is OIDC.
+func GetSessionForTransferProfile(tp configtypes.TransferProfile) (*aws.Config, error) {
+	if tp.AuthMethod == configtypes.AuthMethodOIDC {
+		return getOIDCSession(tp)
+	}
+	// Default path: AWS_PROFILE or UNSPECIFIED — use existing credential resolution
+	return GetSession(tp.Profile, tp.Region)
+}
+
+func getOIDCSession(tp configtypes.TransferProfile) (*aws.Config, error) {
+	if oidcProvider == nil {
+		return nil, errOIDCProviderNotInitialized
+	}
+
+	creds, err := oidcProvider.GetCredentials(tp.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use profile name as cache key (not region+awsProfile) for OIDC sessions
+	key := "oidc-" + tp.Name
+
+	configCacheLock.RLock()
+	existingCfg, entryExists := configCache[key]
+	configCacheLock.RUnlock()
+
+	if entryExists && existingCfg != nil {
+		// Update credentials in place via a new config with fresh static creds
+		cfg, err := buildOIDCConfig(tp.Region, creds)
+		if err != nil {
+			return nil, err
+		}
+		configCacheLock.Lock()
+		configCache[key] = &cfg
+		configCacheLock.Unlock()
+		return &cfg, nil
+	}
+
+	cfg, err := buildOIDCConfig(tp.Region, creds)
+	if err != nil {
+		return nil, err
+	}
+
+	configCacheLock.Lock()
+	configCache[key] = &cfg
+	configCacheLock.Unlock()
+
+	return &cfg, nil
+}
+
+func buildOIDCConfig(region string, creds *auth.AWSCredentials) (aws.Config, error) {
+	return config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken,
+		)),
+	)
+}
+
+// NewS3Manager creates an S3Manager using the credential path appropriate for the transfer profile's auth method.
+// For OIDC profiles, credentials are obtained from the OIDC provider; for AWS profile-based auth, standard credential
+// resolution is used.
+func NewS3Manager(tp configtypes.TransferProfile) (*S3Manager, error) {
+	cfg, err := GetSessionForTransferProfile(tp)
+	if err != nil {
+		return nil, err
+	}
+	return buildS3Manager(cfg, tp)
+}
+
+// NewS3ManagerFromConfig creates an S3Manager using explicit AWS profile credentials.
+// Use this only when a full TransferProfile is not available (e.g., CLI commands with manual args).
+func NewS3ManagerFromConfig(input S3ManagerConfig) (*S3Manager, error) {
 	cfg, err := GetSession(input.AwsProfile, input.Region)
 	if err != nil {
 		return nil, err
 	}
+	tp := configtypes.TransferProfile{
+		Profile:  input.AwsProfile,
+		Bucket:   input.Bucket,
+		Region:   input.Region,
+		Endpoint: input.Endpoint,
+	}
+	return buildS3Manager(cfg, tp)
+}
+
+func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager, error) {
 	retryCount := fmeconfig.LoadConfiguration().General.RetryCount
 	retryCount = max(retryCount, 0)
 	var client *s3.Client
-	if input.Endpoint != "" {
+	if tp.Endpoint != "" {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
 			opts.RetryMaxAttempts = int(retryCount)
-			opts.BaseEndpoint = aws.String(input.Endpoint)
+			opts.BaseEndpoint = aws.String(tp.Endpoint)
 		})
 	} else {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
@@ -117,9 +215,9 @@ func NewS3Manager(input S3ManagerConfig) (*S3Manager, error) {
 		})
 	}
 	return &S3Manager{
-		Region:     input.Region,
-		Bucket:     input.Bucket,
-		AwsProfile: input.AwsProfile,
+		Region:     tp.Region,
+		Bucket:     tp.Bucket,
+		AwsProfile: tp.Profile,
 		Client: &FileMoverS3Client{
 			client: client,
 		},

@@ -60,4 +60,68 @@ describe('TransferProfileFormComponent', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    it('should default auth method to aws-profile', () => {
+        const authMethod = component.transferProfileForm.get('authMethod');
+        expect(authMethod?.value).toBe('aws-profile');
+    });
+
+    it('should not require OIDC fields when auth method is aws-profile', () => {
+        const issuerUrl = component.transferProfileForm.get('oidcIssuerUrl');
+        const clientId = component.transferProfileForm.get('oidcClientId');
+        const roleArn = component.transferProfileForm.get('oidcRoleArn');
+
+        issuerUrl?.setValue('');
+        clientId?.setValue('');
+        roleArn?.setValue('');
+
+        expect(issuerUrl?.valid).toBe(true);
+        expect(clientId?.valid).toBe(true);
+        expect(roleArn?.valid).toBe(true);
+    });
+
+    it('should require OIDC fields when auth method is oidc', () => {
+        const authMethod = component.transferProfileForm.get('authMethod');
+        authMethod?.setValue('oidc');
+
+        const issuerUrl = component.transferProfileForm.get('oidcIssuerUrl');
+        const clientId = component.transferProfileForm.get('oidcClientId');
+        const roleArn = component.transferProfileForm.get('oidcRoleArn');
+
+        issuerUrl?.setValue('');
+        clientId?.setValue('');
+        roleArn?.setValue('');
+
+        expect(issuerUrl?.hasError('required')).toBe(true);
+        expect(clientId?.hasError('required')).toBe(true);
+        expect(roleArn?.hasError('required')).toBe(true);
+    });
+
+    it('should clear OIDC validation errors when switching back to aws-profile', () => {
+        const authMethod = component.transferProfileForm.get('authMethod');
+        authMethod?.setValue('oidc');
+
+        const issuerUrl = component.transferProfileForm.get('oidcIssuerUrl');
+        issuerUrl?.setValue('');
+        expect(issuerUrl?.hasError('required')).toBe(true);
+
+        authMethod?.setValue('aws-profile');
+        expect(issuerUrl?.hasError('required')).toBe(false);
+        expect(issuerUrl?.valid).toBe(true);
+    });
+
+    it('should have default scopes value', () => {
+        const scopes = component.transferProfileForm.get('oidcScopes');
+        expect(scopes?.value).toBe('openid, email, profile, offline_access');
+    });
+
+    it('should have persist session defaulted to false', () => {
+        const persist = component.transferProfileForm.get('oidcPersistSession');
+        expect(persist?.value).toBe(false);
+    });
+
+    it('should have session duration defaulted to 0', () => {
+        const duration = component.transferProfileForm.get('oidcSessionDurationSeconds');
+        expect(duration?.value).toBe(0);
+    });
 });

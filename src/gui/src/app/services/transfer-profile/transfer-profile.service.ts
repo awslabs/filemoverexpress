@@ -20,15 +20,17 @@ export class TransferProfileService implements OnDestroy {
     private readonly transferProfileState$: BehaviorSubject<TransferProfileState> = new BehaviorSubject<TransferProfileState>({
         transferProfileList: null,
         currentTransferProfile: null,
+        currentProfileIsOIDC: false,
     });
     public readonly transferProfileStateSig = signal<TransferProfileState>(
-        {transferProfileList: null, currentTransferProfile: null},
+        {transferProfileList: null, currentTransferProfile: null, currentProfileIsOIDC: false},
     );
     private readonly transferProfileEdited$: Subject<string> = new Subject<string>();
     private _subscriptions: Subscription[] = [];
     private _transferProfileState: TransferProfileState = {
         transferProfileList: null,
         currentTransferProfile: null,
+        currentProfileIsOIDC: false,
     };
 
     init() {
@@ -70,6 +72,7 @@ export class TransferProfileService implements OnDestroy {
         this._transferProfileState = {
             currentTransferProfile: null,
             transferProfileList: null,
+            currentProfileIsOIDC: false,
         };
         this.transferProfileState$.next(this._transferProfileState);
         this.transferProfileStateSig.set({...this._transferProfileState});

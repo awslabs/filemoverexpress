@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { AfterContentInit, AfterViewInit, Component, ElementRef, inject, input, OnDestroy, OnInit, output, ViewChild } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatChipGrid, MatChipInput, MatChipInputEvent, MatChipRow } from '@angular/material/chips';
@@ -171,6 +171,28 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
 
     setupFormGroup(): FormGroup<TransferProfileForm> {
         const form = createTransferProfileForm(this.storageClasses, this.checksumAlgorithms);
+
+        // OIDC conditional validation: require fields when auth method is OIDC
+        const authMethodControl = form.get('authMethod');
+        if (authMethodControl) {
+            const oidcFieldNames = ['oidcIssuerUrl',
+                'oidcClientId',
+                'oidcRoleArn'] as const;
+            const authMethodSubscription = authMethodControl.valueChanges.subscribe((value) => {
+                for (const fieldName of oidcFieldNames) {
+                    const control = form.get(fieldName);
+                    if (control) {
+                        if (value === 'oidc') {
+                            control.addValidators(Validators.required);
+                        } else {
+                            control.removeValidators(Validators.required);
+                        }
+                        control.updateValueAndValidity({onlySelf: true});
+                    }
+                }
+            });
+            this.subscriptions.push(authMethodSubscription);
+        }
 
         form.get('chunkSize')?.addValidators([
             autotuningFieldsRequiredValidator,

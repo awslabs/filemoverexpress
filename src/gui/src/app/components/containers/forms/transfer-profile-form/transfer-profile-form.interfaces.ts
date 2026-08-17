@@ -1,12 +1,25 @@
 import { FormControl, FormGroup } from '@angular/forms';
 
 export type EditorMode = 'add' | 'update';
+export type AuthMethodType = 'aws-profile' | 'oidc';
 
 export interface TransferProfileForm {
     name: FormControl<string>;
     bucket: FormControl<string>;
     region: FormControl<string>;
     profile: FormControl<string>;
+
+    // authentication method
+    authMethod: FormControl<AuthMethodType>;
+
+    // OIDC settings (visible when authMethod === 'oidc')
+    oidcIssuerUrl: FormControl<string>;
+    oidcClientId: FormControl<string>;
+    oidcRoleArn: FormControl<string>;
+    oidcScopes: FormControl<string>;
+    oidcSessionDurationSeconds: FormControl<number>;
+    oidcPersistSession: FormControl<boolean>;
+    oidcCustomCaBundle: FormControl<string>;
 
     // advanced settings
     accelerated: FormControl<boolean>;

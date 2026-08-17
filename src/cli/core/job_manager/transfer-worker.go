@@ -64,7 +64,7 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 		job.SetStatus(jobmanagertypes.JobStatusInProgress)
 	}
 
-	s3Manager, err := jm.GetS3Manager(transferProfile.Profile, transferProfile.Bucket, transferProfile.Region, transferProfile.Endpoint)
+	s3Manager, err := jm.GetS3Manager(transferProfile)
 	if err != nil {
 		events.Events.Send(&eventtypes.JobErrorEvent{
 			Id:        job.JobId(),

@@ -26,12 +26,7 @@ func (*FileMoverServer) S3ListPrefix(
 		return nil, err
 	}
 
-	s3m, err := transfer_api.NewS3Manager(transfer_api.S3ManagerConfig{
-		AwsProfile: transferProfile.Profile,
-		Bucket:     transferProfile.Bucket,
-		Region:     transferProfile.Region,
-		Endpoint:   transferProfile.Endpoint,
-	})
+	s3m, err := transfer_api.NewS3Manager(transferProfile)
 	if err != nil {
 		return nil, fmt.Errorf(strFailedEstablishingAwsSession, err)
 	}

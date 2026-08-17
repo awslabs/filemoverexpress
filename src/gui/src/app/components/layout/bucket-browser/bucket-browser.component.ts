@@ -28,6 +28,7 @@ import { basename, commonPath, createJobName, dirname, getErrorMessage } from '@
 import { BucketReportButtonComponent } from '@primitives/buttons/bucket-report-button/bucket-report-button.component';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { RefreshButtonComponent } from '@primitives/buttons/refresh-button/refresh-button.component';
+import { OidcAuthStatusComponent } from '@app/components/containers/oidc-auth-status/oidc-auth-status.component';
 import { TextInputComponent } from '@primitives/forms/text-input/text-input.component';
 import { TransferProfileSelectorDropdownComponent } from '@primitives/forms/transfer-profile-selector-dropdown/transfer-profile-selector-dropdown.component';
 import { Bookmark } from '@services/bookmarks/bookmarks.classes';
@@ -81,6 +82,7 @@ import { Events } from '@wailsio/runtime';
         RefreshButtonComponent,
         FileBrowserComponent,
         BreadcrumbsComponent,
+        OidcAuthStatusComponent,
     ],
 })
 export class BucketBrowserComponent implements OnDestroy {
@@ -140,6 +142,7 @@ export class BucketBrowserComponent implements OnDestroy {
     subscriptions: Subscription[] = [];
     selectedTransferProfile: string | null = null;
     transferProfileList: string[] | null = null;
+    currentProfileIsOIDC = false;
     allowUiConfiguration = false;
     allowRemoteRenameDelete = false;
     connectionState: ConnectionState = ConnectionState.DISCONNECTED;
@@ -165,6 +168,7 @@ export class BucketBrowserComponent implements OnDestroy {
             (transferProfileState: TransferProfileState) => {
                 this.selectedTransferProfile = transferProfileState.currentTransferProfile;
                 this.transferProfileList = transferProfileState.transferProfileList;
+                this.updateOIDCState(transferProfileState.currentTransferProfile);
                 if (!transferProfileState.transferProfileList?.length) {
                     // transfer profile list empty
                     this.setFileBrowserError(this.getErrorEmptyTransferProfileList());
@@ -982,5 +986,21 @@ export class BucketBrowserComponent implements OnDestroy {
                 }
             },
         );
+    }
+
+    private updateOIDCState(profileName: string | null) {
+        if (!profileName) {
+            this.currentProfileIsOIDC = false;
+            return;
+        }
+        this.fmeClientService.getConfiguration().subscribe({
+            next: (config) => {
+                const tp = config.protocols.s3.transferProfiles[profileName];
+                this.currentProfileIsOIDC = tp?.authMethod === 'oidc';
+            },
+            error: () => {
+                this.currentProfileIsOIDC = false;
+            },
+        });
     }
 }

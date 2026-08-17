@@ -1,0 +1,59 @@
+<div class="oidc-auth-status">
+    @if (state.error) {
+        <div class="status-error">
+            <mat-icon class="error-icon">error</mat-icon>
+            <span class="error-message">{{ state.error }}</span>
+            <button mat-stroked-button color="primary" (click)="retry()">
+                Retry
+            </button>
+        </div>
+    } @else if (state.pending) {
+        <div class="status-pending">
+            <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span>Waiting for authentication...</span>
+        </div>
+    } @else if (state.authenticated) {
+        <div class="status-authenticated">
+            <div class="compact-row">
+                <mat-icon class="auth-icon">verified_user</mat-icon>
+                @if (isExpired) {
+                    <span class="badge expired">Expired</span>
+                    <button mat-stroked-button color="primary" (click)="signIn()">
+                        Sign In Again
+                    </button>
+                } @else {
+                    <span class="badge-wrapper" (mouseenter)="showDetails = true" (mouseleave)="showDetails = false">
+                        <span class="badge" [class.warning]="isExpiringSoon" [class.valid]="!isExpiringSoon">
+                            {{ timeRemainingShort }}
+                        </span>
+                        @if (showDetails) {
+                            <div class="details-popup">
+                                <div class="details-row">
+                                    <span class="details-label">Identity</span>
+                                    <span class="details-value">{{ state.identity }}</span>
+                                </div>
+                                <div class="details-row">
+                                    <span class="details-label">Expires at</span>
+                                    <span class="details-value">{{ expirationTimestamp }}</span>
+                                </div>
+                                <div class="details-row">
+                                    <span class="details-label">Time remaining</span>
+                                    <span class="details-value">{{ timeRemaining }}</span>
+                                </div>
+                            </div>
+                        }
+                    </span>
+                    <button mat-icon-button (click)="signOut()" matTooltip="Sign out">
+                        <mat-icon>logout</mat-icon>
+                    </button>
+                }
+            </div>
+        </div>
+    } @else {
+        <div class="status-unauthenticated">
+            <button mat-flat-button color="primary" (click)="signIn()">
+                Sign In with OIDC
+            </button>
+        </div>
+    }
+</div>

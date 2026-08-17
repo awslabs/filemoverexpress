@@ -157,26 +157,99 @@
                     }
                 </mat-form-field>
 
-                <mat-form-field color="accent">
-                    <mat-label>AWS named profile</mat-label>
-                    <input matInput
-                           [matAutocomplete]="auto"
-                           type="text"
-                           formControlName="profile"
-                           placeholder="myawsprofile">
-                    <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete">
-                        @for (profile of awsProfiles; track profile) {
-                            <mat-option [value]="profile">{{ profile }}</mat-option>
+                <div class="auth-method-section">
+                    <mat-form-field color="accent">
+                        <mat-label>Authentication method</mat-label>
+                        <mat-select formControlName="authMethod">
+                            <mat-option value="aws-profile">AWS Named Profile</mat-option>
+                            <mat-option value="oidc">OIDC / SSO</mat-option>
+                        </mat-select>
+                        <mat-hint>How FME authenticates with AWS for this profile.</mat-hint>
+                    </mat-form-field>
+                </div>
+
+                @if (transferProfileForm.controls['authMethod'].value === 'aws-profile') {
+                    <mat-form-field color="accent">
+                        <mat-label>AWS named profile</mat-label>
+                        <input matInput
+                               [matAutocomplete]="auto"
+                               type="text"
+                               formControlName="profile"
+                               placeholder="myawsprofile">
+                        <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete">
+                            @for (profile of awsProfiles; track profile) {
+                                <mat-option [value]="profile">{{ profile }}</mat-option>
+                            }
+                        </mat-autocomplete>
+                        @if (tutorialMode()) {
+                            <mat-hint>
+                                An AWS named profile to use for S3 access. If you choose to use an AWS Access Key or an AWS
+                                Secret Key instead, you can leave this field blank.
+                                <a (click)="toggleHint($event, 'transfer-profile-general-profile')">Info</a>
+                            </mat-hint>
                         }
-                    </mat-autocomplete>
-                    @if (tutorialMode()) {
-                        <mat-hint>
-                            An AWS named profile to use for S3 access. If you choose to use an AWS Access Key or an AWS
-                            Secret Key instead, you can leave this field blank.
-                            <a (click)="toggleHint($event, 'transfer-profile-general-profile')">Info</a>
-                        </mat-hint>
-                    }
-                </mat-form-field>
+                    </mat-form-field>
+                }
+
+                @if (transferProfileForm.controls['authMethod'].value === 'oidc') {
+                    <mat-form-field color="accent">
+                        <mat-label>Issuer URL</mat-label>
+                        <input matInput type="text" formControlName="oidcIssuerUrl"
+                               placeholder="https://auth.example.com/oidc">
+                        <mat-hint>The OIDC discovery base URL of your identity provider.</mat-hint>
+                        @if (transferProfileForm.controls['oidcIssuerUrl'].hasError('required')) {
+                            <mat-error>Issuer URL is required for OIDC authentication.</mat-error>
+                        }
+                    </mat-form-field>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Client ID</mat-label>
+                        <input matInput type="text" formControlName="oidcClientId"
+                               placeholder="fme-desktop">
+                        <mat-hint>The public client ID registered with your identity provider.</mat-hint>
+                        @if (transferProfileForm.controls['oidcClientId'].hasError('required')) {
+                            <mat-error>Client ID is required for OIDC authentication.</mat-error>
+                        }
+                    </mat-form-field>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Role ARN</mat-label>
+                        <input matInput type="text" formControlName="oidcRoleArn"
+                               placeholder="arn:aws:iam::123456789012:role/MyRole">
+                        <mat-hint>The IAM role to assume via AssumeRoleWithWebIdentity.</mat-hint>
+                        @if (transferProfileForm.controls['oidcRoleArn'].hasError('required')) {
+                            <mat-error>Role ARN is required for OIDC authentication.</mat-error>
+                        }
+                    </mat-form-field>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Scopes</mat-label>
+                        <input matInput type="text" formControlName="oidcScopes"
+                               placeholder="openid, email, profile, offline_access">
+                        <mat-hint>Comma-separated OAuth scopes. Include offline_access for session persistence.</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Session duration (seconds)</mat-label>
+                        <input matInput type="number" formControlName="oidcSessionDurationSeconds"
+                               placeholder="0">
+                        <mat-hint>Optional. 0 uses the STS default (3600). Valid range: 900-43200.</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field color="accent">
+                        <mat-label>Custom CA bundle</mat-label>
+                        <input matInput type="text" formControlName="oidcCustomCaBundle"
+                               placeholder="/path/to/ca-bundle.pem">
+                        <mat-hint>Optional PEM file path for internal certificate authorities.</mat-hint>
+                    </mat-form-field>
+
+                    <div class="form-field">
+                        <mat-slide-toggle formControlName="oidcPersistSession">
+                            Remember session across restarts
+                        </mat-slide-toggle>
+                        <mat-hint>When enabled, the refresh token is persisted to disk (requires offline_access scope).</mat-hint>
+                    </div>
+                }
             </ng-template>
         </section>
 

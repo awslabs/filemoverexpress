@@ -25,6 +25,9 @@
                             (refresh)="refreshFileBrowser()">
         </fme-refresh-button>
     </div>
+    @if (currentProfileIsOIDC && selectedTransferProfile) {
+        <fme-oidc-auth-status [profileName]="selectedTransferProfile"></fme-oidc-auth-status>
+    }
     <div class="file-browser">
         <fme-file-browser
                 fileBrowserType="s3"

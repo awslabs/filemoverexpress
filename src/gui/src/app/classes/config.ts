@@ -266,7 +266,7 @@ export class Protocols implements ConfigInterfaces.ConfigProtocols {
     }
 
     static fromJson(input: ConfigInterfaces.ConfigProtocols): Protocols {
-        return new Protocols(input.s3);
+        return new Protocols(S3Config.fromJson(input.s3));
     }
 
     static jsonToProtobuf(input: ConfigInterfaces.ConfigProtocols): proto.Protocols {
@@ -331,12 +331,25 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         public checksums: Checksums,
         public autoTuning: boolean,
         public endpoint: string,
+        public authMethod?: string,
+        public oidcIssuerUrl?: string,
+        public oidcClientId?: string,
+        public oidcRoleArn?: string,
+        public oidcScopes?: string,
+        public oidcSessionDurationSeconds?: number,
+        public oidcPersistSession?: boolean,
+        public oidcCustomCaBundle?: string,
     ) {
     }
 
     static fromProtobuf(input: proto.TransferProfile): TransferProfile {
         if (!input.paths) {
             console.debug('Got a TransferProfile message without an paths property');
+        }
+
+        let authMethod = 'aws-profile';
+        if (input.authMethod === proto.AuthMethod.OIDC) {
+            authMethod = 'oidc';
         }
 
         return new TransferProfile(
@@ -356,6 +369,14 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
             input.checksums ? Checksums.fromProtobuf(input.checksums) : Checksums.fromJson(DEFAULT_CHECKSUMS),
             input.autoTuning,
             input.endpoint,
+            authMethod,
+            input.oidcConfig?.issuerUrl ?? '',
+            input.oidcConfig?.clientId ?? '',
+            input.oidcConfig?.roleArn ?? '',
+            input.oidcConfig?.scopes?.join(', ') ?? 'openid, email, profile, offline_access',
+            input.oidcConfig?.sessionDurationSeconds ?? 0,
+            input.oidcConfig?.persistSession ?? false,
+            input.oidcConfig?.customCaBundle ?? '',
         );
     }
 
@@ -377,6 +398,14 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
             Checksums.fromJson(input.checksums),
             input.autoTuning,
             input.endpoint,
+            input.authMethod ?? 'aws-profile',
+            input.oidcIssuerUrl ?? '',
+            input.oidcClientId ?? '',
+            input.oidcRoleArn ?? '',
+            input.oidcScopes ?? 'openid, email, profile, offline_access',
+            input.oidcSessionDurationSeconds ?? 0,
+            input.oidcPersistSession ?? false,
+            input.oidcCustomCaBundle ?? '',
         );
     }
 
@@ -398,6 +427,30 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         transferProfile.checksums = Checksums.jsonToProtobuf(input.checksums);
         transferProfile.autoTuning = input.autoTuning;
         transferProfile.endpoint = input.endpoint;
+
+        // Map auth method
+        if (input.authMethod === 'oidc') {
+            transferProfile.authMethod = proto.AuthMethod.OIDC;
+        } else {
+            transferProfile.authMethod = proto.AuthMethod.AWS_PROFILE;
+        }
+
+        // Map OIDC config when auth method is OIDC
+        if (input.authMethod === 'oidc' && input.oidcIssuerUrl) {
+            const oidcConfig = create(proto.OIDCConfigSchema);
+            oidcConfig.issuerUrl = input.oidcIssuerUrl ?? '';
+            oidcConfig.clientId = input.oidcClientId ?? '';
+            oidcConfig.roleArn = input.oidcRoleArn ?? '';
+            oidcConfig.scopes = (input.oidcScopes ?? '')
+                .split(',')
+                .map((s) => s.trim())
+                .filter((s) => s.length > 0);
+            oidcConfig.sessionDurationSeconds = input.oidcSessionDurationSeconds ?? 0;
+            oidcConfig.persistSession = input.oidcPersistSession ?? false;
+            oidcConfig.customCaBundle = input.oidcCustomCaBundle ?? '';
+            transferProfile.oidcConfig = oidcConfig;
+        }
+
         return transferProfile;
     }
 }

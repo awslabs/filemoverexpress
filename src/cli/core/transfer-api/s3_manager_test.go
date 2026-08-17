@@ -1,11 +1,14 @@
 package transfer_api
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
+	"github.com/awslabs/filemoverexpress/core/auth"
 	"github.com/awslabs/filemoverexpress/core/transfer-api/mock"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 )
 
 // stubLoadConfig returns a minimal aws.Config without hitting real AWS config files.
@@ -112,11 +115,144 @@ func TestNewS3Manager(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewS3Manager(tt.args.input)
+			_, err := NewS3ManagerFromConfig(tt.args.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewS3Manager() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewS3ManagerFromConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
 	}
+}
+
+
+func TestGetSessionForTransferProfile_AWSProfile(t *testing.T) {
+	origLoad := loadConfigFunc
+	origValidator := sessionValidatorFunc
+	t.Cleanup(func() {
+		loadConfigFunc = origLoad
+		sessionValidatorFunc = origValidator
+		configCacheLock.Lock()
+		configCache = make(map[string]*aws.Config)
+		configCacheLock.Unlock()
+	})
+	loadConfigFunc = stubLoadConfig
+	sessionValidatorFunc = stubSessionValidator
+
+	tp := configtypes.TransferProfile{
+		Name:       "aws-profile-test",
+		Profile:    mock.UniteTestMockAWSProfile,
+		Region:     mock.UnitTestMockRegion,
+		AuthMethod: configtypes.AuthMethodAWSProfile,
+	}
+
+	cfg, err := GetSessionForTransferProfile(tp)
+	if err != nil {
+		t.Fatalf("GetSessionForTransferProfile() error = %v", err)
+	}
+	if cfg.Region != mock.UnitTestMockRegion {
+		t.Errorf("GetSessionForTransferProfile() region = %v, want %v", cfg.Region, mock.UnitTestMockRegion)
+	}
+}
+
+func TestGetSessionForTransferProfile_Unspecified_UsesAWSPath(t *testing.T) {
+	origLoad := loadConfigFunc
+	origValidator := sessionValidatorFunc
+	t.Cleanup(func() {
+		loadConfigFunc = origLoad
+		sessionValidatorFunc = origValidator
+		configCacheLock.Lock()
+		configCache = make(map[string]*aws.Config)
+		configCacheLock.Unlock()
+	})
+	loadConfigFunc = stubLoadConfig
+	sessionValidatorFunc = stubSessionValidator
+
+	tp := configtypes.TransferProfile{
+		Name:       "unspecified-test",
+		Profile:    mock.UniteTestMockAWSProfile,
+		Region:     mock.UnitTestMockRegion,
+		AuthMethod: configtypes.AuthMethodUnspecified,
+	}
+
+	cfg, err := GetSessionForTransferProfile(tp)
+	if err != nil {
+		t.Fatalf("GetSessionForTransferProfile() error = %v", err)
+	}
+	if cfg.Region != mock.UnitTestMockRegion {
+		t.Errorf("GetSessionForTransferProfile() region = %v, want %v", cfg.Region, mock.UnitTestMockRegion)
+	}
+}
+
+func TestGetSessionForTransferProfile_OIDC_NoProvider(t *testing.T) {
+	origProvider := oidcProvider
+	t.Cleanup(func() {
+		oidcProvider = origProvider
+	})
+	oidcProvider = nil
+
+	tp := configtypes.TransferProfile{
+		Name:       "oidc-no-provider",
+		Region:     mock.UnitTestMockRegion,
+		AuthMethod: configtypes.AuthMethodOIDC,
+	}
+
+	_, err := GetSessionForTransferProfile(tp)
+	if err == nil {
+		t.Fatal("GetSessionForTransferProfile() expected error for nil OIDC provider")
+	}
+	if err.Error() != "OIDC provider not initialized" {
+		t.Errorf("GetSessionForTransferProfile() error = %v, want 'OIDC provider not initialized'", err)
+	}
+}
+
+func TestGetSessionForTransferProfile_OIDC_WithProvider(t *testing.T) {
+	origProvider := oidcProvider
+	origLoad := loadConfigFunc
+	origValidator := sessionValidatorFunc
+	t.Cleanup(func() {
+		oidcProvider = origProvider
+		loadConfigFunc = origLoad
+		sessionValidatorFunc = origValidator
+		configCacheLock.Lock()
+		configCache = make(map[string]*aws.Config)
+		configCacheLock.Unlock()
+	})
+	loadConfigFunc = stubLoadConfig
+	sessionValidatorFunc = stubSessionValidator
+
+	// Create a real OIDCProvider and manually inject an authenticated session
+	provider := auth.NewOIDCProvider(t.TempDir(), &testSTSClient{})
+	SetOIDCProvider(provider)
+
+	// We need the provider to have credentials for this profile.
+	// Since we can't easily run the full OIDC flow in a unit test,
+	// we test the error path when not authenticated.
+	tp := configtypes.TransferProfile{
+		Name:       "oidc-test-profile",
+		Region:     mock.UnitTestMockRegion,
+		AuthMethod: configtypes.AuthMethodOIDC,
+	}
+
+	_, err := GetSessionForTransferProfile(tp)
+	// Should fail because the provider has no authenticated session for this profile
+	if err == nil {
+		t.Fatal("GetSessionForTransferProfile() expected error for unauthenticated OIDC profile")
+	}
+}
+
+// testSTSClient is a minimal STS mock for the S3Manager tests.
+type testSTSClient struct{}
+
+func (*testSTSClient) AssumeRoleWithWebIdentity(
+	_ context.Context,
+	_ string,
+	_ string,
+	_ string,
+	_ int32,
+) (*auth.AWSCredentials, error) {
+	return &auth.AWSCredentials{
+		AccessKeyID:    "AKIATEST",
+		SecretAccessKey: "secret",
+		SessionToken:   "token",
+	}, nil
 }

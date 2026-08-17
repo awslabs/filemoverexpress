@@ -2,6 +2,7 @@ import { COMMA, ENTER, SPACE } from '@angular/cdk/keycodes';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { fileOrderListValidator, noSpacesValidator, oneOfValidator } from '@app/classes';
 import {
+    AuthMethodType,
     ChecksumAlgorithm,
     StorageClass,
     TransferProfileForm,
@@ -71,6 +72,16 @@ export function createTransferProfileForm(
             validators: [Validators.required],
         }),
         profile: new FormControl<string>('', {nonNullable: true}),
+        // authentication method
+        authMethod: new FormControl<AuthMethodType>('aws-profile', {nonNullable: true}),
+        // OIDC settings
+        oidcIssuerUrl: new FormControl<string>('', {nonNullable: true}),
+        oidcClientId: new FormControl<string>('', {nonNullable: true}),
+        oidcRoleArn: new FormControl<string>('', {nonNullable: true}),
+        oidcScopes: new FormControl<string>('openid, email, profile, offline_access', {nonNullable: true}),
+        oidcSessionDurationSeconds: new FormControl<number>(0, {nonNullable: true}),
+        oidcPersistSession: new FormControl<boolean>(false, {nonNullable: true}),
+        oidcCustomCaBundle: new FormControl<string>('', {nonNullable: true}),
         // advanced settings
         accelerated: new FormControl<boolean>(false, {nonNullable: true}),
         storageClass: new FormControl<string>(

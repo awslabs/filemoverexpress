@@ -13,9 +13,21 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
+const (
+	// AuthMethodUnspecified is the proto3 default — treated identically to AuthMethodAWSProfile.
+	AuthMethodUnspecified AuthMethod = 0
+	// AuthMethodAWSProfile uses existing AWS named profile credential resolution.
+	AuthMethodAWSProfile AuthMethod = 1
+	// AuthMethodOIDC uses OIDC → AssumeRoleWithWebIdentity for credential acquisition.
+	AuthMethodOIDC AuthMethod = 2
+)
+
 // When updating the tag values, make sure to make the corresponding updates for the constants in config/config/config-keys.go
 // revive:disable:max-public-structs
 type (
+	// AuthMethod represents the credential acquisition strategy for a TransferProfile.
+	AuthMethod int32
+
 	FmeConfig struct {
 		General          General                   `koanf:"general" yaml:"general"`
 		Logging          Logging                   `koanf:"logging" yaml:"logging"`
@@ -89,6 +101,9 @@ type (
 		StorageClass         string `koanf:"storageClass" yaml:"storageClass"`
 
 		Paths PathsSettings `koanf:"paths" yaml:"paths"`
+
+		AuthMethod AuthMethod  `koanf:"authMethod" yaml:"authMethod"`
+		OIDCConfig *OIDCConfig `koanf:"oidcConfig" yaml:"oidcConfig"`
 	}
 	ChecksumSettings struct {
 		Enabled   bool                        `koanf:"enabled" yaml:"enabled"`
@@ -111,6 +126,15 @@ type (
 	}
 	S3ProtocolConfig struct {
 		TransferProfiles map[string]TransferProfile `koanf:"transferProfiles" yaml:"transferProfiles"`
+	}
+	OIDCConfig struct {
+		IssuerURL              string   `koanf:"issuerUrl" yaml:"issuerUrl"`
+		ClientID               string   `koanf:"clientId" yaml:"clientId"`
+		RoleARN                string   `koanf:"roleArn" yaml:"roleArn"`
+		Scopes                 []string `koanf:"scopes" yaml:"scopes"`
+		PersistSession         bool     `koanf:"persistSession" yaml:"persistSession"`
+		CustomCABundle         string   `koanf:"customCaBundle" yaml:"customCaBundle"`
+		SessionDurationSeconds int32    `koanf:"sessionDurationSeconds" yaml:"sessionDurationSeconds"`
 	}
 )
 
@@ -249,10 +273,23 @@ func TransferProfilesFromProtobuf(profileList map[string]*fmev1.TransferProfile)
 				Enabled:   transferProfile.Checksums.Enabled,
 				Algorithm: constants.ChecksumAlgorithm(transferProfile.Checksums.Algorithm),
 			},
-			ChunkSize: transferProfile.ChunkSize,
-			Filter:    transferProfile.Filter,
-			Threads:   int(transferProfile.Threads),
-			MaxAge:    transferProfile.MaxAge,
+			ChunkSize:  transferProfile.ChunkSize,
+			Filter:     transferProfile.Filter,
+			Threads:    int(transferProfile.Threads),
+			MaxAge:     transferProfile.MaxAge,
+			AuthMethod: AuthMethod(transferProfile.AuthMethod),
+		}
+
+		if transferProfile.OidcConfig != nil {
+			vdr.OIDCConfig = &OIDCConfig{
+				IssuerURL:              transferProfile.OidcConfig.IssuerUrl,
+				ClientID:               transferProfile.OidcConfig.ClientId,
+				RoleARN:                transferProfile.OidcConfig.RoleArn,
+				Scopes:                 transferProfile.OidcConfig.Scopes,
+				PersistSession:         transferProfile.OidcConfig.PersistSession,
+				CustomCABundle:         transferProfile.OidcConfig.CustomCaBundle,
+				SessionDurationSeconds: transferProfile.OidcConfig.SessionDurationSeconds,
+			}
 		}
 
 		transferProfiles[name] = vdr
@@ -290,11 +327,25 @@ func TransferProfilesToProtobuf(transferProfiles map[string]TransferProfile) map
 				Enabled:   transferProfile.Checksums.Enabled,
 				Algorithm: string(transferProfile.Checksums.Algorithm),
 			},
-			ChunkSize: transferProfile.ChunkSize,
-			Filter:    transferProfile.Filter,
-			Threads:   threads,
-			MaxAge:    transferProfile.MaxAge,
+			ChunkSize:  transferProfile.ChunkSize,
+			Filter:     transferProfile.Filter,
+			Threads:    threads,
+			MaxAge:     transferProfile.MaxAge,
+			AuthMethod: fmev1.AuthMethod(transferProfile.AuthMethod),
 		}
+
+		if transferProfile.OIDCConfig != nil {
+			pbv.OidcConfig = &fmev1.OIDCConfig{
+				IssuerUrl:              transferProfile.OIDCConfig.IssuerURL,
+				ClientId:               transferProfile.OIDCConfig.ClientID,
+				RoleArn:                transferProfile.OIDCConfig.RoleARN,
+				Scopes:                 transferProfile.OIDCConfig.Scopes,
+				PersistSession:         transferProfile.OIDCConfig.PersistSession,
+				CustomCaBundle:         transferProfile.OIDCConfig.CustomCABundle,
+				SessionDurationSeconds: transferProfile.OIDCConfig.SessionDurationSeconds,
+			}
+		}
+
 		out[name] = pbv
 	}
 

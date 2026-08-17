@@ -219,12 +219,7 @@ func performDeleteTest(t *testing.T, client fmev1connect.FmeServiceClient, delet
 	if err != nil {
 		t.Errorf("failed to get transfer profile data for S3Manager: %s\n", err)
 	}
-	s3m, err := transferapi.NewS3Manager(transferapi.S3ManagerConfig{
-		AwsProfile: txp.Profile,
-		Bucket:     txp.Bucket,
-		Region:     txp.Region,
-		Endpoint:   txp.Endpoint,
-	})
+	s3m, err := transferapi.NewS3Manager(txp)
 	if err != nil {
 		t.Errorf("failed to create S3Manager for testing: %s\n", err)
 	}

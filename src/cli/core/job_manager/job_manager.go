@@ -26,6 +26,7 @@ import (
 	"github.com/awslabs/filemoverexpress/core/transferstats"
 	"github.com/awslabs/filemoverexpress/events"
 	fmeErrors "github.com/awslabs/filemoverexpress/fme-errors"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/databasetypes"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
@@ -55,8 +56,8 @@ type (
 )
 
 // GetS3Manager either returns the cached s3 manager, or it creates a new S3 manager, caches it and returns it.
-func (jm *JobManager) GetS3Manager(profile string, bucket string, region string, endpoint string) (*transferApi.S3Manager, error) {
-	key := strings.Join([]string{profile, bucket, region, endpoint}, "-")
+func (jm *JobManager) GetS3Manager(tp configtypes.TransferProfile) (*transferApi.S3Manager, error) {
+	key := strings.Join([]string{tp.Profile, tp.Bucket, tp.Region, tp.Endpoint}, "-")
 
 	jm.s3ManagerLock.RLock()
 	s3m, exists := jm.s3ManagerCache[key]
@@ -64,12 +65,7 @@ func (jm *JobManager) GetS3Manager(profile string, bucket string, region string,
 	if exists {
 		return s3m, nil
 	}
-	s3m, err := transferApi.NewS3Manager(transferApi.S3ManagerConfig{
-		AwsProfile: profile,
-		Bucket:     bucket,
-		Region:     region,
-		Endpoint:   endpoint,
-	})
+	s3m, err := transferApi.NewS3Manager(tp)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +205,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 
 	// region Discover
 	job.SetStatus(jobmanagertypes.JobStatusDiscovering)
-	sess, sessErr := jm.GetS3Manager(transferProfile.Profile, transferProfile.Bucket, transferProfile.Region, transferProfile.Endpoint)
+	sess, sessErr := jm.GetS3Manager(transferProfile)
 	if sessErr != nil {
 		job.SetStatus(jobmanagertypes.JobStatusError)
 		events.Events.Send(&eventtypes.JobErrorEvent{
@@ -435,7 +431,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 
 	// region Post-Checksum Filter
 	job.SetStatus(jobmanagertypes.JobStatusFiltering)
-	s3m, sessErr := jm.GetS3Manager(transferProfile.Profile, transferProfile.Bucket, transferProfile.Region, transferProfile.Endpoint)
+	s3m, sessErr := jm.GetS3Manager(transferProfile)
 	if sessErr != nil {
 		events.Events.Warn("Error while starting an AWS session: %s", sessErr)
 	}
