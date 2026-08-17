@@ -5,6 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/awslabs/filemoverexpress/core/auth"
 	fmev1 "github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 )
 
@@ -17,7 +18,8 @@ func (*FileMoverServer) GetOIDCStatus(
 	}
 
 	profileName := req.Msg.TransferProfile
-	status := oidcProvider.GetStatus(profileName)
+	cfg := getOIDCConfigForProfile(profileName)
+	status := oidcProvider.GetStatus(profileName, cfg)
 
 	return connect.NewResponse(&fmev1.OIDCStatusResponse{
 		Authenticated: status.Authenticated,
@@ -25,4 +27,21 @@ func (*FileMoverServer) GetOIDCStatus(
 		ExpiresAt:     status.ExpiresAt,
 		Error:         status.LastError,
 	}), nil
+}
+
+// getOIDCConfigForProfile returns the OIDC config for a profile, or nil if not available.
+func getOIDCConfigForProfile(profileName string) *auth.OIDCConfig {
+	tp, err := getOIDCTransferProfile(profileName)
+	if err != nil {
+		return nil
+	}
+	return &auth.OIDCConfig{
+		IssuerURL:              tp.OIDCConfig.IssuerURL,
+		ClientID:               tp.OIDCConfig.ClientID,
+		RoleARN:                tp.OIDCConfig.RoleARN,
+		Scopes:                 tp.OIDCConfig.Scopes,
+		PersistSession:         tp.OIDCConfig.PersistSession,
+		CustomCABundle:         tp.OIDCConfig.CustomCABundle,
+		SessionDurationSeconds: tp.OIDCConfig.SessionDurationSeconds,
+	}
 }

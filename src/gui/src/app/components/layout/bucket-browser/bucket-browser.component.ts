@@ -179,6 +179,19 @@ export class BucketBrowserComponent implements OnDestroy {
                     this.setFileBrowserError(this.getErrorNoTransferProfileSelected());
                     return;
                 }
+                if (this.currentProfileIsOIDC) {
+                    // For OIDC profiles, check auth status before navigating
+                    this.fmeClientService.getOIDCStatus(this.selectedTransferProfile).subscribe({
+                        next: (status) => {
+                            if (status.authenticated) {
+                                this.navigateToPath(this.getStartingDirectory());
+                            }
+                            // If not authenticated, oidc-auth-status component shows sign-in
+                            // and emits authenticated=true via output, triggering onOidcAuthChange
+                        },
+                    });
+                    return;
+                }
                 this.navigateToPath(this.getStartingDirectory());
             },
         ));
@@ -242,6 +255,27 @@ export class BucketBrowserComponent implements OnDestroy {
         const transferProfile = this.selectedTransferProfile;
         if (transferProfile) {
             this.navigateToPath(this.currentDirectory, {silentRefreshNavigation: silentRefresh});
+        }
+    }
+
+    /**
+     * Handles authentication state changes from the OIDC auth status component.
+     * Refreshes the file browser on successful authentication, clears the listing on sign-out.
+     *
+     * @param {boolean} authenticated - Whether the user is now authenticated
+     */
+    onOidcAuthChange(authenticated: boolean) {
+        if (authenticated) {
+            this.refreshFileBrowser();
+        } else {
+            this.fileBrowserData = {
+                state: FileBrowserState.ERROR,
+                list: [],
+                error: {
+                    title: 'Sign In Required',
+                    message: 'You have signed out. Sign in again to browse your S3 bucket.',
+                },
+            };
         }
     }
 

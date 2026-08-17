@@ -1,8 +1,9 @@
-import { Component, inject, input, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, input, OnDestroy, OnInit, output } from '@angular/core';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { WailsService } from '@services/wails/wails.service';
 import { Subscription, timer } from 'rxjs';
 import { MatTooltip } from '@angular/material/tooltip';
 
@@ -28,8 +29,10 @@ export interface OIDCAuthState {
 })
 export class OidcAuthStatusComponent implements OnInit, OnDestroy {
     private fmeClient = inject(FmeClientService);
+    private wails = inject(WailsService);
 
     profileName = input.required<string>();
+    authenticated = output<boolean>();
 
     state: OIDCAuthState = {
         authenticated: false,
@@ -94,6 +97,7 @@ export class OidcAuthStatusComponent implements OnInit, OnDestroy {
                     error: '',
                     pending: false,
                 };
+                this.authenticated.emit(false);
             },
             error: (err) => {
                 this.state = { ...this.state, error: err.message || 'Logout failed' };
@@ -106,8 +110,15 @@ export class OidcAuthStatusComponent implements OnInit, OnDestroy {
         this.signIn();
     }
 
+    cancel() {
+        this.stopPolling();
+        this.state = { ...this.state, pending: false, error: '' };
+    }
+
     private openAuthUrl(url: string) {
-        window.open(url, '_blank');
+        this.wails.externalLink(url).subscribe({
+            error: () => window.open(url, '_blank'),
+        });
     }
 
     get isExpiringSoon(): boolean {
@@ -229,6 +240,7 @@ export class OidcAuthStatusComponent implements OnInit, OnDestroy {
                             error: '',
                             pending: false,
                         };
+                        this.authenticated.emit(true);
                         return;
                     }
 

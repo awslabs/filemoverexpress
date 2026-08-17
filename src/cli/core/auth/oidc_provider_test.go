@@ -166,7 +166,7 @@ func TestOIDCProvider_GetStatus_NoSession(t *testing.T) {
 	sts := &mockSTSClient{}
 	p := newTestProvider(t, sts)
 
-	status := p.GetStatus("nonexistent")
+	status := p.GetStatus("nonexistent", nil)
 	assert.False(t, status.Authenticated)
 	assert.Empty(t, status.Identity)
 	assert.Equal(t, int64(0), status.ExpiresAt)
@@ -222,7 +222,7 @@ func TestOIDCProvider_Logout_ClearsSession(t *testing.T) {
 	err := p.Logout("profile1")
 	require.NoError(t, err)
 
-	status := p.GetStatus("profile1")
+	status := p.GetStatus("profile1", nil)
 	assert.False(t, status.Authenticated)
 	assert.Empty(t, status.Identity)
 	assert.Empty(t, status.LastError)
@@ -240,7 +240,7 @@ func TestOIDCProvider_GetCredentials_NotAuthenticated(t *testing.T) {
 	sts := &mockSTSClient{}
 	p := newTestProvider(t, sts)
 
-	_, err := p.GetCredentials("nonexistent")
+	_, err := p.GetCredentials("nonexistent", nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not authenticated")
 }
@@ -262,7 +262,7 @@ func TestOIDCProvider_GetCredentials_ReturnsCachedWhenValid(t *testing.T) {
 	}
 	p.mu.Unlock()
 
-	creds, err := p.GetCredentials("profile1")
+	creds, err := p.GetCredentials("profile1", nil)
 	require.NoError(t, err)
 	assert.Equal(t, "AKIA123", creds.AccessKeyID)
 	assert.Equal(t, 0, sts.callCount) // No STS call needed

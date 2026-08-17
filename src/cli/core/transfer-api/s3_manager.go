@@ -127,7 +127,20 @@ func getOIDCSession(tp configtypes.TransferProfile) (*aws.Config, error) {
 		return nil, errOIDCProviderNotInitialized
 	}
 
-	creds, err := oidcProvider.GetCredentials(tp.Name)
+	var oidcCfg *auth.OIDCConfig
+	if tp.OIDCConfig != nil {
+		oidcCfg = &auth.OIDCConfig{
+			IssuerURL:              tp.OIDCConfig.IssuerURL,
+			ClientID:               tp.OIDCConfig.ClientID,
+			RoleARN:                tp.OIDCConfig.RoleARN,
+			Scopes:                 tp.OIDCConfig.Scopes,
+			PersistSession:         tp.OIDCConfig.PersistSession,
+			CustomCABundle:         tp.OIDCConfig.CustomCABundle,
+			SessionDurationSeconds: tp.OIDCConfig.SessionDurationSeconds,
+		}
+	}
+
+	creds, err := oidcProvider.GetCredentials(tp.Name, oidcCfg)
 	if err != nil {
 		return nil, err
 	}

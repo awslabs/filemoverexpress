@@ -80,11 +80,12 @@ type (
 
 	// OIDCProvider orchestrates OIDC login, token exchange, credential acquisition, and caching.
 	OIDCProvider struct {
-		mu         sync.RWMutex
-		sessions   map[string]*OIDCSession
-		tokenCache *TokenCache
-		jwksCache  *JWKSCache
-		stsClient  STSClient
+		mu             sync.RWMutex
+		sessions       map[string]*OIDCSession
+		loadedProfiles map[string]bool
+		tokenCache     *TokenCache
+		jwksCache      *JWKSCache
+		stsClient      STSClient
 	}
 
 	// OIDCStatus holds the return values from GetStatus.
@@ -115,10 +116,11 @@ type (
 // NewOIDCProvider creates a new provider with token cache in the given directory.
 func NewOIDCProvider(cacheDir string, stsClient STSClient) *OIDCProvider {
 	return &OIDCProvider{
-		sessions:   make(map[string]*OIDCSession),
-		tokenCache: NewTokenCache(cacheDir),
-		jwksCache:  NewJWKSCache(),
-		stsClient:  stsClient,
+		sessions:       make(map[string]*OIDCSession),
+		loadedProfiles: make(map[string]bool),
+		tokenCache:     NewTokenCache(cacheDir),
+		jwksCache:      NewJWKSCache(),
+		stsClient:      stsClient,
 	}
 }
 
@@ -160,7 +162,9 @@ func (p *OIDCProvider) InitiateLogin(
 }
 
 // GetStatus returns the current auth status for a profile (no network calls).
-func (p *OIDCProvider) GetStatus(profileName string) OIDCStatus {
+func (p *OIDCProvider) GetStatus(profileName string, cfg *OIDCConfig) OIDCStatus {
+	p.ensureLoaded(profileName, cfg)
+
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -184,13 +188,19 @@ func (p *OIDCProvider) GetStatus(profileName string) OIDCStatus {
 }
 
 // GetCredentials returns cached AWS credentials, refreshing if near expiry.
-func (p *OIDCProvider) GetCredentials(profileName string) (*AWSCredentials, error) {
+func (p *OIDCProvider) GetCredentials(profileName string, cfg *OIDCConfig) (*AWSCredentials, error) {
+	p.ensureLoaded(profileName, cfg)
+
 	p.mu.RLock()
 	session := p.sessions[profileName]
 	p.mu.RUnlock()
 
 	if session == nil || session.State != SessionStateAuthenticated {
-		return nil, fmt.Errorf("not authenticated for profile %q — call InitiateOIDCLogin", profileName)
+		return nil, fmt.Errorf(
+			"not authenticated for profile %q — call InitiateOIDCLogin: %w",
+			profileName,
+			ErrOIDCNotAuthenticated,
+		)
 	}
 
 	if session.AWSCreds != nil && time.Until(session.AWSCreds.Expiration) > credentialRefreshWindow {
@@ -212,6 +222,73 @@ func (p *OIDCProvider) Logout(profileName string) error {
 
 	delete(p.sessions, profileName)
 	return p.tokenCache.Delete(profileName)
+}
+
+// ensureLoaded lazily restores a cached OIDC session from disk on first access.
+// The write lock is held for the entire load attempt to prevent concurrent callers
+// from seeing a half-loaded state. All failures are handled gracefully — the profile
+// is left unauthenticated and marked as loaded so the attempt is not retried.
+func (p *OIDCProvider) ensureLoaded(profileName string, cfg *OIDCConfig) {
+	if cfg == nil || !cfg.PersistSession {
+		return
+	}
+
+	p.mu.RLock()
+	loaded := p.loadedProfiles[profileName]
+	p.mu.RUnlock()
+
+	if loaded {
+		return
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.loadedProfiles[profileName] {
+		return
+	}
+
+	p.loadCachedSessionLocked(profileName, *cfg)
+	p.loadedProfiles[profileName] = true
+}
+
+// loadCachedSessionLocked restores a session from cache. Must be called with mu held.
+// On any failure (decryption, expired token, unreachable IdP), it logs a warning,
+// deletes the corrupt cache entry, and returns — leaving the profile unauthenticated.
+func (p *OIDCProvider) loadCachedSessionLocked(profileName string, cfg OIDCConfig) {
+	cached, err := p.tokenCache.Load(profileName)
+	if err != nil {
+		slog.Warn("cached OIDC session unreadable, removing",
+			"profile", profileName, "error", err)
+		_ = p.tokenCache.Delete(profileName)
+		return
+	}
+
+	session := &OIDCSession{Config: cfg, State: SessionStateUnauthenticated}
+	session.Identity = cached.Identity
+
+	ctx := context.Background()
+	discovery, err := FetchDiscovery(ctx, cfg.IssuerURL, cfg.CustomCABundle)
+	if err != nil {
+		slog.Warn("OIDC discovery unreachable during session restore",
+			"profile", profileName, "error", err)
+		_ = p.tokenCache.Delete(profileName)
+		return
+	}
+	session.discovery = discovery
+	session.oauth2Config = buildOAuth2Config(cfg, discovery, "")
+
+	token := &oauth2.Token{RefreshToken: cached.RefreshToken}
+	session.oauth2Token = token
+
+	if err := p.refreshAndAssumeRole(ctx, profileName, session); err != nil {
+		slog.Warn("cached refresh token no longer valid",
+			"profile", profileName, "error", err)
+		_ = p.tokenCache.Delete(profileName)
+		return
+	}
+
+	p.sessions[profileName] = session
 }
 
 // LoadCachedSession attempts to restore a session from disk (only when persist_session=true).

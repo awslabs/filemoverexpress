@@ -13,6 +13,10 @@
         </fme-text-input>
         <fme-transfer-profile-selector-dropdown class="inputs-row-form-field"></fme-transfer-profile-selector-dropdown>
         <div class="spacer"></div>
+        @if (currentProfileIsOIDC && selectedTransferProfile) {
+            <fme-oidc-auth-status [profileName]="selectedTransferProfile"
+                                  (authenticated)="onOidcAuthChange($event)"></fme-oidc-auth-status>
+        }
         <fme-bucket-report-button [disabled]="connectionState !== ConnectionState.CONNECTED"></fme-bucket-report-button>
         <fme-button type="icon"
                     icon="create_new_folder"
@@ -25,9 +29,6 @@
                             (refresh)="refreshFileBrowser()">
         </fme-refresh-button>
     </div>
-    @if (currentProfileIsOIDC && selectedTransferProfile) {
-        <fme-oidc-auth-status [profileName]="selectedTransferProfile"></fme-oidc-auth-status>
-    }
     <div class="file-browser">
         <fme-file-browser
                 fileBrowserType="s3"

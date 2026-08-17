@@ -2,13 +2,15 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/awslabs/filemoverexpress/config"
-	"github.com/awslabs/filemoverexpress/core/transfer-api"
+	"github.com/awslabs/filemoverexpress/core/auth"
+	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/s3_shared/v1"
 	"github.com/awslabs/filemoverexpress/utils"
@@ -26,8 +28,19 @@ func (*FileMoverServer) S3ListPrefix(
 		return nil, err
 	}
 
-	s3m, err := transfer_api.NewS3Manager(transferProfile)
+	s3m, err := transferapi.NewS3Manager(transferProfile)
 	if err != nil {
+		events.Events.Error(
+			"Failed to establish AWS session for profile %q: %s",
+			transferProfile.Name,
+			err.Error(),
+		)
+		if errors.Is(err, auth.ErrOIDCNotAuthenticated) {
+			return nil, connect.NewError(
+				connect.CodeUnauthenticated,
+				fmt.Errorf("sign in required for profile %q", transferProfile.Name),
+			)
+		}
 		return nil, fmt.Errorf(strFailedEstablishingAwsSession, err)
 	}
 

@@ -66,3 +66,43 @@ a {
 .warning-hint {
     color: variables.$yellow-700;
 }
+
+.redirect-uri-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    background: rgba(33, 150, 243, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(33, 150, 243, 0.2);
+
+    mat-icon {
+        color: #2196f3;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .redirect-uri-title {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    code {
+        display: inline-block;
+        font-size: 12px;
+        padding: 1px 4px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+        margin: 2px 0;
+        user-select: all;
+    }
+}
+
+.auth-method-section {
+    margin-bottom: 0;
+}

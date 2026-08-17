@@ -124,4 +124,25 @@ describe('TransferProfileFormComponent', () => {
         const duration = component.transferProfileForm.get('oidcSessionDurationSeconds');
         expect(duration?.value).toBe(0);
     });
+
+    it('should show redirect URI hint when auth method is oidc', () => {
+        const authMethod = component.transferProfileForm.get('authMethod');
+        authMethod?.setValue('oidc');
+        fixture.detectChanges();
+
+        const hint = fixture.nativeElement.querySelector('.redirect-uri-hint');
+        expect(hint).toBeTruthy();
+        expect(hint.textContent).toContain('127.0.0.1:9876/callback');
+        expect(hint.textContent).toContain('127.0.0.1:9877/callback');
+        expect(hint.textContent).toContain('127.0.0.1:9878/callback');
+    });
+
+    it('should not show redirect URI hint when auth method is aws-profile', () => {
+        const authMethod = component.transferProfileForm.get('authMethod');
+        authMethod?.setValue('aws-profile');
+        fixture.detectChanges();
+
+        const hint = fixture.nativeElement.querySelector('.redirect-uri-hint');
+        expect(hint).toBeNull();
+    });
 });

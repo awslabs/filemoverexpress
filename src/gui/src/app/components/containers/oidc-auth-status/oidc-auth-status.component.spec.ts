@@ -23,7 +23,7 @@ describe('OidcAuthStatusComponent', () => {
     beforeEach(async () => {
         mockFmeClient = {
             initiateOIDCLogin: vi.fn(),
-            getOIDCStatus: vi.fn(),
+            getOIDCStatus: vi.fn().mockReturnValue(of({ authenticated: false })),
             logoutOIDC: vi.fn(),
         };
         mockWails = {
@@ -193,5 +193,104 @@ describe('OidcAuthStatusComponent', () => {
 
         expect(component.isExpiringSoon).toBe(false);
         expect(component.isExpired).toBe(false);
+    });
+
+    it('should emit authenticated=true when polling finds authenticated state', async () => {
+        const emitted: boolean[] = [];
+        component.authenticated.subscribe((val: boolean) => emitted.push(val));
+
+        mockFmeClient.initiateOIDCLogin.mockReturnValue(
+            of({ authorizationUrl: 'https://auth.example.com/login' }),
+        );
+        // First call from ngOnInit returns unauthenticated, subsequent calls return authenticated
+        mockFmeClient.getOIDCStatus
+            .mockReturnValueOnce(of({ authenticated: false }))
+            .mockReturnValue(of({
+                authenticated: true,
+                identity: 'alice@example.com',
+                expiresAt: BigInt(Math.floor(Date.now() / 1000) + 3600),
+                error: '',
+            }));
+
+        component.signIn();
+
+        // Wait for polling (first poll after 2s delay)
+        await vi.waitFor(() => {
+            expect(emitted).toContain(true);
+        }, { timeout: 5000 });
+    });
+
+    it('should emit authenticated=false on signOut', () => {
+        const emitted: boolean[] = [];
+        component.authenticated.subscribe((val: boolean) => emitted.push(val));
+
+        mockFmeClient.logoutOIDC.mockReturnValue(of({}));
+        component.state = {
+            authenticated: true,
+            identity: 'alice@example.com',
+            expiresAt: Math.floor(Date.now() / 1000) + 3600,
+            error: '',
+            pending: false,
+        };
+
+        component.signOut();
+
+        expect(emitted).toContain(false);
+    });
+
+    it('should reset pending state and stop polling on cancel', () => {
+        mockFmeClient.initiateOIDCLogin.mockReturnValue(
+            of({ authorizationUrl: 'https://auth.example.com/login' }),
+        );
+        mockFmeClient.getOIDCStatus.mockReturnValue(
+            of({ authenticated: false, identity: '', expiresAt: BigInt(0), error: '' }),
+        );
+
+        component.signIn();
+        expect(component.state.pending).toBe(true);
+
+        component.cancel();
+        expect(component.state.pending).toBe(false);
+        expect(component.state.error).toBe('');
+    });
+
+    it('should render Cancel button when pending', () => {
+        component.state = { ...component.state, pending: true };
+        fixture.detectChanges();
+        const cancelButton = fixture.nativeElement.querySelector('.status-pending button');
+        expect(cancelButton).toBeTruthy();
+        expect(cancelButton.textContent.trim()).toBe('Cancel');
+    });
+
+    it('should hide countdown badge when not expiring soon', () => {
+        component.state = {
+            authenticated: true,
+            identity: 'alice@example.com',
+            expiresAt: Math.floor(Date.now() / 1000) + 7200, // 2 hours from now
+            error: '',
+            pending: false,
+        };
+        fixture.detectChanges();
+
+        const warningBadge = fixture.nativeElement.querySelector('.badge.warning');
+        expect(warningBadge).toBeNull();
+
+        const validBadge = fixture.nativeElement.querySelector('.badge.valid');
+        expect(validBadge).toBeTruthy();
+        expect(validBadge.textContent.trim()).toBe('Authenticated');
+    });
+
+    it('should show countdown badge when expiring soon', () => {
+        component.state = {
+            authenticated: true,
+            identity: 'alice@example.com',
+            expiresAt: Math.floor(Date.now() / 1000) + 300, // 5 min from now
+            error: '',
+            pending: false,
+        };
+        fixture.detectChanges();
+
+        const warningBadge = fixture.nativeElement.querySelector('.badge.warning');
+        expect(warningBadge).toBeTruthy();
     });
 });

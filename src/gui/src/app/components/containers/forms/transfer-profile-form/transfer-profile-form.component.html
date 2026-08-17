@@ -212,6 +212,16 @@
                         }
                     </mat-form-field>
 
+                    <div class="redirect-uri-hint">
+                        <mat-icon>info</mat-icon>
+                        <div>
+                            <p class="redirect-uri-title">Register these redirect URIs in your identity provider:</p>
+                            <code>http://127.0.0.1:9876/callback</code><br>
+                            <code>http://127.0.0.1:9877/callback</code><br>
+                            <code>http://127.0.0.1:9878/callback</code>
+                        </div>
+                    </div>
+
                     <mat-form-field color="accent">
                         <mat-label>Role ARN</mat-label>
                         <input matInput type="text" formControlName="oidcRoleArn"
