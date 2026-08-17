@@ -13,6 +13,13 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     height: 100%;
 }
 
+// Override Angular Material's mat-dialog-content defaults so the body participates
+// in the flex layout instead of scrolling independently.
+:host ::ng-deep .mat-mdc-dialog-content {
+    max-height: unset;
+    overflow: hidden;
+}
+
 // region Job Details summary (mockup .jd-*)
 .jd-head {
     display: flex;
@@ -101,10 +108,15 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
 .jd-body {
     flex: 1;
+    min-height: 0;
     padding: 22px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .jd-progress-track {
+    flex-shrink: 0;
     height: 8px;
     margin-top: 12px;
     background: variables.$grey-650;
@@ -128,6 +140,7 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-bytes {
+    flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     font-size: 12px;
@@ -136,6 +149,7 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-tiles {
+    flex-shrink: 0;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
@@ -164,6 +178,7 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-advanced {
+    flex-shrink: 0;
     margin-top: 16px;
     border: 1px solid variables.$grey-600;
     border-radius: 8px;
@@ -232,6 +247,7 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-err {
+    flex-shrink: 0;
     background: color.adjust(variables.$red-600, $alpha: -0.85);
     border: 1px solid color.adjust(variables.$red-500, $alpha: -0.6);
     border-radius: 10px;
@@ -264,11 +280,13 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 .jd-main {
     display: grid;
     grid-template-columns: 150px 1fr;
+    grid-template-rows: 1fr;
     border: 1px solid variables.$grey-600;
     border-radius: 12px;
     overflow: hidden;
     margin-top: 16px;
-    min-height: 240px;
+    min-height: 0;
+    flex: 1;
 }
 
 .jd-nav {
@@ -323,11 +341,16 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
 .jd-view {
     min-width: 0;
+    min-height: 0;
     padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .jd-logs {
-    max-height: 320px;
+    flex: 1;
+    min-height: 0;
     overflow: auto;
     font-family: fonts.$monospace-font-family;
     font-size: 12px;
@@ -430,20 +453,33 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     min-height: 0;
 }
 
+.jd-file-view {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+
+    mat-paginator {
+        flex-shrink: 0;
+    }
+}
+
 .tasks-table-wrapper {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas:
-        'inputs-section'
-        'tasks-table-section';
-    grid-gap: 5px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 
     .inputs-section {
-        grid-area: inputs-section;
+        flex-shrink: 0;
     }
 
     .tasks-table-section {
-        grid-area: tasks-table-section;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
     }
 }
 

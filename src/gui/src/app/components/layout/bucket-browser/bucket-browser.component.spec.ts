@@ -45,10 +45,10 @@ describe('BucketBrowserComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should call refreshFileBrowser when onOidcAuthChange receives true', () => {
-        const spy = vi.spyOn(component, 'refreshFileBrowser');
+    it('should navigate to starting directory when onOidcAuthChange receives true', () => {
+        const spy = vi.spyOn(component, 'navigateToPath');
         component.onOidcAuthChange(true);
-        expect(spy).toHaveBeenCalled();
+        expect(spy).toHaveBeenCalledWith(component.getStartingDirectory());
     });
 
     it('should clear file listing when onOidcAuthChange receives false', () => {
