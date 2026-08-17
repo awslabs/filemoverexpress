@@ -130,6 +130,9 @@ export class FmeClientService {
     private eventStreamCancel: (() => void | null) | null = null;
     private currentConnectAttemptID = '';
     private connectionAttempts = 0;
+    // Tracks whether we've already surfaced the "couldn't connect" toast for the
+    // current run of failures, so quiet background retries don't spam it.
+    private connectionFailureNotified = false;
 
     init() {
         this.store.select(selectConnectionState).pipe(
@@ -155,6 +158,7 @@ export class FmeClientService {
                         this.currentBookmark = currentSelection;
                         this.currentConnectAttemptID = this.generateNewConnectID(currentSelection);
                         this.connectionAttempts = 0;
+                        this.connectionFailureNotified = false;
                         this.connect(true, this.currentConnectAttemptID);
                     } else {
                         console.log(`New connection to ${currentSelection.name} requested, but missing the server address: ${currentSelection.address}`);
@@ -1034,6 +1038,10 @@ export class FmeClientService {
             (event) => {
                 if (this.connectedState != ConnectionState.CONNECTED) {
                     this.store.dispatch(succeedConnect());
+                    // Fresh successful connection — reset backoff + failure notice so a
+                    // future disconnection can surface its own failure toast.
+                    this.connectionAttempts = 0;
+                    this.connectionFailureNotified = false;
                 }
 
                 try {
@@ -1065,13 +1073,18 @@ export class FmeClientService {
                             this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
                             return;
                         default:
-                            // Suppress the error notification during initial connection attempts
-                            // (e.g. when the daemon is still starting up). Only show after the
-                            // first few backoff retries have been exhausted to avoid alarming
-                            // users with a transient startup race condition.
-                            if (err.rawMessage !== 'Failed to fetch' && this.connectionAttempts >= initialConnectionGracePeriod) {
+                            // During the initial grace period the daemon may just be
+                            // starting up (a transient "Failed to fetch"), so stay quiet.
+                            // Once the grace period is exhausted and we still can't connect,
+                            // surface a clear one-time failure toast — including for
+                            // "Failed to fetch" (an unreachable/wrong-address daemon), which
+                            // was previously swallowed and left the user with no cue. Retries
+                            // continue quietly in the background afterwards.
+                            if (this.connectionAttempts >= initialConnectionGracePeriod && !this.connectionFailureNotified) {
+                                this.connectionFailureNotified = true;
                                 this.notifications.error(
-                                    'An unexpected connection error occurred. Attempting to reconnect. Clearing jobs table due to disconnection.');
+                                    `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
+                                    'reachable and that your connection settings are correct, then retry.');
                             }
                     }
                 }

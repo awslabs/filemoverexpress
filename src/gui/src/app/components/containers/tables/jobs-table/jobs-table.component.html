@@ -2,81 +2,31 @@
     <div class="inputs-section">
         <div class="filter" [formGroup]="filterForm">
             <mat-form-field color="accent" appearance="outline">
-                <mat-label>Filter</mat-label>
-                <mat-select [multiple]="true" formControlName="status">
+                <mat-select [multiple]="true" formControlName="status" placeholder="Filter">
                     @for (itm of jobStates | keyvalue; track itm) {
                         <mat-option [value]="itm.value">{{ itm.key | pascalCaseToSpaces }}</mat-option>
                     }
                 </mat-select>
             </mat-form-field>
-            <div class="spacer"></div>
-            <div class="stats">
-                <div class="icons">
-                    <mat-icon>arrow_downward</mat-icon>
-                </div>
-                <div>
-                    <span class="stat-name">Active Jobs: {{ downloadTransferStats.activeJobs }}</span>
-                    <div>
-                        {{ downloadTransferStats.activeBytes | formatBytes : 0 : "" : "0b" }}
-                    </div>
-                </div>
-                <div>
-                    <span class="stat-name">Avg. Speed</span>
-                    <div>
-                        {{ downloadTransferStats.averageSpeed | formatBytes : 0 : "/s" : "0b/s" }}
-                    </div>
-                </div>
-                <div>
-                    <span class="stat-name">Total Transferred</span>
-                    <div>
-                        {{ downloadTransferStats.totalBytesTransferred | formatBytes : 0 : "" : "0b" }}
-                    </div>
-                </div>
-                <div class="divider"></div>
-                <div class="icons">
-                    <mat-icon>arrow_upward</mat-icon>
-                </div>
-                <div>
-                    <span class="stat-name">Active Jobs: {{ uploadTransferStats.activeJobs }}</span>
-                    <div>
-                        {{ uploadTransferStats.activeBytes | formatBytes : 0 : "" : "0b" }}
-                    </div>
-                </div>
-                <div>
-                    <span class="stat-name">Avg. Speed</span>
-                    <div>
-                        {{ uploadTransferStats.averageSpeed | formatBytes : 0 : "/s" : "0b/s" }}
-                    </div>
-                </div>
-                <div>
-                    <span class="stat-name">Total Transferred</span>
-                    <div>
-                        {{ uploadTransferStats.totalBytesTransferred | formatBytes : 0 : "" : "0b" }}
-                    </div>
-                </div>
-            </div>
-            <div class="spacer"></div>
         </div>
     </div>
     <div class="table-section">
         <div class="jobs-container">
-            <table mat-table matSort [dataSource]="dataSource">
+            <table mat-table [dataSource]="dataSource">
+                <!-- Direction: filled triangle (▲ upload / ▼ download), coloured per the mockup -->
                 <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef> Type</th>
+                    <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let job; dataSource: dataSource">
-                        <mat-icon class="icon">
-                            {{ job.direction === TransferDirection.Download ? 'arrow_downward' : 'arrow_upward' }}
-                        </mat-icon>
+                        <span class="job-direction"
+                              [class.download]="job.direction === TransferDirection.Download"
+                              [class.upload]="job.direction !== TransferDirection.Download"
+                        >{{ job.direction === TransferDirection.Download ? '▼' : '▲' }}</span>
                     </td>
                 </ng-container>
 
                 <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef> Name</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource" class="nameType">
-                        <!-- Disable this icon until we figure out a cleaner way to determine the proper icon
-                        <mat-icon class="icon" *ngIf="objectType">folder</mat-icon>
-                        <mat-icon *ngIf="!objectType">description</mat-icon>
-                        -->
+                    <th mat-header-cell *matHeaderCellDef>Name</th>
+                    <td mat-cell *matCellDef="let job; dataSource: dataSource" class="job-name">
                         <span [matTooltip]="job.name"
                               [matTooltipDisabled]="job.name.length <= MAX_TABLE_STRING_LENGTH"
                               matTooltipPosition="right">
@@ -85,92 +35,70 @@
                     </td>
                 </ng-container>
 
-                <ng-container matColumnDef="remoteConfiguration">
-                    <th mat-header-cell *matHeaderCellDef> Remote Configuration</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource">
-                        <span [matTooltip]="job.name"
-                              [matTooltipDisabled]="job.transferProfile.length <= MAX_TABLE_STRING_LENGTH"
-                              matTooltipPosition="right">
-                          {{ job.transferProfile | textEllipses : MAX_TABLE_STRING_LENGTH }}
-                        </span>
-                    </td>
-                </ng-container>
-
+                <!-- Size + how long it took (DIT feedback; not in the mockup) -->
                 <ng-container matColumnDef="size">
-                    <th mat-header-cell *matHeaderCellDef> Size</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource"> {{ job.totalBytes | formatBytes }}</td>
+                    <th mat-header-cell *matHeaderCellDef>Size</th>
+                    <td mat-cell *matCellDef="let job; dataSource: dataSource" class="job-meta">
+                        {{ job.totalBytes | formatBytes }}
+                    </td>
                 </ng-container>
 
                 <ng-container matColumnDef="duration">
-                    <th mat-header-cell *matHeaderCellDef> Duration</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource"> {{ job | jobDuration }}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="eta">
-                    <th mat-header-cell *matHeaderCellDef> ETA</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource"> {{ job.eta }}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="speed">
-                    <th mat-header-cell *matHeaderCellDef> Speed</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource"> {{ job | jobSpeed }}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="startTime">
-                    <th mat-header-cell *matHeaderCellDef> Start Time</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource"> {{ job.timestampCreated | date : 'yyyy-MM-dd HH:mm:ss' }}
+                    <th mat-header-cell *matHeaderCellDef>Duration</th>
+                    <td mat-cell *matCellDef="let job; dataSource: dataSource" class="job-meta">
+                        {{ job | jobDuration }}
                     </td>
                 </ng-container>
 
+                <!-- Progress: thin rounded bar + percent, coloured by job state -->
                 <ng-container matColumnDef="progress">
-                    <th mat-header-cell *matHeaderCellDef> Progress</th>
+                    <th mat-header-cell *matHeaderCellDef>Progress</th>
                     <td mat-cell *matCellDef="let job; dataSource: dataSource">
-                        <div class="status-progress-bar" [ngClass]="[job | jobStatusClass]">
+                        <div class="job-progress-wrap">
                             @if (job.status === jobStates.Checksumming) {
-                                <mat-progress-bar
-                                        mode="determinate"
-                                        [value]="job.checksumProgress | jobsTableChecksumProgress">
-                                </mat-progress-bar>
-                                <div>
-                                    {{ job.checksumProgress | jobsTableChecksumProgress }}%
+                                <div class="job-progress-bar">
+                                    <div class="job-progress-fill" [ngClass]="[job | jobStatusClass]"
+                                         [style.width.%]="job.checksumProgress | jobsTableChecksumProgress"></div>
                                 </div>
+                                <span class="job-percent">{{ job.checksumProgress | jobsTableChecksumProgress }}%</span>
                             } @else {
-                                <mat-progress-bar mode="determinate" [value]="job.progress"></mat-progress-bar>
-                                <div>
-                                    {{ job.progress }}%
+                                <div class="job-progress-bar">
+                                    <div class="job-progress-fill" [ngClass]="[job | jobStatusClass]"
+                                         [style.width.%]="job.progress"></div>
                                 </div>
+                                <span class="job-percent">{{ job.progress }}%</span>
                             }
                         </div>
                     </td>
                 </ng-container>
 
+                <!-- Status: coloured pill -->
                 <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef> Status</th>
-                    <td mat-cell *matCellDef="let job; dataSource: dataSource"
-                        [ngClass]="[job | jobStatusClass]"> {{ job | jobStatus }}
-                    </td>
-                </ng-container>
-
-                <ng-container matColumnDef="action">
-                    <th mat-header-cell *matHeaderCellDef>&nbsp;</th>
+                    <th mat-header-cell *matHeaderCellDef>Status</th>
                     <td mat-cell *matCellDef="let job; dataSource: dataSource">
-                        <button mat-icon-button [matMenuTriggerFor]="contextMenu" [matMenuTriggerData]="{job}">
-                            <mat-icon class="icon">keyboard_double_arrow_down</mat-icon>
-                        </button>
+                        <span class="job-status" [ngClass]="[job | jobStatusClass]">{{ job | jobStatus }}</span>
                     </td>
                 </ng-container>
 
                 <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                 <tr mat-row
                     *matRowDef="let row; columns: displayedColumns;"
+                    (contextmenu)="rightClickJobRow($event, row)"
                     (dblclick)="jobDetails(row)"
                     [matTooltipShowDelay]="500"
-                    matTooltip="Double click for details"
+                    matTooltip="Double-click for details · right-click for actions"
                     matTooltipPosition="above"
                 >
                 </tr>
             </table>
         </div>
+    </div>
+    <!-- Hidden element positions the row context menu at the cursor on right-click.
+         Menu data is set imperatively in rightClickJobRow before openMenu(). -->
+    <div style="visibility: hidden; position: fixed"
+         [style.left]="contextMenuPosition.x"
+         [style.top]="contextMenuPosition.y"
+         [matMenuTriggerFor]="contextMenu">
     </div>
 </div>
 

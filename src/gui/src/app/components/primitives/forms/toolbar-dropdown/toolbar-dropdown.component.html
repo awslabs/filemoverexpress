@@ -1,17 +1,12 @@
-<button mat-icon-button [matMenuTriggerFor]="settingsMenu">
-    <mat-icon class="menu">menu</mat-icon>
+<button mat-icon-button [matMenuTriggerFor]="settingsMenu" aria-label="Settings">
+    <mat-icon class="settings">settings</mat-icon>
 </button>
 
 <mat-menu id="settings" #settingsMenu="matMenu" class="settings" style="width: 400px;">
-    <button mat-menu-item [matMenuTriggerFor]="supportMenu">Support</button>
+    <button mat-menu-item (click)="openSettings()" [disabled]="!connected || !allowUiConfiguration">Settings</button>
 
     <mat-divider></mat-divider>
 
-    <button mat-menu-item (click)="openPreferences()">UI Preferences</button>
-    <button mat-menu-item routerLink="/home/config" [disabled]="!connected || !allowUiConfiguration">Settings</button>
-</mat-menu>
-
-<mat-menu #supportMenu="matMenu">
-    <button mat-menu-item (click)="generateSupportFile()" [disabled]="!connected">Generate Support File</button>
+    <button mat-menu-item (click)="generateSupportFile()" [disabled]="!connected">Generate Support Package</button>
     <button mat-menu-item (click)="getSupport()">Get Support</button>
 </mat-menu>

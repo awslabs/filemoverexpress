@@ -42,7 +42,7 @@ export class StartingPathEditorModalComponent {
         const data = this.data;
 
         this.startingPath = new FormControl<string>(data.newStartingPath, isAbsolutePathValidator(data.fileBrowserType));
-        this.configFieldName = data.type === StartingPathType.S3 ? 'S3 bucket prefix' : 'Local directory';
+        this.configFieldName = data.type === StartingPathType.S3 ? 'bucket starting directory' : 'local starting directory';
     }
 
     /**

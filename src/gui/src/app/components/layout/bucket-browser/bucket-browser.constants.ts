@@ -12,6 +12,7 @@ export const BUCKET_FILE_BROWSER_ID = 'bucket-browser';
 export interface FileBrowserError {
     title: string;
     message: string;
+    severity?: 'error' | 'info';
     actionButtons?: {
         buttonText: string,
         buttonClickHandler: () => void,
@@ -26,6 +27,7 @@ export const fileBrowserErrors: Record<string, FileBrowserError> = {
     LIST_FOLDER_ERROR: {
         title: 'S3 Bucket Listing Error',
         message: 'Unable to list S3 bucket.',
+        severity: 'error',
     },
     EMPTY_TRANSFER_PROFILE_LIST: {
         title: 'No Remote Configurations',
@@ -40,6 +42,10 @@ export const fileBrowserErrors: Record<string, FileBrowserError> = {
     NO_TRANSFER_PROFILE_SELECTED: {
         title: 'No Remote Configuration Selected',
         message: 'Select a Remote Configuration from the Remote Configurations dropdown.',
+    },
+    SIGN_IN_REQUIRED: {
+        title: 'Sign In Required',
+        message: 'Sign in to browse this bucket.',
     },
     LOADING_TRANSFER_PROFILE_LIST: {
         title: 'Loading',

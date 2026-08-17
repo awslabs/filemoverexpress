@@ -1,0 +1,37 @@
+<header mat-dialog-title class="dialog-title">
+    <h1>About</h1>
+    <div class="spacer"></div>
+    <button mat-icon-button aria-label="close dialog" mat-dialog-close>
+        <mat-icon>close</mat-icon>
+    </button>
+</header>
+
+<main mat-dialog-content>
+    <div class="about-app-name">File Mover Express</div>
+    <p class="about-tagline">High-performance, parallel file transfers between your workstations and Amazon S3 — driven locally or through a remote daemon.</p>
+
+    <div class="about-rows">
+        @if (data.version) {
+            <div class="about-row">
+                <span class="rk">Version</span>
+                <span class="rv">{{ data.version }}</span>
+            </div>
+        }
+        <div class="about-row">
+            <span class="rk">License</span>
+            <span class="rv">
+                <a href="#" (click)="openLink(licenseUrl); $event.preventDefault()">Apache-2.0</a>
+            </span>
+        </div>
+        <div class="about-row">
+            <span class="rk">Source &amp; docs</span>
+            <span class="rv">
+                <a href="#" (click)="openLink(githubUrl); $event.preventDefault()">github.com/awslabs/filemoverexpress</a>
+            </span>
+        </div>
+    </div>
+
+    <div class="about-actions">
+        <button class="about-btn ghost" (click)="showWelcomeTour()">Getting started</button>
+    </div>
+</main>

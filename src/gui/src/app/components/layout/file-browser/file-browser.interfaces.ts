@@ -62,6 +62,9 @@ export interface FileBrowserData {
 export interface FileBrowserError {
     title?: string;
     message: string;
+    // 'error' renders a red warning icon + red title (real failures); undefined/'info'
+    // stays neutral grey (benign empty states like not-connected, sign-in-required).
+    severity?: 'error' | 'info';
     actionButtons?: FileBrowserErrorActionButton[];
 }
 
@@ -109,7 +112,8 @@ export interface FileBrowserContextMenuRow {
     triggers: Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>;
     action: FileBrowserContextMenuClickHandler;
     hasTrailingSeparator?: boolean;
-
+    // Optional uppercase section label rendered above this item (mockup grouped menus).
+    sectionHeader?: string;
 }
 
 export type FileBrowserContextMenuClickHandler = (triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, currentDirectory: string) => void;

@@ -4,22 +4,25 @@
             @for (hotFolderFormGroup of formArray.controls.values(); track hotFolderFormGroup.value; let i = $index) {
                 <mat-expansion-panel togglePosition="before">
                     <mat-expansion-panel-header>
-                        <mat-panel-title class="section-header" [class.error]="hotFolderFormGroup.invalid">
-                            <span [matTooltip]="hotFolderFormGroup.invalid ? 'There are errors' : ''"
+                        <mat-panel-title class="section-header" [class.error]="hotFolderFormGroup.invalid && hotFolderFormGroup.touched">
+                            <span [matTooltip]="(hotFolderFormGroup.invalid && hotFolderFormGroup.touched) ? 'There are errors' : ''"
                                   matTooltipPosition="right">
-                                {{ hotFolderFormGroup.controls.name.value }}
-                                @if (hotFolderFormGroup.invalid) {
+                                {{ hotFolderFormGroup.controls.name.value || 'Untitled hot folder' }}
+                                @if (hotFolderFormGroup.invalid && hotFolderFormGroup.touched) {
                                     <mat-icon class="panel-title-icon">error_outline</mat-icon>
                                 }
                             </span>
                         </mat-panel-title>
+                        <mat-panel-description class="hf-panel-desc">
+                            {{ hotFolderFormGroup.controls.localSourceFolder.value || 'No source folder set' }}
+                        </mat-panel-description>
                     </mat-expansion-panel-header>
                     <div class="hot-folder-form-fields-container">
                         @if (formArray.controls.at(i); as fg) {
                             <div class="hftxp-grid" [formGroup]="fg">
                                 <div class="hftxp-general">
                                     <h4>General settings</h4>
-                                    <mat-form-field color="accent">
+                                    <mat-form-field color="accent" subscriptSizing="fixed">
                                         <mat-label>Name</mat-label>
                                         <input matInput type="string" formControlName="name" maxlength="30">
                                         @if (hotFolderFormGroup.controls.name.hasError('duplicate-name')) {
@@ -33,7 +36,7 @@
                                             </mat-error>
                                         }
                                     </mat-form-field>
-                                    <mat-form-field color="accent">
+                                    <mat-form-field color="accent" subscriptSizing="fixed">
                                         <mat-label>Local Source Folder</mat-label>
                                         <input matInput type="string" formControlName="localSourceFolder">
                                         @if (hotFolderFormGroup.controls.localSourceFolder.hasError('required')) {
@@ -62,7 +65,7 @@
                                         @for (remoteConfigFormGroup of hotFolderFormGroup.controls.remoteConfigurations.controls; track remoteConfigFormGroup; let j = $index) {
                                             <div class="hftxp-txp-list">
                                                 <div [formGroupName]="j">
-                                                    <mat-form-field color="accent">
+                                                    <mat-form-field color="accent" subscriptSizing="fixed">
                                                         <mat-label>Remote Configuration</mat-label>
                                                         <mat-select formControlName="remoteConfigurationName">
                                                             @for (txp of transferProfiles(); track txp) {
@@ -75,7 +78,7 @@
                                                             </mat-error>
                                                         }
                                                     </mat-form-field>
-                                                    <mat-form-field color="accent">
+                                                    <mat-form-field color="accent" subscriptSizing="fixed">
                                                         <mat-label>S3 Destination Folder</mat-label>
                                                         <input matInput type="string"
                                                                formControlName="s3DestinationFolder">
@@ -83,13 +86,13 @@
                                                             If blank, the destination is the root of the S3 bucket.
                                                         </mat-hint>
                                                     </mat-form-field>
-                                                    <fme-button type="stroked"
-                                                                color="warn"
-                                                                text="Delete"
-                                                                [onClick]="() => hotFolderFormGroup.controls.remoteConfigurations.removeAt(j)"
-                                                                [disabled]="hotFolderFormGroup.controls.remoteConfigurations.controls.length < 2">
-                                                        Delete
-                                                    </fme-button>
+                                                    @if (hotFolderFormGroup.controls.remoteConfigurations.controls.length > 1) {
+                                                        <fme-button type="stroked"
+                                                                    text="Remove Destination"
+                                                                    [onClick]="() => hotFolderFormGroup.controls.remoteConfigurations.removeAt(j)">
+                                                            Remove Destination
+                                                        </fme-button>
+                                                    }
                                                 </div>
                                             </div>
                                         }
@@ -103,17 +106,34 @@
                 </mat-expansion-panel>
             }
         </mat-accordion>
-        <div class="padding"></div>
-        @if (warning) {
-            <fme-panel panelClass="warning">
-                {{warning}}
-            </fme-panel>
+
+        @if (formArray.length === 0) {
+            <div class="hot-folder-empty">
+                <mat-icon class="hot-folder-empty-icon" fontSet="material-icons">create_new_folder</mat-icon>
+                <div class="hot-folder-empty-text">No hot folders configured</div>
+                <div class="hot-folder-empty-subtext">
+                    Hot folders watch a local folder and automatically upload new files to your S3 destinations.
+                </div>
+                <fme-button
+                        type="filled"
+                        color="accent"
+                        text="Add Hot Folder"
+                        [onClick]="addHotFolder()">
+                </fme-button>
+            </div>
+        } @else {
+            <div class="padding"></div>
+            @if (warning) {
+                <fme-panel panelClass="warning">
+                    {{warning}}
+                </fme-panel>
+            }
+            <fme-button
+                    type="filled"
+                    color="accent"
+                    text="Add Hot Folder"
+                    [onClick]="addHotFolder()">
+            </fme-button>
         }
-        <fme-button
-                type="filled"
-                color="accent"
-                text="Add Hot Folder"
-                [onClick]="addHotFolder()">
-        </fme-button>
     </form>
 }

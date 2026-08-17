@@ -1,17 +1,55 @@
 @use "../../../../styles/variables";
+@use "../../../../styles/fonts";
 
 .mat-toolbar {
+    position: relative;
     min-height: 100% !important;
     height: 100% !important;
-    margin-bottom: 8px;
     background: variables.$background-header;
+    border-bottom: 1px solid variables.$grey-700;
 }
 
 .spacer {
     flex: 1 1 auto;
 }
 
+// App brand in the top bar — logo mark + title, left-aligned (Option A). The
+// window's own title bar carries the OS controls; product identity lives here.
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 4px;
+    user-select: none;
+    pointer-events: none;
+}
+
+.app-logo {
+    height: 20px;
+    width: auto;
+    display: block;
+}
+
+.app-title {
+    font-size: 13px;
+    font-weight: 400;
+    // The mat-toolbar inherits 'Amazon Ember Heavy' — a bold-cut font file that
+    // ignores font-weight. Use the regular family so the title isn't bold.
+    font-family: fonts.$font-family;
+    color: variables.$grey-450;   // mockup title-bar-text #8d99a8 — muted, not bold
+    line-height: 1;
+}
+
 .buttons {
     display: flex;
     flex-direction: row;
+    align-items: center;
+    gap: 2px;
+
+    // Compact the icon buttons so they sit comfortably in the slimmer 40px bar.
+    .mat-mdc-icon-button {
+        width: 34px;
+        height: 34px;
+        padding: 5px;
+    }
 }

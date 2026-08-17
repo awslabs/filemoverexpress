@@ -1,13 +1,15 @@
 <header mat-dialog-title class="dialog-title">
-    <h1>Update {{ this.configFieldName | titlecase }}</h1>
+    <h1>Set {{ this.configFieldName | titlecase }}</h1>
     <div class="spacer"></div>
     <a (click)="toggleHint($event, data.type === StartingPathType.Local ? 'local-starting-path-info' : 'remote-starting-path-info')">Info</a>
 </header>
 <div mat-dialog-content>
     <div>
         <p class="modal-text">
-            Update the {{ this.configFieldName | titlecase }} for remote configuration <span
-                class="monospace-style">{{ data.transferProfile }}</span>.
+            This is the "home" folder the {{ data.type === StartingPathType.Local ? 'Local File System' : 'S3 Bucket' }}
+            browser opens to for remote configuration <span
+                class="monospace-style">{{ data.transferProfile }}</span> — each time you connect, browsing starts here
+            instead of at the top level.
             @if (data.originalStartingPath) {
                 <span>
                     If updated, the old value will be overwritten: <br> <span class="monospace-style">{{ data.originalStartingPath }}</span>
@@ -36,5 +38,5 @@
 
 <div mat-dialog-actions class="modal-buttons">
     <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
-    <fme-button type="filled" text="Update" [disabled]="startingPath.invalid" [onClick]="save()"></fme-button>
+    <fme-button type="filled" text="Set" [disabled]="startingPath.invalid" [onClick]="save()"></fme-button>
 </div>

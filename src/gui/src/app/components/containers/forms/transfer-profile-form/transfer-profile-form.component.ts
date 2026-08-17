@@ -1,19 +1,12 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
-import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { AfterContentInit, AfterViewInit, Component, ElementRef, inject, input, OnDestroy, OnInit, output, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatChipGrid, MatChipInput, MatChipInputEvent, MatChipRow } from '@angular/material/chips';
-import {
-    MatAccordion,
-    MatExpansionPanel,
-    MatExpansionPanelDescription,
-    MatExpansionPanelHeader,
-    MatExpansionPanelTitle,
-} from '@angular/material/expansion';
 import { MatIcon } from '@angular/material/icon';
-import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import {
@@ -45,16 +38,12 @@ import { WailsService } from '@services/wails/wails.service';
     styleUrls: ['./transfer-profile-form.component.scss'],
     imports: [
         ReactiveFormsModule,
-        MatAccordion,
-        MatExpansionPanel,
-        MatExpansionPanelHeader,
-        MatExpansionPanelTitle,
-        MatExpansionPanelDescription,
         MatFormField,
         MatLabel,
         MatHint,
         MatError,
         MatInput,
+        MatSuffix,
         MatSelect,
         MatOption,
         MatAutocompleteTrigger,
@@ -67,7 +56,6 @@ import { WailsService } from '@services/wails/wails.service';
         MatIcon,
         MatChipInput,
         MatSlideToggle,
-        NgTemplateOutlet,
         ObjectSortPipe,
     ],
 })
@@ -85,6 +73,8 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
     @ViewChild('fileOrderChipList') fileOrderChipList!: MatChipGrid;
     @ViewChild('bucketHint') bucketHint!: ElementRef;
     transferProfileForm: FormGroup = new FormGroup({});
+    // Left-nav section (matches the Settings page). Panels stay mounted; nav toggles them.
+    activeTab: 'connection' | 'authentication' | 'performance' = 'connection';
     daemonOS = '';
     errorMessages = formErrorMessages;
     regions: string[];
@@ -126,6 +116,11 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
         if (bucketControl) {
             const bucketSubscription = bucketControl.valueChanges.subscribe(
                 () => {
+                    // In the tabbed layout the bucket hint only exists while the Connection
+                    // tab is rendered; guard against it being absent (e.g. another tab active).
+                    if (!this.bucketHint) {
+                        return;
+                    }
                     const bucketHintString = (this.bucketHint.nativeElement as Element).innerHTML;
                     (this.bucketHint.nativeElement as Element).innerHTML = this.getOriginalHint(bucketHintString);
                 },
@@ -188,6 +183,11 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
                             control.removeValidators(Validators.required);
                         }
                         control.updateValueAndValidity({onlySelf: true});
+                        // Switching auth method shouldn't paint empty fields red on its own.
+                        // Reset the touched/dirty state so the "required" errors only surface
+                        // once the user actually edits a field (or attempts to save).
+                        control.markAsUntouched();
+                        control.markAsPristine();
                     }
                 }
             });

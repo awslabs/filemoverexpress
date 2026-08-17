@@ -1,5 +1,6 @@
-import { Component, effect, inject, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, effect, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Code, ConnectError } from '@connectrpc/connect';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
 import { FileBrowserComponent } from '@app/components/layout/file-browser/file-browser.component';
 import { cleanPath } from '@app/components/layout/file-browser/file-browser.utils';
@@ -25,10 +26,15 @@ import { PathType } from '@app/interfaces/paths';
 import { grpcPathToDisplayPath, toGrpcPath } from '@app/utils/path-utils';
 import { getS3BrowserError, isRetryableError, S3BrowserError } from '@app/utils/s3-utils';
 import { basename, commonPath, createJobName, dirname, getErrorMessage } from '@app/utils/utils';
-import { BucketReportButtonComponent } from '@primitives/buttons/bucket-report-button/bucket-report-button.component';
+import { BucketReportModalComponent } from '@app/components/modals/bucket-report-modal/bucket-report-modal.component';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { RefreshButtonComponent } from '@primitives/buttons/refresh-button/refresh-button.component';
 import { OidcAuthStatusComponent } from '@app/components/containers/oidc-auth-status/oidc-auth-status.component';
+import { OidcSignInModalComponent } from '@app/components/modals/oidc-sign-in-modal/oidc-sign-in-modal.component';
+import {
+    OidcSignInModalData,
+    OidcSignInModalResult,
+} from '@app/components/modals/oidc-sign-in-modal/oidc-sign-in-modal.interfaces';
 import { TextInputComponent } from '@primitives/forms/text-input/text-input.component';
 import { TransferProfileSelectorDropdownComponent } from '@primitives/forms/transfer-profile-selector-dropdown/transfer-profile-selector-dropdown.component';
 import { Bookmark } from '@services/bookmarks/bookmarks.classes';
@@ -77,7 +83,6 @@ import { Events } from '@wailsio/runtime';
     imports: [
         TextInputComponent,
         TransferProfileSelectorDropdownComponent,
-        BucketReportButtonComponent,
         ButtonComponent,
         RefreshButtonComponent,
         FileBrowserComponent,
@@ -133,6 +138,8 @@ export class BucketBrowserComponent implements OnDestroy {
     });
 
     @ViewChild('filterField') filterField!: TextInputComponent;
+    @ViewChild('fileBrowser') fileBrowser!: FileBrowserComponent;
+    @ViewChild('overflowMenuBtn', {read: ElementRef}) overflowMenuBtn?: ElementRef<HTMLElement>;
     fileBrowserID = BUCKET_FILE_BROWSER_ID;
     allowedDragOriginIDs: string[] = [DAEMON_FILE_BROWSER_ID];
     currentDirectory = '';
@@ -143,6 +150,7 @@ export class BucketBrowserComponent implements OnDestroy {
     selectedTransferProfile: string | null = null;
     transferProfileList: string[] | null = null;
     currentProfileIsOIDC = false;
+    oidcAuthenticated = false;
     allowUiConfiguration = false;
     allowRemoteRenameDelete = false;
     connectionState: ConnectionState = ConnectionState.DISCONNECTED;
@@ -168,31 +176,24 @@ export class BucketBrowserComponent implements OnDestroy {
             (transferProfileState: TransferProfileState) => {
                 this.selectedTransferProfile = transferProfileState.currentTransferProfile;
                 this.transferProfileList = transferProfileState.transferProfileList;
-                this.updateOIDCState(transferProfileState.currentTransferProfile);
                 if (!transferProfileState.transferProfileList?.length) {
                     // transfer profile list empty
+                    this.currentProfileIsOIDC = false;
                     this.setFileBrowserError(this.getErrorEmptyTransferProfileList());
                     return;
                 }
                 if (!this.selectedTransferProfile) {
                     // no transfer profile selected
+                    this.currentProfileIsOIDC = false;
                     this.setFileBrowserError(this.getErrorNoTransferProfileSelected());
                     return;
                 }
-                if (this.currentProfileIsOIDC) {
-                    // For OIDC profiles, check auth status before navigating
-                    this.fmeClientService.getOIDCStatus(this.selectedTransferProfile).subscribe({
-                        next: (status) => {
-                            if (status.authenticated) {
-                                this.navigateToPath(this.getStartingDirectory());
-                            }
-                            // If not authenticated, oidc-auth-status component shows sign-in
-                            // and emits authenticated=true via output, triggering onOidcAuthChange
-                        },
-                    });
-                    return;
-                }
-                this.navigateToPath(this.getStartingDirectory());
+                // Resolve whether this profile uses OIDC BEFORE deciding how to load it.
+                // Determining OIDC-ness is async (a config fetch), so branching on the
+                // previously-cached currentProfileIsOIDC raced: switching to a non-OIDC
+                // profile could take the OIDC path and hang on "Loading File Browser",
+                // and switching to an OIDC profile could skip the auth check.
+                this.resolveProfileAndLoad(this.selectedTransferProfile);
             },
         ));
         this.subscriptions.push(this.metadata.onUpdate.subscribe({
@@ -266,17 +267,41 @@ export class BucketBrowserComponent implements OnDestroy {
      */
     onOidcAuthChange(authenticated: boolean) {
         if (authenticated) {
-            this.refreshFileBrowser();
+            this.oidcAuthenticated = true;
+            this.navigateToPath(this.getStartingDirectory());
         } else {
-            this.fileBrowserData = {
-                state: FileBrowserState.ERROR,
-                list: [],
-                error: {
-                    title: 'Sign In Required',
-                    message: 'You have signed out. Sign in again to browse your S3 bucket.',
-                },
-            };
+            this.oidcAuthenticated = false;
+            this.setFileBrowserError(this.getErrorSignInRequired());
         }
+    }
+
+    /**
+     * Opens the OIDC sign-in modal for the selected profile. On success, lists the
+     * bucket; if the user chose to edit the configuration, opens the profile editor.
+     *
+     * @private
+     */
+    private openSignInModal() {
+        const profileName = this.selectedTransferProfile;
+        if (!profileName) {
+            return;
+        }
+        const dialogRef = this.dialog.open<OidcSignInModalComponent, OidcSignInModalData, OidcSignInModalResult>(
+            OidcSignInModalComponent,
+            {
+                width: '460px',
+                disableClose: true,
+                data: {profileName},
+            },
+        );
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === 'authenticated') {
+                this.oidcAuthenticated = true;
+                this.navigateToPath(this.getStartingDirectory());
+            } else if (result === 'edit') {
+                this.editTransferProfile(profileName);
+            }
+        });
     }
 
     /**
@@ -359,6 +384,12 @@ export class BucketBrowserComponent implements OnDestroy {
                     list: fileBrowserList,
                     error: null,
                 };
+                // A successful listing on an OIDC profile is proof of a valid session —
+                // reflect it (drives the toolbar "Signed in" chip) regardless of which
+                // navigation path triggered the load.
+                if (this.currentProfileIsOIDC) {
+                    this.oidcAuthenticated = true;
+                }
                 this.store.dispatch(UiContextActions.setBucketBrowserPath({path: path}));
             },
             error: (error) => {
@@ -367,6 +398,20 @@ export class BucketBrowserComponent implements OnDestroy {
                     return;
                 }
                 const errorMessage = getErrorMessage(error);
+                // An OIDC profile whose session isn't (or is no longer) authenticated:
+                // route to the clear Sign-In Required state with a Sign in button, rather
+                // than the generic list error or an endless loading bar. Covers refresh and
+                // any other navigation that reaches an unauthenticated OIDC profile.
+                // Classify by the Connect Unauthenticated code (robust to message wording,
+                // which rawMessage strips the code prefix from) and fall back to the text.
+                const isUnauthenticated =
+                    (error instanceof ConnectError && error.code === Code.Unauthenticated) ||
+                    (errorMessage !== null && /not authenticated|unauthenticated|sign in required/i.test(errorMessage));
+                if (this.currentProfileIsOIDC && isUnauthenticated) {
+                    this.oidcAuthenticated = false;
+                    this.setFileBrowserError(this.getErrorSignInRequired());
+                    return;
+                }
                 let s3Error: S3BrowserError = {
                     errorMessage: '',
                     fixableByConfiguration: false,
@@ -491,6 +536,37 @@ export class BucketBrowserComponent implements OnDestroy {
     createS3Prefix() {
         return () => {
             this.openCreateS3PrefixModal(this.currentDirectory);
+        };
+    }
+
+    /**
+     * Opens the shared panel (empty-space) context menu from the "..." overflow button,
+     * anchored just below it. Same menu as right-clicking empty space, from one definition.
+     */
+    openOverflowMenu() {
+        return () => {
+            const rect = this.overflowMenuBtn?.nativeElement?.getBoundingClientRect();
+            this.fileBrowser?.openEmptySpaceMenu(rect ? rect.left : 0, rect ? rect.bottom + 4 : 0);
+        };
+    }
+
+    /**
+     * Context-menu handler that refreshes the panel (mockup puts Refresh inside the
+     * overflow / empty-space menu, in addition to the standalone refresh button).
+     */
+    private refreshFromContextMenu(): FileBrowserContextMenuClickHandler {
+        return () => {
+            this.refreshFileBrowser();
+        };
+    }
+
+    /**
+     * Returns a context-menu click handler that opens the Bucket Report modal. Lives in
+     * the panel (empty-space / "...") menu so it is reachable without a dedicated button.
+     */
+    private generateBucketReport(): FileBrowserContextMenuClickHandler {
+        return () => {
+            this.dialog.open(BucketReportModalComponent, {width: '40%', maxWidth: '600px', autoFocus: 'dialog'});
         };
     }
 
@@ -627,15 +703,29 @@ export class BucketBrowserComponent implements OnDestroy {
         if (error) {
             fileBrowserError.message = error;
         }
-        if (showEditButton && transferProfile && this.allowUiConfiguration) {
-            fileBrowserError.actionButtons = [
-                {
-                    buttonText: 'Edit Remote Configuration',
-                    buttonClickHandler: () => {
-                        this.editTransferProfile(transferProfile);
-                    },
+        const actionButtons: { buttonText: string, buttonClickHandler: () => void }[] = [];
+        // For an OIDC profile, a listing failure is most often an auth problem (expired or
+        // signed-out session), so always surface a Sign in action here — the panel must
+        // never leave the user with no way to re-authenticate, regardless of how the
+        // underlying error was classified.
+        if (this.currentProfileIsOIDC) {
+            actionButtons.push({
+                buttonText: 'Sign in',
+                buttonClickHandler: () => {
+                    this.openSignInModal();
                 },
-            ];
+            });
+        }
+        if (showEditButton && transferProfile && this.allowUiConfiguration) {
+            actionButtons.push({
+                buttonText: 'Edit Remote Configuration',
+                buttonClickHandler: () => {
+                    this.editTransferProfile(transferProfile);
+                },
+            });
+        }
+        if (actionButtons.length) {
+            fileBrowserError.actionButtons = actionButtons;
         }
         return fileBrowserError;
     }
@@ -694,7 +784,7 @@ export class BucketBrowserComponent implements OnDestroy {
             this.setFileBrowserError(this.getErrorNoTransferProfileSelected());
             return;
         }
-        this.navigateToPath(this.getStartingDirectory());
+        this.resolveProfileAndLoad(this.selectedTransferProfile);
     }
 
     /**
@@ -705,13 +795,34 @@ export class BucketBrowserComponent implements OnDestroy {
     private setContextMenuData() {
         this.fileBrowserContextMenuData = [
             {
-                label: 'Create Prefix',
+                label: 'Refresh',
+                icon: 'refresh',
+                iconColor: 'blue',
+                sectionHeader: 'Actions',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['emptySpace', null],
+                ]),
+                action: this.refreshFromContextMenu(),
+            },
+            {
+                label: 'New Prefix',
                 icon: 'folder',
                 iconColor: 'blue',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
                     ['emptySpace', null],
                 ]),
                 action: this.createS3Prefix(),
+            },
+            {
+                label: 'Generate Bucket Report',
+                icon: 'assessment',
+                iconColor: 'inherit',
+                sectionHeader: 'Reports',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['emptySpace', null],
+                ]),
+                action: this.generateBucketReport(),
+                hasTrailingSeparator: true,
             },
             {
                 label: 'Create Child Prefix',
@@ -744,8 +855,9 @@ export class BucketBrowserComponent implements OnDestroy {
             },
             {
                 label: 'Set as Bucket Starting Directory',
-                icon: 'edit',
+                icon: 'home',
                 iconColor: 'inherit',
+                sectionHeader: 'Navigation',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
                     ['folder', this.showS3StartingPrefixMenuRow()], ['emptySpace', this.showS3StartingPrefixMenuRow()],
                 ]),
@@ -755,12 +867,51 @@ export class BucketBrowserComponent implements OnDestroy {
                 label: 'Clear Bucket Starting Directory',
                 icon: 'clear',
                 iconColor: 'inherit',
+                sectionHeader: 'Navigation',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
                     ['folder', this.showClearS3StartingPrefixMenuRow()], ['emptySpace', this.showClearS3StartingPrefixMenuRow()],
                 ]),
                 action: this.clearS3StartingPrefix(),
             },
+            {
+                label: 'Edit Remote Configuration',
+                icon: 'settings',
+                iconColor: 'inherit',
+                sectionHeader: 'Configuration',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['emptySpace', this.hasSelectedTransferProfile()],
+                ]),
+                action: this.editRemoteConfiguration(),
+            },
+            {
+                label: 'New Remote Configuration',
+                icon: 'add',
+                iconColor: 'inherit',
+                sectionHeader: 'Configuration',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['emptySpace', null],
+                ]),
+                action: this.newRemoteConfiguration(),
+            },
         ];
+    }
+
+    private hasSelectedTransferProfile(): FileBrowserContextMenuTriggerCondition {
+        return () => !!this.selectedTransferProfile;
+    }
+
+    private editRemoteConfiguration(): FileBrowserContextMenuClickHandler {
+        return () => {
+            if (this.selectedTransferProfile) {
+                this.transferProfileService.edit(this.selectedTransferProfile);
+            }
+        };
+    }
+
+    private newRemoteConfiguration(): FileBrowserContextMenuClickHandler {
+        return () => {
+            this.transferProfileService.add();
+        };
     }
 
     private createChildS3Prefix(): FileBrowserContextMenuClickHandler {
@@ -1022,19 +1173,48 @@ export class BucketBrowserComponent implements OnDestroy {
         );
     }
 
-    private updateOIDCState(profileName: string | null) {
-        if (!profileName) {
-            this.currentProfileIsOIDC = false;
-            return;
-        }
+    private resolveProfileAndLoad(profileName: string) {
         this.fmeClientService.getConfiguration().subscribe({
             next: (config) => {
                 const tp = config.protocols.s3.transferProfiles[profileName];
                 this.currentProfileIsOIDC = tp?.authMethod === 'oidc';
+                if (!this.currentProfileIsOIDC) {
+                    this.oidcAuthenticated = false;
+                }
+                // Attempt the listing directly and let its RESULT be the single source of
+                // truth. A successful list on an OIDC profile means we're authenticated
+                // (navigateToPath sets oidcAuthenticated and shows the sign-out control); an
+                // "unauthenticated" error routes to the Sign In Required state. This avoids
+                // relying on GetOIDCStatus, which can disagree with the daemon's lazily
+                // rehydrated session (the list path rehydrates it, the status call does not).
+                this.navigateToPath(this.getStartingDirectory());
             },
             error: () => {
+                // Couldn't read config; assume non-OIDC and attempt to list.
                 this.currentProfileIsOIDC = false;
+                this.oidcAuthenticated = false;
+                this.navigateToPath(this.getStartingDirectory());
             },
         });
+    }
+
+    /**
+     * File browser state that prompts the user to sign in for an OIDC profile, with a
+     * primary "Sign in" button that opens the sign-in modal.
+     *
+     * @private
+     */
+    private getErrorSignInRequired(): FileBrowserError {
+        return {
+            ...fileBrowserErrors['SIGN_IN_REQUIRED'],
+            actionButtons: [
+                {
+                    buttonText: 'Sign in',
+                    buttonClickHandler: () => {
+                        this.openSignInModal();
+                    },
+                },
+            ],
+        };
     }
 }

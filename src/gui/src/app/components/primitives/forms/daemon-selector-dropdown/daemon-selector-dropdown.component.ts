@@ -255,14 +255,15 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
         const currentBookmark = this.currentBookmark;
         if (currentBookmark) {
             let titleText = 'Connect to Daemon';
-            let messageText = `Are you sure you want to connect to <b>${bookmark.name}</b> and disconnect from <b>${currentBookmark.name}</b>?`;
+            let messageText = `Connect to <b>${bookmark.name}</b> and disconnect from <b>${currentBookmark.name}</b>?` +
+                ' Switching daemons clears the jobs table, and you\'ll stop seeing progress for any transfers still' +
+                ' running on the current daemon.';
             let confirmText = 'Connect';
             if (currentBookmark.name === bookmark.name) {
                 titleText = 'Retry Connection';
-                messageText = `Retry connection to daemon <b>${bookmark.name}</b>?`;
+                messageText = `Retry the connection to <b>${bookmark.name}</b>?`;
                 confirmText = 'Retry Connection';
             }
-            messageText += ' The jobs table will be cleared and you will not receive any more updates about currently ongoing jobs in the jobs table.';
 
             const dialogRef = this.dialog.open(
                 ConfirmationModalComponent,
@@ -339,9 +340,9 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
                 width: '520px',
                 data: {
                     cancelText: 'Cancel',
-                    confirmText: 'Delete',
-                    message: `Are you sure you want to delete the favorite path ${favoritePath} from ${bookmark.name}?`,
-                    title: 'Delete Favorite Path',
+                    confirmText: 'Remove',
+                    message: `Remove <b>${favoritePath}</b> from your favorite paths on ${bookmark.name}? This only removes the bookmark from your favorites list — the folder and its contents are not deleted.`,
+                    title: 'Remove Favorite Path',
                 },
             },
         );

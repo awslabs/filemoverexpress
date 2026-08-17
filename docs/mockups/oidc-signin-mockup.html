@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FME — OIDC Sign-in UX mockup</title>
+<style>
+  :root{
+    --bg:#0b1622; --panel:#0f1b2d; --panel-2:#13233a; --line:#22354f;
+    --text:#e7edf5; --muted:#93a4bd; --blue:#42b4ff; --blue-dim:#2a6db0;
+    --green:#4caf50; --green-bg:rgba(76,175,80,.15); --green-fg:#81c784;
+    --radius:10px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:32px;line-height:1.4}
+  h2.section{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:34px 0 12px}
+  .caption{color:var(--muted);font-size:13px;margin:0 0 14px;max-width:760px}
+  /* app shell */
+  .app{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:900px;box-shadow:0 10px 40px rgba(0,0,0,.35);position:relative}
+  .topbar{height:44px;background:#08111c;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 16px;color:var(--muted)}
+  .topbar svg{width:18px;height:18px}
+  .body{padding:20px 22px 26px}
+  .crumbs{color:var(--blue);font-size:13px;margin-bottom:6px}
+  .title{font-size:26px;font-weight:800;margin:0 0 16px}
+  /* toolbar */
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .search{flex:0 1 300px;min-width:120px;display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--muted);font-size:14px}
+  .dropdown{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-size:14px;min-width:150px;justify-content:space-between}
+  .dropdown .cloud{color:var(--blue)}
+  .spacer{flex:1 1 auto}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--green-bg);color:var(--green-fg);border-radius:16px;padding:5px 12px;font-size:13px;font-weight:600}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .btn{border-radius:20px;font-size:14px;font-weight:700;padding:9px 18px;cursor:pointer;border:1.5px solid var(--blue);background:transparent;color:var(--blue);white-space:nowrap}
+  .btn.solid{background:var(--blue);color:#04121f;border-color:var(--blue)}
+  .icon-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--blue);color:var(--blue);display:grid;place-items:center;flex:0 0 auto}
+  .icon-btn svg{width:18px;height:18px}
+  .link{color:var(--muted);cursor:pointer}
+  /* file panel */
+  .panel{border:1px solid var(--line);border-radius:var(--radius);min-height:300px;overflow:hidden}
+  .cols{display:grid;grid-template-columns:1fr 130px 190px;padding:14px 18px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:700;font-size:14px;background:#0d1a2b}
+  .row{display:grid;grid-template-columns:1fr 130px 190px;padding:11px 18px;border-bottom:1px solid #182a41;font-size:14px;align-items:center}
+  .row .name{display:flex;align-items:center;gap:10px}
+  .row svg{width:18px;height:18px;color:var(--blue)}
+  /* empty / signin state */
+  .empty{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:40px}
+  .empty .lock{width:52px;height:52px;color:var(--blue);opacity:.9}
+  .empty h3{margin:0;font-size:19px;font-weight:700}
+  .empty p{margin:0;color:var(--muted);font-size:14px;max-width:360px}
+  /* modal */
+  .modal-scrim{position:relative;background:rgba(4,10,18,.55);border-radius:14px;padding:40px 20px;display:flex;justify-content:center}
+  .modal{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;width:440px;max-width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+  .modal .m-head{padding:20px 24px 6px;font-size:19px;font-weight:800}
+  .modal .m-body{padding:6px 24px 8px;color:var(--muted);font-size:14px}
+  .modal .m-wait{display:flex;align-items:center;gap:12px;padding:16px 24px;color:var(--text);font-size:14px}
+  .spinner{width:20px;height:20px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .modal .m-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px 22px}
+  .m-err{margin:6px 24px 0;padding:10px 12px;border-radius:8px;background:rgba(244,67,54,.12);color:#ef9a9a;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+</style>
+</head>
+<body>
+  <h1 style="font-size:20px;margin:0 0 4px">FME — OIDC Sign-in UX (proposed)</h1>
+  <p class="caption">Sign-in lives in the <b>empty file panel</b> (where it appears the moment you pick an OIDC config — impossible to miss, zero toolbar crowding). The browser-launch / waiting / cancel / errors happen in a <b>modal</b>. Once signed in, the toolbar shows only a small “Signed in” chip.</p>
+
+  <h2 class="section">State 1 — OIDC config selected, not signed in</h2>
+  <p class="caption">Toolbar is clean (no sprawling status). The panel itself invites sign-in.</p>
+  <div class="app">
+    <div class="topbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v4h1"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div>
+    <div class="body">
+      <div class="crumbs">S3</div>
+      <div class="title">S3 Bucket</div>
+      <div class="toolbar">
+        <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg> Search</div>
+        <div class="dropdown"><span class="cloud">☁ fme-oidc-test</span> <span>▾</span></div>
+        <div class="spacer"></div>
+        <button class="btn">Bucket Report</button>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h6l2 2h8v9H4z"/><path d="M12 12v4M10 14h4"/></svg></div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 10-2 6"/><path d="M20 5v6h-6"/></svg></div>
+      </div>
+      <div class="panel">
+        <div class="empty">
+          <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          <h3>Sign in to browse this bucket</h3>
+          <p>This remote configuration uses single sign-on. Sign in with your identity provider to view and transfer files.</p>
+          <button class="btn solid">Sign in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">State 2 — Sign-in modal (after clicking “Sign in”)</h2>
+  <p class="caption">Explains what’s happening, so the browser opening isn’t a surprise. Cancel is right here. Errors + Try again render in this dialog with room to read them.</p>
+  <div class="app">
+    <div class="modal-scrim">
+      <div class="modal">
+        <div class="m-head">Sign in to AWS</div>
+        <div class="m-body">A browser window has opened for you to sign in with your identity provider. Come back here once you’ve finished — this will update automatically.</div>
+        <div class="m-wait"><div class="spinner"></div> Waiting for you to finish in your browser…</div>
+        <div class="m-foot">
+          <button class="btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">State 2b — Modal error variant</h2>
+  <div class="app">
+    <div class="modal-scrim">
+      <div class="modal">
+        <div class="m-head">Sign in to AWS</div>
+        <div class="m-body">We couldn’t complete sign-in.</div>
+        <div class="m-err"><span>⚠</span><span>The sign-in window timed out. You can try again, or check this remote configuration’s settings.</span></div>
+        <div class="m-foot">
+          <button class="btn">Edit configuration</button>
+          <button class="btn solid">Try again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">State 3 — Signed in</h2>
+  <p class="caption">Toolbar shows a compact “Signed in” chip (details on hover, sign-out). No countdown timer. The bucket lists normally.</p>
+  <div class="app">
+    <div class="topbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v4h1"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div>
+    <div class="body">
+      <div class="crumbs">S3</div>
+      <div class="title">S3 Bucket</div>
+      <div class="toolbar">
+        <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg> Search</div>
+        <div class="dropdown"><span class="cloud">☁ fme-oidc-test</span> <span>▾</span></div>
+        <div class="spacer"></div>
+        <span class="chip"><span class="dot"></span> Signed in ⌄</span>
+        <button class="btn">Bucket Report</button>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h6l2 2h8v9H4z"/><path d="M12 12v4M10 14h4"/></svg></div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 10-2 6"/><path d="M20 5v6h-6"/></svg></div>
+      </div>
+      <div class="panel">
+        <div class="cols"><div>Name</div><div>Size</div><div>Date Modified</div></div>
+        <div class="row"><div class="name"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v9H3z"/></svg> Media.localized</div><div>—</div><div>Jun 22, 2026</div></div>
+        <div class="row"><div class="name"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v9H3z"/></svg> TV Library.tvlibrary</div><div>—</div><div>Apr 18, 2026</div></div>
+        <div class="row"><div class="name"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v9H3z"/></svg> foldera</div><div>—</div><div>May 01, 2026</div></div>
+        <div class="row"><div class="name"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7h6l2 2h10v9H3z"/></svg> folderabcd</div><div>—</div><div>Jan 08, 2026</div></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

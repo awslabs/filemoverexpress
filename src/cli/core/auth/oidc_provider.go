@@ -207,9 +207,16 @@ func (p *OIDCProvider) GetCredentials(profileName string, cfg *OIDCConfig) (*AWS
 		return session.AWSCreds, nil
 	}
 
-	// Credentials expiring soon — attempt refresh
+	// Credentials expiring soon — attempt refresh. A refresh failure (expired or
+	// revoked refresh token, e.g. after an SSO logout) means the user must sign in
+	// again, so surface it as not-authenticated rather than a generic session error.
 	if err := p.refreshCredentials(profileName, session); err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"session expired for profile %q — sign in required (%v): %w",
+			profileName,
+			err,
+			ErrOIDCNotAuthenticated,
+		)
 	}
 
 	return session.AWSCreds, nil
@@ -221,6 +228,7 @@ func (p *OIDCProvider) Logout(profileName string) error {
 	defer p.mu.Unlock()
 
 	delete(p.sessions, profileName)
+	delete(p.loadedProfiles, profileName)
 	return p.tokenCache.Delete(profileName)
 }
 
@@ -242,20 +250,26 @@ func (p *OIDCProvider) ensureLoaded(profileName string, cfg *OIDCConfig) {
 	}
 
 	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	if p.loadedProfiles[profileName] {
+		p.mu.Unlock()
 		return
 	}
-
-	p.loadCachedSessionLocked(profileName, *cfg)
 	p.loadedProfiles[profileName] = true
+	p.mu.Unlock()
+
+	// Do the network work WITHOUT holding p.mu: loadCachedSession ->
+	// refreshAndAssumeRole acquires p.mu itself, and sync.RWMutex is not reentrant,
+	// so holding it across the load would deadlock this goroutine — and, because the
+	// write lock would never be released, every other OIDC call along with it.
+	p.loadCachedSession(profileName, *cfg)
 }
 
-// loadCachedSessionLocked restores a session from cache. Must be called with mu held.
-// On any failure (decryption, expired token, unreachable IdP), it logs a warning,
-// deletes the corrupt cache entry, and returns — leaving the profile unauthenticated.
-func (p *OIDCProvider) loadCachedSessionLocked(profileName string, cfg OIDCConfig) {
+// loadCachedSession restores a session from cache. It must NOT be called with p.mu
+// held: it performs network I/O and calls refreshAndAssumeRole, which acquires p.mu
+// itself (sync.RWMutex is not reentrant). On any failure (decryption, expired token,
+// unreachable IdP), it logs a warning, deletes the corrupt cache entry, and returns —
+// leaving the profile unauthenticated.
+func (p *OIDCProvider) loadCachedSession(profileName string, cfg OIDCConfig) {
 	cached, err := p.tokenCache.Load(profileName)
 	if err != nil {
 		slog.Warn("cached OIDC session unreadable, removing",
@@ -288,7 +302,9 @@ func (p *OIDCProvider) loadCachedSessionLocked(profileName string, cfg OIDCConfi
 		return
 	}
 
+	p.mu.Lock()
 	p.sessions[profileName] = session
+	p.mu.Unlock()
 }
 
 // LoadCachedSession attempts to restore a session from disk (only when persist_session=true).

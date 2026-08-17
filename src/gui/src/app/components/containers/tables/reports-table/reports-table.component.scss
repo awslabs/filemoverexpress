@@ -26,12 +26,35 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 .reports-container {
     @extend .table-container;
 
+    // Mockup: flush on the dark tray — no bordered/rounded card.
+    border: none;
+    border-radius: 0;
+
+    // Clear the shared Material table token so rows sit on the tray's black surface.
+    .mat-mdc-table,
+    .mdc-data-table__table,
+    .mdc-data-table__content,
+    .mdc-data-table__row,
+    .mdc-data-table__cell {
+        background: transparent;
+    }
+
     // selected row styles
     .selected-row {
         background: $table-row-selected-color !important;
 
         &:hover {
             background: color.adjust($table-row-selected-color, $lightness: 5%, $space: hsl) !important;
+        }
+    }
+
+    // Report output-file link reads as an accent link (mockup).
+    a {
+        color: variables.$active;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
         }
     }
 }

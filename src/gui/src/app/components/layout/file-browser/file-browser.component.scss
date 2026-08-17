@@ -17,6 +17,48 @@ $row-icon-weight: 600;
 .file-browser-container {
     @extend .table-container;
 
+    // The parent panel is now the single card frame (see daemon-/bucket-browser).
+    // Drop this list's own border/radius and let the card surface show through so
+    // the header + rows read as one flush surface, matching the redesign mockup.
+    border: none;
+    border-radius: 0;
+    background: transparent;
+
+    // Rows and cells inherit the panel surface — the mockup is a uniform #161d26 with
+    // NO separator lines between files/folders (only the header keeps an underline).
+    // NOTE: the table element paints the shared Material token ($background-content, a
+    // bluer shade) unless overridden — .mat-mdc-table/.mdc-data-table__content are the
+    // classes that actually carry it.
+    .mat-mdc-table,
+    .mdc-data-table__table,
+    .mdc-data-table__content,
+    .mdc-data-table__row,
+    .mdc-data-table__cell {
+        background: transparent;
+    }
+
+    .mdc-data-table__cell {
+        border-bottom-width: 0 !important;
+        // Mockup meta columns (size/date) are 12px; a step up from the shared 12px default
+        // was requested for legibility.
+        font-size: 13px !important;
+    }
+
+    // Mockup file names are 14px — the primary content reads larger than the meta columns.
+    .file-name {
+        font-size: 14px;
+    }
+
+    // keep the sticky header opaque against the panel surface while rows scroll under it
+    .mdc-data-table__header-cell {
+        background: variables.$background-browser-panel;
+    }
+
+    // subtle row hover lift above the panel surface (mockup #1b232d)
+    .mdc-data-table__row:hover {
+        background: variables.$background-browser-panel-hover;
+    }
+
     // prevent select styles
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10 and IE 11 */
@@ -50,7 +92,8 @@ $row-icon-weight: 600;
         width: 100%;
 
         .file-name-string {
-            width: 100%;
+            flex: 0 1 auto;
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -85,9 +128,22 @@ $row-icon-weight: 600;
         padding: 40px 50px 40px 50px;
         text-align: center;
 
+        .file-browser-error-icon {
+            font-size: 36px;
+            width: 36px;
+            height: 36px;
+            color: variables.$red-600;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
         .file-browser-error-title {
             font-weight: 600;
             margin-bottom: 6px;
+        }
+
+        &.is-error .file-browser-error-title {
+            color: variables.$red-600;
         }
 
         .file-browser-error-message {
@@ -98,12 +154,53 @@ $row-icon-weight: 600;
             display: flex;
             flex-direction: row;
             justify-content: center;
+            gap: 12px;
         }
     }
 
     // remaining table space when no error
     .remaining-table-space {
         flex: 1 100%;
+    }
+
+    // empty-directory drop zone (matches the redesign mockup): dashed rounded target
+    // shown when a loaded directory has no items, inviting a drag-to-transfer.
+    .drop-zone-empty {
+        flex: 1 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 2px dashed variables.$grey-600;
+        border-radius: 12px;
+        margin: 16px;
+        min-height: 160px;
+        text-align: center;
+        cursor: default;
+        transition: border-color 0.2s ease, background 0.2s ease;
+
+        &:hover {
+            border-color: variables.$active;
+        }
+
+        .drop-zone-icon {
+            font-size: 44px;
+            width: 44px;
+            height: 44px;
+            color: variables.$grey-450;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone-text {
+            font-size: 14px;
+            color: variables.$text-table-header;
+            margin-bottom: 4px;
+        }
+
+        .drop-zone-subtext {
+            font-size: 12px;
+            color: variables.$grey-500;
+        }
     }
 
     // styles when file dragging is in progress
@@ -167,16 +264,54 @@ $row-icon-weight: 600;
     color: variables.$folder-icon-color;
 }
 
-.favorite-icon {
-    color: variables.$yellow-accent;
+// Folder badges (mockup VIEW 6): labeled pills after the folder name.
+.folder-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    flex-shrink: 0;
+
+    .folder-badge-icon {
+        font-size: 11px;
+        height: 11px;
+        width: 11px;
+        line-height: 11px;
+    }
+
+    &.hot {
+        background: variables.$badge-hot-bg;
+        color: variables.$badge-hot-color;
+    }
+
+    &.favorite {
+        background: variables.$badge-favorite-bg;
+        color: variables.$badge-favorite-color;
+    }
+
+    &.starting {
+        background: variables.$badge-starting-bg;
+        color: variables.$badge-starting-color;
+    }
 }
 
-.hot-folder-icon {
-    color: variables.$orange-accent;
+// Faint full-row tint for badged folders. No !important so hover/selection win.
+// Precedence hot > favorite > starting (later rule wins at equal specificity).
+.mat-mdc-row.row-starting {
+    background: variables.$badge-starting-tint;
 }
 
-.starting-path-icon {
-    color: variables.$grey-300;
+.mat-mdc-row.row-favorite {
+    background: variables.$badge-favorite-tint;
+}
+
+.mat-mdc-row.row-hot {
+    background: variables.$badge-hot-tint;
 }
 
 .glacier-icon {
@@ -284,6 +419,17 @@ $row-icon-weight: 600;
 
 // endregion
 
+.context-menu-section-header {
+    padding: 6px 16px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: variables.$grey-500;
+    user-select: none;
+    pointer-events: none;
+}
+
 .context-menu-row {
     display: grid;
     grid-gap: 5px;
@@ -291,7 +437,6 @@ $row-icon-weight: 600;
     height: 30px;
     line-height: 30px;
     width: 100%;
-
     .context-menu-row-icon {
         width: $row-icon-size;
         position: relative;

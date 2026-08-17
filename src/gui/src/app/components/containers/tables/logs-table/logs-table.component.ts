@@ -1,7 +1,7 @@
 import { AsyncPipe, DatePipe, NgClass } from '@angular/common';
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { MatFormField, MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSort, MatSortHeader } from '@angular/material/sort';
 import {
@@ -20,8 +20,7 @@ import {
 import { handleStreamError } from '@app/classes/rxjs-operators';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { EventLogLevel } from '@app/interfaces/events';
-import { buildFilterString } from '@app/utils/transfer-utils';
-import { filterPredicate, LogsFilterForm } from '@containers/tables/logs-table/logs-table.filters';
+import { buildFilterString, filterPredicate, LogsFilterForm } from '@containers/tables/logs-table/logs-table.filters';
 import { Store } from '@ngrx/store';
 import { selectAll as selectAllJobs } from '@state/job/job.selectors';
 import { selectAll } from '@state/logs/logs.selectors';
@@ -37,7 +36,6 @@ import { distinctUntilChanged } from 'rxjs/operators';
     imports: [
         ReactiveFormsModule,
         MatFormField,
-        MatLabel,
         MatInput,
         MatSelect,
         MatOption,
@@ -69,7 +67,16 @@ export class LogsTableComponent implements OnInit {
         'level',
         'message',
     ];
-    levels = Object.values(EventLogLevel);
+
+    // Mockup log toolbar: rounded chip toggles (All / Info / Warn / Error) instead of a
+    // multi-select dropdown. Values map to the canonical EventLogLevel; null = All (no
+    // level filter). The filter model stays an array so the existing filterPredicate works.
+    levelChips: { label: string; value: EventLogLevel | null }[] = [
+        {label: 'All', value: null},
+        {label: 'Info', value: EventLogLevel.Info},
+        {label: 'Warn', value: EventLogLevel.Warning},
+        {label: 'Error', value: EventLogLevel.Error},
+    ];
     dataSource: MatTableDataSource<LogEntry> = new MatTableDataSource<LogEntry>();
     filterForm: FormGroup = new FormGroup<LogsFilterForm>({
         levels: new FormControl<string>(''),
@@ -77,6 +84,23 @@ export class LogsTableComponent implements OnInit {
         jobs: new FormControl<string>(''),
     });
     jobs$: Observable<Job[]>;
+
+    /** Display label for a level token — the enum stores 'warning' but the mockup shows WARN. */
+    levelDisplay(level: string): string {
+        return level === EventLogLevel.Warning ? 'warn' : level;
+    }
+
+    /** True when the given chip reflects the current filter (null chip = "All"/no filter). */
+    isLevelActive(value: EventLogLevel | null): boolean {
+        const selected = (this.filterForm.get('levels')?.value as string[] | string | null) ?? [];
+        const arr = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+        return value === null ? arr.length === 0 : arr.includes(value);
+    }
+
+    /** Select a single level chip (or All to clear the level filter). */
+    selectLevel(value: EventLogLevel | null): void {
+        this.filterForm.get('levels')?.setValue(value === null ? [] : [value]);
+    }
 
     constructor() {
         this.jobs$ = this.store.select(selectAllJobs).pipe(distinctUntilChanged());

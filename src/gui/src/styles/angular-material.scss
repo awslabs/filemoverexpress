@@ -52,16 +52,6 @@
     min-width: 70px !important;
 }
 
-.mat-mdc-tab:not(:first-child)::after {
-    display: block;
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: 25%;
-    height: 50%;
-    border-left: 2px solid variables.$container-border;
-}
-
 // mat-checkbox overrides
 .mat-pseudo-checkbox:not(.mat-pseudo-checkbox-checked) {
     border-color: variables.$grey-450 !important;
@@ -74,11 +64,29 @@
     padding: 0 !important;
 }
 
+// mat-autocomplete panel overrides — mirror the mat-select panel so the
+// "AWS named profile" dropdown uses the redesign menu surface instead of
+// Material's light-grey default. Options inherit .mat-mdc-option sizing below.
+.mat-mdc-autocomplete-panel {
+    --mat-autocomplete-background-color: #{variables.$background-menu} !important;
+    background-color: variables.$background-menu !important;
+    border: 2px solid variables.$container-border !important;
+    padding: 0 !important;
+    color: variables.$text !important;
+}
+
 // mat-option dropdown overrides
 .mat-mdc-option {
     --mat-option-label-text-size: 14px !important;
     --mat-option-label-text-line-height: 34px !important;
     min-height: 34px !important;
+}
+
+// Dropdown chevron affordance for autocomplete inputs (matAutocomplete has no
+// built-in arrow the way mat-select does) — muted, matching the select arrow.
+.autocomplete-arrow {
+    color: variables.$grey-450 !important;
+    cursor: pointer;
 }
 
 // mat-tooltip overrides
@@ -87,9 +95,102 @@
     max-width: 350px !important;
 }
 
-// mat-form-field overrides
+// mat-form-field overrides.
+// The redesign (docs/mockups/mockup-redesign.html) uses clean, thin-bordered inputs
+// (1px #656871 border, 8px radius, calm accent focus) everywhere — not Material's default
+// heavy 2px outline. Set it once here so every outlined field (modals + settings) matches.
 .mdc-text-field--outlined {
-    --mat-form-field-outlined-outline-width: 2px !important;
+    --mat-form-field-outlined-outline-width: 1px !important;
+    --mat-form-field-outlined-focus-outline-width: 1px !important;
+    --mdc-outlined-text-field-container-shape: 8px;
+    --mdc-outlined-text-field-outline-color: #{variables.$grey-550};
+    --mdc-outlined-text-field-hover-outline-color: #{variables.$grey-450};
+    --mdc-outlined-text-field-focus-outline-color: #{variables.$blue-500};
+}
+
+// Label-above static inputs (docs/mockups/mockup-redesign.html).
+// app.config.ts sets floatLabel:'always', so every label floats; here we lift it clear
+// of the box and swap Material's notched-outline for a clean 1px-bordered box with the
+// mockup's dark fill (#0f141a). Result: a static label sitting ABOVE a dark bordered
+// input, instead of Material's floating-notch outline that read as "old styling".
+.mat-mdc-form-field {
+    // Room above the box for the static label.
+    margin-top: 22px;
+
+    // Compact sizing to match the mockup's .set-input (14px text, ~38px box, 12px pad).
+    // Without these, Material's outlined defaults (56px container, 16px text, 16px pad)
+    // make every field read too big vs the mockup.
+    --mat-form-field-container-height: 38px;
+    --mat-form-field-container-vertical-padding: 8px;
+    --mat-form-field-container-text-size: 14px;
+    --mat-form-field-subscript-text-size: 10px;
+
+    .mat-mdc-form-field-infix {
+        min-height: 38px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    // Don't clip the lifted label.
+    .mat-mdc-text-field-wrapper,
+    .mat-mdc-form-field-flex,
+    .mat-mdc-form-field-infix {
+        overflow: visible;
+    }
+
+    // The field box: dark fill + 1px border + 8px radius, 12px horizontal padding.
+    .mat-mdc-text-field-wrapper {
+        background: variables.$background-tray;
+        border: 1px solid variables.$grey-550;
+        border-radius: 8px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    // Input + select text: 14px, mockup value colour.
+    .mat-mdc-input-element,
+    .mdc-text-field__input,
+    .mat-mdc-select-value,
+    .mat-mdc-select-value-text,
+    .mat-mdc-select-trigger {
+        font-size: 14px !important;
+        line-height: 20px !important;
+    }
+
+    // Remove Material's notched-outline strokes (the border now lives on the wrapper);
+    // keep the notch element so the label still renders.
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+        border: none !important;
+    }
+
+    // Lift the always-floated label out of the box to sit statically above it.
+    .mdc-floating-label,
+    .mat-mdc-floating-label {
+        position: absolute;
+        top: -22px !important;
+        left: 0 !important;
+        transform: none !important;
+        max-width: none !important;
+        font-family: fonts.$font-family !important;
+        font-size: 12px !important;
+        font-weight: 400 !important;
+        color: variables.$grey-450 !important;
+    }
+
+    .mat-mdc-form-field-required-marker {
+        color: variables.$grey-450 !important;
+    }
+
+    // Focus + invalid states colour the wrapper border directly.
+    &.mat-focused .mat-mdc-text-field-wrapper {
+        border-color: variables.$blue-500;
+    }
+
+    &.mat-form-field-invalid .mat-mdc-text-field-wrapper {
+        border-color: #d13212;
+    }
 }
 
 // mat-tab overrides
@@ -102,4 +203,11 @@ mat-form-field[data-multi-hint] {
     .mat-mdc-form-field-hint-wrapper {
         flex-direction: column !important;
     }
+}
+
+// mat-slide-toggle: the switch "state layer" circle behind the thumb stays visible
+// while the control keeps focus after a click, so a toggled slider looks stuck with a
+// dark highlight. Hide the state layer app-wide so toggling leaves a clean switch.
+.mdc-switch__ripple {
+    display: none !important;
 }

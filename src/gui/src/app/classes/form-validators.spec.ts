@@ -70,7 +70,7 @@ describe('s3ArnRgx', () => {
     });
 
     it('captures the bucket from a full S3 ARN (issue #27)', () => {
-        expect('arn:aws:s3:::nsft2testing'.match(s3ArnRgx)?.groups?.['bucket']).toBe('nsft2testing');
+        expect('arn:aws:s3:::example-bucket'.match(s3ArnRgx)?.groups?.['bucket']).toBe('example-bucket');
     });
 
     it('captures the bucket from an ARN with a trailing key/path', () => {
@@ -78,6 +78,6 @@ describe('s3ArnRgx', () => {
     });
 
     it('does not match a bare bucket name (nothing to strip)', () => {
-        expect('nsft2testing'.match(s3ArnRgx)).toBeNull();
+        expect('example-bucket'.match(s3ArnRgx)).toBeNull();
     });
 });

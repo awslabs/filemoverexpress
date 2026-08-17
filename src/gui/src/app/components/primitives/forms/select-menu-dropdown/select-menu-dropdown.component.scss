@@ -80,8 +80,30 @@
     @extend .custom-row-text;
 }
 
+// Match the restyled cog/overflow menus (global .mat-mdc-menu-item is 36px tall,
+// 14px text, 16px horizontal padding). The custom rows above default to a denser
+// 23px/13px/8px that read as the "old" styling. Scoped here — these classes are
+// used only by this primitive. align-items:center keeps the text and the trailing
+// edit/delete action icons vertically centered in the taller row.
+.dropdown-row,
+.clickable-dropdown-row {
+    height: 36px;
+    line-height: 36px;
+    padding: 0 16px;
+    align-items: center;
+}
+
+.item,
+.section-header {
+    font-size: 14px;
+}
+
 .row-text-wrapper {
     display: flex;
+    // Vertically centre the leading icon (16px) and the text within the 36px row.
+    // Without this the fixed-height icon column pins to the top of the row, so the
+    // star / cloud / + glyphs sat visibly above their labels.
+    align-items: center;
     flex: fit-content;
     flex-grow: 1;
     overflow: hidden;
@@ -101,10 +123,19 @@
 // region icon styles
 .icon-spacer {
     @extend .custom-form-field-icon-spacer;
+    // Contain the leading/status icon: a fixed-size flex box centres it, rather than the
+    // shared absolute-in-100%-height pattern which overflowed the shorter field.
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .icon {
     @extend .custom-form-field-icon;
+    position: static;
+    top: auto;
+    transform: none;
 }
 
 .action-icon {
@@ -117,6 +148,22 @@
 
 .row-action-icon-wrapper {
     display: flex;
+    align-items: center;
+    gap: 2px;
+
+    // The edit/delete icons read as buttons: centred hit area with a subtle rounded
+    // hover, rather than the old brightness-filter hover on the bare glyph.
+    .icon-spacer {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        margin-right: 0;
+
+        &:hover {
+            background: variables.$background-menu-hover;
+            cursor: pointer;
+        }
+    }
 }
 
 // endregion

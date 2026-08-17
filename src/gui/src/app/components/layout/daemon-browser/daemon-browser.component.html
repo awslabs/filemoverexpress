@@ -7,7 +7,7 @@
         <fme-text-input #filterField
                         [disabled]="connectionState !== ConnectionState.CONNECTED"
                         class="inputs-row-form-field"
-                        label="Search"
+                        label="Filter"
                         (textChange)="updateFilter($event)">
         </fme-text-input>
         <fme-daemon-selector-dropdown [currentDirectory]="currentDirectory"
@@ -16,19 +16,22 @@
                                       class="inputs-row-form-field">
         </fme-daemon-selector-dropdown>
         <div class="spacer"></div>
-        <fme-button type="icon"
-                    icon="create_new_folder"
-                    [onClick]="createLocalFolder()"
-                    [disabled]="connectionState !== ConnectionState.CONNECTED"
-        ></fme-button>
         <fme-refresh-button [disabled]="connectionState !== ConnectionState.CONNECTED"
                             [refreshTooltipMessage]="REFRESH_BUTTON_TOOLTIP"
                             [showRefreshNotificationBadge]="shouldManualRefresh"
                             (refresh)="refreshFileBrowser()">
         </fme-refresh-button>
+        <fme-button #overflowMenuBtn
+                    type="icon"
+                    icon="more_horiz"
+                    tooltip="More actions"
+                    [onClick]="openOverflowMenu()"
+                    [disabled]="connectionState !== ConnectionState.CONNECTED"
+        ></fme-button>
     </div>
     <div class="file-browser">
         <fme-file-browser
+                #fileBrowser
                 [fileBrowserType]="fileBrowserType"
                 [fileBrowserID]="fileBrowserID"
                 [allowExternalDragOver]="false"

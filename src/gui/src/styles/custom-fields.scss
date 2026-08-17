@@ -2,14 +2,14 @@
 
 // region variables
 $form-field-height: 28px;
-$form-field-vertical-padding: 5px;
+$form-field-vertical-padding: 3px;
 $form-field-padding: $form-field-vertical-padding 6px $form-field-vertical-padding 12px;
-$form-field-border-radius: 4px;
-$form-field-border-color: variables.$container-border;
+$form-field-border-radius: 8px;
+$form-field-border-color: variables.$grey-600;
 $form-field-border-color-focused: variables.$active;
 
-$form-field-font-size: 15px;
-$form-field-icon-size: 20px;
+$form-field-font-size: 12px;
+$form-field-icon-size: 16px;
 $form-field-icon-weight: 500;
 
 $regular-text-color: variables.$text;
@@ -17,7 +17,9 @@ $header-text-color: variables.$text-light-header;
 $placeholder-text-color: variables.$text-disabled-form-field;
 $disabled-text-color: variables.$text-disabled-form-field;
 
-$regular-background-color: variables.$background-content;
+// Fields sit flush on the panel surface (mockup: inputs/selects are #161d26,
+// same as the panel behind them — only the border delineates the field).
+$regular-background-color: variables.$background-browser-panel;
 $hover-background-color: variables.$background-menu-hover;
 $disabled-background-color: variables.$background-disabled-form-field;
 
@@ -28,25 +30,30 @@ $menu-row-height: 23px;
 // region base form field
 @mixin custom-form-field {
     display: flex;
+    align-items: center;
+    box-sizing: border-box;
     gap: 2px;
     background: $regular-background-color;
-    border: solid 2px $form-field-border-color;
+    border: solid 1px $form-field-border-color;
     border-radius: $form-field-border-radius;
     padding: $form-field-padding;
     height: $form-field-height;
-    line-height: $form-field-height;
+    line-height: normal;
     font-size: $form-field-font-size;
 }
 
 .custom-form-field-focused {
     @include custom-form-field;
-    border: solid 2px $form-field-border-color-focused;
+    border: solid 1px $form-field-border-color-focused;
 }
 
 .custom-form-field-disabled {
     @include custom-form-field;
-    border: solid 2px $disabled-background-color;
-    background: $disabled-background-color;
+    // Muted-but-visible frame so a disabled field still reads as an input (matching the
+    // redesign mockup, where fields stay framed when inactive) instead of blending into
+    // the panel surface. Previously the border matched the fill, hiding it entirely.
+    border: solid 1px variables.$grey-600;
+    background: $regular-background-color;
 
     &:hover {
         cursor: default;
@@ -74,17 +81,17 @@ $menu-row-height: 23px;
 
 .custom-form-field-dropdown-arrow {
     color: variables.$text-disabled-form-field;
-    font-size: 32px;
+    font-size: 20px;
 }
 
 .focused-form-field-dropdown-arrow {
     color: $form-field-border-color-focused;
-    font-size: 32px;
+    font-size: 20px;
 }
 
 .disabled-custom-form-field-dropdown-arrow {
     color: variables.$text-disabled-form-field;
-    font-size: 32px;
+    font-size: 20px;
 }
 
 // endregion

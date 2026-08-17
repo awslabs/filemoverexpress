@@ -1,0 +1,2759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FME UI Redesign Mockups</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            /* Primary: Amazon Ember. Fallback: Open Sans (similar metrics). */
+            font-family: 'Amazon Ember', 'Open Sans', 'Helvetica Neue', Roboto, Arial, sans-serif;
+            background: #1a1a2e;
+            color: #c6c6cd;
+            overflow-x: hidden;
+        }
+        .mockup-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: #0f0f1a;
+            border-bottom: 1px solid #333;
+            padding: 12px 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .mockup-nav h1 {
+            font-size: 14px;
+            color: #fff;
+            font-weight: 600;
+        }
+        .mockup-nav button {
+            padding: 8px 16px;
+            border: 1px solid #444;
+            background: #252540;
+            color: #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .mockup-nav button:hover { background: #353560; }
+        .mockup-nav button.active {
+            background: #006ce0;
+            border-color: #006ce0;
+            color: #fff;
+        }
+        .mockup-container {
+            margin-top: 56px;
+            padding: 24px;
+        }
+        .mockup-label {
+            text-align: center;
+            font-size: 12px;
+            color: #7d8998;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        /* App Frame */
+        .app-frame {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #424650;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            background: #161d26;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Title Bar */
+        .title-bar {
+            height: 38px;
+            background: #0f141a;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+            border-bottom: 1px solid #424650;
+            flex-shrink: 0;
+        }
+        .traffic-light {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+        }
+        .tl-red { background: #ff5f57; }
+        .tl-yellow { background: #ffbd2e; }
+        .tl-green { background: #28c840; }
+        .title-bar-text {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: #8d99a8;
+        }
+        .title-bar-icons {
+            display: flex;
+            gap: 12px;
+            color: #8d99a8;
+            font-size: 16px;
+            align-items: center;
+        }
+        /* Toolbar */
+        .toolbar {
+            height: 44px;
+            background: #000716;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid #232f3e;
+            flex-shrink: 0;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toolbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toolbar-icon {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #8d99a8;
+            font-size: 18px;
+        }
+        .toolbar-icon:hover { background: #232f3e; color: #fff; }
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 0;
+            position: relative;
+        }
+        /* Browser Panels */
+        .browser-panel {
+            background: #161d26;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+        .browser-panel.s3-panel {
+            /* No directional styling - transfers go both ways */
+        }
+        .panel-header {
+            padding: 12px 16px 8px;
+            flex-shrink: 0;
+        }
+        .panel-breadcrumb {
+            font-size: 11px;
+            color: #42b4ff;
+            margin-bottom: 4px;
+        }
+        .panel-breadcrumb span { color: #656871; margin: 0 4px; }
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ebebf0;
+            margin-bottom: 8px;
+        }
+        .panel-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-input {
+            flex: 1;
+            max-width: 180px;
+            height: 32px;
+            background: #161d26;
+            border: 1px solid #656871;
+            border-radius: 8px;
+            padding: 0 12px;
+            color: #c6c6cd;
+            font-size: 12px;
+            outline: none;
+        }
+        .search-input:focus { border-color: #42b4ff; }
+        .search-input::placeholder { color: #a4a4ad; }
+        .dropdown-select {
+            height: 32px;
+            background: #161d26;
+            border: 1px solid #656871;
+            border-radius: 8px;
+            padding: 0 10px;
+            color: #c6c6cd;
+            font-size: 12px;
+            outline: none;
+            cursor: pointer;
+            min-width: 120px;
+        }
+        .panel-controls .spacer { flex: 1; }
+        .icon-btn {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: #a4a4ad;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .icon-btn:hover { background: #1b232d; color: #f9f9fa; }
+        /* File List */
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 8px;
+            min-height: 0;
+        }
+        .file-list-header {
+            display: grid;
+            grid-template-columns: 1fr 80px 100px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #656871;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #424650;
+            position: sticky;
+            top: 0;
+            background: #161d26;
+        }
+        .file-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 100px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            align-items: center;
+            min-height: 36px;
+        }
+        .file-row:hover { background: #1b232d; }
+        .file-row .name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+        }
+        .file-row .name span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-row .size { color: #7d8998; text-align: right; font-size: 12px; }
+        .file-row .date { color: #656871; text-align: right; font-size: 11px; }
+        /* Folder Badges */
+        .folder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        .folder-badge.hot {
+            background: rgba(248, 146, 86, 0.12);
+            color: #f89256;
+        }
+        .folder-badge.favorite {
+            background: rgba(251, 211, 50, 0.12);
+            color: #fbd332;
+        }
+        .folder-badge.starting {
+            background: rgba(66, 180, 255, 0.12);
+            color: #42b4ff;
+        }
+        .folder-badge-icon {
+            font-size: 11px;
+        }
+        .folder-icon {
+            color: #42b4ff;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .folder-icon::before {
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 14px;
+            background: currentColor;
+            border-radius: 2px;
+            clip-path: polygon(0% 15%, 0% 100%, 100% 100%, 100% 15%, 45% 15%, 40% 0%, 0% 0%);
+        }
+        .file-icon {
+            color: #5f6b7a;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .file-icon::before {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: currentColor;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/%3E%3Cpath d='M14 2v4a2 2 0 0 0 2 2h4'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/%3E%3Cpath d='M14 2v4a2 2 0 0 0 2 2h4'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        /* Drop Zone */
+        .drop-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #656871;
+            border-radius: 12px;
+            margin: 16px;
+            transition: all 0.2s;
+            min-height: 200px;
+        }
+        .drop-zone:hover {
+            border-color: #75cfff;
+            background: rgba(0, 17, 41, 0.6);
+        }
+        .drop-zone-icon {
+            font-size: 48px;
+            color: #5f6b7a;
+            margin-bottom: 12px;
+        }
+        .drop-zone-text {
+            font-size: 15px;
+            color: #8d99a8;
+            margin-bottom: 4px;
+        }
+        .drop-zone-subtext {
+            font-size: 12px;
+            color: #5f6b7a;
+        }
+        /* Transfer Tray - Collapsed */
+        .transfer-tray-collapsed {
+            height: 40px;
+            background: #0f141a;
+            border-top: 1px solid #424650;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .transfer-tray-collapsed:hover { background: #131920; }
+        .tray-stats {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+        }
+        .tray-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .tray-stat .arrow-down { color: #539fe5; }
+        .tray-stat .arrow-up { color: #ff9900; }
+        .tray-stat .value { color: #fff; font-weight: 600; }
+        .tray-stat .label { color: #7d8998; }
+        .tray-expand {
+            margin-left: auto;
+            color: #5f6b7a;
+            font-size: 18px;
+        }
+        .tray-badge {
+            background: #006ce0;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        /* Transfer Tray - Expanded */
+        .transfer-tray-expanded {
+            height: 200px;
+            background: #0f141a;
+            border-top: 1px solid #424650;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .tray-header {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid #192534;
+            cursor: pointer;
+        }
+        .tray-header:hover { background: #0a1628; }
+        .tray-tabs {
+            display: flex;
+            gap: 0;
+        }
+        .tray-tab {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #a4a4ad;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tray-tab.active {
+            color: #42b4ff;
+            border-bottom-color: #42b4ff;
+        }
+        .tray-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .tray-panel { display: none; }
+        .tray-panel.active { display: block; }
+        /* Log lines in the Logs tab */
+        .log-line {
+            display: grid;
+            grid-template-columns: 76px 62px 1fr;
+            gap: 10px;
+            padding: 4px 12px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #c6c6cd;
+        }
+        .log-line:hover { background: #192534; }
+        .log-line .ts { color: #656871; }
+        .log-line .lvl { font-weight: 600; text-transform: uppercase; }
+        .log-line .lvl.info { color: #539fe5; }
+        .log-line .lvl.warn { color: #fbd332; }
+        .log-line .lvl.error { color: #ff7a7a; }
+        .log-line .lvl.debug { color: #656871; }
+        .log-toolbar {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-bottom: 1px solid #192534;
+            font-size: 11px; color: #a4a4ad;
+        }
+        .log-toolbar .chip {
+            padding: 3px 10px; border: 1px solid #333843; border-radius: 12px;
+            cursor: pointer;
+        }
+        .log-toolbar .chip.active { border-color: #42b4ff; color: #42b4ff; background: rgba(66,180,255,0.08); }
+        /* Report rows in the Reports tab */
+        .report-row {
+            display: grid;
+            grid-template-columns: 20px 1fr 130px 90px 90px;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .report-row:hover { background: #192534; }
+        .report-row .r-name { color: #d1d5db; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .report-row .r-meta { color: #656871; font-size: 11px; }
+        .report-row .r-link { color: #42b4ff; font-size: 11px; cursor: pointer; text-align: right; }
+        /* Job Row in Expanded Tray */
+        .job-row {
+            display: grid;
+            grid-template-columns: 24px 1fr 200px 80px;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .job-row:hover { background: #192534; }
+        .job-direction {
+            font-size: 14px;
+        }
+        .job-direction.download { color: #539fe5; }
+        .job-direction.upload { color: #ff9900; }
+        .job-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #d1d5db;
+        }
+        .job-progress-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .job-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: #333843;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .job-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .job-progress-fill.in-progress { background: #42b4ff; }
+        .job-progress-fill.complete { background: #2bb534; }
+        .job-progress-fill.error { background: #ff7a7a; }
+        .job-percent {
+            font-size: 11px;
+            color: #7d8998;
+            min-width: 32px;
+            text-align: right;
+        }
+        .job-status {
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .status-complete { color: #2bb534; background: rgba(43, 181, 52, 0.1); }
+        .status-progress { color: #42b4ff; background: rgba(66, 180, 255, 0.1); }
+        .status-error { color: #ff7a7a; background: rgba(255, 122, 122, 0.1); }
+        .status-paused { color: #fbd332; background: rgba(251, 211, 50, 0.1); }
+        /* Panel Divider */
+        .panel-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 80px;
+            pointer-events: none;
+        }
+        .panel-divider-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #424650;
+        }
+        .panel-divider-icon {
+            width: 28px;
+            height: 28px;
+            background: #1b232d;
+            border: 1px solid #424650;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #656871;
+            font-size: 13px;
+            z-index: 1;
+        }
+        /* Connection Status */
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px 2px 5px;
+            border-radius: 10px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .connection-status .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .connection-status.connected {
+            background: rgba(43, 181, 52, 0.12);
+            color: #2bb534;
+        }
+        .connection-status.connected .dot {
+            background: #2bb534;
+            box-shadow: 0 0 4px #2bb534;
+        }
+        .connection-status.disconnected {
+            background: rgba(255, 122, 122, 0.12);
+            color: #ff7a7a;
+        }
+        .connection-status.disconnected .dot {
+            background: #ff7a7a;
+        }
+        .connection-status.connecting {
+            background: rgba(251, 211, 50, 0.12);
+            color: #fbd332;
+        }
+        .connection-status.connecting .dot {
+            background: #fbd332;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* OIDC / Identity Status */
+        .identity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: #192534;
+            border: 1px solid #354150;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .identity-badge:hover {
+            border-color: #539fe5;
+            background: #1c2d3f;
+        }
+        .identity-badge .avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #354150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .identity-badge .name {
+            color: #d1d5db;
+            font-weight: 500;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .identity-badge .expiry {
+            font-size: 10px;
+            color: #29ad32;
+            font-weight: 600;
+        }
+        .identity-badge .expiry.warning {
+            color: #ffbd44;
+        }
+        .identity-badge .expiry.expired {
+            color: #d91515;
+        }
+        .session-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .session-chip.valid {
+            background: rgba(41, 173, 50, 0.12);
+            color: #29ad32;
+        }
+        .session-chip.warning {
+            background: rgba(255, 189, 68, 0.12);
+            color: #ffbd44;
+        }
+        .session-chip.expired {
+            background: rgba(217, 21, 21, 0.12);
+            color: #d91515;
+        }
+        .session-chip .chip-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+        .session-chip.valid .chip-dot { background: #29ad32; }
+        .session-chip.warning .chip-dot { background: #ffbd44; animation: pulse 1.2s ease-in-out infinite; }
+        .session-chip.expired .chip-dot { background: #d91515; }
+        /* Identity Popover */
+        .identity-popover {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: #192534;
+            border: 1px solid #354150;
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 240px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 100;
+            font-size: 12px;
+        }
+        .identity-popover .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+        .identity-popover .row .label { color: #7d8998; }
+        .identity-popover .row .value { color: #d1d5db; font-weight: 500; }
+
+        /* Overflow Menu */
+        .overflow-btn {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: #8d99a8;
+            cursor: pointer;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+        .overflow-btn:hover { background: #232f3e; color: #fff; }
+        /* Overflow Menu Dropdown */
+        .overflow-menu {
+            background: #1b232d;
+            border: 2px solid #656871;
+            border-radius: 8px;
+            min-width: 220px;
+            padding: 4px 0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .overflow-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: #c6c6cd;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .overflow-menu-item:hover { background: #131920; }
+        .overflow-menu-item .menu-icon {
+            width: 18px;
+            text-align: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .overflow-menu-item .menu-icon.blue { color: #42b4ff; }
+        .overflow-menu-item .menu-icon.orange { color: #f89256; }
+        .overflow-menu-item .menu-icon.yellow { color: #fbd332; }
+        .overflow-menu-item .menu-icon.red { color: #ff7a7a; }
+        .overflow-menu-item .menu-icon.grey { color: #a4a4ad; }
+        .overflow-menu-separator {
+            height: 1px;
+            background: #424650;
+            margin: 4px 0;
+        }
+        .overflow-menu-header {
+            padding: 6px 16px 4px;
+            font-size: 11px;
+            color: #656871;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* Settings page (interactive tabs) */
+        .set-nav-item {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #a4a4ad;
+            cursor: pointer;
+            border-right: 2px solid transparent;
+        }
+        .set-nav-item:hover { color: #ebebf0; background: rgba(255,255,255,0.03); }
+        .set-nav-item.active {
+            color: #42b4ff;
+            font-weight: 600;
+            background: rgba(66,180,255,0.08);
+            border-right: 2px solid #42b4ff;
+        }
+        .settings-panel { padding: 24px; display: none; }
+        .settings-panel.active { display: block; }
+        /* Remote Configuration Editor tabs (interactive) */
+        .cfg-tab {
+            padding: 12px 16px; font-size: 13px; color: #a4a4ad;
+            cursor: pointer; border-bottom: 2px solid transparent;
+        }
+        .cfg-tab:hover { color: #ebebf0; }
+        .cfg-tab.active { font-weight: 600; color: #42b4ff; border-bottom-color: #42b4ff; }
+        .cfg-panel { display: none; padding: 20px 24px; }
+        .cfg-panel.active { display: block; }
+        /* Job Details modal */
+        .jd-modal { background:#161d26; border:1px solid #424650; border-radius:16px; overflow:hidden; }
+        .jd-head { padding:18px 22px; border-bottom:1px solid #424650; display:flex; align-items:center; gap:12px; }
+        .jd-dir { font-size:15px; }
+        .jd-dir.up { color:#ff9900; }
+        .jd-dir.down { color:#539fe5; }
+        .jd-title { font-size:16px; font-weight:700; color:#ebebf0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .jd-close { margin-left:auto; color:#a4a4ad; cursor:pointer; font-size:18px; }
+        .jd-body { padding:20px 22px; }
+        .jd-progress-track { height:8px; background:#333843; border-radius:4px; overflow:hidden; }
+        .jd-progress-fill { height:100%; border-radius:4px; }
+        .jd-progress-fill.in-progress { background:#42b4ff; }
+        .jd-progress-fill.error { background:#ff7a7a; }
+        .jd-bytes { display:flex; justify-content:space-between; font-size:12px; color:#a4a4ad; margin-top:6px; }
+        .jd-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:18px 0; }
+        .jd-tile { background:#0f141a; border:1px solid #232f3e; border-radius:10px; padding:10px 12px; }
+        .jd-tile .k { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#656871; }
+        .jd-tile .v { font-size:15px; font-weight:600; color:#ebebf0; margin-top:3px; }
+        .jd-rows { border-top:1px solid #232f3e; }
+        .jd-row { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid #192534; font-size:13px; }
+        .jd-row .rk { width:132px; color:#a4a4ad; flex-shrink:0; }
+        .jd-row .rv { color:#ebebf0; word-break:break-all; }
+        .jd-foot { padding:14px 22px; border-top:1px solid #424650; display:flex; gap:8px; flex-wrap:wrap; }
+        .jd-err { background:#2a1416; border:1px solid #5a2a2a; border-radius:10px; padding:12px 14px; margin-bottom:16px; }
+        .jd-err .t { color:#ff7a7a; font-weight:600; font-size:13px; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+        .jd-err .d { color:#e3b7b7; font-size:12px; line-height:1.5; }
+        .jd-btn { padding:7px 16px; border-radius:18px; font-size:12px; font-weight:600; cursor:pointer; border:2px solid #42b4ff; background:transparent; color:#42b4ff; }
+        .jd-btn.primary { background:#42b4ff; color:#0f141a; }
+        .jd-btn.danger { border-color:#ff7a7a; color:#ff7a7a; }
+        .jd-btn.ghost { border-color:#424650; color:#a4a4ad; }
+        .jd-btn.push { margin-left:auto; }
+        .set-h { font-size: 16px; font-weight: 700; color: #ebebf0; margin-bottom: 4px; }
+        .set-sub { font-size: 12px; color: #656871; margin-bottom: 20px; }
+        .set-section {
+            font-size: 11px; font-weight: 700; color: #7d8998;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            margin: 22px 0 12px; padding-bottom: 6px;
+            border-bottom: 1px solid #232f3e;
+        }
+        .set-section:first-of-type { margin-top: 4px; }
+        .set-info {
+            display: flex; gap: 10px; align-items: flex-start;
+            background: rgba(66,180,255,0.06);
+            border: 1px solid rgba(66,180,255,0.25);
+            border-radius: 8px; padding: 10px 12px; margin: 4px 0 8px;
+        }
+        .set-info .ico { color: #42b4ff; font-size: 14px; line-height: 1.4; flex-shrink: 0; }
+        .set-info .txt { font-size: 11px; color: #a4a4ad; line-height: 1.5; }
+        .set-info .txt b { color: #ebebf0; font-weight: 600; }
+        .set-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .set-field { margin-bottom: 20px; }
+        .set-label { font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px; }
+        .set-input {
+            background: #0f141a;
+            border: 1px solid #656871;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #ebebf0;
+            font-size: 14px;
+        }
+        .set-input.muted { border-color: #424650; color: #656871; font-style: italic; }
+        .set-input.select { display: flex; justify-content: space-between; align-items: center; }
+        .set-input.select .caret { color: #656871; }
+        .set-hint { font-size: 10px; color: #656871; margin-top: 2px; }
+        .set-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 0;
+            border-top: 1px solid #424650;
+        }
+        .set-toggle { width: 36px; height: 20px; border-radius: 10px; position: relative; flex-shrink: 0; }
+        .set-toggle .knob { width: 16px; height: 16px; background: #0f141a; border-radius: 50%; position: absolute; top: 2px; }
+        .set-toggle.on { background: #2bb534; }
+        .set-toggle.on .knob { right: 2px; }
+        .set-toggle.on.blue { background: #42b4ff; }
+        .set-toggle.off { background: #333843; }
+        .set-toggle.off .knob { left: 2px; }
+        .set-toggle-text { font-size: 13px; color: #c6c6cd; }
+        .set-toggle-note { font-size: 10px; color: #656871; margin: 2px 0 0 44px; }
+        .set-savebar {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #424650;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-pill-ghost {
+            padding: 8px 20px; background: transparent; border: 2px solid #42b4ff;
+            color: #42b4ff; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+        }
+        .btn-pill-fill {
+            padding: 8px 20px; background: #42b4ff; border: 2px solid #42b4ff;
+            color: #0f141a; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+        }
+        /* Hot folder cards inside settings */
+        .hf-card { border: 1px solid #424650; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+        .hf-card-head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px; background: #0f141a; cursor: pointer;
+        }
+        .hf-card-head .hf-name { font-size: 13px; font-weight: 600; color: #ebebf0; flex: 1; }
+        .hf-card-body { padding: 16px; border-top: 1px solid #424650; }
+        .hf-dest {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            background: #0f141a; border: 1px solid #424650; border-radius: 8px;
+            padding: 8px 12px; margin-bottom: 8px; font-size: 12px; color: #c6c6cd;
+        }
+        .hf-dest .arrow { color: #42b4ff; }
+        .hf-chip {
+            background: rgba(66,180,255,0.12); color: #42b4ff;
+            border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600;
+        }
+        /* Context menu title label above each sample menu */
+        .ctx-col-title { font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 6px; }
+        .ctx-col-sub { font-size: 12px; color: #7d8998; margin-bottom: 12px; line-height: 1.5; }
+        .menu-icon svg { vertical-align: middle; }
+
+        /* Visibility control */
+        .mockup-view { display: none; }
+        .mockup-view.active { display: block; }
+
+        /* Annotation */
+        .annotation {
+            position: absolute;
+            background: #ff9900;
+            color: #000;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Theme toggle (segmented control in the nav chrome — always dark) */
+        .mockup-nav .theme-seg {
+            margin-left: auto;
+            display: inline-flex;
+            border: 1px solid #444;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .mockup-nav .theme-seg .theme-btn {
+            border: none;
+            border-radius: 0;
+            padding: 8px 14px;
+            background: #252540;
+            color: #a4a4ad;
+            transition: all 0.2s;
+        }
+        .mockup-nav .theme-seg .theme-btn + .theme-btn { border-left: 1px solid #444; }
+        .mockup-nav .theme-seg .theme-btn:hover:not(.active) { background: #353560; color: #ebebf0; }
+        .mockup-nav .theme-seg .theme-btn.active { background: #006ce0; color: #fff; }
+
+        /* ================================================================
+           LIGHT MODE  —  single scoped block, keyed on body.light
+           JS setTheme() adds/removes `light` on <body> (some mockup views
+           live outside .mockup-container, so the class sits on body).
+           Default = DARK (no .light class). Accent hues are preserved.
+           !important is used on the inline-style overrides at the bottom to
+           beat the ~143 hardcoded style="…" colors (acceptable for a mockup).
+           Palette: page #eef0f3 · surfaces #fff/#f7f8fa · hover #eef1f5 ·
+           borders #e0e4e8/#d5dbdb · text #16191f · muted #5f6b7a/#7d8998.
+           ================================================================ */
+        body.light { background: #eef0f3; color: #16191f; }
+        body.light .mockup-label { color: #5f6b7a; }
+
+        /* App frame / window chrome */
+        body.light .app-frame {
+            background: #ffffff;
+            border-color: #d5dbdb;
+            box-shadow: 0 20px 60px rgba(22,25,31,0.14);
+        }
+        body.light .title-bar { background: #f7f8fa; border-bottom-color: #e0e4e8; }
+        body.light .title-bar-text { color: #5f6b7a; }
+        body.light .title-bar-icons { color: #5f6b7a; }
+        body.light .toolbar { background: #ffffff; border-bottom-color: #e0e4e8; }
+        body.light .toolbar-icon { color: #5f6b7a; }
+        body.light .toolbar-icon:hover { background: #eef1f5; color: #16191f; }
+
+        /* Browser panels */
+        body.light .browser-panel { background: #ffffff; }
+        body.light .panel-title { color: #16191f; }
+        body.light .panel-breadcrumb { color: #0068c9; }
+        body.light .panel-breadcrumb span { color: #7d8998; }
+
+        /* Inputs & icon buttons */
+        body.light .search-input,
+        body.light .dropdown-select {
+            background: #ffffff; border-color: #b6bec9; color: #16191f;
+        }
+        body.light .search-input::placeholder { color: #7d8998; }
+        body.light .search-input:focus { border-color: #0068c9; }
+        body.light .icon-btn { color: #5f6b7a; }
+        body.light .icon-btn:hover { background: #eef1f5; color: #16191f; }
+        body.light .overflow-btn { color: #5f6b7a; }
+        body.light .overflow-btn:hover { background: #eef1f5; color: #16191f; }
+
+        /* File list */
+        body.light .file-list-header {
+            background: #ffffff; color: #7d8998; border-bottom-color: #e0e4e8;
+        }
+        body.light .file-row:hover { background: #eef1f5; }
+        body.light .file-row .size { color: #5f6b7a; }
+        body.light .file-row .date { color: #7d8998; }
+        body.light .file-icon { color: #7d8998; }
+
+        /* Drop zone */
+        body.light .drop-zone { border-color: #b6bec9; }
+        body.light .drop-zone:hover { border-color: #42b4ff; background: rgba(66,180,255,0.06); }
+        body.light .drop-zone-icon { color: #7d8998; }
+        body.light .drop-zone-text { color: #5f6b7a; }
+        body.light .drop-zone-subtext { color: #7d8998; }
+
+        /* Panel divider */
+        body.light .panel-divider-line { background: #e0e4e8; }
+        body.light .panel-divider-icon { background: #f7f8fa; border-color: #d5dbdb; color: #7d8998; }
+
+        /* Transfer tray */
+        body.light .transfer-tray-collapsed { background: #f7f8fa; border-top-color: #e0e4e8; }
+        body.light .transfer-tray-collapsed:hover { background: #eef1f5; }
+        body.light .transfer-tray-expanded { background: #f7f8fa; border-top-color: #e0e4e8; }
+        body.light .tray-header { border-bottom-color: #e0e4e8; }
+        body.light .tray-header:hover { background: #eef1f5; }
+        body.light .tray-stat .label { color: #5f6b7a; }
+        body.light .tray-stat .value { color: #16191f; }
+        body.light .tray-expand { color: #7d8998; }
+        body.light .tray-tab { color: #5f6b7a; }
+        body.light .tray-tab.active { color: #0068c9; border-bottom-color: #42b4ff; }
+        body.light .job-row:hover,
+        body.light .report-row:hover,
+        body.light .log-line:hover { background: #eef1f5; }
+        body.light .job-name,
+        body.light .report-row .r-name { color: #16191f; }
+        body.light .job-percent { color: #5f6b7a; }
+        body.light .job-progress-bar { background: #e0e4e8; }
+        body.light .report-row .r-meta { color: #7d8998; }
+        body.light .report-row .r-link { color: #0068c9; }
+        body.light .log-line { color: #16191f; }
+        body.light .log-line .ts { color: #7d8998; }
+        body.light .log-line .lvl.debug { color: #7d8998; }
+        body.light .log-toolbar { color: #5f6b7a; border-bottom-color: #e0e4e8; }
+        body.light .log-toolbar .chip { border-color: #d5dbdb; }
+        body.light .log-toolbar .chip.active { border-color: #42b4ff; color: #0068c9; background: rgba(66,180,255,0.10); }
+
+        /* Identity badge / popover */
+        body.light .identity-badge { background: #f7f8fa; border-color: #d5dbdb; }
+        body.light .identity-badge:hover { background: #eef1f5; border-color: #539fe5; }
+        body.light .identity-badge .name { color: #16191f; }
+        body.light .identity-popover { background: #ffffff; border-color: #d5dbdb; box-shadow: 0 8px 24px rgba(22,25,31,0.16); }
+        body.light .identity-popover .row .label { color: #5f6b7a; }
+        body.light .identity-popover .row .value { color: #16191f; }
+
+        /* Overflow / context menus */
+        body.light .overflow-menu { background: #ffffff; border-color: #b6bec9; box-shadow: 0 8px 24px rgba(22,25,31,0.16); }
+        body.light .overflow-menu-item { color: #16191f; }
+        body.light .overflow-menu-item:hover { background: #eef1f5; }
+        body.light .overflow-menu-item .menu-icon.grey { color: #5f6b7a; }
+        body.light .menu-icon.grey { color: #5f6b7a; }
+        body.light .overflow-menu-separator { background: #e0e4e8; }
+        body.light .overflow-menu-header { color: #7d8998; }
+        body.light .ctx-col-title { color: #16191f; }
+        body.light .ctx-col-sub { color: #5f6b7a; }
+
+        /* Settings */
+        body.light .set-nav-item { color: #5f6b7a; }
+        body.light .set-nav-item:hover { color: #16191f; background: rgba(22,25,31,0.04); }
+        body.light .set-nav-item.active { color: #0068c9; background: rgba(66,180,255,0.10); border-right-color: #42b4ff; }
+        body.light .cfg-tab { color: #5f6b7a; }
+        body.light .cfg-tab:hover { color: #16191f; }
+        body.light .cfg-tab.active { color: #0068c9; border-bottom-color: #42b4ff; }
+        /* Job Details modal (light) */
+        body.light .jd-modal { background:#ffffff; border-color:#d5dbdb; }
+        body.light .jd-head { border-bottom-color:#e0e4e8; }
+        body.light .jd-title { color:#16191f; }
+        body.light .jd-close { color:#5f6b7a; }
+        body.light .jd-progress-track { background:#e3e8ee; }
+        body.light .jd-bytes { color:#5f6b7a; }
+        body.light .jd-tile { background:#f7f8fa; border-color:#e0e4e8; }
+        body.light .jd-tile .k { color:#7d8998; }
+        body.light .jd-tile .v { color:#16191f; }
+        body.light .jd-rows { border-top-color:#e0e4e8; }
+        body.light .jd-row { border-bottom-color:#eef1f5; }
+        body.light .jd-row .rk { color:#5f6b7a; }
+        body.light .jd-row .rv { color:#16191f; }
+        body.light .jd-foot { border-top-color:#e0e4e8; }
+        body.light .jd-err { background:#fdecea; border-color:#f5c6c0; }
+        body.light .jd-err .d { color:#8a3b32; }
+        body.light .jd-btn.primary { color:#ffffff; }
+        body.light .jd-btn.ghost { border-color:#c6ccd4; color:#5f6b7a; }
+        body.light .set-h { color: #16191f; }
+        body.light .set-sub { color: #7d8998; }
+        body.light .set-section { color: #5f6b7a; border-bottom-color: #e0e4e8; }
+        body.light .set-label { color: #5f6b7a; }
+        body.light .set-input { background: #ffffff; border-color: #b6bec9; color: #16191f; }
+        body.light .set-input.muted { border-color: #d5dbdb; color: #7d8998; }
+        body.light .set-input.select .caret { color: #7d8998; }
+        body.light .set-hint { color: #7d8998; }
+        body.light .set-toggle-row { border-top-color: #e0e4e8; }
+        body.light .set-toggle-text { color: #16191f; }
+        body.light .set-toggle-note { color: #7d8998; }
+        body.light .set-toggle.off { background: #c6ccd4; }
+        body.light .set-toggle .knob { background: #ffffff; }
+        body.light .set-info { background: rgba(66,180,255,0.08); border-color: rgba(66,180,255,0.35); }
+        body.light .set-info .txt { color: #5f6b7a; }
+        body.light .set-info .txt b { color: #16191f; }
+        body.light .set-savebar { border-top-color: #e0e4e8; }
+        body.light .hf-card { border-color: #d5dbdb; }
+        body.light .hf-card-head { background: #f7f8fa; }
+        body.light .hf-card-head .hf-name { color: #16191f; }
+        body.light .hf-card-body { border-top-color: #e0e4e8; }
+        body.light .hf-dest { background: #f7f8fa; border-color: #d5dbdb; color: #16191f; }
+        body.light .hf-chip { background: rgba(66,180,255,0.14); }
+
+        /* ---- Beat inline style="…" colors (mockup-only; !important) ---- */
+        /* Dark surface backgrounds -> white / subtle raised */
+        body.light [style*="background: #0f141a"],
+        body.light [style*="background:#0f141a"],
+        body.light [style*="background: #161d26"],
+        body.light [style*="background:#161d26"] { background: #ffffff !important; }
+        body.light [style*="background:#192534"],
+        body.light [style*="background: #192534"],
+        body.light [style*="background: #0f1b2a"],
+        body.light [style*="background:#0f1b2a"] { background: #f7f8fa !important; }
+        body.light [style*="background:#3a0000"],
+        body.light [style*="background: #3a0000"] { background: #fdecea !important; }
+        /* Dark borders -> light greys */
+        body.light [style*="#424650"],
+        body.light [style*="#354150"],
+        body.light [style*="#232f3e"],
+        body.light [style*="border-bottom: 1px solid #192534"] { border-color: #e0e4e8 !important; }
+        body.light [style*="border: 1px solid #656871"] { border-color: #d5dbdb !important; }
+        /* Light/near-white inline text -> near-black */
+        body.light [style*="color: #ebebf0"],
+        body.light [style*="color:#ebebf0"],
+        body.light [style*="color: #d1d5db"],
+        body.light [style*="color:#d1d5db"],
+        body.light [style*="color: #c6c6cd"],
+        body.light [style*="color:#c6c6cd"],
+        body.light [style*="color:#fff"],
+        body.light [style*="color: #fff"] { color: #16191f !important; }
+        /* Muted inline text -> readable grey on white */
+        body.light [style*="color: #a4a4ad"],
+        body.light [style*="color:#a4a4ad"],
+        body.light [style*="color: #656871"],
+        body.light [style*="color:#656871"],
+        body.light [style*="color: #7d8998"],
+        body.light [style*="color:#7d8998"],
+        body.light [style*="color: #8d99a8"],
+        body.light [style*="color:#8d99a8"],
+        body.light [style*="color: #5f6b7a"],
+        body.light [style*="color:#5f6b7a"] { color: #5f6b7a !important; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <div class="mockup-nav">
+        <h1>FME Redesign Mockups</h1>
+        <button class="active" onclick="showView('idle')">Idle State (Drop Zone)</button>
+        <button onclick="showView('active')">Active Transfer</button>
+        <button onclick="showView('expanded')">Tray Expanded</button>
+        <button onclick="showView('jobdetails')">Job Details</button>
+        <button onclick="showView('disconnected')">Disconnected / Error</button>
+        <button onclick="showView('menus')">Overflow Menus</button>
+        <button onclick="showView('context')">Right-Click Menus</button>
+        <button onclick="showView('badges')">Folder Badges</button>
+        <button onclick="showView('config')">Config Pages</button>
+        <div class="theme-seg">
+            <button id="theme-dark" class="theme-btn active" onclick="setTheme('dark', this)">Dark</button>
+            <button id="theme-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
+        </div>
+    </div>
+
+    <div class="mockup-container">
+        <!-- VIEW 1: Idle State with Drop Zone -->
+        <div id="view-idle" class="mockup-view active">
+            <p class="mockup-label">Idle State &mdash; No active transfers, S3 panel shows drop zone</p>
+            <div class="app-frame">
+                <div class="title-bar">
+                    <div class="traffic-light tl-red"></div>
+                    <div class="traffic-light tl-yellow"></div>
+                    <div class="traffic-light tl-green"></div>
+                    <span class="title-bar-text">File Mover Express</span>
+                    <div class="title-bar-icons">
+                        <span>&#9432;</span>
+                        <span>&#9881;</span>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <!-- Local Panel -->
+                    <div class="browser-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                File System <span>&rsaquo;</span> Users <span>&rsaquo;</span> rsd <span>&rsaquo;</span> Desktop
+                            </div>
+                            <div class="panel-title">Local</div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select">
+                                    <option>Local File System</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" title="Refresh">&#8635;</button>
+                                <button class="overflow-btn" title="More">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="file-list">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                                <span style="text-align:right">Modified</span>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>test-download-mcp</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">5 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>061825-CSM-Meeting-Agenda.png</span></div>
+                                <div class="size">36.5 KB</div>
+                                <div class="date">Jun 2025</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>10eaea81-project-final.png</span></div>
+                                <div class="size">2.2 MB</div>
+                                <div class="date">Apr 2026</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>1644c27d-color-grade.jpg</span></div>
+                                <div class="size">98.9 KB</div>
+                                <div class="date">May 2025</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>1762790136108.jpeg</span></div>
+                                <div class="size">18.5 KB</div>
+                                <div class="date">Apr 2026</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>20240501_124858.jpg</span></div>
+                                <div class="size">722.9 KB</div>
+                                <div class="date">May 2024</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>2026-03-09_Deadline_Project.pdf</span></div>
+                                <div class="size">1.57 MB</div>
+                                <div class="date">Mar 2026</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>6 Snowshoe.png</span></div>
+                                <div class="size">1.36 MB</div>
+                                <div class="date">Jan 2026</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Breaker-box.png</span></div>
+                                <div class="size">3.93 MB</div>
+                                <div class="date">Sep 2025</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>IMG_0075.jpeg</span></div>
+                                <div class="size">2.65 MB</div>
+                                <div class="date">Mar 2026</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel Divider -->
+                    <div class="panel-divider">
+                        <div class="panel-divider-line"></div>
+                        <div class="panel-divider-icon">&#8644;</div>
+                    </div>
+
+                    <!-- S3 Panel with Drop Zone -->
+                    <div class="browser-panel s3-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                S3 <span>&rsaquo;</span> fme-config
+                            </div>
+                            <div class="panel-title">S3 Bucket <span class="connection-status connected"><span class="dot"></span>Connected</span></div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select">
+                                    <option>fme-config</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" title="Refresh">&#8635;</button>
+                                <button class="overflow-btn" title="More">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="drop-zone">
+                            <div class="drop-zone-icon">&#9729;</div>
+                            <div class="drop-zone-text">Drop files to transfer</div>
+                            <div class="drop-zone-subtext">drag from the local panel, or browse and select</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Collapsed Tray - Idle -->
+                <div class="transfer-tray-collapsed">
+                    <div class="tray-stats">
+                        <span style="color: #5f6b7a; font-size: 12px;">No active transfers</span>
+                    </div>
+                    <span class="tray-expand">&#9650;</span>
+                </div>
+            </div>
+        </div>
+        <!-- VIEW 2: Active Transfer with Collapsed Tray -->
+        <div id="view-active" class="mockup-view">
+            <p class="mockup-label">Active Transfer &mdash; Collapsed tray shows live stats at a glance</p>
+            <div class="app-frame">
+                <div class="title-bar">
+                    <div class="traffic-light tl-red"></div>
+                    <div class="traffic-light tl-yellow"></div>
+                    <div class="traffic-light tl-green"></div>
+                    <span class="title-bar-text">File Mover Express</span>
+                    <div class="title-bar-icons">
+                        <span>&#9432;</span>
+                        <span>&#9881;</span>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <!-- Local Panel -->
+                    <div class="browser-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                File System <span>&rsaquo;</span> Users <span>&rsaquo;</span> rsd <span>&rsaquo;</span> Desktop
+                            </div>
+                            <div class="panel-title">Local</div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select">
+                                    <option>Local File System</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" title="Refresh">&#8635;</button>
+                                <button class="overflow-btn" title="More">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="file-list">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                                <span style="text-align:right">Modified</span>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>DaVinci_Exports</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>Camera_A_Raw</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">Yesterday</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene04_Take02_4K.mov</span></div>
+                                <div class="size">12.4 GB</div>
+                                <div class="date">3h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene04_Take03_4K.mov</span></div>
+                                <div class="size">8.7 GB</div>
+                                <div class="date">3h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>B-Roll_Drone_01.mp4</span></div>
+                                <div class="size">3.2 GB</div>
+                                <div class="date">Yesterday</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Soundscape_Mix_v3.wav</span></div>
+                                <div class="size">1.8 GB</div>
+                                <div class="date">2 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>VFX_Plate_001.exr</span></div>
+                                <div class="size">450 MB</div>
+                                <div class="date">4 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Color_LUT_Rec709.cube</span></div>
+                                <div class="size">2.1 MB</div>
+                                <div class="date">Jun 2026</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel Divider -->
+                    <div class="panel-divider">
+                        <div class="panel-divider-line"></div>
+                        <div class="panel-divider-icon">&#8644;</div>
+                    </div>
+
+                    <!-- S3 Panel with files -->
+                    <div class="browser-panel s3-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                S3 <span>&rsaquo;</span> production-media <span>&rsaquo;</span> project-atlas
+                            </div>
+                            <div class="panel-title">S3 Bucket <span class="connection-status connected"><span class="dot"></span>Connected</span></div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select">
+                                    <option>production-media</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" title="Refresh">&#8635;</button>
+                                <button class="overflow-btn" title="More">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="file-list">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                                <span style="text-align:right">Modified</span>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>dailies/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">1h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>vfx-plates/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">3 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>audio/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">5 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>color/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">Jun 2026</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene01_Final_4K.mov</span></div>
+                                <div class="size">18.2 GB</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene02_Final_4K.mov</span></div>
+                                <div class="size">14.6 GB</div>
+                                <div class="date">Yesterday</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="transfer-tray-collapsed">
+                    <div class="tray-stats">
+                        <span class="tray-badge">3 jobs</span>
+                        <div class="tray-stat">
+                            <span class="arrow-up">&#9650;</span>
+                            <span class="value">342 MB/s</span>
+                        </div>
+                        <div class="tray-stat">
+                            <span class="label">18.4 GB of 24.3 GB</span>
+                        </div>
+                        <div class="tray-stat" style="margin-left: 12px;">
+                            <span class="label">ETA:</span>
+                            <span class="value">~2 min</span>
+                        </div>
+                    </div>
+                    <span class="tray-expand" style="color: #539fe5;">&#9650;</span>
+                </div>
+            </div>
+        </div>
+        <!-- VIEW 3: Expanded Tray -->
+        <div id="view-expanded" class="mockup-view">
+            <p class="mockup-label">Expanded Tray &mdash; Click tray to reveal job details without losing file browser context</p>
+            <div class="app-frame">
+                <div class="title-bar">
+                    <div class="traffic-light tl-red"></div>
+                    <div class="traffic-light tl-yellow"></div>
+                    <div class="traffic-light tl-green"></div>
+                    <span class="title-bar-text">File Mover Express</span>
+                    <div class="title-bar-icons">
+                        <span>&#9432;</span>
+                        <span>&#9881;</span>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <!-- Local Panel (shorter due to expanded tray) -->
+                    <div class="browser-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                File System <span>&rsaquo;</span> Users <span>&rsaquo;</span> rsd <span>&rsaquo;</span> Desktop
+                            </div>
+                            <div class="panel-title">Local</div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select">
+                                    <option>Local File System</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" title="Refresh">&#8635;</button>
+                                <button class="overflow-btn" title="More">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="file-list">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                                <span style="text-align:right">Modified</span>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>DaVinci_Exports</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene04_Take02_4K.mov</span></div>
+                                <div class="size">12.4 GB</div>
+                                <div class="date">3h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene04_Take03_4K.mov</span></div>
+                                <div class="size">8.7 GB</div>
+                                <div class="date">3h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>B-Roll_Drone_01.mp4</span></div>
+                                <div class="size">3.2 GB</div>
+                                <div class="date">Yesterday</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel Divider -->
+                    <div class="panel-divider">
+                        <div class="panel-divider-line"></div>
+                        <div class="panel-divider-icon">&#8644;</div>
+                    </div>
+                    <!-- S3 Panel -->
+                    <div class="browser-panel s3-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                S3 <span>&rsaquo;</span> production-media <span>&rsaquo;</span> project-atlas
+                            </div>
+                            <div class="panel-title">S3 Bucket <span class="connection-status connected"><span class="dot"></span>Connected</span></div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select">
+                                    <option>production-media</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" title="Refresh">&#8635;</button>
+                                <button class="overflow-btn" title="More">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="file-list">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>dailies/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">1h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>vfx-plates/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">3 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene01_Final_4K.mov</span></div>
+                                <div class="size">18.2 GB</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Expanded Tray -->
+                <div class="transfer-tray-expanded">
+                    <div class="tray-tabs" style="padding: 0 16px; border-bottom: 1px solid #192534;">
+                        <div class="tray-tab active" onclick="showTrayTab('jobs', this)">Jobs</div>
+                        <div class="tray-tab" onclick="showTrayTab('logs', this)">Logs</div>
+                        <div class="tray-tab" onclick="showTrayTab('reports', this)">Reports</div>
+                        <span style="margin-left:auto; cursor:pointer; color:#539fe5; font-size:18px; display:flex; align-items:center;">&#9660;</span>
+                    </div>
+                    <div class="tray-content">
+                        <!-- JOBS -->
+                        <div class="tray-panel active" id="tray-jobs">
+                        <div class="job-row">
+                            <span class="job-direction upload">&#9650;</span>
+                            <span class="job-name">Scene04_Take02_4K.mov</span>
+                            <div class="job-progress-wrap">
+                                <div class="job-progress-bar">
+                                    <div class="job-progress-fill in-progress" style="width: 73%;"></div>
+                                </div>
+                                <span class="job-percent">73%</span>
+                            </div>
+                            <span class="job-status status-progress">Uploading</span>
+                        </div>
+                        <div class="job-row">
+                            <span class="job-direction upload">&#9650;</span>
+                            <span class="job-name">Scene04_Take03_4K.mov</span>
+                            <div class="job-progress-wrap">
+                                <div class="job-progress-bar">
+                                    <div class="job-progress-fill in-progress" style="width: 41%;"></div>
+                                </div>
+                                <span class="job-percent">41%</span>
+                            </div>
+                            <span class="job-status status-progress">Uploading</span>
+                        </div>
+                        <div class="job-row">
+                            <span class="job-direction upload">&#9650;</span>
+                            <span class="job-name">B-Roll_Drone_01.mp4</span>
+                            <div class="job-progress-wrap">
+                                <div class="job-progress-bar">
+                                    <div class="job-progress-fill complete" style="width: 100%;"></div>
+                                </div>
+                                <span class="job-percent">100%</span>
+                            </div>
+                            <span class="job-status status-complete">Complete</span>
+                        </div>
+                        <div class="job-row">
+                            <span class="job-direction download" style="color:#539fe5;">&#9660;</span>
+                            <span class="job-name">Scene01_Final_4K.mov</span>
+                            <div class="job-progress-wrap">
+                                <div class="job-progress-bar">
+                                    <div class="job-progress-fill error" style="width: 22%;"></div>
+                                </div>
+                                <span class="job-percent">22%</span>
+                            </div>
+                            <span class="job-status status-error">Error</span>
+                        </div>
+                        </div>
+                        <!-- LOGS -->
+                        <div class="tray-panel" id="tray-logs">
+                            <div class="log-toolbar">
+                                <span>Level:</span>
+                                <span class="chip active">All</span>
+                                <span class="chip">Info</span>
+                                <span class="chip">Warn</span>
+                                <span class="chip">Error</span>
+                                <span style="margin-left:auto; color:#42b4ff; cursor:pointer;">Open log file &#8599;</span>
+                            </div>
+                            <div class="log-line"><span class="ts">16:42:07</span><span class="lvl info">info</span><span>Connected to daemon at 127.0.0.1:50051 (TLS)</span></div>
+                            <div class="log-line"><span class="ts">16:42:09</span><span class="lvl info">info</span><span>Queued 3 files (24.3 GB) to production-media/dailies/2026-08-07/</span></div>
+                            <div class="log-line"><span class="ts">16:42:09</span><span class="lvl debug">debug</span><span>Auto-tune selected 8 threads, 16 MB chunk size for 342 MB/s link</span></div>
+                            <div class="log-line"><span class="ts">16:42:31</span><span class="lvl info">info</span><span>Upload complete: B-Roll_Drone_01.mp4 &mdash; XXH3 verified</span></div>
+                            <div class="log-line"><span class="ts">16:43:02</span><span class="lvl warn">warn</span><span>Retry 1/3: Scene01_Final_4K.mov &mdash; connection reset by peer</span></div>
+                            <div class="log-line"><span class="ts">16:43:05</span><span class="lvl error">error</span><span>Download failed: Scene01_Final_4K.mov &mdash; 403 AccessDenied (check bucket policy)</span></div>
+                        </div>
+                        <!-- REPORTS -->
+                        <div class="tray-panel" id="tray-reports">
+                            <div class="log-toolbar">
+                                <span>Recent bucket reports</span>
+                                <span style="margin-left:auto; color:#42b4ff; cursor:pointer;">+ New report</span>
+                                <span style="color:#42b4ff; cursor:pointer;">Open folder &#8599;</span>
+                            </div>
+                            <div class="report-row">
+                                <span style="color:#539fe5;">&#128196;</span>
+                                <span class="r-name">production-media_dailies_2026-08-07.csv</span>
+                                <span class="r-meta">1,284 objects</span>
+                                <span class="r-meta">2 min ago</span>
+                                <span class="r-link">Reveal</span>
+                            </div>
+                            <div class="report-row">
+                                <span style="color:#539fe5;">&#128196;</span>
+                                <span class="r-name">production-media_vfx-plates.csv</span>
+                                <span class="r-meta">417 objects</span>
+                                <span class="r-meta">Yesterday</span>
+                                <span class="r-link">Reveal</span>
+                            </div>
+                            <div class="report-row">
+                                <span style="color:#539fe5;">&#128196;</span>
+                                <span class="r-name">archive-bucket_full-inventory.csv</span>
+                                <span class="r-meta">38,902 objects</span>
+                                <span class="r-meta">Aug 5</span>
+                                <span class="r-link">Reveal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Pinned Summary Bar (always at bottom, even when tray is expanded) -->
+                <div class="transfer-tray-collapsed" style="border-top: 1px solid #232f3e;">
+                    <div class="tray-stats">
+                        <span class="tray-badge">3 jobs</span>
+                        <div class="tray-stat">
+                            <span class="arrow-up" style="color:#ff9900;">&#9650;</span>
+                            <span class="value">342 MB/s</span>
+                        </div>
+                        <div class="tray-stat">
+                            <span class="label">18.4 GB of 24.3 GB</span>
+                        </div>
+                        <div class="tray-stat" style="margin-left: 12px;">
+                            <span class="label">ETA:</span>
+                            <span class="value">~2 min</span>
+                        </div>
+                    </div>
+                    <span class="tray-expand" style="color: #539fe5;">&#9650;</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: Disconnected / Error State -->
+        <div id="view-disconnected" class="mockup-view">
+            <p class="mockup-label">Disconnected / Error &mdash; Clear status so users know the problem before attempting a transfer</p>
+            <div class="app-frame">
+                <div class="title-bar">
+                    <div class="traffic-light tl-red"></div>
+                    <div class="traffic-light tl-yellow"></div>
+                    <div class="traffic-light tl-green"></div>
+                    <span class="title-bar-text">File Mover Express</span>
+                    <div class="title-bar-icons">
+                        <span>&#9432;</span>
+                        <span>&#9881;</span>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <!-- Local Panel -->
+                    <div class="browser-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb">
+                                File System <span>&rsaquo;</span> Users <span>&rsaquo;</span> rsd <span>&rsaquo;</span> Desktop
+                            </div>
+                            <div class="panel-title">Local</div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." />
+                                <select class="dropdown-select"><option>Local File System</option></select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn">&#8635;</button>
+                                <button class="overflow-btn">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <div class="file-list">
+                            <div class="file-list-header">
+                                <span>Name</span><span style="text-align:right">Size</span><span style="text-align:right">Modified</span>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>DaVinci_Exports</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene04_Take02_4K.mov</span></div>
+                                <div class="size">12.4 GB</div>
+                                <div class="date">3h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>B-Roll_Drone_01.mp4</span></div>
+                                <div class="size">3.2 GB</div>
+                                <div class="date">Yesterday</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel Divider -->
+                    <div class="panel-divider">
+                        <div class="panel-divider-line"></div>
+                        <div class="panel-divider-icon">&#8644;</div>
+                    </div>
+                    <!-- S3 Panel - Disconnected -->
+                    <div class="browser-panel s3-panel">
+                        <div class="panel-header">
+                            <div class="panel-breadcrumb" style="color: #d91515;">
+                                S3 &mdash; Not connected
+                            </div>
+                            <div class="panel-title">S3 Bucket
+                                <span class="connection-status disconnected"><span class="dot"></span>Disconnected</span>
+                            </div>
+                            <div class="panel-controls">
+                                <input class="search-input" placeholder="Search..." disabled style="opacity:0.4;" />
+                                <select class="dropdown-select" style="opacity:0.4;"><option>fme-config</option></select>
+                                <span class="spacer"></span>
+                                <button class="icon-btn" style="opacity:0.4;">&#8635;</button>
+                                <button class="overflow-btn">&middot;&middot;&middot;</button>
+                            </div>
+                        </div>
+                        <!-- Error state panel body -->
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding: 32px;">
+                            <div style="font-size:36px; color:#d91515; opacity:0.7;">&#9888;</div>
+                            <div style="font-size:14px; color:#d91515; font-weight:600;">Unable to connect to S3</div>
+                            <div style="font-size:12px; color:#7d8998; text-align:center; max-width:280px; line-height:1.6;">
+                                Check your credentials or network connection.<br>
+                                The remote configuration <strong style="color:#d1d5db;">fme-config</strong> may need to be reconfigured.
+                            </div>
+                            <button style="margin-top:8px; padding:8px 20px; background:#192534; border:1px solid #d91515; color:#d91515; border-radius:6px; cursor:pointer; font-size:13px;">
+                                &#9881; Open Remote Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tray - disabled state -->
+                <div class="transfer-tray-collapsed" style="opacity:0.5; cursor:default;">
+                    <div class="tray-stats">
+                        <span style="color: #5f6b7a; font-size: 12px;">Transfers unavailable &mdash; S3 not connected</span>
+                    </div>
+                    <span class="tray-expand">&#9650;</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4b: Connecting (in-progress) state - shown inline as annotation -->
+        <div style="margin-top: 24px;">
+            <p class="mockup-label">Status Indicators Reference &mdash; Connection and identity states</p>
+            <div class="app-frame" style="height: auto;">
+                <div class="title-bar">
+                    <div class="traffic-light tl-red"></div>
+                    <div class="traffic-light tl-yellow"></div>
+                    <div class="traffic-light tl-green"></div>
+                    <span class="title-bar-text">File Mover Express</span>
+                </div>
+                <div style="padding: 20px 24px; background: #0f1b2a;">
+                    <!-- Connection States -->
+                    <div style="font-size:13px; color:#8d99a8; margin-bottom:12px; font-weight:600;">Connection Status (next to S3 Bucket title)</div>
+                    <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; margin-bottom:28px;">
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Connected</div>
+                            <div class="panel-title" style="font-size:18px; font-weight:700; color:#fff;">
+                                S3 Bucket <span class="connection-status connected"><span class="dot"></span>Connected</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Connecting&hellip;</div>
+                            <div class="panel-title" style="font-size:18px; font-weight:700; color:#fff;">
+                                S3 Bucket <span class="connection-status connecting"><span class="dot"></span>Connecting&hellip;</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Disconnected</div>
+                            <div class="panel-title" style="font-size:18px; font-weight:700; color:#fff;">
+                                S3 Bucket <span class="connection-status disconnected"><span class="dot"></span>Disconnected</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OIDC Identity (simplified) -->
+                    <div style="font-size:13px; color:#8d99a8; margin-bottom:12px; font-weight:600;">OIDC Identity (next to transfer profile dropdown)</div>
+                    <div style="font-size:12px; color:#5f6b7a; margin-bottom:16px; max-width:600px; line-height:1.6;">
+                        Sessions auto-refresh via refresh tokens. No timer shown. Only surface identity confirmation and errors when re-auth is needed.
+                    </div>
+                    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; margin-bottom:28px;">
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Authenticated (happy path)</div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <select class="dropdown-select"><option>oidc-test</option></select>
+                                <span class="session-chip valid" style="padding:2px 10px;"><span class="chip-dot"></span>developer@example.com</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">IAM credentials (no OIDC)</div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <select class="dropdown-select"><option>production-media</option></select>
+                                <span style="font-size:11px; color:#5f6b7a; font-style:italic;">(no indicator &mdash; static creds)</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Session lost &mdash; re-auth required</div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <select class="dropdown-select"><option>oidc-test</option></select>
+                                <span class="session-chip expired" style="padding:2px 10px;"><span class="chip-dot"></span>Sign in</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identity Badge in toolbar -->
+                    <div style="font-size:13px; color:#8d99a8; margin-bottom:12px; font-weight:600;">Identity Badge (toolbar &mdash; only visible for OIDC profiles)</div>
+                    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Signed in</div>
+                            <div class="identity-badge" style="position:relative;">
+                                <div class="avatar">DB</div>
+                                <span class="name">developer@example.com</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Not signed in / refresh failed</div>
+                            <div class="identity-badge" style="position:relative; border-color:#d91515;">
+                                <div class="avatar" style="background:#3a0000;">?</div>
+                                <span class="name" style="color:#d91515;">Sign in</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Static credentials (no badge shown)</div>
+                            <div style="display:flex; align-items:center; gap:8px; height:28px;">
+                                <span style="font-size:11px; color:#5f6b7a; font-style:italic;">Badge hidden &mdash; no identity context for IAM keys</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Popover (only on click, only for OIDC) -->
+                    <div style="margin-top: 24px;">
+                        <div style="font-size:11px; color:#5f6b7a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Popover on click (optional &mdash; for power users / IT admins)</div>
+                        <div class="identity-popover" style="position:relative; display:inline-block;">
+                            <div class="row"><span class="label">Identity</span><span class="value">developer@example.com</span></div>
+                            <div class="row"><span class="label">Provider</span><span class="value">auth.example.com</span></div>
+                            <div class="row"><span class="label">Auth method</span><span class="value">OIDC / SSO</span></div>
+                            <div class="row"><span class="label">Status</span><span class="value" style="color:#29ad32;">Active (auto-refreshing)</span></div>
+                            <div style="border-top:1px solid #354150; margin-top:8px; padding-top:8px;">
+                                <button style="width:100%; padding:6px; background:#192534; border:1px solid #354150; color:#d1d5db; border-radius:4px; cursor:pointer; font-size:11px;">
+                                    Sign out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- VIEW: Job Details modal -->
+        <div id="view-jobdetails" class="mockup-view">
+            <p class="mockup-label">Job Details &mdash; Opens when a transfer row in the tray is clicked</p>
+
+            <!-- In-progress upload -->
+            <div style="max-width: 640px; margin: 0 auto 40px;">
+                <div style="font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 16px;">Active transfer</div>
+                <div class="jd-modal">
+                    <div class="jd-head">
+                        <span class="jd-dir up">&#9650;</span>
+                        <span class="jd-title">Scene04_Take02_4K.mov</span>
+                        <span class="job-status status-progress">Uploading</span>
+                        <span class="jd-close">&times;</span>
+                    </div>
+                    <div class="jd-body">
+                        <div class="jd-progress-track"><div class="jd-progress-fill in-progress" style="width:73%;"></div></div>
+                        <div class="jd-bytes"><span>13.3 GB of 18.2 GB &middot; 73%</span><span>~2 min remaining</span></div>
+                        <div class="jd-tiles">
+                            <div class="jd-tile"><div class="k">Throughput</div><div class="v">342 MB/s</div></div>
+                            <div class="jd-tile"><div class="k">ETA</div><div class="v">~2 min</div></div>
+                            <div class="jd-tile"><div class="k">Elapsed</div><div class="v">00:41</div></div>
+                            <div class="jd-tile"><div class="k">Started</div><div class="v">16:42</div></div>
+                        </div>
+                        <div class="jd-rows">
+                            <div class="jd-row"><span class="rk">Direction</span><span class="rv">Upload &mdash; local &rarr; S3</span></div>
+                            <div class="jd-row"><span class="rk">Source</span><span class="rv">/Users/rsd/Desktop/DaVinci_Exports/Scene04_Take02_4K.mov</span></div>
+                            <div class="jd-row"><span class="rk">Destination</span><span class="rv">s3://production-media/dailies/2026-08-07/</span></div>
+                            <div class="jd-row"><span class="rk">Parallelism</span><span class="rv">8 threads &middot; 16 MB chunks <span style="color:#656871;">(auto-tuned)</span></span></div>
+                            <div class="jd-row"><span class="rk">Multipart</span><span class="rv">812 of 1,140 parts uploaded</span></div>
+                            <div class="jd-row"><span class="rk">Checksum</span><span class="rv">XXH3 &middot; verify after transfer <span style="color:#2bb534;">on</span></span></div>
+                            <div class="jd-row"><span class="rk">Storage class</span><span class="rv">S3 Standard</span></div>
+                            <div class="jd-row" style="border-bottom:none;"><span class="rk">Retries</span><span class="rv">0</span></div>
+                        </div>
+                    </div>
+                    <div class="jd-foot">
+                        <button class="jd-btn ghost">Reveal in Finder</button>
+                        <button class="jd-btn ghost">Copy S3 URI</button>
+                        <button class="jd-btn push">Pause</button>
+                        <button class="jd-btn danger">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Errored download -->
+            <div style="max-width: 640px; margin: 0 auto 40px;">
+                <div style="font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 16px;">Failed transfer</div>
+                <div class="jd-modal">
+                    <div class="jd-head">
+                        <span class="jd-dir down">&#9660;</span>
+                        <span class="jd-title">Scene01_Final_4K.mov</span>
+                        <span class="job-status status-error">Error</span>
+                        <span class="jd-close">&times;</span>
+                    </div>
+                    <div class="jd-body">
+                        <div class="jd-err">
+                            <div class="t"><span>&#9888;</span> Download failed &mdash; 403 AccessDenied</div>
+                            <div class="d">The daemon's role can't read this object. Check the bucket policy or the IAM permissions on this Remote Configuration, then retry. Retried 3 of 3 times before giving up.</div>
+                        </div>
+                        <div class="jd-progress-track"><div class="jd-progress-fill error" style="width:22%;"></div></div>
+                        <div class="jd-bytes"><span>4.0 GB of 18.2 GB &middot; 22%</span><span>Stopped</span></div>
+                        <div class="jd-rows" style="margin-top:16px;">
+                            <div class="jd-row"><span class="rk">Direction</span><span class="rv">Download &mdash; S3 &rarr; local</span></div>
+                            <div class="jd-row"><span class="rk">Source</span><span class="rv">s3://production-media/vfx-plates/Scene01_Final_4K.mov</span></div>
+                            <div class="jd-row"><span class="rk">Destination</span><span class="rv">/Users/rsd/Desktop/Scene01_Final_4K.mov</span></div>
+                            <div class="jd-row"><span class="rk">Last attempt</span><span class="rv">16:43:05</span></div>
+                            <div class="jd-row" style="border-bottom:none;"><span class="rk">Error code</span><span class="rv" style="font-family:monospace;">AccessDenied (HTTP 403)</span></div>
+                        </div>
+                    </div>
+                    <div class="jd-foot">
+                        <button class="jd-btn ghost">Copy error</button>
+                        <button class="jd-btn ghost">View in Logs</button>
+                        <button class="jd-btn primary push">Retry</button>
+                        <button class="jd-btn danger">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 7: Config Pages Redesign -->
+        <div id="view-config" class="mockup-view">
+            <p class="mockup-label">Config Pages Redesign &mdash; Cleaner grouping, progressive disclosure, OIDC-aware</p>
+
+            <!-- Remote Configuration Editor -->
+            <div style="max-width: 620px; margin: 0 auto 40px;">
+                <div style="font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 16px;">Remote Configuration Editor (Modal)</div>
+                <div class="cfg-modal" style="background: #161d26; border: 1px solid #424650; border-radius: 16px; overflow: hidden;">
+                    <!-- Modal header -->
+                    <div style="padding: 20px 24px 0; border-bottom: 1px solid #424650; padding-bottom: 16px;">
+                        <div style="font-size: 18px; font-weight: 700; color: #ebebf0;">Edit Remote Configuration</div>
+                        <div style="font-size: 12px; color: #a4a4ad; margin-top: 4px;">Configure your S3 connection and authentication method</div>
+                    </div>
+                    <!-- Step indicator / tabs -->
+                    <div style="display: flex; border-bottom: 1px solid #424650; padding: 0 24px;">
+                        <div class="cfg-tab active" onclick="showCfgTab('connection', this)">Connection</div>
+                        <div class="cfg-tab" onclick="showCfgTab('auth', this)">Authentication</div>
+                        <div class="cfg-tab" onclick="showCfgTab('perf', this)">Performance</div>
+                    </div>
+                    <!-- Connection tab content -->
+                    <div class="cfg-panel active" id="cfg-connection">
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Configuration Name *</label>
+                            <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 14px;">oidc-test</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div>
+                                <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">S3 Bucket *</label>
+                                <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 14px;">example-oidc-bucket</div>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">AWS Region *</label>
+                                <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 14px; display:flex; justify-content:space-between;">us-west-2 <span style="color:#656871;">&#9662;</span></div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">S3 Access Point / VPC Endpoint</label>
+                            <div style="background: #0f141a; border: 1px solid #424650; border-radius: 8px; padding: 8px 12px; color: #656871; font-size: 13px; font-style: italic;">Optional</div>
+                        </div>
+                    </div>
+                    <!-- AUTHENTICATION panel -->
+                    <div class="cfg-panel" id="cfg-auth">
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Authentication Method *</label>
+                            <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 14px; display:flex; justify-content:space-between;">OIDC / SSO <span style="color:#656871;">&#9662;</span></div>
+                            <div style="font-size: 11px; color: #656871; margin-top: 4px;">How FME authenticates with AWS for this profile &mdash; IAM Credentials, AWS Profile, or OIDC / SSO</div>
+                        </div>
+                        <!-- OIDC-specific fields (shown conditionally) -->
+                        <div style="border: 1px solid #424650; border-radius: 12px; padding: 16px; background: rgba(66,180,255,0.02);">
+                            <div style="font-size: 12px; font-weight: 600; color: #42b4ff; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 14px;">&#128274;</span> OIDC Configuration
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Issuer URL *</label>
+                                <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 13px;">https://auth.example.com/oidc</div>
+                                <div style="font-size: 10px; color: #656871; margin-top: 2px;">The OIDC discovery base URL of your identity provider</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Client ID *</label>
+                                    <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 13px;">fme-desktop</div>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Scopes</label>
+                                    <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 13px;">openid, email, profile, offline_access</div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">IAM Role ARN *</label>
+                                <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 12px; font-family: monospace;">arn:aws:iam::<aws-account-id>:role/FME-OIDC-TestRole</div>
+                                <div style="font-size: 10px; color: #656871; margin-top: 2px;">The IAM role to assume via AssumeRoleWithWebIdentity</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Session Duration</label>
+                                    <div style="background: #0f141a; border: 1px solid #424650; border-radius: 8px; padding: 8px 12px; color: #656871; font-size: 13px;">Default (3600s)</div>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Custom CA Bundle</label>
+                                    <div style="background: #0f141a; border: 1px solid #424650; border-radius: 8px; padding: 8px 12px; color: #656871; font-size: 13px; font-style: italic;">Optional</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #424650;">
+                                <div style="width: 36px; height: 20px; background: #42b4ff; border-radius: 10px; position: relative;">
+                                    <div style="width: 16px; height: 16px; background: #0f141a; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
+                                </div>
+                                <span style="font-size: 12px; color: #c6c6cd;">Remember session across restarts</span>
+                            </div>
+                            <div style="font-size: 10px; color: #656871; margin-top: 4px; margin-left: 44px;">When enabled, the refresh token is persisted to disk (encrypted). Requires offline_access scope.</div>
+                        </div>
+                    </div>
+                    <!-- PERFORMANCE panel -->
+                    <div class="cfg-panel" id="cfg-perf">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <div style="width: 36px; height: 20px; background: #333843; border-radius: 10px; position: relative;">
+                                <div style="width: 16px; height: 16px; background: #0f141a; border-radius: 50%; position: absolute; left: 2px; top: 2px;"></div>
+                            </div>
+                            <span style="font-size: 13px; color: #c6c6cd;">Override global transfer defaults for this configuration</span>
+                        </div>
+                        <div style="font-size: 11px; color: #656871; margin: 0 0 16px 44px;">Off &mdash; this configuration inherits the defaults from Settings &rsaquo; Transfers. Turn on to set values that apply only here.</div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #424650;">
+                            <div style="width: 36px; height: 20px; background: #42b4ff; border-radius: 10px; position: relative;">
+                                <div style="width: 16px; height: 16px; background: #0f141a; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
+                            </div>
+                            <span style="font-size: 13px; color: #c6c6cd;">Auto-tune threads &amp; chunk size</span>
+                        </div>
+                        <div style="font-size: 10px; color: #656871; margin: 2px 0 16px 44px;">Sizes parallelism to this connection automatically. Turn off to set values by hand.</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div>
+                                <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Threads</label>
+                                <div style="background: #0f141a; border: 1px solid #424650; border-radius: 8px; padding: 8px 12px; color: #656871; font-size: 14px; font-style: italic;">Auto</div>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Chunk Size (MB)</label>
+                                <div style="background: #0f141a; border: 1px solid #424650; border-radius: 8px; padding: 8px 12px; color: #656871; font-size: 14px; font-style: italic;">Auto</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Storage Class</label>
+                            <div style="background: #0f141a; border: 1px solid #656871; border-radius: 8px; padding: 8px 12px; color: #ebebf0; font-size: 14px; display:flex; justify-content:space-between;">S3 Standard <span style="color:#656871;">&#9662;</span></div>
+                        </div>
+                        <!-- Per-config checksum: Enabled + Algorithm (maps to ChecksumSettings) -->
+                        <div style="display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #424650;">
+                            <div style="width: 36px; height: 20px; background: #333843; border-radius: 10px; position: relative;">
+                                <div style="width: 16px; height: 16px; background: #0f141a; border-radius: 50%; position: absolute; left: 2px; top: 2px;"></div>
+                            </div>
+                            <span style="font-size: 13px; color: #c6c6cd;">Verify checksums for this configuration</span>
+                        </div>
+                        <div style="font-size: 10px; color: #656871; margin: 2px 0 14px 44px;">Off by default. When on, every file transferred through this configuration is checksummed and verified end-to-end. A camera MHL in the source folder is always honored regardless of this setting.</div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; color: #a4a4ad; display: block; margin-bottom: 4px;">Checksum algorithm</label>
+                            <div style="background: #0f141a; border: 1px solid #424650; border-radius: 8px; padding: 8px 12px; color: #656871; font-size: 14px; display:flex; justify-content:space-between;">XXH3 (fastest) <span style="color:#656871;">&#9662;</span></div>
+                            <div style="font-size: 10px; color: #656871; margin-top: 2px;">Used when verification is on &middot; MD5 &middot; XXHash &middot; XXHash64 &middot; XXH3</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #424650;">
+                            <div style="width: 36px; height: 20px; background: #333843; border-radius: 10px; position: relative;">
+                                <div style="width: 16px; height: 16px; background: #0f141a; border-radius: 50%; position: absolute; left: 2px; top: 2px;"></div>
+                            </div>
+                            <span style="font-size: 13px; color: #c6c6cd;">S3 Transfer Acceleration</span>
+                        </div>
+                        <div style="font-size: 10px; color: #656871; margin: 2px 0 0 44px;">Routes uploads through the accelerated endpoint (additional AWS cost).</div>
+                    </div>
+                    <!-- Footer -->
+
+                    <div style="padding: 16px 24px; border-top: 1px solid #424650; display: flex; justify-content: flex-end; gap: 8px;">
+                        <button style="padding: 8px 20px; background: transparent; border: 2px solid #42b4ff; color: #42b4ff; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;">Cancel</button>
+                        <button style="padding: 8px 20px; background: #42b4ff; border: 2px solid #42b4ff; color: #0f141a; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page Redesign -->
+            <div style="max-width: 900px; margin: 0 auto 40px;">
+                <div style="font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 16px;">Settings Page (full page, not modal)</div>
+                <div style="background: #161d26; border: 1px solid #424650; border-radius: 16px; overflow: hidden;">
+                    <div style="display: grid; grid-template-columns: 180px 1fr;">
+                        <!-- Left nav (click to switch panels) -->
+                        <div style="background: #0f141a; border-right: 1px solid #424650; padding: 16px 0;">
+                            <div class="set-nav-item active" onclick="showSettings('general', this)">General</div>
+                            <div class="set-nav-item" onclick="showSettings('transfers', this)">Transfers</div>
+                            <div class="set-nav-item" onclick="showSettings('hotfolders', this)">Hot Folders</div>
+                            <div class="set-nav-item" onclick="showSettings('reports', this)">Reports</div>
+                            <div class="set-nav-item" onclick="showSettings('logging', this)">Logging</div>
+                            <div class="set-nav-item" onclick="showSettings('appearance', this)">Appearance</div>
+                        </div>
+                        <!-- Right content: one panel per nav item -->
+                        <div>
+                            <!-- GENERAL -->
+                            <div class="settings-panel active" id="set-general">
+                                <div class="set-h">General</div>
+                                <div class="set-sub">Engine behavior and global limits. Concurrency and per-transfer tuning now live on the Transfers tab.</div>
+                                <div class="set-grid2">
+                                    <div>
+                                        <label class="set-label">Retry Count</label>
+                                        <div class="set-input">3</div>
+                                        <div class="set-hint">Times to retry a failed file before giving up</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Target Bandwidth (MB/s)</label>
+                                        <div class="set-input">0 <span style="color:#656871; font-size:11px;">(unlimited)</span></div>
+                                        <div class="set-hint">Global throughput cap across all jobs; 0 disables it</div>
+                                    </div>
+                                </div>
+                                <div class="set-toggle-row">
+                                    <div class="set-toggle on"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">Disable Sleep during transfers</span>
+                                    <span style="font-size: 11px; color: #656871; margin-left: 4px;">(macOS only)</span>
+                                </div>
+                                <div class="set-savebar">
+                                    <button class="btn-pill-ghost">Cancel</button>
+                                    <button class="btn-pill-fill">Save</button>
+                                </div>
+                            </div>
+
+                            <!-- TRANSFERS -->
+                            <div class="settings-panel" id="set-transfers">
+                                <div class="set-h">Transfers</div>
+                                <div class="set-sub">Concurrency, per-transfer tuning, and defaults. New Remote Configurations start from the default values below &mdash; each one can override them on its Performance tab.</div>
+
+                                <div class="set-section">Concurrency</div>
+                                <div class="set-grid2" style="margin-bottom: 4px;">
+                                    <div>
+                                        <label class="set-label">Max Active Transfers</label>
+                                        <div class="set-input">10</div>
+                                        <div class="set-hint">Concurrent transfer jobs (requires restart)</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Max Active Checksums</label>
+                                        <div class="set-input">4</div>
+                                        <div class="set-hint">Parallel checksum computations (max: CPU cores)</div>
+                                    </div>
+                                </div>
+
+                                <div class="set-section">Per-transfer parallelism</div>
+                                <div class="set-toggle-row" style="border-top: none; padding-top: 0;">
+                                    <div class="set-toggle on blue"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">Auto-tune threads &amp; chunk size</span>
+                                </div>
+                                <div class="set-toggle-note" style="margin-bottom: 16px;">Sizes each transfer's parallelism to your connection automatically. Turn off to set threads and chunk size by hand.</div>
+                                <div class="set-grid2">
+                                    <div>
+                                        <label class="set-label">Threads</label>
+                                        <div class="set-input muted">Auto</div>
+                                        <div class="set-hint">Managed by auto-tuning</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Chunk Size (MB)</label>
+                                        <div class="set-input muted">Auto</div>
+                                        <div class="set-hint">Managed by auto-tuning</div>
+                                    </div>
+                                </div>
+
+                                <div class="set-section">Defaults</div>
+                                <div class="set-field">
+                                    <label class="set-label">Default Storage Class</label>
+                                    <div class="set-input select">S3 Standard <span class="caret">&#9662;</span></div>
+                                    <div class="set-hint">Standard &middot; Intelligent-Tiering &middot; Standard-IA &middot; Glacier &hellip;</div>
+                                </div>
+                                <div class="set-toggle-row">
+                                    <div class="set-toggle off"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">Verify checksums by default</span>
+                                </div>
+                                <div class="set-toggle-note">Off &mdash; new Remote Configurations start with checksums disabled. Each configuration can turn verification on (and pick an algorithm) on its own Performance tab. When on, FME checksums every file and verifies it end-to-end.</div>
+                                <div class="set-field" style="margin-top: 12px;">
+                                    <label class="set-label">Default checksum algorithm</label>
+                                    <div class="set-input select muted">XXH3 (fastest) <span class="caret">&#9662;</span></div>
+                                    <div class="set-hint">Applied when verification is on &middot; MD5 &middot; XXHash &middot; XXHash64 &middot; XXH3</div>
+                                </div>
+                                <div class="set-info">
+                                    <span class="ico">&#9432;</span>
+                                    <span class="txt"><b>Camera MHL is used automatically.</b> If a Media Hash List (<code>.mhl</code>) file is present in the source folder &mdash; e.g. one written by the camera or offload tool &mdash; FME treats it as the authoritative checksum source and validates every file against it for camera-to-cloud verification. FME reads MHL files; it does not generate them.</span>
+                                </div>
+
+                                <div class="set-section">Network</div>
+                                <div class="set-toggle-row" style="border-top: none; padding-top: 0;">
+                                    <div class="set-toggle off"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">S3 Transfer Acceleration</span>
+                                </div>
+                                <div class="set-toggle-note">Routes uploads through the accelerated endpoint for faster long-distance transfers (additional AWS cost).</div>
+
+                                <div class="set-section">File selection &amp; ordering</div>
+                                <div class="set-grid2">
+                                    <div>
+                                        <label class="set-label">File Order</label>
+                                        <div class="set-input select">Smallest first <span class="caret">&#9662;</span></div>
+                                        <div class="set-hint">Order files are queued for transfer</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Max File Age</label>
+                                        <div class="set-input select">Any <span class="caret">&#9662;</span></div>
+                                        <div class="set-hint">Skip files older than this when transferring</div>
+                                    </div>
+                                </div>
+                                <div class="set-toggle-row">
+                                    <div class="set-toggle off"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">Enable metadata filter</span>
+                                </div>
+                                <div class="set-toggle-note">Only transfer files that match a metadata rule.</div>
+                                <div class="set-savebar">
+                                    <button class="btn-pill-ghost">Cancel</button>
+                                    <button class="btn-pill-fill">Save</button>
+                                </div>
+                            </div>
+
+                            <!-- HOT FOLDERS -->
+                            <div class="settings-panel" id="set-hotfolders">
+                                <div class="set-h">Hot Folders</div>
+                                <div class="set-sub">Watched local folders that auto-upload new files to S3 as soon as they land.</div>
+                                <!-- Expanded card -->
+                                <div class="hf-card">
+                                    <div class="hf-card-head">
+                                        <span style="font-size:14px;">&#128293;</span>
+                                        <span class="hf-name">Camera_Ingest</span>
+                                        <div class="set-toggle on" style="width:32px; height:18px;"><div class="knob" style="width:14px; height:14px; right:2px;"></div></div>
+                                        <span style="color:#656871;">&#9662;</span>
+                                    </div>
+                                    <div class="hf-card-body">
+                                        <div class="set-grid2" style="margin-bottom: 12px;">
+                                            <div>
+                                                <label class="set-label">Name</label>
+                                                <div class="set-input">Camera_Ingest</div>
+                                            </div>
+                                            <div>
+                                                <label class="set-label">Local Source Folder</label>
+                                                <div class="set-input select">/Users/rsd/Camera_Ingest <span class="caret">&#128193;</span></div>
+                                            </div>
+                                        </div>
+                                        <label class="set-label" style="margin-bottom: 6px;">Destinations</label>
+                                        <div class="hf-dest">
+                                            <span class="hf-chip">production-media</span>
+                                            <span class="arrow">&#8594;</span>
+                                            <span>dailies/2026-08-07/</span>
+                                            <span style="margin-left:auto; color:#ff7a7a; cursor:pointer; font-size:11px;">Remove</span>
+                                        </div>
+                                        <div style="font-size:12px; color:#42b4ff; cursor:pointer; margin-top:4px;">+ Add destination</div>
+                                    </div>
+                                </div>
+                                <!-- Collapsed card -->
+                                <div class="hf-card">
+                                    <div class="hf-card-head">
+                                        <span style="font-size:14px;">&#128293;</span>
+                                        <span class="hf-name">Dailies_Drop</span>
+                                        <span style="font-size:11px; color:#656871;">2 destinations</span>
+                                        <div class="set-toggle on" style="width:32px; height:18px;"><div class="knob" style="width:14px; height:14px; right:2px;"></div></div>
+                                        <span style="color:#656871; transform:rotate(-90deg); display:inline-block;">&#9662;</span>
+                                    </div>
+                                </div>
+                                <button class="btn-pill-fill" style="margin-top:8px;">+ Add Hot Folder</button>
+                                <div class="set-savebar">
+                                    <button class="btn-pill-ghost">Cancel</button>
+                                    <button class="btn-pill-fill">Save</button>
+                                </div>
+                            </div>
+
+                            <!-- REPORTS -->
+                            <div class="settings-panel" id="set-reports">
+                                <div class="set-h">Bucket Reports</div>
+                                <div class="set-sub">A bucket report is a full inventory of an S3 prefix &mdash; object keys, sizes, storage class, and checksums &mdash; saved as a file you can hand off or archive.</div>
+                                <div class="set-field">
+                                    <label class="set-label">Reports Directory</label>
+                                    <div class="set-input select">/Users/rsd/Documents/FME-Reports <span class="caret">&#128193;</span></div>
+                                    <div class="set-hint">Where generated bucket reports are written</div>
+                                </div>
+                                <div class="set-savebar">
+                                    <button class="btn-pill-ghost">Cancel</button>
+                                    <button class="btn-pill-fill">Save</button>
+                                </div>
+                            </div>
+
+                            <!-- LOGGING -->
+                            <div class="settings-panel" id="set-logging">
+                                <div class="set-h">Logging</div>
+                                <div class="set-sub">Daemon log output and rotation.</div>
+                                <div class="set-field">
+                                    <label class="set-label">Severity</label>
+                                    <div class="set-input select">Info <span class="caret">&#9662;</span></div>
+                                    <div class="set-hint">Debug &middot; Info &middot; Warn &middot; Error</div>
+                                </div>
+                                <div class="set-field">
+                                    <label class="set-label">Log Directory</label>
+                                    <div class="set-input select">/Users/rsd/Library/Logs/FME <span class="caret">&#128193;</span></div>
+                                </div>
+                                <div class="set-grid2">
+                                    <div>
+                                        <label class="set-label">Max Size (MB)</label>
+                                        <div class="set-input">100</div>
+                                        <div class="set-hint">Rotate a log file once it hits this size</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Max Age (days)</label>
+                                        <div class="set-input">28</div>
+                                        <div class="set-hint">Delete rotated logs older than this</div>
+                                    </div>
+                                </div>
+                                <div class="set-toggle-row">
+                                    <div class="set-toggle on"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">Compress rotated logs</span>
+                                </div>
+                                <div class="set-toggle-note">Gzip old log files to save disk space.</div>
+                                <div class="set-savebar">
+                                    <button class="btn-pill-ghost">Cancel</button>
+                                    <button class="btn-pill-fill">Save</button>
+                                </div>
+                            </div>
+
+                            <!-- APPEARANCE -->
+                            <div class="settings-panel" id="set-appearance">
+                                <div class="set-h">Appearance</div>
+                                <div class="set-sub">Consolidates the former "UI Preferences" dialog into the main settings.</div>
+                                <div class="set-grid2">
+                                    <div>
+                                        <label class="set-label">Theme</label>
+                                        <div class="set-input select">Dark <span class="caret">&#9662;</span></div>
+                                        <div class="set-hint">Dark &middot; System</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Notification Position</label>
+                                        <div class="set-input select">Bottom Right <span class="caret">&#9662;</span></div>
+                                    </div>
+                                </div>
+                                <div class="set-grid2">
+                                    <div>
+                                        <label class="set-label">Notification Auto-hide (seconds)</label>
+                                        <div class="set-input">5</div>
+                                    </div>
+                                    <div>
+                                        <label class="set-label">Row Density</label>
+                                        <div class="set-input select">Comfortable (36px) <span class="caret">&#9662;</span></div>
+                                        <div class="set-hint">Compact &middot; Comfortable</div>
+                                    </div>
+                                </div>
+                                <div class="set-toggle-row">
+                                    <div class="set-toggle on"><div class="knob"></div></div>
+                                    <span class="set-toggle-text">Relative dates</span>
+                                </div>
+                                <div class="set-toggle-note">Show "3h ago" instead of a full timestamp (hover for the exact time).</div>
+                                <div class="set-savebar">
+                                    <button class="btn-pill-ghost">Cancel</button>
+                                    <button class="btn-pill-fill">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Design Rationale -->
+            <div style="max-width: 900px; margin: 0 auto; padding: 20px; background: #161d26; border: 1px solid #424650; border-radius: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: #ebebf0; margin-bottom: 8px;">Design Decisions</div>
+                <ul style="font-size: 12px; color: #a4a4ad; line-height: 1.8; padding-left: 16px;">
+                    <li><strong>Remote Configuration uses tabs</strong> instead of one scrolling form. Connection/Auth/Performance are three distinct concerns &mdash; users shouldn't have to scroll past OIDC fields if they're just changing a bucket name.</li>
+                    <li><strong>OIDC fields are grouped in a bordered card</strong> that only appears when "OIDC / SSO" is selected as the auth method. If they choose "Named Profile" or "Access Keys", this card disappears entirely.</li>
+                    <li><strong>Settings page uses a left nav</strong> instead of stacked expansion panels. This is the Cloudscape pattern (split panel) and works better at scale &mdash; you always know where you are, and the page doesn't bounce around as panels expand/collapse.</li>
+                    <li><strong>"Appearance" section</strong> is new &mdash; this consolidates the current "UI Preferences" modal (notification position, auto-hide delay) into the main settings.</li>
+                    <li><strong>2-column grid for related fields</strong> reduces vertical scroll. Bucket + Region are a natural pair. Session Duration + CA Bundle are a pair. Max Transfers + Max Checksums are a pair.</li>
+                    <li><strong>Pill-shaped buttons</strong> match Cloudscape's <code>border-radius-button: 20px</code> token. The filled primary button uses the Cloudscape primary-400 color.</li>
+                    <li><strong>Settings tabs are live</strong> in this mockup &mdash; click General / Transfers / Hot Folders / Reports / Logging / Appearance in the left nav to switch panels.</li>
+                    <li><strong>"Transfers" holds the default performance settings</strong> (Storage Class, Checksum Algorithm, Auto-tuning, Threads/Chunk size, Transfer Acceleration, File Order, Max Age, Metadata filter). These seed every new Remote Configuration, which can still override them per-profile on its own Performance tab. <em>Open question: should these be global defaults, or live only on each Remote Configuration?</em></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- VIEW 6: Folder Badges -->
+        <div id="view-badges" class="mockup-view">
+            <p class="mockup-label">Folder Badges &mdash; Visual indicators for hot folders, favorites, and starting directories</p>
+            <div class="app-frame" style="height: auto; max-height: none;">
+                <div class="title-bar">
+                    <div class="traffic-light tl-red"></div>
+                    <div class="traffic-light tl-yellow"></div>
+                    <div class="traffic-light tl-green"></div>
+                    <span class="title-bar-text">File Mover Express</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; background: #161d26;">
+                    <!-- Local Panel Example -->
+                    <div style="padding: 16px; border-right: 1px solid #424650;">
+                        <div class="panel-breadcrumb">File System <span>&rsaquo;</span> Users <span>&rsaquo;</span> rsd <span>&rsaquo;</span> Projects</div>
+                        <div class="panel-title">Local</div>
+                        <div class="file-list" style="overflow: visible;">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                                <span style="text-align:right">Modified</span>
+                            </div>
+                            <!-- Starting Directory -->
+                            <div class="file-row" style="background: rgba(66,180,255,0.04);">
+                                <div class="name">
+                                    <span class="folder-icon"></span>
+                                    <span>Projects</span>
+                                    <span class="folder-badge starting"><span class="folder-badge-icon">&#8962;</span>Start</span>
+                                </div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">1h ago</div>
+                            </div>
+                            <!-- Hot Folder -->
+                            <div class="file-row" style="background: rgba(248,146,86,0.04);">
+                                <div class="name">
+                                    <span class="folder-icon"></span>
+                                    <span>Camera_Ingest</span>
+                                    <span class="folder-badge hot"><span class="folder-badge-icon">&#128293;</span>Hot</span>
+                                </div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">12 min ago</div>
+                            </div>
+                            <!-- Favorite Folder -->
+                            <div class="file-row" style="background: rgba(251,211,50,0.04);">
+                                <div class="name">
+                                    <span class="folder-icon"></span>
+                                    <span>DaVinci_Exports</span>
+                                    <span class="folder-badge favorite"><span class="folder-badge-icon">&#9733;</span>Fav</span>
+                                </div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                            <!-- Hot + Favorite -->
+                            <div class="file-row" style="background: rgba(248,146,86,0.04);">
+                                <div class="name">
+                                    <span class="folder-icon"></span>
+                                    <span>Dailies_Drop</span>
+                                    <span class="folder-badge hot"><span class="folder-badge-icon">&#128293;</span>Hot</span>
+                                    <span class="folder-badge favorite"><span class="folder-badge-icon">&#9733;</span>Fav</span>
+                                </div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">5 min ago</div>
+                            </div>
+                            <!-- Regular folder -->
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>Archive_2025</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">Mar 2025</div>
+                            </div>
+                            <!-- Regular files -->
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene04_Take02_4K.mov</span></div>
+                                <div class="size">12.4 GB</div>
+                                <div class="date">3h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>color_grade_final.cube</span></div>
+                                <div class="size">2.1 MB</div>
+                                <div class="date">Yesterday</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- S3 Panel Example -->
+                    <div style="padding: 16px;">
+                        <div class="panel-breadcrumb">S3 <span>&rsaquo;</span> production-media</div>
+                        <div class="panel-title">S3 Bucket <span class="connection-status connected"><span class="dot"></span>Connected</span></div>
+                        <div class="file-list" style="overflow: visible;">
+                            <div class="file-list-header">
+                                <span>Name</span>
+                                <span style="text-align:right">Size</span>
+                                <span style="text-align:right">Modified</span>
+                            </div>
+                            <!-- Starting Prefix -->
+                            <div class="file-row" style="background: rgba(66,180,255,0.04);">
+                                <div class="name">
+                                    <span class="folder-icon"></span>
+                                    <span>project-atlas/</span>
+                                    <span class="folder-badge starting"><span class="folder-badge-icon">&#8962;</span>Start</span>
+                                </div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">30 min ago</div>
+                            </div>
+                            <!-- Regular prefixes -->
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>dailies/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">1h ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="folder-icon"></span><span>vfx-plates/</span></div>
+                                <div class="size">&mdash;</div>
+                                <div class="date">3 days ago</div>
+                            </div>
+                            <div class="file-row">
+                                <div class="name"><span class="file-icon"></span><span>Scene01_Final_4K.mov</span></div>
+                                <div class="size">18.2 GB</div>
+                                <div class="date">2h ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Badge Reference -->
+            <div style="max-width: 1000px; margin: 24px auto 0; padding: 20px; background: #161d26; border: 1px solid #424650; border-radius: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: #ebebf0; margin-bottom: 12px;">Badge Reference</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span class="folder-badge hot"><span class="folder-badge-icon">&#128293;</span>Hot</span>
+                            <span style="font-size: 12px; color: #a4a4ad;">Hot Folder</span>
+                        </div>
+                        <p style="font-size: 11px; color: #656871; line-height: 1.6;">
+                            Auto-uploads new files when they land in this folder. Active monitoring. Only appears on Local panel.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span class="folder-badge favorite"><span class="folder-badge-icon">&#9733;</span>Fav</span>
+                            <span style="font-size: 12px; color: #a4a4ad;">Favorite Path</span>
+                        </div>
+                        <p style="font-size: 11px; color: #656871; line-height: 1.6;">
+                            Quick-access bookmark. Appears in the filesystem dropdown for instant navigation. Only on Local panel.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span class="folder-badge starting"><span class="folder-badge-icon">&#8962;</span>Start</span>
+                            <span style="font-size: 12px; color: #a4a4ad;">Starting Directory</span>
+                        </div>
+                        <p style="font-size: 11px; color: #656871; line-height: 1.6;">
+                            The panel opens to this folder on app launch. Works on both Local and S3 panels.
+                        </p>
+                    </div>
+                </div>
+                <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #424650;">
+                    <div style="font-size: 12px; color: #a4a4ad; line-height: 1.6;">
+                        <strong>Design notes:</strong> Badges stack (a folder can be Hot + Favorite). The subtle background tint on badge rows helps them stand out without being distracting. Badges only render on folder rows, never on files. On the S3 panel, only the Starting Directory badge applies since Hot Folders and Favorites are local-only concepts.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 5: Overflow Menus -->
+        <div id="view-menus" class="mockup-view">
+            <p class="mockup-label">Overflow Menus &mdash; Actions grouped by frequency. Common actions stay visible; everything else lives here.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px; margin: 0 auto;">
+                <!-- Local Panel Menu -->
+                <div>
+                    <div style="font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 12px;">Local Panel &middot;&middot;&middot;</div>
+                    <div class="overflow-menu">
+                        <div class="overflow-menu-header">Actions</div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue">&#9112;</span>Refresh</div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5"/></svg></span>New Folder</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-header">Navigation</div>
+                        <div class="overflow-menu-item"><span class="menu-icon yellow">&#9733;</span>Favorite Paths</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#8962;</span>Set Starting Directory</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#215;</span>Clear Starting Directory</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-header">Automation</div>
+                        <div class="overflow-menu-item"><span class="menu-icon orange">&#128293;</span>Configure Hot Folder</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-header">Transfer</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#9881;</span>Transfer Settings&hellip;</div>
+                    </div>
+                    <div style="margin-top: 16px; font-size: 12px; color: #656871; line-height: 1.6;">
+                        <strong style="color:#a4a4ad;">Note:</strong> Right-click context menu on files/folders still handles:
+                        Open file, Open in Finder, Rename, Delete.
+                        The &middot;&middot;&middot; menu is for panel-level actions only.
+                    </div>
+                </div>
+                <!-- S3 Panel Menu -->
+                <div>
+                    <div style="font-size: 14px; font-weight: 700; color: #ebebf0; margin-bottom: 12px;">S3 Bucket Panel &middot;&middot;&middot;</div>
+                    <div class="overflow-menu">
+                        <div class="overflow-menu-header">Actions</div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue">&#9112;</span>Refresh</div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5"/></svg></span>New Prefix (Folder)</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-header">Reports</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#128202;</span>Generate Bucket Report</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-header">Navigation</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#8962;</span>Set Starting Prefix</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#215;</span>Clear Starting Prefix</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-header">Configuration</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#9881;</span>Edit Remote Configuration</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#43;</span>New Remote Configuration</div>
+                    </div>
+                    <div style="margin-top: 16px; font-size: 12px; color: #656871; line-height: 1.6;">
+                        <strong style="color:#a4a4ad;">Note:</strong> Right-click context menu on files/prefixes still handles:
+                        Rename, Delete, Create Child Prefix.
+                        The &middot;&middot;&middot; menu is for panel-level actions only.
+                    </div>
+                </div>
+            </div>
+            <!-- Design rationale -->
+            <div style="max-width: 1000px; margin: 32px auto 0; padding: 20px; background: #161d26; border: 1px solid #424650; border-radius: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: #ebebf0; margin-bottom: 8px;">Design Rationale</div>
+                <ul style="font-size: 12px; color: #a4a4ad; line-height: 1.8; padding-left: 16px;">
+                    <li><strong>Refresh</strong> stays in the overflow (not as a visible button) since the app auto-refreshes on changes. Manual refresh is a fallback.</li>
+                    <li><strong>New Folder / New Prefix</strong> is in the overflow rather than a persistent icon button &mdash; it's used occasionally, not every session.</li>
+                    <li><strong>Bucket Report</strong> is S3-only. It generates a detailed report of bucket contents &mdash; a power-user/admin action.</li>
+                    <li><strong>Hot Folder</strong> is Local-only. Sets up automatic uploads when files land in a folder &mdash; a core workflow for DITs.</li>
+                    <li><strong>Transfer Settings</strong> / <strong>Edit Remote Configuration</strong> provide quick access to the profile config without navigating to global preferences.</li>
+                    <li><strong>Favorite Paths</strong> gives Local users quick access to bookmarked directories.</li>
+                    <li>The <strong>right-click context menu</strong> on individual items handles per-file actions (open, rename, delete). The &middot;&middot;&middot; menu handles panel-wide actions.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- VIEW 8: Right-Click / Context Menus -->
+        <div id="view-context" class="mockup-view">
+            <p class="mockup-label">Right-Click Menus &mdash; How the context menu relates to the &middot;&middot;&middot; overflow menu</p>
+
+            <!-- Recommendation banner -->
+            <div style="max-width: 1000px; margin: 0 auto 28px; padding: 16px 20px; background: rgba(66,180,255,0.06); border: 1px solid #42b4ff; border-radius: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: #42b4ff; margin-bottom: 6px;">Recommendation: mirror, don't duplicate</div>
+                <div style="font-size: 13px; color: #c6c6cd; line-height: 1.6;">
+                    They shouldn't be <em>identical</em>. Right-clicking <strong>an item</strong> shows item-scoped actions (Open, Rename, Delete, Upload). Right-clicking <strong>empty panel space</strong> shows the same panel-level list as the &middot;&middot;&middot; menu. That "menu depends on where you click" behaviour is the Finder / File&nbsp;Explorer convention users already expect &mdash; and it keeps the &middot;&middot;&middot; button as the discoverable, always-visible way to reach the same panel actions.
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px; margin: 0 auto;">
+                <!-- Right-click on an item -->
+                <div>
+                    <div class="ctx-col-title">Right-click a file or folder</div>
+                    <div class="ctx-col-sub">Item-scoped actions. Different from the &middot;&middot;&middot; menu.</div>
+                    <div class="overflow-menu">
+                        <div class="overflow-menu-header">Camera_Ingest</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></span>Open</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>Reveal in Finder</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></span>Upload to S3</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>Rename</div>
+                        <div class="overflow-menu-item"><span class="menu-icon red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></span>Delete</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span>Copy Path</div>
+                    </div>
+                    <div style="margin-top: 16px; font-size: 12px; color: #656871; line-height: 1.6;">
+                        <strong style="color:#a4a4ad;">On folders</strong> the menu also offers <em>Set as Starting Directory</em>, <em>Configure Hot Folder</em>, and <em>Add to Favorites</em> &mdash; the item-specific versions of the panel actions.
+                    </div>
+                </div>
+
+                <!-- Right-click on empty space -->
+                <div>
+                    <div class="ctx-col-title">Right-click empty space</div>
+                    <div class="ctx-col-sub">Panel-scoped actions &mdash; identical to the &middot;&middot;&middot; menu.</div>
+                    <div class="overflow-menu">
+                        <div class="overflow-menu-header">Panel &middot;&middot;&middot; (same list)</div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></span>Refresh</div>
+                        <div class="overflow-menu-item"><span class="menu-icon blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5"/></svg></span>New Folder</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-item"><span class="menu-icon yellow">&#9733;</span>Favorite Paths</div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#8962;</span>Set Starting Directory</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-item"><span class="menu-icon orange">&#128293;</span>Configure Hot Folder</div>
+                        <div class="overflow-menu-separator"></div>
+                        <div class="overflow-menu-item"><span class="menu-icon grey">&#9881;</span>Transfer Settings&hellip;</div>
+                    </div>
+                    <div style="margin-top: 16px; font-size: 12px; color: #656871; line-height: 1.6;">
+                        This is exactly the <strong style="color:#a4a4ad;">Local Panel &middot;&middot;&middot;</strong> menu. Building both from one shared definition means they never drift apart.
+                    </div>
+                </div>
+            </div>
+
+            <!-- S3 note + rationale -->
+            <div style="max-width: 1000px; margin: 32px auto 0; padding: 20px; background: #161d26; border: 1px solid #424650; border-radius: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: #ebebf0; margin-bottom: 8px;">On the S3 panel</div>
+                <ul style="font-size: 12px; color: #a4a4ad; line-height: 1.8; padding-left: 16px; margin-bottom: 12px;">
+                    <li>The item menu swaps <strong>Upload to S3 &rarr; Download</strong>, and <em>Reveal in Finder</em> becomes <strong>Copy S3 URI</strong>.</li>
+                    <li><strong>Rename</strong> and <strong>Delete</strong> only appear when the daemon's <code>allowRemoteRenameDelete</code> permission is on &mdash; otherwise they're hidden.</li>
+                    <li>Empty-space mirrors the <strong>S3 &middot;&middot;&middot; menu</strong>: New Prefix, Generate Bucket Report, Set Starting Prefix, Edit Remote Configuration.</li>
+                </ul>
+                <div style="font-size: 12px; color: #656871; line-height: 1.6; border-top: 1px solid #424650; padding-top: 12px;">
+                    <strong style="color:#a4a4ad;">Why not make them identical everywhere?</strong> A context menu that ignores what you clicked (showing "New Folder" when you right-click a file) feels broken. Scoping the menu to the target is what makes right-click feel native. The overlap is intentional and lives in one place: the empty-space menu = the &middot;&middot;&middot; menu.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showView(name) {
+            document.querySelectorAll('.mockup-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + name).classList.add('active');
+            document.querySelectorAll('.mockup-nav button:not(.theme-btn)').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        function setTheme(mode, btn) {
+            document.body.classList.toggle('light', mode === 'light');
+            document.querySelectorAll('.theme-seg .theme-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        function showSettings(name, el) {
+            const panels = el.closest('.mockup-view').querySelectorAll('.settings-panel');
+            panels.forEach(p => p.classList.remove('active'));
+            document.getElementById('set-' + name).classList.add('active');
+            el.parentElement.querySelectorAll('.set-nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+        function showTrayTab(name, el) {
+            const wrap = el.closest('.transfer-tray-expanded');
+            wrap.querySelectorAll('.tray-panel').forEach(p => p.classList.remove('active'));
+            wrap.querySelector('#tray-' + name).classList.add('active');
+            el.parentElement.querySelectorAll('.tray-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+        function showCfgTab(name, el) {
+            const modal = el.closest('.cfg-modal');
+            modal.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+            modal.querySelector('#cfg-' + name).classList.add('active');
+            el.parentElement.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+    </script>
+</body>
+</html>

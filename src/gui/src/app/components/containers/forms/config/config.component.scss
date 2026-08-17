@@ -2,64 +2,148 @@
 @use '../../../../../styles/variables';
 @use '../../../../../styles/fonts';
 
-$grid-gap: 16px;
-$grid-col-gap: 16px;
-$grid-row-gap: 4px;
+// Settings is a full-page route (not a modal), so without a cap the fields
+// stretch the whole window. Constrain to roughly the Remote Configuration
+// modal's width (it opens at 50% viewport) so tabs and fields match it.
+$content-max-width: 780px;
 
 :host {
     margin: 16px 14px;
     display: block;
 }
 
-.container-grid {
-    grid-template-areas: 'config-grid-left config-grid-right';
-    grid-template-columns: repeat(2, 1fr);
-    grid-gap: 20px;
+h1 {
+    color: variables.$text-header;
+    max-width: $content-max-width;
+}
+
+/* ---- Left-nav config page (mockup config view) ---- */
+.settings-card {
+    margin-top: 12px;
+    max-width: $content-max-width;
     display: grid;
+    grid-template-columns: 180px 1fr;
+    background: variables.$background-browser-panel;   // #161d26
+    border: 1px solid variables.$grey-600;             // #424650
+    border-radius: 12px;
+    overflow: hidden;
 }
 
-.config-grid-left {
-    grid-area: config-grid-left;
+.settings-nav {
+    background: variables.$background-tray;             // #0f141a — darker sidebar
+    border-right: 1px solid variables.$grey-600;
+    padding: 12px 0;
+    display: flex;
+    flex-direction: column;
+}
 
-    div {
-        margin-bottom: 20px;
+.settings-nav-item {
+    appearance: none;
+    background: none;
+    border: none;
+    border-right: 2px solid transparent;
+    text-align: left;
+    padding: 8px 16px;
+    font: inherit;
+    font-size: 12px;
+    color: variables.$grey-450;
+    cursor: pointer;
+
+    &:hover {
+        color: variables.$grey-100;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    &.active {
+        color: variables.$blue-500;
+        font-weight: 600;
+        background: rgba(66, 180, 255, 0.08);
+        border-right-color: variables.$blue-500;
     }
 }
 
-.config-grid-right {
-    grid-area: config-grid-right;
+.settings-content {
+    min-width: 0;
+}
 
-    div {
-        margin-bottom: 20px;
+.tab-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+// [hidden] must beat the display:flex above (HTML hidden is only display:none).
+.tab-body[hidden] {
+    display: none;
+}
+
+/* Field styling to match the mockup: clean bordered inputs on the panel surface,
+   calmer than Material's default heavy outline. Scoped to this routed component. */
+.settings-content {
+    .mat-mdc-text-field-wrapper {
+        background: variables.$background-tray;         // #0f141a input fill
+        border-radius: 8px;
+    }
+
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+        border-color: variables.$grey-550 !important;   // ~#656871 thin border
+        border-width: 1px !important;
+    }
+
+    // Calm the bright focus outline — keep it 1px, just accent-colored.
+    .mdc-text-field--focused .mdc-notched-outline__leading,
+    .mdc-text-field--focused .mdc-notched-outline__notch,
+    .mdc-text-field--focused .mdc-notched-outline__trailing {
+        border-color: variables.$blue-500 !important;
+        border-width: 1px !important;
     }
 }
 
-.section-header {
-    font-weight: 600;
-    font-family: fonts.$font-family-heavy;
-    font-size: 16px;
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
 }
 
-.section-description {
-    font-weight: 500;
-    font-family: fonts.$font-family-heavy;
+// Sub-section divider within a tab (e.g. "UI Preferences" inside General).
+.section-heading {
+    margin: 8px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid variables.$grey-600;
     font-size: 14px;
+    font-weight: 600;
+    color: variables.$text-header;
 }
 
-.general-settings {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-row-gap: $grid-row-gap;
-    grid-column-gap: $grid-col-gap;
+// Small section label + muted note inside a tab panel.
+.set-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: variables.$grey-450;
+    margin-bottom: 4px;
 }
 
-.right-button {
-    float: right;
+.set-note {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: variables.$grey-450;
+    line-height: 1.5;
 }
 
-.mat-mdc-form-field {
+mat-form-field {
     width: 100%;
     display: block;
+}
+
+/* The tab body owns vertical rhythm via flex gap, so drop the default field margin. */
+.tab-body mat-form-field {
+    margin-bottom: 0;
 }
 
 div.form-field {
@@ -69,34 +153,16 @@ div.form-field {
     margin-top: 4px;
 }
 
-mat-expansion-panel {
-    border: 2px solid variables.$container-border;
-}
-
-form > div {
-    margin-bottom: 20px;
-}
-
-h2 {
-    color: grey;
-}
-
 .settings-buttons {
     display: flex;
     flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 16px;
+    max-width: $content-max-width;
 
     :not(:last-child) {
         margin-right: 8px;
     }
-}
-
-mat-form-field:not(:last-child) {
-    margin-bottom: 12px;
-}
-
-.mat-expansion-panel-header-description {
-    display: flex;
-    justify-content: flex-end;
 }
 
 a {
@@ -111,4 +177,9 @@ a {
 
 mat-hint {
     color: variables.$orange-accent !important;
+}
+
+// Informational hints (e.g. the reports-directory default) are neutral, not warnings.
+mat-hint.info-hint {
+    color: variables.$grey-450 !important;
 }

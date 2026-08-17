@@ -1,4 +1,4 @@
-import { TaskStatus } from '@state/models/job.model';
+import { JobStatus, TaskStatus } from '@state/models/job.model';
 
 export enum ObjectType {
     File,
@@ -18,6 +18,15 @@ export interface JobDetailsData {
     remoteConfiguration: string;
     started: Date;
     completed: Date | null;
+    // Summary fields (mockup Job Details): progress, throughput, size, status, errors.
+    status: JobStatus;
+    statusMessage: string;
+    totalBytes: number;
+    bytesTransferred: number;
+    progress: number;
+    timestampTransferring: Date | null;
+    hasTaskErrors: boolean;
+    hasSuccessfulTasks: boolean;
 }
 
 export interface TaskElement {

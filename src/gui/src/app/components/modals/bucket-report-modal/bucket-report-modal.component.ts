@@ -90,19 +90,30 @@ export class BucketReportModalComponent implements OnDestroy {
 
     generateReport() {
         return () => {
-            if (this.exportForm.valid) {
-                this.fmeClientService.generateInventoryReport(
-                    this.exportForm.controls.remoteConfiguration.value,
-                    this.exportForm.controls.format.value,
-                    true,
-                    this.exportForm.controls.includeChecksums.value,
-                ).subscribe((data) => {
-                    if (!data.success) {
-                        this.notifications.error(data.message);
-                    }
-                });
-                this.dialogRef.close();
+            if (!this.exportForm.valid) {
+                this.exportForm.markAllAsTouched();
+                this.notifications.warning('Choose a remote configuration and format before generating a report.');
+                return;
             }
+            this.fmeClientService.generateInventoryReport(
+                this.exportForm.controls.remoteConfiguration.value,
+                this.exportForm.controls.format.value,
+                true,
+                this.exportForm.controls.includeChecksums.value,
+            ).subscribe({
+                next: (data) => {
+                    if (!data.success) {
+                        this.notifications.error(data.message || 'Failed to start bucket report generation.');
+                    } else {
+                        this.notifications.success('Bucket report started — it will appear in the Bucket Reports tab when ready.');
+                    }
+                },
+                error: (err: unknown) => {
+                    const message = err instanceof Error ? err.message : String(err);
+                    this.notifications.error(`Failed to generate bucket report: ${message}`);
+                },
+            });
+            this.dialogRef.close();
         };
     }
 

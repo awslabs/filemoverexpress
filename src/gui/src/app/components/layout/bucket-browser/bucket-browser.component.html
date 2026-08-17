@@ -3,34 +3,51 @@
         <fme-breadcrumbs [breadcrumbPath]="currentDirectory" [root]="'S3'"
                          (navigate)="navigateToPath($event)"></fme-breadcrumbs>
     </div>
-    <h1 class="title">S3 Bucket</h1>
+    <div class="title-row">
+        <h1 class="title">S3 Bucket</h1>
+        <span class="conn-pill"
+              [class.connected]="connectionState === ConnectionState.CONNECTED"
+              [class.connecting]="connectionState === ConnectionState.CONNECTING"
+              [class.disconnected]="connectionState === ConnectionState.DISCONNECTED">
+            <span class="conn-dot"></span>
+            @if (connectionState === ConnectionState.CONNECTED) {
+                Connected
+            } @else if (connectionState === ConnectionState.CONNECTING) {
+                Connecting&hellip;
+            } @else {
+                Disconnected
+            }
+        </span>
+    </div>
     <div class="inputs-row">
         <fme-text-input #filterField
                         [disabled]="connectionState !== ConnectionState.CONNECTED"
                         class="inputs-row-form-field"
-                        label="Search"
+                        label="Filter"
                         (textChange)="updateFilter($event)">
         </fme-text-input>
         <fme-transfer-profile-selector-dropdown class="inputs-row-form-field"></fme-transfer-profile-selector-dropdown>
         <div class="spacer"></div>
-        @if (currentProfileIsOIDC && selectedTransferProfile) {
+        @if (currentProfileIsOIDC && oidcAuthenticated && selectedTransferProfile) {
             <fme-oidc-auth-status [profileName]="selectedTransferProfile"
                                   (authenticated)="onOidcAuthChange($event)"></fme-oidc-auth-status>
         }
-        <fme-bucket-report-button [disabled]="connectionState !== ConnectionState.CONNECTED"></fme-bucket-report-button>
-        <fme-button type="icon"
-                    icon="create_new_folder"
-                    [onClick]="createS3Prefix()"
-                    [disabled]="connectionState !== ConnectionState.CONNECTED"
-        ></fme-button>
         <fme-refresh-button [disabled]="connectionState !== ConnectionState.CONNECTED"
                             [refreshTooltipMessage]="REFRESH_BUTTON_TOOLTIP"
                             [showRefreshNotificationBadge]="shouldManualRefresh"
                             (refresh)="refreshFileBrowser()">
         </fme-refresh-button>
+        <fme-button #overflowMenuBtn
+                    type="icon"
+                    icon="more_horiz"
+                    tooltip="More actions"
+                    [onClick]="openOverflowMenu()"
+                    [disabled]="connectionState !== ConnectionState.CONNECTED"
+        ></fme-button>
     </div>
     <div class="file-browser">
         <fme-file-browser
+                #fileBrowser
                 fileBrowserType="s3"
                 class="dropZone"
                 [fileBrowserID]="fileBrowserID"

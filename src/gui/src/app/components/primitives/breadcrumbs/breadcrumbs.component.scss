@@ -7,6 +7,8 @@ $arrow-icon-color: variables.$grey-500;
 .breadcrumb-group {
     height: 18px;
     width: 100%;
+    font-size: 11px;
+    line-height: 18px;
     word-break: break-all;
     overflow: hidden;
     white-space: nowrap;
@@ -18,15 +20,17 @@ $arrow-icon-color: variables.$grey-500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    vertical-align: middle;
 }
 
 .breadcrumb-single-clickable {
     @extend .breadcrumb-basic;
     color: variables.$active;
-    text-decoration: underline;
+    text-decoration: none;
 
     &:hover {
         color: $breadcrumb-selected-color;
+        text-decoration: underline;
         cursor: pointer;
     }
 }
@@ -34,14 +38,18 @@ $arrow-icon-color: variables.$grey-500;
 .last-breadcrumb {
     @extend .breadcrumb-basic;
     color: $last-breadcrumb-color;
-    font-weight: bold;
     cursor: default;
 }
 
 .arrow-icon {
-    width: 14px;
-    height: 100%;
-    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 1;
+    vertical-align: middle;
     color: $arrow-icon-color;
     margin-left: 3px;
     margin-right: 3px;

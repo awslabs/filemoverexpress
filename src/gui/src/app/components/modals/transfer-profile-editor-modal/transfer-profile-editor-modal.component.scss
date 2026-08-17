@@ -1,1 +1,7 @@
 @use "../../../../styles/modal";
+
+// Keep the destructive Delete action visually separated on the far left,
+// away from the Close/Update actions on the right.
+.modal-buttons .delete-action {
+    margin-right: auto !important;
+}

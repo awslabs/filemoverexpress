@@ -1,15 +1,12 @@
-import { DatePipe, KeyValuePipe, NgClass } from '@angular/common';
-import { Component, inject, ViewChildren } from '@angular/core';
+import { KeyValuePipe, NgClass } from '@angular/common';
+import { Component, inject, ViewChild, ViewChildren } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
-import { MatFormField, MatLabel } from '@angular/material/input';
+import { MatFormField } from '@angular/material/input';
 import { MatDivider } from '@angular/material/list';
 import { MatMenu, MatMenuContent, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatOption, MatSelect } from '@angular/material/select';
-import { MatSort } from '@angular/material/sort';
 import {
     MatCell,
     MatColumnDef,
@@ -31,10 +28,10 @@ import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, TransferDirection } from '@app/interfaces/jobs-table';
+import { DomElementPosition } from '@app/components/layout/file-browser/file-browser.interfaces';
 import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import {
     JobDurationPipe,
-    JobSpeedPipe,
     JobsTableChecksumProgressPipe,
     JobStatusClassPipe,
     JobStatusPipe,
@@ -66,34 +63,28 @@ const RETRY_COUNT = 5;
     imports: [
         ReactiveFormsModule,
         MatFormField,
-        MatLabel,
         MatSelect,
         KeyValuePipe,
         MatOption,
         PascalCaseToSpacesPipe,
         MatIcon,
-        FormatBytesPipe,
         MatTable,
-        MatSort,
         MatColumnDef,
+        MatCell,
         MatHeaderCell,
         MatHeaderCellDef,
-        MatCell,
+        MatHeaderRow,
+        MatHeaderRowDef,
         TypeSafeMatCellDefDirective,
         MatTooltip,
         TextEllipsesPipe,
+        FormatBytesPipe,
         JobDurationPipe,
-        JobSpeedPipe,
-        DatePipe,
         NgClass,
         JobStatusClassPipe,
-        MatProgressBar,
         JobsTableChecksumProgressPipe,
         JobStatusPipe,
-        MatIconButton,
         MatMenuTrigger,
-        MatHeaderRow,
-        MatHeaderRowDef,
         MatRow,
         MatRowDef,
         MatMenu,
@@ -110,24 +101,27 @@ export class JobsTableComponent {
     private exportSvc = inject(ExportService);
 
     @ViewChildren(MatMenuTrigger) contextMenus: MatMenuTrigger[] = [];
+    // Single cursor-positioned trigger for the row context menu (opened on right-click).
+    @ViewChild(MatMenuTrigger) contextMenuTrigger!: MatMenuTrigger;
+    contextMenuPosition: DomElementPosition = {
+        x: '0px',
+        y: '0px',
+    };
     filterForm = new FormGroup({
         term: new FormControl<string>(''),
         status: new FormControl<string[]>([]),
     });
     jobStates = JobStatus;
 
+    // Mockup Jobs tray is a minimal card-row list; Size + Duration added back per DIT feedback
+    // (how big the job was and how long it took).
     displayedColumns: string[] = [
         'type',
         'name',
-        'remoteConfiguration',
         'size',
         'duration',
-        'eta',
-        // 'speed', // TODO: Disabled this for now, due to inconsistently weird speed data being show (implausibly high speeds)
-        'startTime',
         'progress',
         'status',
-        'action',
     ];
     protected readonly MAX_TABLE_STRING_LENGTH = 40;
     dataSource: MatTableDataSource<Job>;
@@ -286,6 +280,21 @@ export class JobsTableComponent {
     }
 
     /**
+     * Opens the row context menu at the cursor position on right-click.
+     */
+    rightClickJobRow(event: MouseEvent, job: Job) {
+        event.preventDefault();
+        this.contextMenuPosition.x = event.clientX + 'px';
+        this.contextMenuPosition.y = event.clientY + 'px';
+        // Set the menu data imperatively (not via [matMenuTriggerData]): openMenu() reads
+        // menuData synchronously, and the async input binding wouldn't have propagated the
+        // new job yet on the first open — the menu content would render with a null job,
+        // throw, and leave a stuck overlay backdrop that swallows all clicks.
+        this.contextMenuTrigger.menuData = {job};
+        this.contextMenuTrigger.openMenu();
+    }
+
+    /**
      * Opens the details modal for the given job
      *
      * @param job {Job} Job to display details modal for
@@ -293,8 +302,9 @@ export class JobsTableComponent {
     jobDetails(job: Job) {
         this.dialog.open<JobDetailsModalComponent, JobDetailsData>(
             JobDetailsModalComponent, {
-                minWidth: '800px',
-                width: '800px',
+                minWidth: '820px',
+                width: '60%',
+                maxWidth: '1100px',
                 height: '70%',
                 maxHeight: '1000px',
                 autoFocus: false,
@@ -306,6 +316,14 @@ export class JobsTableComponent {
                     remoteConfiguration: job.transferProfile,
                     started: job.timestampCreated,
                     completed: job.timestampCompleted,
+                    status: job.status,
+                    statusMessage: job.statusMessage,
+                    totalBytes: job.totalBytes,
+                    bytesTransferred: job.bytesTransferred,
+                    progress: job.progress,
+                    timestampTransferring: job.timestampTransferring,
+                    hasTaskErrors: job.hasTaskErrors,
+                    hasSuccessfulTasks: job.hasSuccessfulTasks,
                 },
             },
         );
