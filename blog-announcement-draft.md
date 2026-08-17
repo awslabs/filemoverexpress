@@ -4,7 +4,7 @@
 
 Media production teams routinely move terabytes of assets between on-premises storage and the cloud. Whether it is a digital imaging technician (DIT) offloading camera cards on set, a post-production facility feeding an archive, or a content creator pushing dailies for review, these workflows share a common set of challenges: transfers are large, deadlines are tight, and the person who starts a transfer is often not the person, or the machine, that finishes it. Traditional transfer clients tie the transfer to a desktop session, so a closed laptop lid or an expired session can mean hours of lost progress. Commercial alternatives solve some of these problems, but often at the cost of per-seat licensing, proprietary protocols, or routing your content through third-party infrastructure.
 
-Today, we are announcing **File Mover Express (FME)**, an open source, high-performance file transfer application that accelerates media asset workflows between local systems and [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/). File Mover Express is available now on [GitHub](https://github.com/awslabs/filemoverexpress) under the Apache 2.0 license, with signed installers for macOS, Windows, and Linux.
+Today, we are announcing **File Mover Express (FME)**, an open source, high-performance file transfer application that accelerates media asset workflows between local systems and [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/). File Mover Express is available now on [GitHub](https://github.com/awslabs/filemoverexpress) under the Apache 2.0 license, with installers for macOS, Windows, and Linux.
 
 In this post, we introduce File Mover Express, explain the value it delivers for media workflows, and show you how to get started with your first transfer.
 
@@ -12,7 +12,7 @@ In this post, we introduce File Mover Express, explain the value it delivers for
 
 At the core of File Mover Express is a daemon-based transfer engine that decouples transfers from your desktop session. The daemon can run on any machine, whether that is your workstation, a server in the data center, or an [Amazon Elastic Compute Cloud (Amazon EC2)](https://aws.amazon.com/ec2/) instance, while you control it from a drag-and-drop GUI or a scriptable command line interface (CLI) over an encrypted, password-protected connection. You can start a transfer from your laptop on set, disconnect, and check on its progress from the facility later. The daemon continues the work.
 
-Transfers go directly to Amazon S3 using native S3 APIs, with no intermediary servers, no relay infrastructure, and no third-party services in the data path. Large files are automatically split into chunks and uploaded in parallel using multipart upload, with auto-tuned parallelism, configurable retries, and the ability to pause and resume active transfers.
+Transfers go directly to Amazon S3 using native S3 APIs, with no intermediary servers, no relay infrastructure, and no third-party services in the data path. Large files are automatically split into chunks and uploaded in parallel using multipart upload, with auto-tuned parallelism, configurable retries, and the ability to pause and resume active transfers. Transfers work in both directions: the same engine that uploads camera originals can pull footage back down from Amazon S3 for conform, review, or restore. File Mover Express runs on macOS, Windows, and Linux, including headless Linux servers, and works with any AWS Region where Amazon S3 is available.
 
 ## Why File Mover Express
 
@@ -22,9 +22,11 @@ The most expensive part of a slow transfer is rarely the bandwidth. It is the pe
 
 Hot folders extend this further: point File Mover Express at a folder and it automatically uploads anything new that appears. A DIT can offload camera cards into a watch folder and walk away. Footage flows to Amazon S3 with no manual step, turning camera-to-cloud from a job someone does into something that simply happens.
 
+Saturating the connection does not have to mean monopolizing it. Bandwidth throttling lets you cap how much of the network File Mover Express uses, so a large overnight archive push can share a facility connection with video calls and remote editing sessions instead of competing with them.
+
 ### Lower cost and no lock-in: direct to S3, open source, standard formats
 
-File Mover Express transfers data directly between your systems and your S3 buckets. There are no per-seat licenses, no subscription fees, and no third-party relay servers adding cost or latency. You pay only for the AWS resources you already use. Because content lands in Amazon S3 as standard objects, it is immediately available to the rest of your pipeline: [Amazon S3 storage classes](https://aws.amazon.com/s3/storage-classes/) for lifecycle and archive economics, AWS media services for processing, or any tool that speaks the S3 API. Your assets are never held in a proprietary format or a vendor's cloud.
+File Mover Express transfers data directly between your systems and your S3 buckets. There are no per-seat licenses, no subscription fees, and no third-party relay servers adding cost or latency. You pay only for the AWS resources you already use. Because content lands in Amazon S3 as standard objects, it is immediately available to the rest of your pipeline: AWS media services for processing, or any tool that speaks the S3 API. You can also upload directly to any [Amazon S3 storage class](https://aws.amazon.com/s3/storage-classes/), so archive footage can go straight to Amazon S3 Glacier storage classes and start earning archive economics from the first byte, with no lifecycle transition step. Your assets are never held in a proprietary format or a vendor's cloud.
 
 The application itself is Apache 2.0 licensed and developed in the open. You can audit the code that handles your content, build it yourself, extend it to fit your pipeline, and contribute improvements back. That is a level of transparency and control that closed transfer tools cannot offer.
 
@@ -34,7 +36,9 @@ Media workflows depend on a verifiable chain of custody, because an unverified t
 
 ### Security aligned with how you already run AWS
 
-All transfers use HTTPS, and access to your S3 buckets is governed by [AWS Identity and Access Management (IAM)](https://aws.amazon.com/iam/) with a documented minimum-permission policy. That means the same credentials, policies, and audit story you use for the rest of your AWS environment, with no separate account system to manage. Remote daemon connections are encrypted and protected by a password you set. macOS builds are signed and notarized with Amazon's Apple Developer ID, and Windows installers are Authenticode-signed, so your team installs verified software without Gatekeeper workarounds.
+All transfers use HTTPS, and access to your S3 buckets is governed by [AWS Identity and Access Management (IAM)](https://aws.amazon.com/iam/) with a documented minimum-permission policy. That means the same credentials, policies, and audit story you use for the rest of your AWS environment, with no separate account system to manage. File Mover Express also works with S3 server-side encryption, including SSE-S3 and SSE-KMS with customer-managed keys, so content is protected at rest under your key policy.
+
+Remote daemon connections require TLS, which cannot be disabled, and are protected by a pre-shared key that is never stored in plain text. macOS builds are signed and notarized with Amazon's Apple Developer ID, and Windows installers are Authenticode-signed, so your team installs verified software without Gatekeeper workarounds.
 
 ### One engine, three ways to drive it
 
@@ -44,7 +48,7 @@ File Mover Express meets each member of the team where they work. Artists and DI
 - "List my active transfers and pause the one going to the archive bucket."
 - "Browse my S3 bucket and download the footage from last Tuesday."
 
-All three interfaces connect to the same daemon, so there is no separate configuration and no duplicate logic. Transfer profiles, checksums, hot folders, and tuning settings work identically whether the request comes from a mouse, a script, or a sentence. For teams adopting AI assistants in their pipelines, this makes file movement AI-native infrastructure out of the box rather than another integration project.
+All three interfaces connect to the same daemon, so there is no duplicate transfer logic to maintain. After a short one-time setup, transfer profiles, checksums, hot folders, and tuning settings work identically whether the request comes from a mouse, a script, or a sentence. The daemon even watches its configuration file and applies changes automatically, with no restart required. For teams adopting AI assistants in their pipelines, this makes file movement AI-native infrastructure out of the box rather than another integration project.
 
 *(Screenshot/GIF placeholder: MCP conversation in Claude Desktop starting an upload)*
 
