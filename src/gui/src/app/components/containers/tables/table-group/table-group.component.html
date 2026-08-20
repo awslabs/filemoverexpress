@@ -2,7 +2,8 @@
     @if (!tray.collapsed()) {
         <div class="tray-expanded">
             <button class="tray-collapse-top" type="button" (click)="tray.collapse()" aria-label="Collapse transfers">&#9660;</button>
-            <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start" color="accent" class="table-group-wrapper">
+            <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start" color="accent" class="table-group-wrapper"
+                           [selectedIndex]="tray.activeTab()" (selectedIndexChange)="tray.setActiveTab($event)">
                 <mat-tab label="Jobs">
                     <fme-jobs-table></fme-jobs-table>
                 </mat-tab>
@@ -21,30 +22,38 @@
     <button class="tray-summary-bar"
             type="button"
             [class.expanded]="!tray.collapsed()"
-            (click)="tray.toggle()"
+            (click)="onSummaryClick()"
             [attr.aria-label]="tray.collapsed() ? 'Expand transfers' : 'Collapse transfers'">
-        @if (activeJobs() === 0) {
+        @if (activeJobs() === 0 && generatingReports() === 0) {
             <span class="tray-idle">No active transfers</span>
         } @else {
-            <span class="tray-badge">{{ activeJobs() }} jobs</span>
-            @if (downloadActive() > 0) {
-                <span class="tray-stat">
-                    <span class="tri down">&#9660;</span>
-                    <span class="value">{{ downloadSpeed() }}</span>
+            @if (activeJobs() > 0) {
+                <span class="tray-badge">{{ activeJobs() }} jobs</span>
+                @if (downloadActive() > 0) {
+                    <span class="tray-stat">
+                        <span class="tri down">&#9660;</span>
+                        <span class="value">{{ downloadSpeed() }}</span>
+                    </span>
+                }
+                @if (uploadActive() > 0) {
+                    <span class="tray-stat">
+                        <span class="tri up">&#9650;</span>
+                        <span class="value">{{ uploadSpeed() }}</span>
+                    </span>
+                }
+                <span class="tray-meta">{{ summaryTransferred() }} of {{ summaryTotal() }}</span>
+                <span class="tray-meta"><span class="label">ETA:</span> <span class="value">{{ summaryEta() }}</span></span>
+            }
+            @if (generatingReports() > 0) {
+                <span class="tray-report">
+                    <span class="report-spinner">&#9696;</span>
+                    {{ generatingReports() }} {{ generatingReports() === 1 ? 'report' : 'reports' }} generating&hellip;
                 </span>
             }
-            @if (uploadActive() > 0) {
-                <span class="tray-stat">
-                    <span class="tri up">&#9650;</span>
-                    <span class="value">{{ uploadSpeed() }}</span>
-                </span>
-            }
-            <span class="tray-meta">{{ summaryTransferred() }} of {{ summaryTotal() }}</span>
-            <span class="tray-meta"><span class="label">ETA:</span> <span class="value">{{ summaryEta() }}</span></span>
         }
         <span class="spacer"></span>
         @if (tray.collapsed()) {
-            <span class="tray-caret" [class.active]="activeJobs() > 0">&#9650;</span>
+            <span class="tray-caret" [class.active]="activeJobs() > 0 || generatingReports() > 0">&#9650;</span>
         }
     </button>
 </div>

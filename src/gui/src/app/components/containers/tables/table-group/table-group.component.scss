@@ -114,6 +114,29 @@
         }
     }
 
+    // bucket-report generating indicator: spinning glyph + "N reports generating…"
+    .tray-report {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: variables.$white;
+        font-weight: 600;
+
+        .report-spinner {
+            display: inline-block;
+            color: variables.$blue-500;
+            font-size: 12px;
+            line-height: 1;
+            animation: tray-report-spin 1s linear infinite;
+        }
+    }
+
+    @keyframes tray-report-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
     .spacer {
         flex: 1 1 auto;
     }
