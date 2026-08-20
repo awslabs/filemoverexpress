@@ -1058,35 +1058,44 @@ export class FmeClientService {
                 }
             },
             (err) => {
-                if (this.currentConnectAttemptID === connectAttemptID) {
-                    if (this.connectedState != ConnectionState.DISCONNECTED) {
-                        // set status to disconnected only when retry connects fail
+                const isCurrentAttempt = this.currentConnectAttemptID === connectAttemptID;
+
+                if (err instanceof ConnectError && err.code === Code.Canceled) {
+                    // Intentional teardown (bookmark switch, stop daemon, disconnect()) —
+                    // reflect it immediately regardless of the grace period.
+                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
                         this.store.dispatch(ProgressActions.disconnect());
                     }
+                    this.notifications.info(`Disconnected from ${currentBookmark.name}. Clearing jobs table due to disconnection.`);
+                    return;
                 }
-                if (err instanceof ConnectError) {
-                    switch (err.code) {
-                        case Code.Canceled:
-                            this.notifications.info(`Disconnected from ${currentBookmark.name}. Clearing jobs table due to disconnection.`);
-                            return;
-                        case Code.Unauthenticated:
-                            this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
-                            return;
-                        default:
-                            // During the initial grace period the daemon may just be
-                            // starting up (a transient "Failed to fetch"), so stay quiet.
-                            // Once the grace period is exhausted and we still can't connect,
-                            // surface a clear one-time failure toast — including for
-                            // "Failed to fetch" (an unreachable/wrong-address daemon), which
-                            // was previously swallowed and left the user with no cue. Retries
-                            // continue quietly in the background afterwards.
-                            if (this.connectionAttempts >= initialConnectionGracePeriod && !this.connectionFailureNotified) {
-                                this.connectionFailureNotified = true;
-                                this.notifications.error(
-                                    `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
-                                    'reachable and that your connection settings are correct, then retry.');
-                            }
+
+                if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+                    // Terminal auth failure (bad/expired key) — surface immediately and stop
+                    // retrying; waiting out the grace period would just delay a clear error.
+                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
+                        this.store.dispatch(ProgressActions.disconnect());
                     }
+                    this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
+                    return;
+                }
+
+                // Transient/network failure (includes "Failed to fetch" while the daemon is
+                // still starting up). During the initial grace period, keep the UI in
+                // CONNECTING and retry quietly — flipping to DISCONNECTED here is what caused
+                // the "Connection Failed"/"Disconnected" flash on app startup, since the
+                // panels classify any CONNECTING -> DISCONNECTED transition as a failure.
+                // Only once the grace period is exhausted do we surface the disconnected
+                // state and a one-time failure toast; background retries continue afterwards.
+                const gracePeriodExhausted = this.connectionAttempts >= initialConnectionGracePeriod;
+                if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED && gracePeriodExhausted) {
+                    this.store.dispatch(ProgressActions.disconnect());
+                }
+                if (gracePeriodExhausted && !this.connectionFailureNotified) {
+                    this.connectionFailureNotified = true;
+                    this.notifications.error(
+                        `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
+                        'reachable and that your connection settings are correct, then retry.');
                 }
 
                 let retryConnectionTime = 5000;
