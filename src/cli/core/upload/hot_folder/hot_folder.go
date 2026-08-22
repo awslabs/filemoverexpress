@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	fileWatcher        *watcher.Watcher
-	lastUpdated        time.Time
+	fileWatcher *watcher.Watcher
+	// lastUpdated tracks the most recent filesystem activity per hot folder source folder,
+	// so debouncing can be evaluated independently for each hot folder.
+	lastUpdated        map[string]time.Time
 	pendingUploads     []string
 	mtx                *sync.Mutex
 	fileUpdateWaitTime = 10 * time.Second
@@ -38,7 +40,7 @@ type HotFolder struct {
 // Init creates a new Watcher, initializes its hotFolders map, and starts goroutines that process filesystem events
 func Init() {
 	hotFolders = make(map[string]*HotFolder)
-	lastUpdated = time.Now()
+	lastUpdated = make(map[string]time.Time)
 	mtx = &sync.Mutex{}
 
 	fileWatcher = watcher.New()
@@ -128,8 +130,9 @@ func ConfigureHotFolderWatcher(newHotFolder HotFolder) bool {
 }
 
 // waitForFileSystemEvents sits and reads filesystem events that are sent by the Watcher. Upon a new event,
-// it will update the time for the most recent filesystem event received, and add any new filesystem events to the pending uploads.
-// Note that one file being dragged into the hot folder may cause multiple filesystem events if it is large enough
+// it records the activity against every hot folder that contains the changed file and queues the file for
+// upload. Note that one file being dragged into the hot folder may cause multiple filesystem events if it
+// is large enough.
 func waitForFileSystemEvents() {
 	for {
 		select {
@@ -137,12 +140,7 @@ func waitForFileSystemEvents() {
 			if evt.IsDir() {
 				continue
 			}
-			lastUpdated = time.Now()
-			mtx.Lock()
-			if !slices.Contains(pendingUploads, evt.Path) {
-				pendingUploads = append(pendingUploads, evt.Path)
-			}
-			mtx.Unlock()
+			recordFileEvent(evt.Path)
 		case err := <-fileWatcher.Error:
 			events.Events.Error(strErrorRunningHotFolder, err.Error())
 		case <-fileWatcher.Closed:
@@ -153,44 +151,88 @@ func waitForFileSystemEvents() {
 	}
 }
 
-// processFileUpdates will periodically check if there are any pending hot folder uploads.
-// An upload will not be started until time since the last filesystem event is greater than some value (10 seconds)
+// recordFileEvent registers a filesystem event: it stamps the current time against every hot folder
+// whose source folder contains the changed file (so each hot folder can be debounced on its own
+// activity) and adds the file to the pending uploads if it is not already queued.
+func recordFileEvent(path string) {
+	now := time.Now()
+	mtx.Lock()
+	defer mtx.Unlock()
+	for _, hotFolder := range hotFolders {
+		if strings.HasPrefix(path, hotFolder.SourceFolder) {
+			lastUpdated[hotFolder.SourceFolder] = now
+		}
+	}
+	if !slices.Contains(pendingUploads, path) {
+		pendingUploads = append(pendingUploads, path)
+	}
+}
+
+// processFileUpdates periodically checks whether there are any pending hot folder uploads.
+// Debouncing is evaluated per hot folder: a hot folder's pending files are only uploaded once
+// that hot folder has had no filesystem activity for fileUpdateWaitTime. Files belonging to a
+// hot folder that is still active are left queued for a later cycle, so a file is never scheduled
+// while it (or any other file in the same hot folder) is still being written.
 func processFileUpdates() {
 	for {
 		mtx.Lock()
 		if len(pendingUploads) > 0 {
-			duration := time.Since(lastUpdated)
-			if duration > fileUpdateWaitTime {
-				hotFolderUpload(pendingUploads)
-				pendingUploads = pendingUploads[:0]
-			}
+			processPendingUploadsLocked()
 		}
 		mtx.Unlock()
 		time.Sleep(time.Second)
 	}
 }
 
-// hotFolderUpload takes a slice of files to upload, and checks which hot folder(s) the file belongs to.
-// It then calls StartHotFolderUpload for each hot folder that the upload belongs to
-func hotFolderUpload(inputFiles []string) {
+// processPendingUploadsLocked evaluates each hot folder independently. A hot folder whose files
+// changed within the debounce window is skipped entirely for this cycle; otherwise its pending
+// files are uploaded as a single job and removed from the pending queue. The caller must hold mtx.
+func processPendingUploadsLocked() {
+	consumed := make(map[string]bool)
 	for _, hotFolder := range hotFolders {
 		if !hotFolder.Enabled {
 			continue
 		}
-		var uploads []string
-		for _, inputFile := range inputFiles {
-			if strings.HasPrefix(inputFile, hotFolder.SourceFolder) {
-				key := strings.TrimPrefix(inputFile, hotFolder.SourceFolder)
-				key = strings.TrimPrefix(key, string(filepath.Separator))
-				key = filepath.Clean(key)
-				uploads = append(uploads, key)
-			}
+		// Skip the whole hot folder if any of its files changed within the debounce window.
+		if lastWrite, ok := lastUpdated[hotFolder.SourceFolder]; ok &&
+			time.Since(lastWrite) <= fileUpdateWaitTime {
+			continue
 		}
-		if len(uploads) > 0 {
-			jobName := buildJobName(uploads)
-			StartHotFolderUpload(hotFolder, uploads, jobName)
+		keys, matched := keysForHotFolder(hotFolder.SourceFolder, pendingUploads)
+		if len(keys) == 0 {
+			continue
+		}
+		StartHotFolderUpload(hotFolder, keys, buildJobName(keys))
+		for _, file := range matched {
+			consumed[file] = true
 		}
 	}
+	if len(consumed) == 0 {
+		return
+	}
+	remaining := pendingUploads[:0]
+	for _, file := range pendingUploads {
+		if !consumed[file] {
+			remaining = append(remaining, file)
+		}
+	}
+	pendingUploads = remaining
+}
+
+// keysForHotFolder returns the S3-relative upload keys for the pending files that belong to the
+// given source folder, along with the absolute paths that matched so they can be dequeued.
+func keysForHotFolder(sourceFolder string, files []string) (keys []string, matched []string) {
+	for _, file := range files {
+		if !strings.HasPrefix(file, sourceFolder) {
+			continue
+		}
+		key := strings.TrimPrefix(file, sourceFolder)
+		key = strings.TrimPrefix(key, string(filepath.Separator))
+		key = filepath.Clean(key)
+		keys = append(keys, key)
+		matched = append(matched, file)
+	}
+	return keys, matched
 }
 
 // buildJobName builds the hot folder job name based on the files that will be uploaded by the hot folder
