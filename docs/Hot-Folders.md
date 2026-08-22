@@ -14,8 +14,10 @@ The Hot Folder feature recursively monitors all file system events within specif
 
 ## Requirements and Limitations
 
-**Re-adding a hot folder re-uploads all files:**
-When you remove a hot folder and add it back (or restart the daemon), the initial sync uploads every file in the directory — even if identical files already exist in S3. File Mover Express does not currently check for existing objects during the hot folder initial sync. If you need to re-add a hot folder pointing at a directory that has already been synced, be aware that all files will be re-uploaded.
+**Initial sync skips files already in S3 (configurable):**
+By default, when a hot folder is first enabled, the daemon restarts, or the hot folder configuration changes, File Mover Express scans the source folder but **skips files that already exist in S3** — only new or changed files are uploaded. This means restarting the daemon or re-adding a hot folder no longer re-uploads an entire directory that was already synced. The existing-object check is the same one used for regular uploads (see the checksum note below).
+
+If your workflow depends on the previous behavior — re-uploading *every* file in the folder on each initial sync — set `forceInitialUpload: true` on the hot folder (see [Configuration Parameters](#configuration-parameters-1)). This flag affects only the initial/reload sweep; files detected live by the watcher after startup are always uploaded regardless of the flag.
 
 **Duplicate detection with checksums requires File Mover Express metadata:**
 When checksumming is enabled on a transfer profile, the object-already-exists check compares checksum values stored in S3 object metadata (e.g., `xxh3`, `xxhash64`, `md5-hex`). These metadata fields are only written by File Mover Express during upload. Files uploaded to S3 by other tools (AWS CLI, S3 console, third-party clients) will not have this metadata, so File Mover Express may re-upload them even if the content is identical. With checksumming disabled, the check uses file size and last-modified time, which works regardless of how the file was originally uploaded.
@@ -79,6 +81,23 @@ hotFolders:
         s3DestinationFolder: my/s3/prefix
 ```
 
+#### Forcing a full re-upload on the initial sweep
+
+By default the initial/reload sweep skips files already in S3. To preserve the
+legacy behavior and re-upload the entire folder on every daemon start or config
+change, set `forceInitialUpload: true`:
+
+```yaml
+hotFolders:
+  - enabled: true
+    localSourceFolder: /Users/user/myhotfolder
+    name: my_hot_folder
+    forceInitialUpload: true   # re-upload everything on each initial/reload sweep
+    remoteConfigurations:
+      - remoteConfigurationName: example_configuration
+        s3DestinationFolder: my/s3/prefix
+```
+
 #### Multiple Hot Folders
 
 ```yaml
@@ -107,6 +126,7 @@ hotFolders:
 | `enabled` | Yes | Enable/disable this hot folder | `true` |
 | `localSourceFolder` | Yes | Full path to monitor | `/path/to/folder` |
 | `name` | Yes | Unique identifier | `camera_uploads` |
+| `forceInitialUpload` | No | Re-upload every file on the initial/reload sweep instead of skipping files already in S3. Defaults to `false`. | `false` |
 | `remoteConfigurations` | Yes | Array of S3 destinations | See examples below |
 
 **Remote Configuration Parameters:**
@@ -180,15 +200,18 @@ hotFolders:
 
 ### Initial Upload
 
-**First Activation:**
-- When hot folder is first enabled, File Mover Express performs a full upload of existing content
-- This ensures all files in the directory are synchronized
-- You can cancel this initial job in the GUI if not desired
+**First Activation / Restart / Config Change:**
+- When a hot folder is first enabled — and again on every daemon restart or hot folder config change — File Mover Express scans the source folder and uploads files that are **not already in S3** (or whose content has changed). Files already uploaded are skipped, so restarts don't re-push the whole directory.
+- To re-upload the entire folder on every sweep regardless of what's in S3, set `forceInitialUpload: true` (see [Configuration Parameters](#configuration-parameters-1)).
+- You can cancel this initial job in the GUI if not desired.
 
 **Subsequent Operations:**
 - Only new or modified files are uploaded
 - File Mover Express tracks file modification times
 - Deleted files are not automatically removed from S3
+
+**Files still being written:**
+- The watcher debounces activity **per hot folder**: if any file in a hot folder was written within the last few seconds, that hot folder's pending files wait for the next cycle. This prevents partially-copied files from being uploaded mid-write, and prevents a single large copy from spawning duplicate jobs while it finishes.
 
 ### File Processing
 

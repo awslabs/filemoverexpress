@@ -132,6 +132,8 @@ hotFolders:
         s3DestinationFolder: my/s3/prefix
 ```
 
+The optional `forceInitialUpload` key (default `false`) controls the initial/reload sweep: by default it skips files already in S3, so restarting the daemon doesn't re-upload a folder that's already synced. Set it to `true` to re-upload the whole folder on every start/config change. See [Hot Folders](Hot-Folders) for details.
+
 ### Remote Daemon Configuration
 
 The remote daemon feature lets you control File Mover Express running on one computer from another computer over a network — useful for managing transfers on a remote workstation or server without needing to be physically present.
