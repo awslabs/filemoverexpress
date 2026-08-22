@@ -46,3 +46,9 @@ node_modules/
 .kiro/settings/
 .vscode/
 .task/
+
+# Agent working directory — scratch notes, working files, build logs, etc.
+# Contents are ignored so agent scratch never gets committed; the README
+# placeholder keeps the folder present in the repo. See AGENT.md.
+.agent-workspace/*
+!.agent-workspace/README.md
