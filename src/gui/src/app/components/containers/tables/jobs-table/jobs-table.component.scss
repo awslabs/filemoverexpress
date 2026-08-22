@@ -114,10 +114,14 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 // endregion
 
-// region direction indicator — filled triangle, blue down / orange up (mockup .job-direction)
+// region direction indicator — filled triangle, blue down / orange up (mockup .job-direction).
+// Rendered as a Material icon (arrow_drop_up/down), sized to sit compactly in the type column.
 .job-direction {
-    font-size: 14px;
-    line-height: 1;
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    line-height: 24px;
+    vertical-align: middle;
 
     &.download {
         color: variables.$blue-500;

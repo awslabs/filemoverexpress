@@ -13,14 +13,17 @@
     <div class="table-section">
         <div class="jobs-container">
             <table mat-table [dataSource]="dataSource" matSort>
-                <!-- Direction: filled triangle (▲ upload / ▼ download), coloured per the mockup -->
+                <!-- Direction: filled triangle (▲ upload / ▼ download), coloured per the mockup.
+                     Uses Material icons (arrow_drop_up/down) rather than Unicode glyphs so it
+                     renders crisply and identically across platforms — the Unicode triangles
+                     picked up a stray font-fallback dot in the webview. -->
                 <ng-container matColumnDef="type">
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let job; dataSource: dataSource">
-                        <span class="job-direction"
-                              [class.download]="job.direction === TransferDirection.Download"
-                              [class.upload]="job.direction !== TransferDirection.Download"
-                        >{{ job.direction === TransferDirection.Download ? '▼' : '▲' }}</span>
+                        <mat-icon fontSet="material-icons" class="job-direction"
+                                  [class.download]="job.direction === TransferDirection.Download"
+                                  [class.upload]="job.direction !== TransferDirection.Download"
+                        >{{ job.direction === TransferDirection.Download ? 'arrow_drop_down' : 'arrow_drop_up' }}</mat-icon>
                     </td>
                 </ng-container>
 
