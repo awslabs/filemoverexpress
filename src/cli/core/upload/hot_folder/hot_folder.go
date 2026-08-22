@@ -33,6 +33,8 @@ type HotFolder struct {
 	Name         string
 	Enabled      bool
 	SourceFolder string
+	// ForceInitialUpload re-uploads the whole source folder with Force on daemon start / reconfigure.
+	ForceInitialUpload bool
 	// key: transfer profile name, value: destination folder
 	TransferProfilesAndDestinationFolders map[string]string
 }
@@ -65,6 +67,7 @@ func configureHotFolders() {
 			Name:                                  cfgHotFolder.Name,
 			Enabled:                               cfgHotFolder.Enabled,
 			SourceFolder:                          cfgHotFolder.LocalSourceFolder,
+			ForceInitialUpload:                    cfgHotFolder.ForceInitialUpload,
 			TransferProfilesAndDestinationFolders: hotFolderTxMap,
 		}
 		ConfigureHotFolderWatcher(hotFolder)
@@ -202,7 +205,10 @@ func processPendingUploadsLocked() {
 		if len(keys) == 0 {
 			continue
 		}
-		StartHotFolderUpload(hotFolder, keys, buildJobName(keys))
+		// Files here were just detected by the live watcher, so always force the upload
+		// regardless of the hot folder's ForceInitialUpload setting (that flag only governs
+		// the startup/reload full-folder sweep, not newly-arrived files).
+		StartHotFolderUpload(hotFolder, keys, buildJobName(keys), true)
 		for _, file := range matched {
 			consumed[file] = struct{}{}
 		}
@@ -260,8 +266,9 @@ func buildJobName(filesToUpload []string) string {
 	return jobName
 }
 
-// StartHotFolderUpload Creates a job and starts an Upload for each remote configuration in the hot folder
-func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string) {
+// StartHotFolderUpload Creates a job and starts an Upload for each remote configuration in the hot folder.
+// When force is true the upload ignores the already-exists filters and re-uploads every file.
+func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, force bool) {
 	for transferProfileName, destinationFolder := range hotFolder.TransferProfilesAndDestinationFolders {
 		transferProfile, err := config.LoadConfiguration().GetTransferProfile(transferProfileName)
 		if err != nil {
@@ -274,7 +281,7 @@ func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string) {
 			TransferProfile: &transferProfile,
 			Sources:         keys,
 			Destination:     trimHotFolderDestinationPath(destinationFolder, transferProfile.Bucket),
-			Force:           true,
+			Force:           force,
 			UploadBasePath:  hotFolder.SourceFolder,
 		})
 		if err != nil {
@@ -286,11 +293,12 @@ func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string) {
 	}
 }
 
-// HotFolderUploadSourceDirectory Starts an upload for the entire source directory of a hot folder
+// HotFolderUploadSourceDirectory Starts an upload for the entire source directory of a hot folder.
+// Whether already-uploaded files are re-sent is controlled by the hot folder's ForceInitialUpload flag.
 func HotFolderUploadSourceDirectory(hotFolder *HotFolder) {
 	fileParts := strings.Split(hotFolder.SourceFolder, string(filepath.Separator))
 	hotFolderDir := fileParts[len(fileParts)-1]
-	StartHotFolderUpload(hotFolder, []string{"."}, strings.Join([]string{"Hot Folder", hotFolderDir}, " - "))
+	StartHotFolderUpload(hotFolder, []string{"."}, strings.Join([]string{"Hot Folder", hotFolderDir}, " - "), hotFolder.ForceInitialUpload)
 }
 
 // InitialHotFolderUpload is called when the daemon starts, and uploads the source directory of each hot folder

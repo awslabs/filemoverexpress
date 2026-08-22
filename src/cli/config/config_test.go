@@ -483,6 +483,7 @@ hotFolders:
   - enabled: true
     localSourceFolder: "/watch/folder"
     name: "hot1"
+    forceInitialUpload: true
     remoteConfigurations:
       - remoteConfigurationName: "my-profile"
         s3DestinationFolder: "uploads/"
@@ -553,6 +554,7 @@ hotFolders:
 	assert.True(t, hf.Enabled)
 	assert.Equal(t, "/watch/folder", hf.LocalSourceFolder)
 	assert.Equal(t, "hot1", hf.Name)
+	assert.True(t, hf.ForceInitialUpload)
 	require.Len(t, hf.RemoteConfigurations, 1)
 	assert.Equal(t, "my-profile", hf.RemoteConfigurations[0].RemoteConfigurationName)
 	assert.Equal(t, "uploads/", hf.RemoteConfigurations[0].S3DestinationFolder)
