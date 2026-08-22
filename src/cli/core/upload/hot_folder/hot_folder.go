@@ -159,7 +159,7 @@ func recordFileEvent(path string) {
 	mtx.Lock()
 	defer mtx.Unlock()
 	for _, hotFolder := range hotFolders {
-		if strings.HasPrefix(path, hotFolder.SourceFolder) {
+		if pathWithinFolder(path, hotFolder.SourceFolder) {
 			lastUpdated[hotFolder.SourceFolder] = now
 		}
 	}
@@ -188,7 +188,7 @@ func processFileUpdates() {
 // changed within the debounce window is skipped entirely for this cycle; otherwise its pending
 // files are uploaded as a single job and removed from the pending queue. The caller must hold mtx.
 func processPendingUploadsLocked() {
-	consumed := make(map[string]bool)
+	consumed := make(map[string]struct{})
 	for _, hotFolder := range hotFolders {
 		if !hotFolder.Enabled {
 			continue
@@ -204,7 +204,7 @@ func processPendingUploadsLocked() {
 		}
 		StartHotFolderUpload(hotFolder, keys, buildJobName(keys))
 		for _, file := range matched {
-			consumed[file] = true
+			consumed[file] = struct{}{}
 		}
 	}
 	if len(consumed) == 0 {
@@ -212,7 +212,7 @@ func processPendingUploadsLocked() {
 	}
 	remaining := pendingUploads[:0]
 	for _, file := range pendingUploads {
-		if !consumed[file] {
+		if _, ok := consumed[file]; !ok {
 			remaining = append(remaining, file)
 		}
 	}
@@ -223,7 +223,7 @@ func processPendingUploadsLocked() {
 // given source folder, along with the absolute paths that matched so they can be dequeued.
 func keysForHotFolder(sourceFolder string, files []string) (keys []string, matched []string) {
 	for _, file := range files {
-		if !strings.HasPrefix(file, sourceFolder) {
+		if !pathWithinFolder(file, sourceFolder) {
 			continue
 		}
 		key := strings.TrimPrefix(file, sourceFolder)
@@ -233,6 +233,17 @@ func keysForHotFolder(sourceFolder string, files []string) (keys []string, match
 		matched = append(matched, file)
 	}
 	return keys, matched
+}
+
+// pathWithinFolder reports whether path is contained within folder. It guards against prefix
+// collisions (e.g. source folder "/media/hotA" must not match "/media/hotAB/clip.mov") by
+// requiring a path-separator boundary after folder rather than a raw string prefix.
+func pathWithinFolder(path, folder string) bool {
+	prefix := folder
+	if !strings.HasSuffix(prefix, string(filepath.Separator)) {
+		prefix += string(filepath.Separator)
+	}
+	return strings.HasPrefix(path, prefix)
 }
 
 // buildJobName builds the hot folder job name based on the files that will be uploaded by the hot folder
