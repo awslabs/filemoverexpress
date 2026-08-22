@@ -20,31 +20,29 @@
         "build:gui": "task gui:build",
         "build:proto": "task proto:generate",
         "build:wails": "task wails:build",
-
         "test": "task test",
         "test:cli": "task cli:test",
         "test:gui": "task gui:test",
         "test:wails": "task test:wails",
-
         "lint": "task lint",
         "lint:cli": "task cli:lint",
         "lint:gui": "task gui:lint"
     },
     "devDependencies": {
-        "@bufbuild/buf": "1.67.0",
-        "@bufbuild/protoc-gen-es": "2.11.0",
+        "@bufbuild/buf": "1.72.0",
+        "@bufbuild/protoc-gen-es": "2.14.0",
         "@eslint/js": "10.0.1",
         "@stylistic/eslint-plugin": "5.10.0",
         "@types/node": "^20",
         "cross-env": "10.1.0",
-        "fast-check": "4.6.0",
+        "fast-check": "4.9.0",
         "npm-run-all": "4.1.5",
-        "prettier": "3.8.1",
+        "prettier": "3.9.6",
         "ts-node": "10.9.2",
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "hono": "4.13.1"
+        "hono": "4.13.3"
     },
     "overrides": {
         "tar": "^7.5.7"
