@@ -77,6 +77,14 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         text-align: center;
     }
 
+    // Fixed layout so the width-less Name column absorbs the leftover space and
+    // ellipsis-truncates to fit, instead of being hard-capped at a character count
+    // (which cut names off even when the window had room to show them in full).
+    table.mat-mdc-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
     .mat-column-progress {
         width: 240px;
     }
@@ -127,6 +135,13 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 }
 // endregion
 

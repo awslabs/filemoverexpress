@@ -1,5 +1,5 @@
 import { KeyValuePipe, NgClass } from '@angular/common';
-import { Component, inject, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, inject, ViewChild, ViewChildren } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -19,6 +19,7 @@ import {
     MatTable,
     MatTableDataSource,
 } from '@angular/material/table';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
 import { MatTooltip } from '@angular/material/tooltip';
 import { handleStreamError } from '@app/classes/rxjs-operators';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
@@ -37,7 +38,6 @@ import {
     JobStatusPipe,
 } from '@app/pipes/jobs-table-status.pipe';
 import { PascalCaseToSpacesPipe } from '@app/pipes/pascal-case-to-spaces.pipe';
-import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { buildFilterString, jobsTableFilterPredicate } from '@app/utils/transfer-utils';
 import { stringToJobStatus } from '@app/utils/utils';
 import { INITIAL_TRANSFER_SUMMARY_STATS, TransferSummaryStats } from '@containers/tables/jobs-table/jobs-table.interfaces';
@@ -75,9 +75,10 @@ const RETRY_COUNT = 5;
         MatHeaderCellDef,
         MatHeaderRow,
         MatHeaderRowDef,
+        MatSort,
+        MatSortHeader,
         TypeSafeMatCellDefDirective,
         MatTooltip,
-        TextEllipsesPipe,
         FormatBytesPipe,
         JobDurationPipe,
         NgClass,
@@ -93,7 +94,7 @@ const RETRY_COUNT = 5;
         MatDivider,
     ],
 })
-export class JobsTableComponent {
+export class JobsTableComponent implements AfterViewInit {
     private fmeClientService = inject(FmeClientService);
     private dialog = inject(MatDialog);
     private store = inject(Store);
@@ -103,6 +104,7 @@ export class JobsTableComponent {
     @ViewChildren(MatMenuTrigger) contextMenus: MatMenuTrigger[] = [];
     // Single cursor-positioned trigger for the row context menu (opened on right-click).
     @ViewChild(MatMenuTrigger) contextMenuTrigger!: MatMenuTrigger;
+    @ViewChild(MatSort) sort!: MatSort;
     contextMenuPosition: DomElementPosition = {
         x: '0px',
         y: '0px',
@@ -123,7 +125,6 @@ export class JobsTableComponent {
         'progress',
         'status',
     ];
-    protected readonly MAX_TABLE_STRING_LENGTH = 40;
     dataSource: MatTableDataSource<Job>;
     uploadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};
     downloadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};
@@ -133,6 +134,24 @@ export class JobsTableComponent {
     constructor() {
         this.dataSource = new MatTableDataSource<Job>([]);
         this.dataSource.filterPredicate = jobsTableFilterPredicate;
+        // Sort the computed/pill columns by their underlying value, not the rendered
+        // string (e.g. Duration sorts by elapsed seconds, Size by raw bytes).
+        this.dataSource.sortingDataAccessor = (job, columnId): string | number => {
+            switch (columnId) {
+                case 'name':
+                    return job.name?.toLowerCase() ?? '';
+                case 'size':
+                    return job.totalBytes ?? 0;
+                case 'duration':
+                    return this.jobDurationSeconds(job);
+                case 'progress':
+                    return job.progress ?? 0;
+                case 'status':
+                    return job.status ?? '';
+                default:
+                    return '';
+            }
+        };
         this.filterForm.valueChanges.pipe(
             debounceTime(DELAY),
             distinctUntilChanged(),
@@ -231,6 +250,28 @@ export class JobsTableComponent {
             this.dataSource.data = jobs;
             this.updateSummaryStats(jobs);
         });
+    }
+
+    ngAfterViewInit() {
+        // Wire the sort directive after the view initializes so header clicks sort the table.
+        this.dataSource.sort = this.sort;
+    }
+
+    /**
+     * Elapsed job duration in seconds, matching JobDurationPipe's basis (created ->
+     * completed for terminal jobs, else created -> now). Used only to sort the Duration
+     * column numerically rather than by its rendered string.
+     * @param job {Job} Job to measure
+     * @private
+     */
+    private jobDurationSeconds(job: Job): number {
+        if (!job.timestampCreated) {
+            return 0;
+        }
+        const end = TERMINAL_STATES.includes(job.status) && job.timestampCompleted
+            ? job.timestampCompleted
+            : new Date();
+        return (end.getTime() - job.timestampCreated.getTime()) / 1000;
     }
 
     /**
