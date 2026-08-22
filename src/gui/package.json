@@ -17,7 +17,7 @@
         "@angular/cdk": "v21-lts",
         "@angular/common": "v21-lts",
         "@angular/compiler": "21.2.21",
-        "@angular/core": "v21-lts",
+        "@angular/core": "^21.2.19",
         "@angular/forms": "v21-lts",
         "@angular/material": "v21-lts",
         "@angular/platform-browser": "v21-lts",
