@@ -110,6 +110,10 @@ message UploadHotFolderSettings {
     string local_source_folder = 2;
     string name = 3;
     repeated HotFolderTransferConfigurations remote_configurations = 4;
+    // When true, the whole source folder is (re)uploaded with Force on daemon start and when the
+    // hot folder is (re)configured, even if the objects already exist in S3. Defaults to false so
+    // the initial sweep skips already-uploaded files; set true to preserve the legacy behavior.
+    bool force_initial_upload = 5;
 }
 
 message HotFolderTransferConfigurations {

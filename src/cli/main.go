@@ -129,6 +129,7 @@ func ReloadConfigUpdates(cfg configtypes.FmeConfig) {
 			Name:                                  hotFolder.Name,
 			Enabled:                               hotFolder.Enabled,
 			SourceFolder:                          hotFolder.LocalSourceFolder,
+			ForceInitialUpload:                    hotFolder.ForceInitialUpload,
 			TransferProfilesAndDestinationFolders: hotFolderConfigMap,
 		}
 		shouldStartUpload := hot_folder.ConfigureHotFolderWatcher(newHotFolder)

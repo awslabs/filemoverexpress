@@ -4,7 +4,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/upload"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
+	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
 
 func Test_keysForHotFolder(t *testing.T) {
@@ -129,6 +135,53 @@ func Test_trimHotFolderDestinationPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, trimHotFolderDestinationPath(tt.args.prefix, tt.args.bucket), "trimHotFolderDestinationPath(%v, %v)", tt.args.prefix, tt.args.bucket)
+		})
+	}
+}
+
+// Test_HotFolderUploadSourceDirectory_ForcePropagation verifies that the initial/reload
+// full-folder sweep passes the hot folder's ForceInitialUpload flag straight through to the
+// upload job's Force field. This guards against a regression where the sweep hardcodes Force
+// (as it did before the flag was introduced), which would re-upload the whole folder on every
+// daemon start regardless of the customer's setting.
+func Test_HotFolderUploadSourceDirectory_ForcePropagation(t *testing.T) {
+	tests := []struct {
+		name               string
+		forceInitialUpload bool
+	}{
+		{name: "flag unset -> job created with Force false", forceInitialUpload: false},
+		{name: "flag set -> job created with Force true (legacy behavior)", forceInitialUpload: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockey.PatchConvey(tt.name, t, func() {
+				hotFolder := &HotFolder{
+					Name:                                  "hf",
+					Enabled:                               true,
+					SourceFolder:                          filepath.Join("watch", "folder"),
+					ForceInitialUpload:                    tt.forceInitialUpload,
+					TransferProfilesAndDestinationFolders: map[string]string{"profile": "dest"},
+				}
+
+				mockey.Mock(config.LoadConfiguration).Return(configtypes.FmeConfig{}).Build()
+				mockey.Mock((configtypes.FmeConfig).GetTransferProfile).
+					Return(configtypes.TransferProfile{Name: "profile", Bucket: "bucket"}, nil).Build()
+
+				var capturedForce bool
+				var jobCreated bool
+				mockey.Mock(jobmanagertypes.NewJob).To(func(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Job, error) {
+					capturedForce = cfg.Force
+					jobCreated = true
+					return &jobmanagertypes.Job{}, nil
+				}).Build()
+				mockey.Mock(upload.Uploader).To(func(*jobmanagertypes.Job) {}).Build()
+
+				HotFolderUploadSourceDirectory(hotFolder)
+
+				assert.True(t, jobCreated, "expected an upload job to be created")
+				assert.Equal(t, tt.forceInitialUpload, capturedForce,
+					"job Force must match the hot folder's ForceInitialUpload flag")
+			})
 		})
 	}
 }

@@ -98,6 +98,7 @@ type (
 		Enabled              bool                            `koanf:"enabled" yaml:"enabled"`
 		LocalSourceFolder    string                          `koanf:"localSourceFolder" yaml:"localSourceFolder"`
 		Name                 string                          `koanf:"name" yaml:"name"`
+		ForceInitialUpload   bool                            `koanf:"forceInitialUpload" yaml:"forceInitialUpload"`
 		RemoteConfigurations []HotFolderRemoteConfigurations `koanf:"remoteConfigurations" yaml:"remoteConfigurations"`
 	}
 	HotFolderRemoteConfigurations struct {
@@ -315,6 +316,7 @@ func HotFoldersFromProtobuf(hotFoldersList []*fmev1.UploadHotFolderSettings) (ho
 			Enabled:              hotFolder.Enabled,
 			LocalSourceFolder:    hotFolder.LocalSourceFolder,
 			RemoteConfigurations: txs,
+			ForceInitialUpload:   hotFolder.ForceInitialUpload,
 		}
 		hotFolders = append(hotFolders, hotFolderFromProtobuf)
 	}
@@ -338,6 +340,7 @@ func HotFoldersToProtobuf(hotFolders []UploadHotFolderSettings) []*fmev1.UploadH
 			LocalSourceFolder:    hotFolder.LocalSourceFolder,
 			Name:                 hotFolder.Name,
 			RemoteConfigurations: txs,
+			ForceInitialUpload:   hotFolder.ForceInitialUpload,
 		}
 		out = append(out, pbv)
 	}
