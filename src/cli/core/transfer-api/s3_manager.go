@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -51,6 +50,16 @@ type (
 		Region     string
 		Uploader   *manager.Uploader
 		Lock       *sync.RWMutex
+	}
+
+	// oidcCredentialProvider implements aws.CredentialsProvider by delegating to the
+	// OIDCProvider's GetCredentials method. The AWS SDK calls Retrieve() on each API
+	// request (with internal caching based on CanExpire/Expires), enabling transparent
+	// credential refresh during long-running transfers.
+	oidcCredentialProvider struct {
+		provider    *auth.OIDCProvider
+		profileName string
+		oidcConfig  *auth.OIDCConfig
 	}
 )
 
@@ -122,67 +131,68 @@ func GetSessionForTransferProfile(tp configtypes.TransferProfile) (*aws.Config, 
 	return GetSession(tp.Profile, tp.Region)
 }
 
+func (o *oidcCredentialProvider) Retrieve(_ context.Context) (aws.Credentials, error) {
+	creds, err := o.provider.GetCredentials(o.profileName, o.oidcConfig)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+	return aws.Credentials{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+		Source:          "OIDCProvider",
+		CanExpire:       true,
+		Expires:         creds.Expiration,
+	}, nil
+}
+
 func getOIDCSession(tp configtypes.TransferProfile) (*aws.Config, error) {
 	if oidcProvider == nil {
 		return nil, errOIDCProviderNotInitialized
 	}
 
-	var oidcCfg *auth.OIDCConfig
-	if tp.OIDCConfig != nil {
-		oidcCfg = &auth.OIDCConfig{
-			IssuerURL:              tp.OIDCConfig.IssuerURL,
-			ClientID:               tp.OIDCConfig.ClientID,
-			RoleARN:                tp.OIDCConfig.RoleARN,
-			Scopes:                 tp.OIDCConfig.Scopes,
-			PersistSession:         tp.OIDCConfig.PersistSession,
-			CustomCABundle:         tp.OIDCConfig.CustomCABundle,
-			SessionDurationSeconds: tp.OIDCConfig.SessionDurationSeconds,
-		}
-	}
+	oidcCfg := mapTransferProfileToOIDCConfig(tp.OIDCConfig)
 
-	creds, err := oidcProvider.GetCredentials(tp.Name, oidcCfg)
-	if err != nil {
+	// Fail fast: verify credentials are obtainable before building the client.
+	// This surfaces ErrOIDCNotAuthenticated immediately rather than on first S3 call.
+	if _, err := oidcProvider.GetCredentials(tp.Name, oidcCfg); err != nil {
 		return nil, err
 	}
 
-	// Use profile name as cache key (not region+awsProfile) for OIDC sessions
-	key := "oidc-" + tp.Name
-
-	configCacheLock.RLock()
-	existingCfg, entryExists := configCache[key]
-	configCacheLock.RUnlock()
-
-	if entryExists && existingCfg != nil {
-		// Update credentials in place via a new config with fresh static creds
-		cfg, err := buildOIDCConfig(tp.Region, creds)
-		if err != nil {
-			return nil, err
-		}
-		configCacheLock.Lock()
-		configCache[key] = &cfg
-		configCacheLock.Unlock()
-		return &cfg, nil
+	provider := &oidcCredentialProvider{
+		provider:    oidcProvider,
+		profileName: tp.Name,
+		oidcConfig:  oidcCfg,
 	}
 
-	cfg, err := buildOIDCConfig(tp.Region, creds)
+	cfg, err := buildOIDCConfig(tp.Region, provider)
 	if err != nil {
 		return nil, err
 	}
-
-	configCacheLock.Lock()
-	configCache[key] = &cfg
-	configCacheLock.Unlock()
-
 	return &cfg, nil
 }
 
-func buildOIDCConfig(region string, creds *auth.AWSCredentials) (aws.Config, error) {
+// mapTransferProfileToOIDCConfig converts the config types to the auth package types.
+func mapTransferProfileToOIDCConfig(src *configtypes.OIDCConfig) *auth.OIDCConfig {
+	if src == nil {
+		return nil
+	}
+	return &auth.OIDCConfig{
+		IssuerURL:              src.IssuerURL,
+		ClientID:               src.ClientID,
+		RoleARN:                src.RoleARN,
+		Scopes:                 src.Scopes,
+		PersistSession:         src.PersistSession,
+		CustomCABundle:         src.CustomCABundle,
+		SessionDurationSeconds: src.SessionDurationSeconds,
+	}
+}
+
+func buildOIDCConfig(region string, provider aws.CredentialsProvider) (aws.Config, error) {
 	return config.LoadDefaultConfig(
 		context.TODO(),
 		config.WithRegion(region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken,
-		)),
+		config.WithCredentialsProvider(provider),
 	)
 }
 
