@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTab, MatTabGroup } from '@angular/material/tabs';
 import { Store } from '@ngrx/store';
 import { JobsTableComponent } from '@containers/tables/jobs-table/jobs-table.component';
@@ -27,6 +28,7 @@ export class TableGroupComponent {
     protected tray = inject(TrayStateService);
     private store = inject(Store);
     private bucketReport = inject(BucketReportService);
+    private destroyRef = inject(DestroyRef);
 
     /** Number of in-progress transfers, for the collapsed summary bar. */
     activeJobs = signal(0);
@@ -44,11 +46,15 @@ export class TableGroupComponent {
 
     constructor() {
         // A report is "generating" while its status is Started (Completed/Error are terminal).
-        this.bucketReport.bucketReportData.subscribe((reports) => {
+        this.bucketReport.bucketReportData.pipe(
+            takeUntilDestroyed(this.destroyRef),
+        ).subscribe((reports) => {
             this.generatingReports.set(reports.filter((report) => report.status === 'Started').length);
         });
 
-        this.store.select(jobSelectAll).subscribe((jobs) => {
+        this.store.select(jobSelectAll).pipe(
+            takeUntilDestroyed(this.destroyRef),
+        ).subscribe((jobs) => {
             const active = jobs.filter((job) => PROGRESS_STATES.includes(job.status));
             this.activeJobs.set(active.length);
             this.downloadActive.set(active.filter((job) => job.direction === TransferDirection.Download).length);

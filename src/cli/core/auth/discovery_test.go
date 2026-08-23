@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func validDiscoveryJSON(tokenEndpoint string) string {
+func validDiscoveryJSON(issuer, tokenEndpoint string) string {
 	doc := DiscoveryDocument{
-		Issuer:                "https://auth.example.com",
+		Issuer:                issuer,
 		AuthorizationEndpoint: "https://auth.example.com/auth",
 		TokenEndpoint:         tokenEndpoint,
 		JWKSURI:               "https://auth.example.com/keys",
@@ -36,16 +36,18 @@ func validDiscoveryJSON(tokenEndpoint string) string {
 }
 
 func TestFetchDiscovery_Success(t *testing.T) {
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/.well-known/openid-configuration", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(validDiscoveryJSON("https://auth.example.com/token")))
+		_, _ = w.Write([]byte(validDiscoveryJSON(serverURL, "https://auth.example.com/token")))
 	}))
 	defer server.Close()
+	serverURL = server.URL
 
 	doc, err := FetchDiscovery(context.Background(), server.URL, "")
 	require.NoError(t, err)
-	assert.Equal(t, "https://auth.example.com", doc.Issuer)
+	assert.Equal(t, server.URL, doc.Issuer)
 	assert.Equal(t, "https://auth.example.com/auth", doc.AuthorizationEndpoint)
 	assert.Equal(t, "https://auth.example.com/token", doc.TokenEndpoint)
 	assert.Equal(t, "https://auth.example.com/keys", doc.JWKSURI)
@@ -53,11 +55,13 @@ func TestFetchDiscovery_Success(t *testing.T) {
 }
 
 func TestFetchDiscovery_TrailingSlashInIssuer(t *testing.T) {
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/.well-known/openid-configuration", r.URL.Path)
-		_, _ = w.Write([]byte(validDiscoveryJSON("https://auth.example.com/token")))
+		_, _ = w.Write([]byte(validDiscoveryJSON(serverURL, "https://auth.example.com/token")))
 	}))
 	defer server.Close()
+	serverURL = server.URL
 
 	doc, err := FetchDiscovery(context.Background(), server.URL+"/", "")
 	require.NoError(t, err)
@@ -65,9 +69,10 @@ func TestFetchDiscovery_TrailingSlashInIssuer(t *testing.T) {
 }
 
 func TestFetchDiscovery_MissingAuthorizationEndpoint(t *testing.T) {
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		doc := map[string]string{
-			"issuer":         "https://auth.example.com",
+			"issuer":         serverURL,
 			"token_endpoint": "https://auth.example.com/token",
 			"jwks_uri":       "https://auth.example.com/keys",
 		}
@@ -75,6 +80,7 @@ func TestFetchDiscovery_MissingAuthorizationEndpoint(t *testing.T) {
 		_, _ = w.Write(data)
 	}))
 	defer server.Close()
+	serverURL = server.URL
 
 	_, err := FetchDiscovery(context.Background(), server.URL, "")
 	require.Error(t, err)
@@ -82,9 +88,10 @@ func TestFetchDiscovery_MissingAuthorizationEndpoint(t *testing.T) {
 }
 
 func TestFetchDiscovery_MissingTokenEndpoint(t *testing.T) {
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		doc := map[string]string{
-			"issuer":                 "https://auth.example.com",
+			"issuer":                 serverURL,
 			"authorization_endpoint": "https://auth.example.com/auth",
 			"jwks_uri":               "https://auth.example.com/keys",
 		}
@@ -92,6 +99,7 @@ func TestFetchDiscovery_MissingTokenEndpoint(t *testing.T) {
 		_, _ = w.Write(data)
 	}))
 	defer server.Close()
+	serverURL = server.URL
 
 	_, err := FetchDiscovery(context.Background(), server.URL, "")
 	require.Error(t, err)
@@ -99,11 +107,45 @@ func TestFetchDiscovery_MissingTokenEndpoint(t *testing.T) {
 }
 
 func TestFetchDiscovery_MissingJWKSURI(t *testing.T) {
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		doc := map[string]string{
-			"issuer":                 "https://auth.example.com",
+			"issuer":                 serverURL,
 			"authorization_endpoint": "https://auth.example.com/auth",
 			"token_endpoint":         "https://auth.example.com/token",
+		}
+		data, _ := json.Marshal(doc)
+		_, _ = w.Write(data)
+	}))
+	defer server.Close()
+	serverURL = server.URL
+
+	_, err := FetchDiscovery(context.Background(), server.URL, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing jwks_uri")
+}
+
+func TestFetchDiscovery_HTTPTokenEndpointRejected(t *testing.T) {
+	var serverURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(validDiscoveryJSON(serverURL, "http://auth.example.com/token")))
+	}))
+	defer server.Close()
+	serverURL = server.URL
+
+	_, err := FetchDiscovery(context.Background(), server.URL, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "uses HTTP")
+	assert.Contains(t, err.Error(), "HTTPS is required")
+}
+
+func TestFetchDiscovery_IssuerMismatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		doc := DiscoveryDocument{
+			Issuer:                "https://evil.example.com",
+			AuthorizationEndpoint: "https://auth.example.com/auth",
+			TokenEndpoint:         "https://auth.example.com/token",
+			JWKSURI:               "https://auth.example.com/keys",
 		}
 		data, _ := json.Marshal(doc)
 		_, _ = w.Write(data)
@@ -112,19 +154,8 @@ func TestFetchDiscovery_MissingJWKSURI(t *testing.T) {
 
 	_, err := FetchDiscovery(context.Background(), server.URL, "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "missing jwks_uri")
-}
-
-func TestFetchDiscovery_HTTPTokenEndpointRejected(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(validDiscoveryJSON("http://auth.example.com/token")))
-	}))
-	defer server.Close()
-
-	_, err := FetchDiscovery(context.Background(), server.URL, "")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "uses HTTP")
-	assert.Contains(t, err.Error(), "HTTPS is required")
+	assert.Contains(t, err.Error(), "issuer mismatch")
+	assert.Contains(t, err.Error(), "https://evil.example.com")
 }
 
 func TestFetchDiscovery_UnreachableServer(t *testing.T) {
@@ -156,11 +187,13 @@ func TestFetchDiscovery_Non200Status(t *testing.T) {
 }
 
 func TestFetchDiscovery_ContextCancellation(t *testing.T) {
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		time.Sleep(5 * time.Second)
-		_, _ = w.Write([]byte(validDiscoveryJSON("https://auth.example.com/token")))
+		_, _ = w.Write([]byte(validDiscoveryJSON(serverURL, "https://auth.example.com/token")))
 	}))
 	defer server.Close()
+	serverURL = server.URL
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -223,9 +256,10 @@ func TestFetchDiscovery_CustomCABundle(t *testing.T) {
 	serverTLSCert, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
 	require.NoError(t, err)
 
+	var serverURL string
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		doc := DiscoveryDocument{
-			Issuer:                "https://127.0.0.1",
+			Issuer:                serverURL,
 			AuthorizationEndpoint: "https://127.0.0.1/auth",
 			TokenEndpoint:         "https://127.0.0.1/token",
 			JWKSURI:               "https://127.0.0.1/keys",
@@ -236,6 +270,7 @@ func TestFetchDiscovery_CustomCABundle(t *testing.T) {
 	server.TLS = &tls.Config{Certificates: []tls.Certificate{serverTLSCert}}
 	server.StartTLS()
 	defer server.Close()
+	serverURL = server.URL
 
 	// Without custom CA: should fail
 	_, err = FetchDiscovery(context.Background(), server.URL, "")

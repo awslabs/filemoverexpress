@@ -261,7 +261,9 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                         newCounts.total++;
                     }
                     this.counts = {...newCounts};
-                    this.refreshTimer = window.setTimeout(this.loadTasks.bind(this), TASK_RELOAD_INTERVAL);
+                    if (!TERMINAL_STATES.includes(this.jobDetails.status)) {
+                        this.refreshTimer = window.setTimeout(this.loadTasks.bind(this), TASK_RELOAD_INTERVAL);
+                    }
                     this.tasksLoaded = true;
                 },
             ),

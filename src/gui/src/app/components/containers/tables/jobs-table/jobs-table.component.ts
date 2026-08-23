@@ -1,5 +1,6 @@
 import { KeyValuePipe, NgClass } from '@angular/common';
-import { AfterViewInit, Component, inject, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, ViewChild, ViewChildren } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -100,6 +101,7 @@ export class JobsTableComponent implements AfterViewInit {
     private store = inject(Store);
     private notifications = inject(NotificationsService);
     private exportSvc = inject(ExportService);
+    private destroyRef = inject(DestroyRef);
 
     @ViewChildren(MatMenuTrigger) contextMenus: MatMenuTrigger[] = [];
     // Single cursor-positioned trigger for the row context menu (opened on right-click).
@@ -156,6 +158,7 @@ export class JobsTableComponent implements AfterViewInit {
             debounceTime(DELAY),
             distinctUntilChanged(),
             handleStreamError({retryCount: RETRY_COUNT}),
+            takeUntilDestroyed(this.destroyRef),
         ).subscribe(
             () => {
                 this.dataSource.filter = buildFilterString(this.filterForm.getRawValue());
@@ -164,6 +167,7 @@ export class JobsTableComponent implements AfterViewInit {
 
         this.fmeClientService.connectionState.pipe(
             distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef),
         ).subscribe((connState) => {
             if (connState === ConnectionState.CONNECTED) {
                 this.fmeClientService.listJobs().subscribe((jobs) => {
@@ -232,7 +236,9 @@ export class JobsTableComponent implements AfterViewInit {
             }
         });
 
-        this.store.select(jobSelectAll).subscribe((jobs) => {
+        this.store.select(jobSelectAll).pipe(
+            takeUntilDestroyed(this.destroyRef),
+        ).subscribe((jobs) => {
             const openMenus = this.contextMenus.find((item) => item.menuOpen);
             if (openMenus) {
                 if (this.menuClosed) {

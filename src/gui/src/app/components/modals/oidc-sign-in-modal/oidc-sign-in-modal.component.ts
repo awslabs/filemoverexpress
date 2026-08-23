@@ -43,12 +43,14 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
     error = '';
     private pollSubscription: Subscription | null = null;
     private startTime = 0;
+    private alive = true;
 
     ngOnInit() {
         this.beginSignIn();
     }
 
     ngOnDestroy() {
+        this.alive = false;
         this.stopPolling();
     }
 
@@ -117,6 +119,9 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
         };
 
         const poll = () => {
+            if (!this.alive) {
+                return;
+            }
             if (Date.now() - this.startTime > maxDuration) {
                 this.pending = false;
                 this.error = 'Sign-in timed out after 5 minutes. Please try again.';
@@ -124,6 +129,9 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
             }
             this.fmeClient.getOIDCStatus(this.data.profileName).subscribe({
                 next: (res) => {
+                    if (!this.alive) {
+                        return;
+                    }
                     if (res.error) {
                         this.pending = false;
                         this.error = res.error;
@@ -137,6 +145,9 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
                     this.pollSubscription = timer(nextInterval()).subscribe(() => poll());
                 },
                 error: () => {
+                    if (!this.alive) {
+                        return;
+                    }
                     this.pollSubscription = timer(nextInterval()).subscribe(() => poll());
                 },
             });

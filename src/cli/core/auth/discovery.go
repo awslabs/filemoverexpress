@@ -65,6 +65,15 @@ func FetchDiscovery(ctx context.Context, issuerURL string, customCABundle string
 }
 
 func validateDiscoveryDocument(doc *DiscoveryDocument, issuerURL string) error {
+	expectedIssuer := strings.TrimRight(issuerURL, "/")
+	actualIssuer := strings.TrimRight(doc.Issuer, "/")
+	if actualIssuer != expectedIssuer {
+		return fmt.Errorf(
+			"discovery document issuer mismatch: got %q, expected %q",
+			doc.Issuer, issuerURL,
+		)
+	}
+
 	if doc.AuthorizationEndpoint == "" {
 		return fmt.Errorf("discovery document from %s is missing authorization_endpoint", issuerURL)
 	}

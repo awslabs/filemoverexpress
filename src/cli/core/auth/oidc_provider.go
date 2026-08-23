@@ -257,19 +257,19 @@ func (p *OIDCProvider) ensureLoaded(profileName string, cfg *OIDCConfig) {
 	p.loadedProfiles[profileName] = true
 	p.mu.Unlock()
 
-	// Do the network work WITHOUT holding p.mu: loadCachedSession ->
+	// Do the network work WITHOUT holding p.mu: restoreCachedSession ->
 	// refreshAndAssumeRole acquires p.mu itself, and sync.RWMutex is not reentrant,
 	// so holding it across the load would deadlock this goroutine — and, because the
 	// write lock would never be released, every other OIDC call along with it.
-	p.loadCachedSession(profileName, *cfg)
+	p.restoreCachedSession(profileName, *cfg)
 }
 
-// loadCachedSession restores a session from cache. It must NOT be called with p.mu
+// restoreCachedSession restores a session from cache. It must NOT be called with p.mu
 // held: it performs network I/O and calls refreshAndAssumeRole, which acquires p.mu
 // itself (sync.RWMutex is not reentrant). On any failure (decryption, expired token,
 // unreachable IdP), it logs a warning, deletes the corrupt cache entry, and returns —
 // leaving the profile unauthenticated.
-func (p *OIDCProvider) loadCachedSession(profileName string, cfg OIDCConfig) {
+func (p *OIDCProvider) restoreCachedSession(profileName string, cfg OIDCConfig) {
 	cached, err := p.tokenCache.Load(profileName)
 	if err != nil {
 		slog.Warn("cached OIDC session unreadable, removing",
@@ -586,11 +586,20 @@ func (p *OIDCProvider) validateIDToken(
 	}
 
 	var claims struct {
-		Iss string `json:"iss"`
-		Aud any    `json:"aud"`
+		Iss string   `json:"iss"`
+		Aud any      `json:"aud"`
+		Exp *float64 `json:"exp"`
 	}
 	if err := json.Unmarshal(claimsJSON, &claims); err != nil {
 		return fmt.Errorf("ID token validation failed: cannot parse claims")
+	}
+
+	if claims.Exp == nil {
+		return fmt.Errorf("ID token validation failed: missing exp claim")
+	}
+	const clockSkewSeconds = 30
+	if time.Now().Unix() > int64(*claims.Exp)+clockSkewSeconds {
+		return fmt.Errorf("ID token validation failed: token expired at %d", int64(*claims.Exp))
 	}
 
 	if claims.Iss != session.Config.IssuerURL {
@@ -622,6 +631,10 @@ func (p *OIDCProvider) verifySignature(
 	}
 	if err := json.Unmarshal(headerJSON, &header); err != nil {
 		return fmt.Errorf("ID token signature invalid: cannot parse header")
+	}
+
+	if header.Alg != "RS256" {
+		return fmt.Errorf("ID token signature invalid: unsupported algorithm %q, expected RS256", header.Alg)
 	}
 
 	jwk, err := p.jwksCache.GetKey(ctx, JWKSGetKeyParams{

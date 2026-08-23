@@ -251,6 +251,7 @@ func fileMoverCommandInit() {
 
 	go service.NewService(service.GrpcDefaultHost, []uint{service.GrpcDefaultWebPort}, false)
 	transferstats.Initialize()
+	initOIDCProvider()
 }
 
 func warnIfMaxFilesTooLow() {
