@@ -12,10 +12,11 @@ import (
 	"os"
 	"strconv"
 
-	"golang.org/x/crypto/hkdf"
-
 	"github.com/denisbrodbeck/machineid"
+	"golang.org/x/crypto/hkdf"
 )
+
+const aes256KeySize = 32
 
 // encryptData encrypts plaintext using AES-256-GCM with a key derived from machine-specific entropy.
 func encryptData(plaintext []byte) ([]byte, error) {
@@ -86,7 +87,7 @@ func deriveEncryptionKey() ([]byte, error) {
 	ikm := []byte(machineID + uid)
 
 	hkdfReader := hkdf.New(sha256.New, ikm, []byte("fme-oidc-cache-salt"), []byte("fme-oidc-aes256-key"))
-	key := make([]byte, 32)
+	key := make([]byte, aes256KeySize)
 	if _, err := io.ReadFull(hkdfReader, key); err != nil {
 		return nil, fmt.Errorf("HKDF expand: %w", err)
 	}

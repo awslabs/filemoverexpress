@@ -168,9 +168,27 @@
                                     <mat-label>Issuer URL</mat-label>
                                     <input matInput type="text" formControlName="oidcIssuerUrl"
                                            placeholder="https://auth.example.com/oidc">
-                                    <mat-hint>The OIDC discovery base URL of your identity provider.</mat-hint>
+                                    @if (transferProfileForm.controls['oidcIssuerUrl'].pending) {
+                                        <mat-hint>Verifying OIDC discovery endpoint…</mat-hint>
+                                    } @else if (transferProfileForm.controls['oidcIssuerUrl'].valid && transferProfileForm.controls['oidcIssuerUrl'].dirty) {
+                                        <mat-hint>OIDC discovery endpoint verified successfully.</mat-hint>
+                                    } @else {
+                                        <mat-hint>The OIDC discovery base URL of your identity provider.</mat-hint>
+                                    }
                                     @if (transferProfileForm.controls['oidcIssuerUrl'].hasError('required')) {
                                         <mat-error>Issuer URL is required for OIDC authentication.</mat-error>
+                                    }
+                                    @if (transferProfileForm.controls['oidcIssuerUrl'].hasError('invalidUrl')) {
+                                        <mat-error>Enter a valid URL starting with https://.</mat-error>
+                                    }
+                                    @if (transferProfileForm.controls['oidcIssuerUrl'].hasError('httpsRequired')) {
+                                        <mat-error>OIDC Issuer URL must use HTTPS.</mat-error>
+                                    }
+                                    @if (transferProfileForm.controls['oidcIssuerUrl'].hasError('oidcUnreachable')) {
+                                        <mat-error>Unable to reach the OIDC discovery endpoint. Check the URL and try again.</mat-error>
+                                    }
+                                    @if (transferProfileForm.controls['oidcIssuerUrl'].hasError('oidcInvalidDoc')) {
+                                        <mat-error>The URL does not serve a valid OIDC discovery document.</mat-error>
                                     }
                                 </mat-form-field>
 

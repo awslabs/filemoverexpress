@@ -16,6 +16,7 @@ import {
     chunksizeMinValidator,
     fileExtensionRegExp,
     handleStreamError,
+    oidcIssuerUrlValidator,
     s3ArnRgx,
     threadsMinValidator,
     TransferProfile,
@@ -173,14 +174,21 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
             const oidcFieldNames = ['oidcIssuerUrl',
                 'oidcClientId',
                 'oidcRoleArn'] as const;
+            const issuerUrlAsyncValidator = oidcIssuerUrlValidator(this.wails);
             const authMethodSubscription = authMethodControl.valueChanges.subscribe((value) => {
                 for (const fieldName of oidcFieldNames) {
                     const control = form.get(fieldName);
                     if (control) {
                         if (value === 'oidc') {
                             control.addValidators(Validators.required);
+                            if (fieldName === 'oidcIssuerUrl') {
+                                control.addAsyncValidators(issuerUrlAsyncValidator);
+                            }
                         } else {
                             control.removeValidators(Validators.required);
+                            if (fieldName === 'oidcIssuerUrl') {
+                                control.removeAsyncValidators(issuerUrlAsyncValidator);
+                            }
                         }
                         control.updateValueAndValidity({onlySelf: true});
                         // Switching auth method shouldn't paint empty fields red on its own.

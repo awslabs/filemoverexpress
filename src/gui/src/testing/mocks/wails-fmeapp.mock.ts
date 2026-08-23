@@ -12,3 +12,4 @@ export const SystemShowItemInFolder = (__path: string) => Promise.resolve();
 export const GenerateExcelReport = (__data: unknown) => Promise.resolve('');
 export const GenerateCsvReport = (__data: unknown) => Promise.resolve('');
 export const GenerateJsonReport = (__data: unknown) => Promise.resolve('');
+export const ValidateOIDCIssuer = (__url: string) => Promise.resolve('');
