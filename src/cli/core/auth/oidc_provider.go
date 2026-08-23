@@ -569,9 +569,10 @@ func (p *OIDCProvider) validateIDToken(
 	session *OIDCSession,
 	idToken string,
 ) error {
+	idToken = strings.TrimSpace(idToken)
 	parts := strings.Split(idToken, ".")
 	if len(parts) != 3 {
-		return fmt.Errorf("ID token validation failed: malformed JWT")
+		return fmt.Errorf("ID token validation failed: malformed JWT (expected 3 parts, got %d)", len(parts))
 	}
 
 	// Verify signature against JWKS
