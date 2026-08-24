@@ -1,4 +1,4 @@
-import { Component, effect, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, effect, ElementRef, inject, NgZone, OnDestroy, signal, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
@@ -99,6 +99,9 @@ export class BucketBrowserComponent implements OnDestroy {
     private bookmarks = inject(BookmarksService);
     private store = inject<Store<AppState>>(Store);
     private wails = inject(WailsService);
+    private zone = inject(NgZone);
+    /** True while an OS file drag is over the window (macOS); drives the S3 drop-zone highlight. */
+    externalDragActive = signal(false);
     private wailsFileList = signal<Record<string, string> | null>(null);
     private dropResult = signal<FileBrowserDropResult | null>(null);
     /**
@@ -168,7 +171,18 @@ export class BucketBrowserComponent implements OnDestroy {
             }
 
             const wfl = event.data as unknown as WailsFileList;
+            this.externalDragActive.set(false);
             this.handleExternalFilesDropped(wfl.files, wfl.targetId);
+        });
+
+        // macOS drag enter/exit over the window -> toggle the S3 drop-zone highlight so
+        // users discover they can drag files in from Finder. Run in the Angular zone since
+        // the Wails event fires outside it.
+        this.wails.onEvent('file-dragging-entered', () => {
+            this.zone.run(() => this.externalDragActive.set(true));
+        });
+        this.wails.onEvent('file-dragging-exited', () => {
+            this.zone.run(() => this.externalDragActive.set(false));
         });
         this.setContextMenuData();
 
