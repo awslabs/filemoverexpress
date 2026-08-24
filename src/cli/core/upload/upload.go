@@ -13,7 +13,7 @@ import (
 func Uploader(job *jobmanagertypes.Job) {
 	transferProfile := job.TransferProfile()
 	jobManager := job_manager.GetInstance()
-	_, sessErr := jobManager.GetS3Manager(transferProfile.Profile, transferProfile.Bucket, transferProfile.Region, transferProfile.Endpoint)
+	_, sessErr := jobManager.GetS3Manager(transferProfile)
 	if sessErr != nil {
 		events.Events.Error(strFailedEstablishingAwsSession)
 		return

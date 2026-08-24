@@ -1,3 +1,175 @@
+@use "../../../../../styles/variables";
+
+// Mockup: the transfer tray is a flat full-width bar flush under the panels, separated by a
+// hairline top border — NOT a rounded card. (The panels above are the carded surfaces.)
+:host {
+    display: block;
+    height: 100%;
+    box-sizing: border-box;
+    background: variables.$background-tray;
+    border-top: 1px solid variables.$grey-600;
+    overflow: hidden;
+}
+
+// Vertical shell: tabs (when expanded) fill the space above the persistent summary bar.
+.tray-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+// Persistent summary bar (always at the bottom). 40px flat bar; caret toggles the tabbed tray.
+.tray-summary-bar {
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 40px;
+    padding: 0 16px;
+    background: transparent;
+    border: none;
+    color: variables.$text;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+
+    // when the tabs are expanded above, divide them from the bar with a hairline
+    &.expanded {
+        border-top: 1px solid variables.$grey-750;
+    }
+
+    &:hover {
+        // Subtle lift on the black tray — the old $grey-750 read as a blue-grey band.
+        background: rgba(variables.$white, 0.04);
+    }
+
+    // expand affordance — filled triangle (mockup): grey when idle, blue when active
+    .tray-caret {
+        margin-left: 0;
+        font-size: 12px;
+        line-height: 1;
+        color: variables.$grey-550;
+        transition: transform 0.15s ease;
+
+        &.active {
+            color: variables.$blue-500;
+        }
+    }
+
+    .tray-idle {
+        color: variables.$grey-500;
+        font-size: 12px;
+    }
+
+    // count badge (mockup .tray-badge): "3 jobs"
+    .tray-badge {
+        background: variables.$blue-600;
+        color: variables.$white;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
+    // speed stat: direction triangle + bright value (mockup .tray-stat)
+    .tray-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+
+        .tri {
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        .tri.up {
+            color: variables.$orange-accent;
+        }
+
+        .tri.down {
+            color: variables.$blue-500;
+        }
+
+        .value {
+            color: variables.$white;
+            font-weight: 600;
+        }
+    }
+
+    // muted meta (bytes "X of Y"; ETA label) with a bright ETA value
+    .tray-meta {
+        font-size: 12px;
+        color: variables.$grey-500;
+
+        .label {
+            color: variables.$grey-500;
+        }
+
+        .value {
+            color: variables.$white;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+    }
+
+    // bucket-report generating indicator: spinning glyph + "N reports generating…"
+    .tray-report {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: variables.$white;
+        font-weight: 600;
+
+        .report-spinner {
+            display: inline-block;
+            color: variables.$blue-500;
+            font-size: 12px;
+            line-height: 1;
+            animation: tray-report-spin 1s linear infinite;
+        }
+    }
+
+    @keyframes tray-report-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .spacer {
+        flex: 1 1 auto;
+    }
+}
+
+// Expanded tabbed tray fills the space above the summary bar.
+.tray-expanded {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+    padding: 6px 14px 4px;
+    box-sizing: border-box;
+}
+
+// Collapse control at the top of the expanded tray (mockup: chevron in the tab header row).
+.tray-collapse-top {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 2;
+    background: transparent;
+    border: none;
+    padding: 2px 6px;
+    font-size: 12px;
+    line-height: 1;
+    color: variables.$grey-550;
+    cursor: pointer;
+
+    &:hover {
+        color: variables.$text;
+    }
+}
+
 .table-group-wrapper {
     height: 100%;
 }

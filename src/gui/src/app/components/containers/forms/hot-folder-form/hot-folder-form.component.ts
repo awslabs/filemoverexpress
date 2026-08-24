@@ -3,6 +3,7 @@ import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } fr
 import {
     MatAccordion,
     MatExpansionPanel,
+    MatExpansionPanelDescription,
     MatExpansionPanelHeader,
     MatExpansionPanelTitle,
 } from '@angular/material/expansion';
@@ -36,6 +37,7 @@ import { PanelComponent } from '@app/components/layout/panel/panel.component';
         ReactiveFormsModule,
         MatAccordion,
         MatExpansionPanel,
+        MatExpansionPanelDescription,
         MatExpansionPanelHeader,
         MatExpansionPanelTitle,
         MatTooltip,
@@ -83,7 +85,6 @@ export class HotFolderFormComponent implements OnDestroy {
                         nonNullable: true,
                     }),
                     s3DestinationFolder: new FormControl<string>(remoteConfig.s3DestinationFolder, {
-                        validators: [Validators.required],
                         nonNullable: true,
                     }),
                 })),
@@ -117,7 +118,6 @@ export class HotFolderFormComponent implements OnDestroy {
                                 nonNullable: true,
                             }),
                             s3DestinationFolder: new FormControl<string>(destinationPath, {
-                                validators: [Validators.required],
                                 nonNullable: true,
                             }),
                         }),
@@ -136,6 +136,10 @@ export class HotFolderFormComponent implements OnDestroy {
 
         this.changeSub?.unsubscribe();
         this.changeSub = hff.statusChanges.subscribe((__status) => this.hotFoldersEdited.emit(hff));
+        // statusChanges does not fire on subscription, so emit the initial state once.
+        // Without this the parent modal's mirrored form stays null and its Save guard
+        // can't see that a new hot folder is invalid (e.g. missing name).
+        setTimeout(() => this.hotFoldersEdited.emit(hff));
 
         return hff;
     });
@@ -186,7 +190,7 @@ export class HotFolderFormComponent implements OnDestroy {
                 validators: [Validators.required],
                 nonNullable: true,
             }),
-            s3DestinationFolder: new FormControl<string>('', {validators: [Validators.required], nonNullable: true}),
+            s3DestinationFolder: new FormControl<string>('', {nonNullable: true}),
         });
     }
 }

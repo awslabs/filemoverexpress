@@ -35,12 +35,7 @@ func (*FileMoverServer) DeleteS3Path(
 		return connect.NewResponse(resp), nil
 	}
 
-	s3m, err := transferapi.NewS3Manager(transferapi.S3ManagerConfig{
-		AwsProfile: txp.Profile,
-		Bucket:     txp.Bucket,
-		Region:     txp.Region,
-		Endpoint:   txp.Endpoint,
-	})
+	s3m, err := transferapi.NewS3Manager(txp)
 	if err != nil {
 		resp.Success = false
 		resp.Message = err.Error()

@@ -46,6 +46,13 @@ $blue-selected: #1871c3;
 // region element color definitions
 $background-header: $grey-900;
 $background-content: $grey-800;
+// Local / S3 browser-panel surface (mockup #161d26): sits between the near-black tray
+// ($grey-800) and $grey-750, so the panels read a shade darker than the old $grey-750.
+$background-browser-panel: #161d26;
+$background-browser-panel-hover: #1b232d;
+// Transfer tray / title-bar surface (mockup #0f141a): visibly darker than the panels,
+// creating the panel-vs-tray contrast. ($grey-800 is too close to the panel shade.)
+$background-tray: #0f141a;
 $background-disabled-form-field: $grey-750;
 $background-menu: $grey-750;
 $background-menu-hover: $grey-700;
@@ -71,6 +78,18 @@ $vertical-divider-color: $grey-500;
 
 $table-border-color: $grey-600;
 $table-row-background-color-hovered: $grey-750;
+
+// region folder badges (mockup VIEW 6 — pills after the folder name)
+$badge-hot-color: #f89256;
+$badge-hot-bg: rgba(248, 146, 86, 0.12);
+$badge-hot-tint: rgba(248, 146, 86, 0.04);
+$badge-favorite-color: #fbd332;
+$badge-favorite-bg: rgba(251, 211, 50, 0.12);
+$badge-favorite-tint: rgba(251, 211, 50, 0.04);
+$badge-starting-color: #42b4ff;
+$badge-starting-bg: rgba(66, 180, 255, 0.12);
+$badge-starting-tint: rgba(66, 180, 255, 0.04);
+// endregion
 $table-selected-row-background-color: $blue-selected;
 
 $folder-icon-color: $blue-500;

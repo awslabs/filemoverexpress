@@ -8,14 +8,17 @@ export const STAR_ICON: DropdownIcon = {
 };
 
 export const DISCONNECTED_ICON: DropdownIcon = {
-    icon: 'remove_circle_outline',
-    iconColor: 'red',
+    // Neutral, muted "not connected" indicator. The old red remove_circle_outline read
+    // like an error; connection state is now surfaced authoritatively by the panel's
+    // connection pill, so this only needs a calm at-a-glance marker.
+    icon: 'radio_button_unchecked',
+    iconColor: 'gray',
     style: 'outlined',
 };
 
 export const CONNECTING_ICON: DropdownIcon = {
     icon: 'pending',
-    iconColor: 'gray',
+    iconColor: 'orange',
     style: 'outlined',
 };
 

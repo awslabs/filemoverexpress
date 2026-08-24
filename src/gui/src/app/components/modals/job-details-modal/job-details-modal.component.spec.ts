@@ -12,6 +12,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { JobDetailsData, TransferDirection } from '@app/interfaces/jobs-table';
+import { JobStatus } from '@state/models/job.model';
+import { provideMockStore } from '@ngrx/store/testing';
+import { AppState } from '@app/state';
+import { initialTestState } from '@state/test.state';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { of } from 'rxjs';
@@ -23,6 +27,9 @@ describe('JobDetailsModalComponent', () => {
 
     const fmeClientSpy = {
         listTasksForJob: vi.fn().mockImplementation((__unused: string) => {
+            return of();
+        }),
+        getConfiguration: vi.fn().mockImplementation(() => {
             return of();
         }),
     };
@@ -53,14 +60,21 @@ describe('JobDetailsModalComponent', () => {
                         direction: TransferDirection.Upload,
                         destination: '',
                         remoteConfiguration: '',
-                        source: '',
-                        tasks: [],
-                        started: new Date(),
-                        completed: null,
+                        started: new Date('2026-08-11T13:39:32'),
+                        completed: new Date('2026-08-11T13:39:40'),
+                        status: JobStatus.Completed,
+                        statusMessage: '',
+                        totalBytes: 0,
+                        bytesTransferred: 0,
+                        progress: 0,
+                        timestampTransferring: new Date('2026-08-11T13:39:32'),
+                        hasTaskErrors: false,
+                        hasSuccessfulTasks: false,
                     } as JobDetailsData,
                 },
                 {provide: MatDialogRef, useValue: {}},
                 {provide: FmeClientService, useValue: fmeClientSpy},
+                provideMockStore<AppState>({initialState: initialTestState}),
             ],
         });
         fixture = TestBed.createComponent(JobDetailsModalComponent);

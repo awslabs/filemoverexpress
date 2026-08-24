@@ -251,6 +251,7 @@ func fileMoverCommandInit() {
 
 	go service.NewService(service.GrpcDefaultHost, []uint{service.GrpcDefaultWebPort}, false)
 	transferstats.Initialize()
+	initOIDCProvider()
 }
 
 func warnIfMaxFilesTooLow() {
@@ -324,12 +325,7 @@ func validateCredentials(_ *cobra.Command, args []string) {
 	txProfile, err := config.LoadConfiguration().GetTransferProfile(txProfileName)
 	errs.CheckError(err, "", true)
 
-	s3m, err := transferapi.NewS3Manager(transferapi.S3ManagerConfig{
-		AwsProfile: txProfile.Profile,
-		Bucket:     txProfile.Bucket,
-		Region:     txProfile.Region,
-		Endpoint:   txProfile.Endpoint,
-	})
+	s3m, err := transferapi.NewS3Manager(txProfile)
 	if err != nil {
 		logger.Error(err.Error())
 		return

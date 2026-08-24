@@ -16,8 +16,38 @@ div.form-field {
     margin-top: 4px;
 }
 
+// Each hot folder reads as a distinct bordered card (the modal surface is the outer
+// card; a 1px border + radius here makes an existing hot folder obviously present
+// instead of a bare line of text). Fields inside keep their darker fill for contrast.
 mat-expansion-panel {
-    border: 2px solid variables.$container-border;
+    background: transparent !important;
+    border: 1px solid variables.$grey-600 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    margin-bottom: 12px;
+
+    &:last-of-type {
+        margin-bottom: 0;
+    }
+}
+
+// The hot folder name in the (collapsed) header — prominent, not muted afterthought.
+.section-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: variables.$text-heading-element;
+}
+
+// The source path shown on the right of the header, so multiple hot folders are
+// distinguishable at a glance without expanding each one.
+.hf-panel-desc.mat-expansion-panel-header-description {
+    justify-content: flex-end;
+    align-items: center;
+    color: variables.$grey-500;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 form > div {
@@ -39,18 +69,17 @@ mat-form-field:not(:last-child) {
 
 .hftxp-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
-    grid-template-areas: 'general txp';
+    // Wrap to a single column when the panel is narrow (prevents the right side being
+    // cut off), and top-align the two columns so a validation error under one field
+    // doesn't drag the whole column out of alignment with the other.
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    align-items: start;
     grid-gap: 16px;
 }
 
-.hftxp-general {
-    grid-area: general;
-}
-
+.hftxp-general,
 .hftxp-txp {
-    grid-area: txp;
+    min-width: 0;
 }
 
 .hftxp-txp-list {
@@ -81,4 +110,40 @@ mat-form-field:not(:last-child) {
 
 .hot-folder-form-fields-container {
     padding-bottom: 12px;
+}
+
+// Zero-state for the Configure Hot Folders modal: an intentional empty-state block
+// (matches the file-browser .drop-zone-empty pattern) instead of a lone floating button.
+.hot-folder-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 2px dashed variables.$grey-600;
+    border-radius: 12px;
+    margin: 16px 0;
+    padding: 32px 16px;
+    min-height: 160px;
+
+    .hot-folder-empty-icon {
+        font-size: 44px;
+        width: 44px;
+        height: 44px;
+        color: variables.$grey-450;
+        margin-bottom: 10px;
+    }
+
+    .hot-folder-empty-text {
+        font-size: 14px;
+        color: variables.$text-table-header;
+        margin-bottom: 4px;
+    }
+
+    .hot-folder-empty-subtext {
+        font-size: 12px;
+        color: variables.$grey-500;
+        max-width: 360px;
+        margin-bottom: 16px;
+    }
 }

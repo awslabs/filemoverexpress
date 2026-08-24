@@ -547,7 +547,18 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
 
     rightClickEmptySpace(event: MouseEvent) {
         event.preventDefault();
+        this.openEmptySpaceMenu(event.clientX, event.clientY);
+    }
 
+    /**
+     * Opens the panel-level (empty-space) context menu at the given viewport coordinates.
+     * Shared by right-click-on-empty-space and the panel header "..." (overflow) button so
+     * both surface the exact same menu, built from one definition — they can never drift.
+     *
+     * @param {number} x - Viewport x coordinate to anchor the menu at
+     * @param {number} y - Viewport y coordinate to anchor the menu at
+     */
+    openEmptySpaceMenu(x: number, y: number) {
         this.contextMenuToRender.rows = [];
 
         for (const menuRow of this.contextMenuData) {
@@ -563,8 +574,8 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
         this.contextMenuToRender.triggerObject = null;
         this.contextMenuToRender.triggerType = 'emptySpace';
 
-        this.contextMenuPosition.x = event.clientX + 'px';
-        this.contextMenuPosition.y = event.clientY + 'px';
+        this.contextMenuPosition.x = x + 'px';
+        this.contextMenuPosition.y = y + 'px';
         this.contextMenuTrigger.openMenu();
     }
 

@@ -1,17 +1,13 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
-import {
-    MatAccordion,
-    MatExpansionPanel,
-    MatExpansionPanelDescription,
-    MatExpansionPanelHeader,
-    MatExpansionPanelTitle,
-} from '@angular/material/expansion';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
-import { MatOption, MatSelect } from '@angular/material/select';
+import { MatOption, MatSelect, MatSelectChange } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { discardUnsavedChangesDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
 import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
@@ -24,6 +20,9 @@ import { HistoryService } from '@services/history/history.service';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { PreferencesService } from '@services/preferences/preferences.service';
+import { defaultOptions as defaultPreferences } from '@services/preferences/preferences.constants';
+import { DaemonCloseOptions, NotificationDelay, NotificationPositions } from '@app/components/modals/preferences-modal/preferences-modal.constants';
 import { VersionService } from '@services/version/version.service';
 import { ConnectionState } from '@state/models/connection-state-model';
 import { logSeverities } from './config.constants';
@@ -43,11 +42,6 @@ import {
     styleUrls: ['./config.component.scss'],
     imports: [
         ReactiveFormsModule,
-        MatAccordion,
-        MatExpansionPanel,
-        MatExpansionPanelHeader,
-        MatExpansionPanelTitle,
-        MatExpansionPanelDescription,
         MatFormField,
         MatLabel,
         MatInput,
@@ -69,14 +63,30 @@ export class ConfigComponent implements OnInit {
     private notificationService = inject(NotificationsService);
     private historyService = inject(HistoryService);
     private bottomSheet = inject(MatBottomSheet);
+    private prefService = inject(PreferencesService);
+    private dialog = inject(MatDialog);
+    // Present when Settings is opened as a modal (from the toolbar cog); null when it is
+    // reached via the /home/config route. Close/cancel adapt to whichever host applies.
+    private dialogRef = inject<MatDialogRef<ConfigComponent>>(MatDialogRef, {optional: true});
 
-    @ViewChildren(MatExpansionPanel) expansionPanels!: QueryList<MatExpansionPanel>;
     formErrorMessages = formErrorMessages;
     cpuCoreCount = 0;
     logSeverities = logSeverities;
     ConnectionState = ConnectionState;
     transferProfiles: string[] = [];
     hotFolders: HotFolders[] = [];
+
+    // Left-nav sections (mockup config page). Panels stay mounted; nav toggles visibility.
+    activeSection: 'transfers' | 'hotfolders' | 'reports' | 'logging' | 'uiprefs' = 'transfers';
+
+    // UI Preferences (client-side, saved on change via PreferencesService — NOT part of
+    // the daemon config form's save/cancel flow). Rendered in the General tab.
+    notificationPositions = NotificationPositions;
+    autoHideOptions = NotificationDelay;
+    daemonCloseOptions = DaemonCloseOptions;
+    selectedNotificationPosition = '';
+    notificationDelay = defaultPreferences.notificationAutoHideDelay;
+    selectedDaemonClose = defaultPreferences.daemonClose;
     hotFolderForm: FormArray<FormGroup<HotFolderFormGroup>> | null = null;
     originalConfig: FmeConfig | null = null;
     configForm: FormGroup<ConfigFormGroup> = new FormGroup<ConfigFormGroup>(
@@ -186,9 +196,10 @@ export class ConfigComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.loadUiPreferences();
         // check version compatibility
         if (!this.versionService.requiredApiVersion(`edit ${sectionTitles.CONFIGURATION}`)) {
-            this.historyService.redirectToPrevious();
+            this.closeSettings();
             return;
         }
         this.fmeClientService.getConfiguration().subscribe({
@@ -229,7 +240,7 @@ export class ConfigComponent implements OnInit {
                 next: () => {
                     this.notificationService.success(NotificationMessages.SET_CONFIG_SUCCESS);
                     this.configForm.markAsPristine();
-                    this.historyService.redirectToPrevious();
+                    this.closeSettings();
                 },
                 error: (error) => {
                     this.notificationService.warning(`${NotificationMessages.SET_CONFIG_FAILURE} ${error}`);
@@ -240,9 +251,68 @@ export class ConfigComponent implements OnInit {
 
     onCancel() {
         return () => {
-            this.historyService.redirectToPrevious();
+            // In dialog mode the route CanDeactivate guard can't run, so prompt here when
+            // there are unsaved edits. Esc/backdrop are disabled (disableClose), so Cancel
+            // is the only exit.
+            if (this.dialogRef && this.configForm.dirty) {
+                this.dialog.open(ConfirmationModalComponent, discardUnsavedChangesDialog)
+                    .afterClosed().subscribe((discard) => {
+                        if (discard) {
+                            this.closeSettings();
+                        }
+                    });
+                return;
+            }
+            this.closeSettings();
         };
     }
+
+    /** Close the settings dialog if hosted in one, otherwise navigate back (route mode). */
+    private closeSettings() {
+        if (this.dialogRef) {
+            this.dialogRef.close();
+        } else {
+            this.historyService.redirectToPrevious();
+        }
+    }
+
+    selectSection(section: 'transfers' | 'hotfolders' | 'reports' | 'logging' | 'uiprefs') {
+        this.activeSection = section;
+    }
+
+    // region UI Preferences (client-side, immediate save via PreferencesService)
+    private loadUiPreferences() {
+        const preferences = this.prefService.getAllPreferences();
+        const currentPos = preferences.notificationPosition ?? defaultPreferences.notificationPosition;
+        const match = this.notificationPositions.find(
+            (pos) => pos.position.vertical === currentPos?.vertical && pos.position.horizontal === currentPos?.horizontal,
+        );
+        this.selectedNotificationPosition = match ? match.name : '';
+        this.notificationDelay = preferences.notificationAutoHideDelay;
+
+        const validCloseOptions = this.daemonCloseOptions.map((itm) => itm.value);
+        if (!validCloseOptions.includes(preferences.daemonClose)) {
+            this.prefService.daemonClose = 'ask';
+            preferences.daemonClose = 'ask';
+        }
+        this.selectedDaemonClose = preferences.daemonClose;
+    }
+
+    notificationPositionChanged(event: MatSelectChange) {
+        const match = this.notificationPositions.find((pos) => pos.name === event.value);
+        if (match) {
+            this.prefService.notificationPosition = match.position;
+        }
+    }
+
+    notificationAutoHideChanged(event: MatSelectChange) {
+        this.prefService.notificationHideDelay = event.value;
+    }
+
+    daemonCloseChanged(event: MatSelectChange) {
+        this.prefService.daemonClose = event.value;
+    }
+    // endregion
 
     private markFormGroupDirty(group: FormGroup) {
         for (const ctrlName in group.controls) {

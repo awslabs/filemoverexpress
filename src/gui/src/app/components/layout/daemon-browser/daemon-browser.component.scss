@@ -1,12 +1,22 @@
 @use "../../../../styles/mixins";
+@use "../../../../styles/variables" as vars;
+
+:host {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+}
 
 .browser-wrapper {
     @include mixins.fixed-height(100%);
-    padding: 0;
     margin: 0;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    background: vars.$background-browser-panel;
     display: grid;
-    grid-template-rows: auto 30px auto minmax(0, 1fr);
-    grid-gap: 10px;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-gap: 8px;
     grid-template-areas:
         'breadcrumbs'
         'title'
@@ -25,12 +35,22 @@
     min-width: 0;
     display: flex;
     flex-direction: row;
+    align-items: center;
     gap: 8px;
+
+    // Action buttons (refresh, overflow) keep their size and never overlap; the
+    // filter + selector fields absorb the shrink instead.
+    fme-refresh-button,
+    fme-button {
+        flex: 0 0 auto;
+    }
 }
 
 .inputs-row-form-field {
-    min-width: 160px;
-    width: 30%;
+    // Let the filter + selector fields yield width first on narrow windows so the
+    // toolbar reflows/scales down cleanly instead of overflowing the column.
+    min-width: 0;
+    flex: 1 1 auto;
     max-width: 300px;
 }
 
@@ -41,6 +61,11 @@
 .title {
     grid-area: title;
     min-width: 0;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: vars.$text-heading-element;
 }
 
 .file-browser {

@@ -32,6 +32,28 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 .jobs-container {
     @extend .table-container;
 
+    // Mockup: rows sit flush on the dark tray — no bordered/rounded card.
+    border: none;
+    border-radius: 0;
+
+    // The table element + tbody paint the shared Material token ($background-content,
+    // a lighter blue-grey) — clear them so rows sit on the tray's black surface.
+    .mat-mdc-table,
+    .mdc-data-table__table,
+    .mdc-data-table__content,
+    .mdc-data-table__row,
+    .mdc-data-table__cell {
+        background: transparent;
+    }
+
+    // Sticky header row gets the opaque tray colour so scrolling rows don't bleed
+    // through it (rows/cells above are transparent).
+    .mat-mdc-header-row,
+    th.mat-mdc-header-cell,
+    .mdc-data-table__header-cell {
+        background: variables.$background-tray !important;
+    }
+
     .selected-row {
         background: $table-row-selected-color !important;
 
@@ -40,149 +62,190 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         }
     }
 
-    .file-name {
-        display: flex;
-        gap: 6px;
+    // Mockup job-row hover tint — subtle lift on the black tray
+    tr.mat-mdc-row {
+        cursor: default;
 
-        .file-name-string {
-            width: 60%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        &:hover {
+            background: rgba(variables.$white, 0.04);
         }
     }
 
+    // Column sizing to mirror the mockup card row (direction · name · progress · status)
     .mat-column-type {
-        @include custom-table.clamp-width(72px);
+        width: 32px;
+        text-align: center;
     }
 
-    .mat-column-startTime {
-        @include custom-table.clamp-width(170px);
-    }
-
-    .mat-column-duration, .mat-column-speed {
-        @include custom-table.clamp-width(150px);
+    // Fixed layout so the width-less Name column absorbs the leftover space and
+    // ellipsis-truncates to fit, instead of being hard-capped at a character count
+    // (which cut names off even when the window had room to show them in full).
+    table.mat-mdc-table {
+        table-layout: fixed;
+        width: 100%;
     }
 
     .mat-column-progress {
-        min-width: 190px;
-        width: 190px;
-        white-space: nowrap;
+        width: 240px;
     }
 
     .mat-column-status {
-        @include custom-table.clamp-width(170px);
+        width: 130px;
+    }
+
+    // Size + duration meta columns (DIT feedback): muted, compact
+    .mat-column-size,
+    .mat-column-duration {
+        width: 96px;
+    }
+
+    .job-meta {
+        color: variables.$grey-500;
+        font-size: 12px;
+        white-space: nowrap;
     }
 }
 
-.remaining-table-space {
-    flex: 1 100%;
-}
-
+// region filter (kept, restyled compact)
 .filter {
     padding: 10px 10px 10px 0;
-    font-size: 11px !important;
     display: flex;
     flex-direction: row;
+}
+// endregion
 
-    .spacer {
-        flex: 1 auto;
+// region direction indicator — filled triangle, blue down / orange up (mockup .job-direction).
+// Rendered as a Material icon (arrow_drop_up/down), sized to sit compactly in the type column.
+.job-direction {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    line-height: 24px;
+    vertical-align: middle;
+
+    &.download {
+        color: variables.$blue-500;
     }
 
-    .divider {
-        background: linear-gradient(variables.$vertical-divider-color, variables.$vertical-divider-color) no-repeat center/2px 100%;
+    &.upload {
+        color: variables.$orange-accent;
     }
 }
+// endregion
 
-.stats {
-    display: flex;
-    flex-direction: row;
+// region name
+.job-name {
+    color: variables.$text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-    div {
+    span {
         display: block;
-        text-align: center;
-        padding: 0 10px 0 10px;
-        color: variables.$text;
-    }
-
-    .stat-name {
-        color: variables.$text-heading-element;
-        font-weight: bolder;
-    }
-
-    .icons {
-        display: flex;
-        align-items: center;
-        color: variables.$pg-blue;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
+// endregion
 
-.status-progress-bar {
+// region progress — thin rounded bar + percent (mockup .job-progress-*)
+.job-progress-wrap {
     display: flex;
-    flex-direction: row;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
+}
 
-    mat-progress-bar {
-        margin-top: 15px;
-    }
+.job-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: variables.$grey-650;
+    border-radius: 3px;
+    overflow: hidden;
+}
 
-    &.status-in-progress {
-        @include mixins.progress-bar-color(variables.$pg-blue, color.adjust(whitesmoke, $lightness: -10%, $space: hsl));
-    }
-
-    &.status-discovering, &.status-checksumming {
-        @include mixins.progress-bar-color(variables.$pg-yellow, variables.$pg-yellow)
-    }
-
-    &.status-cancelled {
-        @include mixins.progress-bar-color(variables.$pg-orange, inherit);
-    }
-
-    &.status-paused {
-        @include mixins.progress-bar-color(variables.$pg-green, grey);
-    }
+.job-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    background: variables.$blue-500;
 
     &.status-completed {
-        @include mixins.progress-bar-color(variables.$pg-blue, variables.$pg-green);
+        background: variables.$green-500;
     }
 
     &.status-completed-with-errors {
-        @include mixins.progress-bar-color(variables.$pg-orange, inherit);
-    }
-
-    &.status-skipped {
-        @include mixins.progress-bar-color(variables.$pg-blue, variables.$pg-green);
+        background: variables.$orange-accent;
     }
 
     &.status-error {
-        @include mixins.progress-bar-color(variables.$pg-red, variables.$pg-red);
+        background: variables.$red-500;
+    }
+
+    &.status-skipped,
+    &.status-cancelled,
+    &.status-unknown {
+        background: variables.$grey-450;
+    }
+
+    &.status-paused {
+        background: variables.$yellow-accent;
     }
 }
 
-.jobs-container .icon {
-    display: flex;
-    align-items: center;
-    color: #0096FF;
+.job-percent {
+    font-size: 11px;
+    color: variables.$grey-500;
+    min-width: 32px;
+    text-align: right;
 }
+// endregion
 
-.highlighted {
-    background-color: color.adjust(#0096FF, $lightness: 10%, $space: hsl) !important;
+// region status pill (mockup .job-status)
+.job-status {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+
+    // in-progress family → blue
+    &.status-in-progress,
+    &.status-queued,
+    &.status-discovering,
+    &.status-checksumming,
+    &.status-filtering {
+        color: variables.$blue-500;
+        background: color.adjust(variables.$blue-500, $alpha: -0.88);
+    }
+
+    &.status-completed {
+        color: variables.$green-500;
+        background: color.adjust(variables.$green-500, $alpha: -0.88);
+    }
+
+    &.status-completed-with-errors {
+        color: variables.$orange-accent;
+        background: color.adjust(variables.$orange-accent, $alpha: -0.88);
+    }
+
+    &.status-error {
+        color: variables.$red-500;
+        background: color.adjust(variables.$red-500, $alpha: -0.88);
+    }
+
+    &.status-paused {
+        color: variables.$yellow-accent;
+        background: color.adjust(variables.$yellow-accent, $alpha: -0.88);
+    }
+
+    &.status-skipped,
+    &.status-cancelled,
+    &.status-unknown {
+        color: variables.$grey-450;
+        background: color.adjust(variables.$grey-450, $alpha: -0.88);
+    }
 }
-
-.mat-column-action {
-    @include custom-table.clamp-width(80px);
-}
-
-
-// TODO: Disabled until we figure out how to pass the folder type out
-//.nameType {
-//    display: flex !important;
-//    justify-content: flex-start !important;
-//    padding-bottom: 10px;
-//    padding-top: 5px;
-//
-//    mat-icon {
-//        padding-right: 5px;
-//    }
-//}
-
+// endregion

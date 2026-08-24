@@ -1,8 +1,30 @@
 @use "../../../../styles/custom-table";
 @use "../../../../styles/modal";
+@use "../../../../styles/variables";
 
 .notifications-container {
     @extend .table-container;
+
+    // Flush on the modal surface — drop the nested bordered/rounded card + blue-grey
+    // fill so it doesn't read as a "box inside a box" (matches the tray tables).
+    border: none;
+    border-radius: 0;
+
+    .mat-mdc-table,
+    .mdc-data-table__table,
+    .mdc-data-table__content,
+    .mdc-data-table__row,
+    .mdc-data-table__cell {
+        background: transparent;
+    }
+
+    // Sticky header gets the opaque modal-surface colour so scrolling rows don't
+    // bleed through it (rows/cells above are transparent).
+    .mat-mdc-header-row,
+    th.mat-mdc-header-cell,
+    .mdc-data-table__header-cell {
+        background: variables.$background-browser-panel !important; // #161d26
+    }
 }
 
 .mat-column-timestamp {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BucketBrowserComponent } from './bucket-browser.component';
 import { AppState } from '@app/state';
@@ -13,6 +13,7 @@ import { initialTestState } from '@state/test.state';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
+import { FileBrowserState } from '../file-browser/file-browser.interfaces';
 
 describe('BucketBrowserComponent', () => {
     let component: BucketBrowserComponent;
@@ -42,5 +43,18 @@ describe('BucketBrowserComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should navigate to starting directory when onOidcAuthChange receives true', () => {
+        const spy = vi.spyOn(component, 'navigateToPath');
+        component.onOidcAuthChange(true);
+        expect(spy).toHaveBeenCalledWith(component.getStartingDirectory());
+    });
+
+    it('should clear file listing when onOidcAuthChange receives false', () => {
+        component.onOidcAuthChange(false);
+        expect(component.fileBrowserData.state).toBe(FileBrowserState.ERROR);
+        expect(component.fileBrowserData.list).toEqual([]);
+        expect(component.fileBrowserData.error?.title).toBe('Sign In Required');
     });
 });

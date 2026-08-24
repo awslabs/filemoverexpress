@@ -2,6 +2,7 @@ package transfer_api
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/aws/smithy-go/middleware"
 
 	fmeconfig "github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/auth"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 )
 
 var (
@@ -23,6 +26,11 @@ var (
 	// to allow tests to stub out AWS SDK calls without requiring real credentials.
 	loadConfigFunc       = loadDefaultConfig
 	sessionValidatorFunc = isSessionValid
+
+	// oidcProvider is the package-level OIDC provider instance, set during daemon initialization.
+	oidcProvider *auth.OIDCProvider
+
+	errOIDCProviderNotInitialized = fmt.Errorf("OIDC provider not initialized")
 )
 
 type (
@@ -43,7 +51,22 @@ type (
 		Uploader   *manager.Uploader
 		Lock       *sync.RWMutex
 	}
+
+	// oidcCredentialProvider implements aws.CredentialsProvider by delegating to the
+	// OIDCProvider's GetCredentials method. The AWS SDK calls Retrieve() on each API
+	// request (with internal caching based on CanExpire/Expires), enabling transparent
+	// credential refresh during long-running transfers.
+	oidcCredentialProvider struct {
+		provider    *auth.OIDCProvider
+		profileName string
+		oidcConfig  *auth.OIDCConfig
+	}
 )
+
+// SetOIDCProvider sets the package-level OIDC provider used for OIDC-authenticated sessions.
+func SetOIDCProvider(provider *auth.OIDCProvider) {
+	oidcProvider = provider
+}
 
 func isSessionValid(awsConfig aws.Config) bool {
 	client := sts.NewFromConfig(awsConfig)
@@ -98,18 +121,116 @@ func GetSession(profile string, region string) (*aws.Config, error) {
 	return configCache[key], nil
 }
 
-func NewS3Manager(input S3ManagerConfig) (*S3Manager, error) {
+// GetSessionForTransferProfile resolves an AWS config for the given transfer profile,
+// routing to OIDC credential provider when auth_method is OIDC.
+func GetSessionForTransferProfile(tp configtypes.TransferProfile) (*aws.Config, error) {
+	if tp.AuthMethod == configtypes.AuthMethodOIDC {
+		return getOIDCSession(tp)
+	}
+	// Default path: AWS_PROFILE or UNSPECIFIED — use existing credential resolution
+	return GetSession(tp.Profile, tp.Region)
+}
+
+func (o *oidcCredentialProvider) Retrieve(_ context.Context) (aws.Credentials, error) {
+	creds, err := o.provider.GetCredentials(o.profileName, o.oidcConfig)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+	return aws.Credentials{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+		Source:          "OIDCProvider",
+		CanExpire:       true,
+		Expires:         creds.Expiration,
+	}, nil
+}
+
+func getOIDCSession(tp configtypes.TransferProfile) (*aws.Config, error) {
+	if oidcProvider == nil {
+		return nil, errOIDCProviderNotInitialized
+	}
+
+	oidcCfg := mapTransferProfileToOIDCConfig(tp.OIDCConfig)
+
+	// Fail fast: verify credentials are obtainable before building the client.
+	// This surfaces ErrOIDCNotAuthenticated immediately rather than on first S3 call.
+	if _, err := oidcProvider.GetCredentials(tp.Name, oidcCfg); err != nil {
+		return nil, err
+	}
+
+	provider := &oidcCredentialProvider{
+		provider:    oidcProvider,
+		profileName: tp.Name,
+		oidcConfig:  oidcCfg,
+	}
+
+	cfg, err := buildOIDCConfig(tp.Region, provider)
+	if err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+// mapTransferProfileToOIDCConfig converts the config types to the auth package types.
+func mapTransferProfileToOIDCConfig(src *configtypes.OIDCConfig) *auth.OIDCConfig {
+	if src == nil {
+		return nil
+	}
+	return &auth.OIDCConfig{
+		IssuerURL:              src.IssuerURL,
+		ClientID:               src.ClientID,
+		RoleARN:                src.RoleARN,
+		Scopes:                 src.Scopes,
+		PersistSession:         src.PersistSession,
+		CustomCABundle:         src.CustomCABundle,
+		SessionDurationSeconds: src.SessionDurationSeconds,
+	}
+}
+
+func buildOIDCConfig(region string, provider aws.CredentialsProvider) (aws.Config, error) {
+	return config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(region),
+		config.WithCredentialsProvider(provider),
+	)
+}
+
+// NewS3Manager creates an S3Manager using the credential path appropriate for the transfer profile's auth method.
+// For OIDC profiles, credentials are obtained from the OIDC provider; for AWS profile-based auth, standard credential
+// resolution is used.
+func NewS3Manager(tp configtypes.TransferProfile) (*S3Manager, error) {
+	cfg, err := GetSessionForTransferProfile(tp)
+	if err != nil {
+		return nil, err
+	}
+	return buildS3Manager(cfg, tp)
+}
+
+// NewS3ManagerFromConfig creates an S3Manager using explicit AWS profile credentials.
+// Use this only when a full TransferProfile is not available (e.g., CLI commands with manual args).
+func NewS3ManagerFromConfig(input S3ManagerConfig) (*S3Manager, error) {
 	cfg, err := GetSession(input.AwsProfile, input.Region)
 	if err != nil {
 		return nil, err
 	}
+	tp := configtypes.TransferProfile{
+		Profile:  input.AwsProfile,
+		Bucket:   input.Bucket,
+		Region:   input.Region,
+		Endpoint: input.Endpoint,
+	}
+	return buildS3Manager(cfg, tp)
+}
+
+func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager, error) {
 	retryCount := fmeconfig.LoadConfiguration().General.RetryCount
 	retryCount = max(retryCount, 0)
 	var client *s3.Client
-	if input.Endpoint != "" {
+	if tp.Endpoint != "" {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
 			opts.RetryMaxAttempts = int(retryCount)
-			opts.BaseEndpoint = aws.String(input.Endpoint)
+			opts.BaseEndpoint = aws.String(tp.Endpoint)
 		})
 	} else {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
@@ -117,9 +238,9 @@ func NewS3Manager(input S3ManagerConfig) (*S3Manager, error) {
 		})
 	}
 	return &S3Manager{
-		Region:     input.Region,
-		Bucket:     input.Bucket,
-		AwsProfile: input.AwsProfile,
+		Region:     tp.Region,
+		Bucket:     tp.Bucket,
+		AwsProfile: tp.Profile,
 		Client: &FileMoverS3Client{
 			client: client,
 		},

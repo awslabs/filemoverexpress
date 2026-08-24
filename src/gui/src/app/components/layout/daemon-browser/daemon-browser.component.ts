@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
 import { FileBrowserComponent } from '@app/components/layout/file-browser/file-browser.component';
@@ -9,6 +9,7 @@ import {
 } from '@app/components/layout/file-browser/file-browser.utils';
 import { ConfigureHotFolderModalComponent } from '@app/components/modals/configure-hot-folder-modal/configure-hot-folder-modal.component';
 import { ConfigureHotFolderModalData } from '@app/components/modals/configure-hot-folder-modal/configure-hot-folder-modal.interfaces';
+import { FavoritePathModalComponent } from '@app/components/modals/favorite-path-modal/favorite-path-modal.component';
 import { CreatePrefixFolderModalComponent } from '@app/components/modals/create-prefix-folder/create-prefix-folder-modal.component';
 import {
     CreatePrefixFolderData,
@@ -93,6 +94,8 @@ export class DaemonBrowserComponent implements OnDestroy {
     private wails = inject(WailsService);
 
     @ViewChild('filterField') filterField!: TextInputComponent;
+    @ViewChild('fileBrowser') fileBrowser!: FileBrowserComponent;
+    @ViewChild('overflowMenuBtn', {read: ElementRef}) overflowMenuBtn?: ElementRef<HTMLElement>;
     fileBrowserID = DAEMON_FILE_BROWSER_ID;
     allowedDragOriginIDs: string[] = [BUCKET_FILE_BROWSER_ID];
     currentDirectory = '';
@@ -156,10 +159,13 @@ export class DaemonBrowserComponent implements OnDestroy {
                 } else if (connState === ConnectionState.DISCONNECTED) {
                     this.currentDirectory = '';
                     this.isRoot = true;
+                    // A CONNECTING -> DISCONNECTED transition means the connection attempt failed,
+                    // as opposed to never having connected or the user disconnecting on purpose.
+                    const connectionFailed = oldConnectionState === ConnectionState.CONNECTING;
                     this.fileBrowserData = {
                         state: FileBrowserState.ERROR,
                         list: [],
-                        error: this.getErrorNoActiveSession(this.selectedBookmark),
+                        error: this.getErrorNoActiveSession(this.selectedBookmark, connectionFailed),
                     };
                 }
             },
@@ -577,13 +583,16 @@ export class DaemonBrowserComponent implements OnDestroy {
      */
     configureHotFolder(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
-            if (!triggerObject) {
+            // Right-click a folder -> that folder is the source. Panel-level (empty-space /
+            // overflow) -> the current directory is the source.
+            const sourceGrpcPath = triggerObject ? triggerObject.name : this.currentDirectory;
+            if (!sourceGrpcPath) {
                 return;
             }
-            const hotFolderSourcePath = grpcPathToDisplayPath(triggerObject.name, this.fileBrowserType);
+            const hotFolderSourcePath = grpcPathToDisplayPath(sourceGrpcPath, this.fileBrowserType);
             const modalData: ConfigureHotFolderModalData = {
                 hotFolderSourcePath: hotFolderSourcePath,
-                hotFolderDestinationPath: triggerObject.name.split('/').at(-1) ?? '',
+                hotFolderDestinationPath: sourceGrpcPath.split('/').at(-1) ?? '',
                 profileName: this.selectedTransferProfile ?? '',
             };
             const dialogRef = this.dialog.open<ConfigureHotFolderModalComponent, ConfigureHotFolderModalData>(
@@ -615,6 +624,28 @@ export class DaemonBrowserComponent implements OnDestroy {
     createLocalFolder() {
         return () => {
             this.openCreateLocalFolderModal(this.currentDirectory);
+        };
+    }
+
+    /**
+     * Opens the shared panel (empty-space) context menu from the "..." overflow button,
+     * anchored just below it. This is the same menu as right-clicking empty space, built
+     * from one definition so the two can never drift.
+     */
+    openOverflowMenu() {
+        return () => {
+            const rect = this.overflowMenuBtn?.nativeElement?.getBoundingClientRect();
+            this.fileBrowser?.openEmptySpaceMenu(rect ? rect.left : 0, rect ? rect.bottom + 4 : 0);
+        };
+    }
+
+    /**
+     * Context-menu handler that refreshes the panel (mockup puts Refresh inside the
+     * overflow / empty-space menu, in addition to the standalone refresh button).
+     */
+    private refreshFromContextMenu(): FileBrowserContextMenuClickHandler {
+        return () => {
+            this.refreshFileBrowser();
         };
     }
 
@@ -704,19 +735,22 @@ export class DaemonBrowserComponent implements OnDestroy {
      * @param {(Bookmark | null)} currentBookmark - The current selected bookmark
      * @private
      */
-    private getErrorNoActiveSession(currentBookmark: Bookmark | null): FileBrowserError {
+    private getErrorNoActiveSession(currentBookmark: Bookmark | null, connectionFailed = false): FileBrowserError {
         if (!currentBookmark) {
             return {
                 ...fileBrowserErrors.NO_BOOKMARK_SELECTED,
             };
         }
-        let fileBrowserErrorType = {
-            ...fileBrowserErrors.NO_ACTIVE_SESSION_REMOTE,
-        };
-        if (currentBookmark.name === DEFAULT_BOOKMARK_NAME) {
-            fileBrowserErrorType = {
-                ...fileBrowserErrors.NO_ACTIVE_SESSION_LOCAL,
-            };
+        const isLocal = currentBookmark.name === DEFAULT_BOOKMARK_NAME;
+        let fileBrowserErrorType;
+        if (connectionFailed) {
+            fileBrowserErrorType = isLocal
+                ? { ...fileBrowserErrors.CONNECTION_FAILED_LOCAL }
+                : { ...fileBrowserErrors.CONNECTION_FAILED_REMOTE };
+        } else {
+            fileBrowserErrorType = isLocal
+                ? { ...fileBrowserErrors.NO_ACTIVE_SESSION_LOCAL }
+                : { ...fileBrowserErrors.NO_ACTIVE_SESSION_REMOTE };
         }
         return {
             ...fileBrowserErrorType,
@@ -818,6 +852,16 @@ export class DaemonBrowserComponent implements OnDestroy {
     private setContextMenuData() {
         this.fileBrowserContextMenuData = [
             {
+                label: 'Refresh',
+                icon: 'refresh',
+                iconColor: 'blue',
+                sectionHeader: 'Actions',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['emptySpace', null],
+                ]),
+                action: this.refreshFromContextMenu(),
+            },
+            {
                 label: 'Open file',
                 icon: 'open_in_new',
                 iconColor: 'inherit',
@@ -827,7 +871,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                 action: this.openLocalFile(),
             },
             {
-                label: `Open in ${getOSFileBrowserName(this.fileBrowserType)}`,
+                label: `Reveal in ${getOSFileBrowserName(this.fileBrowserType)}`,
                 icon: 'folder_open',
                 iconColor: 'blue',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
@@ -837,7 +881,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                 hasTrailingSeparator: true,
             },
             {
-                label: 'Create Folder',
+                label: 'New Folder',
                 icon: 'folder',
                 iconColor: 'blue',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
@@ -893,9 +937,20 @@ export class DaemonBrowserComponent implements OnDestroy {
                 action: this.removeFavoritePath(),
             },
             {
+                label: 'Add Favorite Path',
+                icon: 'star',
+                iconColor: 'yellow',
+                sectionHeader: 'Navigation',
+                triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
+                    ['emptySpace', null],
+                ]),
+                action: this.openFavoritePaths(),
+            },
+            {
                 label: 'Set as Local Starting Directory',
-                icon: 'edit',
+                icon: 'home',
                 iconColor: 'inherit',
+                sectionHeader: 'Navigation',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
                     ['folder', this.showLocalStartingPathMenuRow()], ['emptySpace', this.showLocalStartingPathMenuRow()],
                 ]),
@@ -905,6 +960,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                 label: 'Clear Local Starting Directory',
                 icon: 'clear',
                 iconColor: 'inherit',
+                sectionHeader: 'Navigation',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
                     ['folder', this.showClearLocalStartingPathMenuRow()], ['emptySpace', this.showClearLocalStartingPathMenuRow()],
                 ]),
@@ -914,12 +970,45 @@ export class DaemonBrowserComponent implements OnDestroy {
                 label: 'Configure Hot Folder',
                 icon: 'whatshot',
                 iconColor: 'orange',
+                sectionHeader: 'Automation',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
-                    ['folder', null],
+                    ['folder', null], ['emptySpace', null],
                 ]),
                 action: this.configureHotFolder(),
             },
         ];
+    }
+
+    /**
+     * Panel-level "Favorite Paths": opens the favorite-path modal (prefilled with the current
+     * directory) so the user can save it to the connected bookmark's favorites — the same
+     * flow as the "Local File System" dropdown's Add-favorite row.
+     */
+    private openFavoritePaths(): FileBrowserContextMenuClickHandler {
+        return () => {
+            const bookmark = this.selectedBookmark;
+            if (!bookmark) {
+                return;
+            }
+            let prefill = grpcPathToDisplayPath(this.currentDirectory, this.fileBrowserType);
+            if (this.bookmarks.hasFavoritePath(bookmark, prefill)) {
+                prefill = '';
+            }
+            const dialogRef = this.dialog.open(FavoritePathModalComponent, {
+                width: '50%',
+                maxWidth: '600px',
+                data: {prefilledFavoritePath: prefill, bookmark: bookmark},
+            });
+            const onSave = dialogRef.componentInstance.favoritePathSaved.subscribe((favoritePath: string) => {
+                if (favoritePath) {
+                    const addResult = this.bookmarks.addFavoritePath(bookmark, favoritePath);
+                    if (addResult) {
+                        this.notifications.open(addResult.message, addResult.level);
+                    }
+                }
+            });
+            dialogRef.afterClosed().subscribe(() => onSave.unsubscribe());
+        };
     }
 
     private createChildLocalFolder(): FileBrowserContextMenuClickHandler {
@@ -1025,11 +1114,15 @@ export class DaemonBrowserComponent implements OnDestroy {
                 config.protocols.s3.transferProfiles[transferProfile].paths.local = newLocalStartingPath;
                 this.fmeClientService.setConfiguration(config).subscribe({
                     next: () => {
-                        const message = newLocalStartingPath
-                            ? `Successfully updated Local Starting Directory for remote configuration ${transferProfile}.`
-                            : `Cleared Local Starting Directory for remote configuration ${transferProfile}.`;
-                        this.notifications.success(message);
-                        this.refreshFileBrowser(true);
+                        if (newLocalStartingPath) {
+                            this.notifications.success(`Successfully updated Local Starting Directory for remote configuration ${transferProfile}.`);
+                            this.refreshFileBrowser(true);
+                        } else {
+                            this.notifications.success(`Cleared Local Starting Directory for remote configuration ${transferProfile}.`);
+                            // With no starting directory configured, take the user to the
+                            // root of the daemon file system.
+                            this.navigateToPath('/');
+                        }
                     },
                     error: (error) => {
                         this.notifications.warning(`Error occurred when updating Local Directory for remote configuration ${transferProfile}: ${error}`);

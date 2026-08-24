@@ -1,76 +1,156 @@
-<div class="dialog-wrapper">
-    <div mat-dialog-title class="dialog-title">
-        <h1>Job Details</h1>
-        <div class="spacer"></div>
-        <button mat-icon-button aria-label="close dialog" mat-dialog-close>
+<div class="dialog-wrapper jd-modal">
+    <!-- Header: direction triangle + name + status pill + close (mockup .jd-head) -->
+    <div mat-dialog-title class="jd-head">
+        <span class="jd-dir" [class.up]="isUpload" [class.down]="!isUpload">{{ isUpload ? '&#9650;' : '&#9660;' }}</span>
+        <span class="jd-title"
+              [matTooltip]="jobDetails.jobName"
+              [matTooltipDisabled]="jobDetails.jobName.length <= MAX_INFO_STRING_LENGTH"
+              matTooltipPosition="below">
+            {{ jobDetails.jobName | textEllipses : MAX_INFO_STRING_LENGTH }}
+        </span>
+        <span class="job-status" [ngClass]="statusClass">{{ statusLabel }}</span>
+        <button mat-icon-button aria-label="close dialog" mat-dialog-close class="jd-close-btn">
             <mat-icon>close</mat-icon>
         </button>
     </div>
 
-    <div class="job-details" mat-dialog-content>
-        <div class="info">
-            <div class="info-section">
-                <div [matTooltip]="jobDetails.jobName"
-                     [matTooltipDisabled]="jobDetails.jobName.length <= MAX_INFO_STRING_LENGTH"
-                     matTooltipPosition="above"
-                     class="info-field"
-                >
-                    <h5>Job Name</h5>
-                    {{ jobDetails.jobName | textEllipses : MAX_INFO_STRING_LENGTH }}
-                </div>
-                <div [matTooltip]="jobDetails.destination"
-                     [matTooltipDisabled]="jobDetails.destination.length <= MAX_INFO_STRING_LENGTH"
-                     matTooltipPosition="below"
-                     class="info-field"
-                >
-                    <h5>Destination</h5>
-                    {{ jobDetails.destination | textEllipses : MAX_INFO_STRING_LENGTH }}
-                </div>
+    <div class="jd-body" mat-dialog-content>
+        <!-- Error banner (failed transfers) -->
+        @if (isError && jobDetails.statusMessage) {
+            <div class="jd-err">
+                <div class="t"><mat-icon>warning</mat-icon> {{ statusLabel }}</div>
+                <div class="d">{{ jobDetails.statusMessage }}</div>
             </div>
-            <div class="vertical-line"></div>
-            <div class="info-section">
-                <div [matTooltip]="jobDetails.remoteConfiguration"
-                     [matTooltipDisabled]="jobDetails.remoteConfiguration.length <= MAX_INFO_STRING_LENGTH"
-                     matTooltipPosition="above"
-                     class="info-field"
-                >
-                    <h5>Remote Configuration</h5>
-                    {{ jobDetails.remoteConfiguration | textEllipses : MAX_INFO_STRING_LENGTH }}
-                </div>
-                <div>
-                    <!-- TODO: Removing source as this is not a property we're tracking -->
-                </div>
+        }
+
+        <!-- Progress -->
+        <div class="jd-progress-track">
+            <div class="jd-progress-fill" [ngClass]="progressFillClass" [style.width.%]="progressPct"></div>
+        </div>
+        <div class="jd-bytes">
+            <span>{{ bytesLabel }}</span>
+            <span>{{ isActive ? 'In progress' : (isError ? 'Stopped' : 'Complete') }}</span>
+        </div>
+
+        <!-- Stat tiles: Size / Duration / Avg Speed / Completed (Status when active) -->
+        <div class="jd-tiles">
+            <div class="jd-tile"><div class="k">Size</div><div class="v">{{ sizeLabel }}</div></div>
+            <div class="jd-tile"><div class="k">Duration</div><div class="v">{{ durationLabel }}</div></div>
+            <div class="jd-tile"><div class="k">Avg Speed</div><div class="v">{{ speedLabel }}</div></div>
+            <div class="jd-tile">
+                <div class="k">{{ isActive ? 'Status' : 'Completed' }}</div>
+                <div class="v">{{ isActive ? statusLabel : (jobDetails.completed ? (jobDetails.completed | date : 'HH:mm:ss') : '—') }}</div>
             </div>
         </div>
 
-        <mat-tab-group mat-stretch-tabs="false"
-                       mat-align-tabs="start"
-                       color="accent"
-                       (selectedTabChange)="onTabClick($event)"
-                       animationDuration="0ms"
-                       class="table-group-wrapper"
-        >
-            <mat-tab label="Show All ({{counts.total}})">
-                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
-            </mat-tab>
-            <mat-tab label="Pending ({{counts.pending}})">
-                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
-            </mat-tab>
-            <mat-tab label="Completed ({{counts.completed}})">
-                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
-            </mat-tab>
-            <mat-tab label="Skipped ({{counts.skipped}})">
-                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
-            </mat-tab>
-            <mat-tab label="Failed ({{counts.failed}})">
-                <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+        <!-- Advanced details (collapsed by default): the full config, two columns. Status,
+             progress and errors above are what most users open this modal for. -->
+        <div class="jd-advanced">
+            <button type="button" class="jd-advanced-toggle" (click)="advancedOpen = !advancedOpen"
+                    [attr.aria-expanded]="advancedOpen">
+                <mat-icon>{{ advancedOpen ? 'expand_more' : 'chevron_right' }}</mat-icon>
+                Advanced details
+                @if (!advancedOpen) {
+                    <span class="jd-advanced-hint">Bucket, destination, checksum, parallelism…</span>
+                }
+            </button>
+            @if (advancedOpen) {
+                <div class="jd-rows">
+                    <div class="jd-row"><span class="rk">Direction</span><span class="rv">{{ directionLabel }}</span></div>
+                    <div class="jd-row">
+                        <span class="rk">Remote Configuration</span><span class="rv">{{ jobDetails.remoteConfiguration }}</span>
+                    </div>
+                    @if (s3BucketUri) {
+                        <div class="jd-row"><span class="rk">S3 Bucket</span><span class="rv">{{ s3BucketUri }}</span></div>
+                    }
+                    <div class="jd-row"><span class="rk">Destination</span><span class="rv">{{ jobDetails.destination }}</span></div>
+                    @if (storageClassLabel) {
+                        <div class="jd-row"><span class="rk">Storage class</span><span class="rv">{{ storageClassLabel }}</span></div>
+                    }
+                    @if (checksumLabel) {
+                        <div class="jd-row"><span class="rk">Checksum</span><span class="rv">{{ checksumLabel }}</span></div>
+                    }
+                    @if (parallelismLabel) {
+                        <div class="jd-row"><span class="rk">Parallelism</span><span class="rv">{{ parallelismLabel }}</span></div>
+                    }
+                    <div class="jd-row"><span class="rk">Started</span><span class="rv">{{ jobDetails.started | date : 'yyyy-MM-dd HH:mm:ss' }}</span></div>
+                    <div class="jd-row">
+                        <span class="rk">Completed</span>
+                        <span class="rv">{{ jobDetails.completed ? (jobDetails.completed | date : 'yyyy-MM-dd HH:mm:ss') : '—' }}</span>
+                    </div>
+                </div>
+            }
+        </div>
 
-            </mat-tab>
-        </mat-tab-group>
-        <mat-paginator [pageSizeOptions]="[25, 50, 100]"
-                       showFirstLastButtons
-                       aria-label="Select number of tasks to display">
-        </mat-paginator>
+        <!-- Main: left side-nav (Logs + per-file-status views) + content pane -->
+        <div class="jd-main">
+            <nav class="jd-nav">
+                <button type="button" class="jd-nav-item" [class.active]="view === 'logs'" (click)="selectView('logs')">
+                    <span>Logs</span>
+                    @if (isError) { <span class="jd-nav-dot" aria-label="has errors"></span> }
+                </button>
+                <button type="button" class="jd-nav-item" [class.active]="view === 'all'" (click)="selectView('all')">
+                    <span>All Files</span><span class="jd-nav-count">{{ counts.total }}</span>
+                </button>
+                <button type="button" class="jd-nav-item" [class.active]="view === 'pending'" (click)="selectView('pending')">
+                    <span>Pending</span><span class="jd-nav-count">{{ counts.pending }}</span>
+                </button>
+                <button type="button" class="jd-nav-item" [class.active]="view === 'completed'" (click)="selectView('completed')">
+                    <span>Completed</span><span class="jd-nav-count">{{ counts.completed }}</span>
+                </button>
+                <button type="button" class="jd-nav-item" [class.active]="view === 'skipped'" (click)="selectView('skipped')">
+                    <span>Skipped</span><span class="jd-nav-count">{{ counts.skipped }}</span>
+                </button>
+                <button type="button" class="jd-nav-item" [class.active]="view === 'failed'" (click)="selectView('failed')">
+                    <span>Failed</span><span class="jd-nav-count">{{ counts.failed }}</span>
+                </button>
+            </nav>
+
+            <div class="jd-view">
+                <!-- Logs view -->
+                <div class="jd-logs" [hidden]="view !== 'logs'">
+                    @if (jobLogs.length === 0) {
+                        <div class="jd-logs-empty">No log entries for this job yet.</div>
+                    } @else {
+                        @for (log of jobLogs; track $index) {
+                            <div class="jd-log-row" [ngClass]="'lvl-' + log.level.toLowerCase()">
+                                <span class="jd-log-time">{{ log.timestamp | date : 'HH:mm:ss' }}</span>
+                                <span class="jd-log-level">{{ log.level }}</span>
+                                <span class="jd-log-msg">{{ log.message }}</span>
+                            </div>
+                        }
+                    }
+                </div>
+                <!-- File views (kept mounted so the paginator ViewChild resolves) -->
+                <div class="jd-file-view" [hidden]="view === 'logs'">
+                    <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+                    <mat-paginator [pageSizeOptions]="[25, 50, 100]"
+                                   showFirstLastButtons
+                                   aria-label="Select number of tasks to display">
+                    </mat-paginator>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer actions (mockup .jd-foot) -->
+    <div class="jd-foot" mat-dialog-actions>
+        @if (canReveal) {
+            <button class="jd-btn ghost" (click)="reveal()">{{ revealLabel }}</button>
+        }
+        @if (canCopyS3Uri) {
+            <button class="jd-btn ghost" (click)="copyS3Uri()">Copy S3 URI</button>
+        }
+        @if (isError) {
+            <button class="jd-btn ghost" (click)="copyError()">Copy error</button>
+        }
+        @if (canPauseOrCancel) {
+            <button class="jd-btn push" (click)="pauseOrResume()">{{ isPaused ? 'Resume' : 'Pause' }}</button>
+            <button class="jd-btn danger" (click)="cancel()">Cancel</button>
+        } @else if (canRetry) {
+            <button class="jd-btn primary push" (click)="retry()">{{ isError ? 'Retry' : 'Resubmit' }}</button>
+        }
+        <button class="jd-btn ghost" [class.push]="!canPauseOrCancel && !canRetry" mat-dialog-close>Close</button>
     </div>
 </div>
 
@@ -79,8 +159,7 @@
         <div class="inputs-section">
             <div class="card-title" [formGroup]="filterForm">
                 <mat-form-field class="search" color="accent" appearance="outline">
-                    <mat-label>Search</mat-label>
-                    <input matInput type="text" formControlName="term">
+                    <input matInput type="text" formControlName="term" placeholder="Filter">
                 </mat-form-field>
             </div>
         </div>
@@ -90,10 +169,6 @@
                     <ng-container matColumnDef="name">
                         <th mat-header-cell *matHeaderCellDef> Name</th>
                         <td mat-cell *matCellDef="let element; dataSource: dataSource">
-                            <!-- TODO: Disabling these icons for now
-                            <mat-icon class="icon" *ngIf="element.type">folder</mat-icon>
-                            <mat-icon *ngIf="!element.type">description</mat-icon>
-                            -->
                             <span [matTooltip]="element.name"
                                   [matTooltipDisabled]="element.name.length <= MAX_TABLE_STRING_LENGTH"
                                   matTooltipPosition="right">

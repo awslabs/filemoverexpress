@@ -31,7 +31,7 @@ func (*FileMoverServer) CreateS3Prefix(
 		return connect.NewResponse(resp), nil
 	}
 
-	s3m, err := jm.GetS3Manager(txp.Profile, txp.Bucket, txp.Region, txp.Endpoint)
+	s3m, err := jm.GetS3Manager(txp)
 	if err != nil {
 		resp.Success = false
 		resp.Message = err.Error()

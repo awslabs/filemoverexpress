@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatD
 import { TransferProfile } from '@app/classes/config';
 import { TransferProfileFormComponent } from '@containers/forms/transfer-profile-form/transfer-profile-form.component';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
 import { TransferProfileEditorModalData } from './transfer-profile-editor-modal.interfaces';
 
 @Component({
@@ -23,6 +24,7 @@ import { TransferProfileEditorModalData } from './transfer-profile-editor-modal.
 export class TransferProfileEditorModalComponent {
     data = inject<TransferProfileEditorModalData>(MAT_DIALOG_DATA);
     dialogRef = inject<MatDialogRef<TransferProfileEditorModalComponent>>(MatDialogRef);
+    private txpService = inject(TransferProfileService);
 
     @Output() transferProfileSaved = new EventEmitter<TransferProfile>();
     transferProfile: TransferProfile | null;
@@ -49,6 +51,21 @@ export class TransferProfileEditorModalComponent {
             const txProfile = TransferProfile.fromJson(this.transferProfileForm.getRawValue());
             this.transferProfileSaved.emit(txProfile);
             this.dialogRef.close();
+        };
+    }
+
+    delete() {
+        return () => {
+            if (!this.transferProfile) {
+                return;
+            }
+            // Reuse the shared delete + confirmation flow. Only close the editor once the
+            // user actually confirms the deletion (afterClosed emits true on confirm).
+            this.txpService.delete(this.transferProfile.name).subscribe((confirmed) => {
+                if (confirmed) {
+                    this.dialogRef.close();
+                }
+            });
         };
     }
 }

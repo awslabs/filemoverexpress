@@ -86,6 +86,22 @@ message S3Settings {
     map<string, TransferProfile> transfer_profiles = 10;
 }
 
+enum AuthMethod {
+    AUTH_METHOD_UNSPECIFIED = 0;
+    AUTH_METHOD_AWS_PROFILE = 1;
+    AUTH_METHOD_OIDC = 2;
+}
+
+message OIDCConfig {
+    string issuer_url = 1;
+    string client_id = 2;
+    string role_arn = 3;
+    repeated string scopes = 4;
+    bool persist_session = 5;
+    string custom_ca_bundle = 6;
+    int32 session_duration_seconds = 7;
+}
+
 message TransferProfile {
     string name = 1;
     string bucket = 2;
@@ -103,6 +119,8 @@ message TransferProfile {
     bool auto_tuning = 16;
     ChecksumSettings checksums = 17;
     string endpoint = 18;
+    AuthMethod auth_method = 19;
+    OIDCConfig oidc_config = 20;
 }
 
 message UploadHotFolderSettings {

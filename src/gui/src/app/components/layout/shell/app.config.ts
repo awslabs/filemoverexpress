@@ -50,6 +50,10 @@ export const appConfig: ApplicationConfig = {
             useValue: {
                 appearance: 'outline',
                 subscriptSizing: 'dynamic',
+                // Always float the label so it renders as a static label ABOVE the box
+                // (mockup style). angular-material.scss repositions the floated label
+                // above the outline and gives the field the mockup's dark fill.
+                floatLabel: 'always',
             },
         },
         {

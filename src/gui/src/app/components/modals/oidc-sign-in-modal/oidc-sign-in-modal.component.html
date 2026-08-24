@@ -1,0 +1,27 @@
+<h2 mat-dialog-title>Sign in to AWS</h2>
+<mat-dialog-content>
+    @if (!error) {
+        <p class="intro">
+            A browser window has opened for you to sign in with your identity provider.
+            Come back here once you've finished — this updates automatically.
+        </p>
+        <div class="waiting">
+            <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+            <span>Waiting for you to finish in your browser…</span>
+        </div>
+    } @else {
+        <p class="intro">We couldn't complete sign-in.</p>
+        <div class="error-box">
+            <mat-icon>error</mat-icon>
+            <span>{{ error }}</span>
+        </div>
+    }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    @if (!error) {
+        <fme-button type="stroked" text="Cancel" [onClick]="cancel()"></fme-button>
+    } @else {
+        <fme-button type="stroked" text="Edit configuration" [onClick]="editConfiguration()"></fme-button>
+        <fme-button type="filled" text="Try again" [onClick]="tryAgain()"></fme-button>
+    }
+</mat-dialog-actions>

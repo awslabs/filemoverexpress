@@ -21,35 +21,20 @@
                         </div>
                         <!-- to modify the max length of truncateString, add a number to truncateString i.e.{{ truncateString : 60 }}  -->
                         <div class="file-name-string">{{ element.name | basename | truncateString }}</div>
-                        @if (element.isFavorite) {
-                            <div class="row-icon-wrapper">
-                                <mat-icon fontSet="material-icons"
-                                          class="favorite-icon"
-                                          matTooltip="Favorite path"
-                                          matTooltipPosition="above">
-                                    star
-                                </mat-icon>
-                            </div>
-                        }
                         @if (element.isHotFolder) {
-                            <div class="row-icon-wrapper">
-                                <mat-icon fontSet="material-icons"
-                                          class="hot-folder-icon"
-                                          matTooltip="Hot folder"
-                                          matTooltipPosition="above">
-                                    whatshot
-                                </mat-icon>
-                            </div>
+                            <span class="folder-badge hot" matTooltip="Hot folder" matTooltipPosition="above">
+                                <mat-icon fontSet="material-icons" class="folder-badge-icon">whatshot</mat-icon>Hot
+                            </span>
+                        }
+                        @if (element.isFavorite) {
+                            <span class="folder-badge favorite" matTooltip="Favorite path" matTooltipPosition="above">
+                                <mat-icon fontSet="material-icons" class="folder-badge-icon">star</mat-icon>Fav
+                            </span>
                         }
                         @if (element.isStartingPath) {
-                            <div class="row-icon-wrapper">
-                                <mat-icon fontSet="material-icons"
-                                          class="starting-path-icon"
-                                          matTooltip="Navigation starting path"
-                                          matTooltipPosition="above">
-                                    input
-                                </mat-icon>
-                            </div>
+                            <span class="folder-badge starting" matTooltip="Navigation starting path" matTooltipPosition="above">
+                                <mat-icon fontSet="material-icons" class="folder-badge-icon">home</mat-icon>Start
+                            </span>
                         }
                         @if (element.storageClass?.toLowerCase().match(rgxGlacier)) {
                             <div class="row-icon-wrapper">
@@ -81,6 +66,9 @@
                 *matRowDef="let row; columns: COLUMNS;"
                 [class.disabled-row]="row.storageClass?.toLowerCase().match(rgxGlacier)"
                 [class.selected-row]="isSelected(row)"
+                [class.row-hot]="row.isHotFolder"
+                [class.row-favorite]="row.isFavorite"
+                [class.row-starting]="row.isStartingPath"
                 [class.row-dragged-over]="dragOverData.overRow?.name === row.name && dragOverData.overRow?.type === FileBrowserObjectType.FOLDER"
                 [draggable]="!isDraggable(row)"
                 (click)="clickFileBrowserRow($event, row)"
@@ -105,7 +93,11 @@
             </div>
         } @else {
             @if (fileBrowserData.state === FileBrowserState.ERROR) {
-                <div class="file-browser-error">
+                <div class="file-browser-error"
+                     [class.is-error]="fileBrowserData.error?.severity === 'error'">
+                    @if (fileBrowserData.error?.severity === 'error') {
+                        <mat-icon class="file-browser-error-icon" fontSet="material-icons">warning</mat-icon>
+                    }
                     <div class="file-browser-error-title">
                         {{ fileBrowserData.error ? fileBrowserData.error.title : FILE_BROWSER_GENERIC_ERROR.title }}
                     </div>
@@ -125,13 +117,26 @@
                     }
                 </div>
             } @else {
-                <div class="remaining-table-space"
-                     (click)="clickEmptySpace()"
-                     (dragover)="onDragOverTable($event)"
-                     (drop)="onDropTable($event)"
-                     (contextmenu)="rightClickEmptySpace($event)"
-                >
-                </div>
+                @if (!renderedDataSource.length && !filter.name) {
+                    <div class="drop-zone-empty"
+                         (click)="clickEmptySpace()"
+                         (dragover)="onDragOverTable($event)"
+                         (drop)="onDropTable($event)"
+                         (contextmenu)="rightClickEmptySpace($event)"
+                    >
+                        <mat-icon class="drop-zone-icon" fontSet="material-icons">cloud</mat-icon>
+                        <div class="drop-zone-text">Drop files to transfer</div>
+                        <div class="drop-zone-subtext">Drag items from the other panel, or browse and select</div>
+                    </div>
+                } @else {
+                    <div class="remaining-table-space"
+                         (click)="clickEmptySpace()"
+                         (dragover)="onDragOverTable($event)"
+                         (drop)="onDropTable($event)"
+                         (contextmenu)="rightClickEmptySpace($event)"
+                    >
+                    </div>
+                }
             }
         }
 
@@ -166,9 +171,13 @@
     }
 </div>
 
-<mat-menu #fileBrowserContextMenu="matMenu">
+<mat-menu #fileBrowserContextMenu="matMenu" class="fme-context-menu">
     <ng-template matMenuContent>
         @for (menuRow of contextMenuToRender.rows; track menuRow; let rowIndex = $index) {
+            @if (menuRow.sectionHeader && contextMenuToRender.triggerType === 'emptySpace'
+                 && (rowIndex === 0 || contextMenuToRender.rows[rowIndex - 1].sectionHeader !== menuRow.sectionHeader)) {
+                <div class="context-menu-section-header" aria-hidden="true">{{ menuRow.sectionHeader }}</div>
+            }
             <button mat-menu-item
                     (click)="menuRow.action(contextMenuToRender.triggerType, contextMenuToRender.triggerObject, currentDirectory)">
                 <div class="context-menu-row">

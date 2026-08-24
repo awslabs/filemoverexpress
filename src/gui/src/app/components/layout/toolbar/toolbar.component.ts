@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatToolbar } from '@angular/material/toolbar';
 import { handleStreamError } from '@app/classes/rxjs-operators';
-import { WelcomeModalComponent } from '@app/components/modals/welcome-modal/welcome-modal.component';
+import { AboutModalComponent } from '@app/components/modals/about-modal/about-modal.component';
 import { NotificationsComponent } from '@primitives/buttons/notifications/notifications.component';
 import { VersionUpdateComponent } from '@primitives/buttons/version-update/version-update.component';
 import { ToolbarDropdownComponent } from '@primitives/forms/toolbar-dropdown/toolbar-dropdown.component';
@@ -72,10 +72,12 @@ export class ToolbarComponent implements OnDestroy {
         this.subscriptions = [];
     }
 
-    openWelcomeModal(): void {
-        this.dialog.open(WelcomeModalComponent, {
-            width: '700px',
+    openAboutModal(): void {
+        this.dialog.open(AboutModalComponent, {
+            width: '480px',
             autoFocus: 'dialog',
+            panelClass: 'redesign-dialog',
+            data: {version: this.version},
         });
     }
 }

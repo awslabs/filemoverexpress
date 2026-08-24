@@ -4,8 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatDivider } from '@angular/material/list';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { RouterLink } from '@angular/router';
-import { PreferencesModalComponent } from '@app/components/modals/preferences-modal/preferences-modal.component';
+import { ConfigComponent } from '@containers/forms/config/config.component';
 import { isPackagedApp } from '@app/utils/utils';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
@@ -25,19 +24,37 @@ import { WailsService } from '@services/wails/wails.service';
         MatIcon,
         MatMenuItem,
         MatDivider,
-        RouterLink,
     ],
 })
 export class ToolbarDropdownComponent {
     fmeClientService = inject(FmeClientService);
-    dialog = inject(MatDialog);
     private renderer = inject(Renderer2);
     private notifications = inject(NotificationsService);
     private wails = inject(WailsService);
+    private dialog = inject(MatDialog);
 
     @Input() version = '';
     @Input() connected = false;
     @Input() allowUiConfiguration = false;
+
+    /**
+     * Open Settings as a modal over the app (instead of navigating to the full-page
+     * /home/config route, which blacked out the whole window). ConfigComponent detects
+     * the dialog host and closes itself on Save/Cancel.
+     */
+    openSettings() {
+        if (!this.connected || !this.allowUiConfiguration) {
+            return;
+        }
+        this.dialog.open(ConfigComponent, {
+            width: '60%',
+            maxWidth: '900px',
+            minHeight: '40vh',
+            maxHeight: '85%',
+            autoFocus: 'dialog',
+            panelClass: 'settings-dialog',
+        });
+    }
 
     generateSupportFile() {
         this.fmeClientService.generateSupportFile().subscribe({
@@ -86,9 +103,5 @@ export class ToolbarDropdownComponent {
         if (isPackagedApp()) {
             this.wails.externalLink(docsLinks.USER_GUIDE_PAGE_URL).subscribe();
         }
-    }
-
-    openPreferences() {
-        this.dialog.open(PreferencesModalComponent, {width: '40%'});
     }
 }

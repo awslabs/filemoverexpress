@@ -10,6 +10,7 @@ import (
 
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/core"
+	"github.com/awslabs/filemoverexpress/core/auth"
 	transferapi "github.com/awslabs/filemoverexpress/core/transfer-api"
 	"github.com/awslabs/filemoverexpress/events"
 	fterrors "github.com/awslabs/filemoverexpress/fme-errors"
@@ -64,7 +65,7 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 		job.SetStatus(jobmanagertypes.JobStatusInProgress)
 	}
 
-	s3Manager, err := jm.GetS3Manager(transferProfile.Profile, transferProfile.Bucket, transferProfile.Region, transferProfile.Endpoint)
+	s3Manager, err := jm.GetS3Manager(transferProfile)
 	if err != nil {
 		events.Events.Send(&eventtypes.JobErrorEvent{
 			Id:        job.JobId(),
@@ -108,6 +109,13 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 			filePath,
 			err.Error(),
 		)
+
+		if errors.Is(err, auth.ErrOIDCNotAuthenticated) {
+			events.Events.Error(
+				"OIDC session expired for profile %q — sign in again via the bucket browser to resume transfers",
+				transferProfile.Name,
+			)
+		}
 
 		if !job.HasTaskErrors() {
 			job.SetHasTaskErrors(true)

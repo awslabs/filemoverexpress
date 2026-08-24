@@ -9,8 +9,8 @@ $table-text-line-height: 20px;
 $table-row-hovered-color: variables.$table-row-background-color-hovered;
 
 $table-header-font: fonts.$font-family-heavy;
-$table-header-font-size: 14px;
-$table-header-font-weight: 500;
+$table-header-font-size: 11px;
+$table-header-font-weight: 600;
 $table-header-font-color: variables.$text-table-header;
 
 // apply this class to a div that wraps a mat table
@@ -22,18 +22,8 @@ $table-header-font-color: variables.$text-table-header;
     width: 100%;
     box-sizing: border-box;
     overflow: auto;
-    border: 2px solid variables.$table-border-color;
+    border: 1px solid variables.$table-border-color;
     border-radius: 10px;
-
-    // column dividers
-    th:not(:first-child)::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        bottom: 25%;
-        height: 50%;
-        border-left: 2px solid variables.$table-border-color;
-    }
 
     // table cell rows
     .mdc-data-table__row {
@@ -44,11 +34,13 @@ $table-header-font-color: variables.$text-table-header;
 
     // header cells
     .mdc-data-table__header-cell {
-        border-bottom: 2px solid variables.$table-border-color !important;
+        border-bottom: 1px solid variables.$table-border-color !important;
         font-size: $table-header-font-size !important;
         font-family: $table-header-font;
         font-weight: $table-header-font-weight;
         color: $table-header-font-color;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

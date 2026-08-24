@@ -5,10 +5,22 @@
 @use "styles/custom-theme";
 @use "styles/variables";
 
+// Global corner-radius tokens — the single place to tune the app's rounding
+// (and the seam for future custom themes). Seeded at the current values so this
+// centralization changes nothing visually; edit here to reshape globally.
+:root {
+    --fme-radius-button: 20px;   // fme-button pill
+    --fme-radius-card: 16px;     // dialog / card surfaces
+    --fme-radius-input: 8px;     // form fields
+    --fme-radius-menu: 8px;      // menus / context menus
+    --fme-radius-pill: 999px;    // status/folder capsules
+    --fme-radius-badge: 4px;     // small chips / status pills
+}
+
 html,
 body {
     height: 100vh;
-    width: 100vw;
+    width: 100%;
     margin: 0;
     overflow-x: hidden;
 }
@@ -17,7 +29,9 @@ body {
     font-family: fonts.$font-family;
     -webkit-font-smoothing: antialiased;
     font-size: 12px;
-    background-color: variables.$background-content;
+    // Tray shade — the app footer strip below the transfer tray shows the body bg,
+    // so it must match the tray's black rather than the lighter blue-grey.
+    background-color: variables.$background-tray;
     color: variables.$text;
     background-position: center;
     background-size: cover;
@@ -138,6 +152,32 @@ pre {
     }
 }
 
+// Redesign dialogs (mockup surfaces): every modal is a raised card sitting on the
+// darker page — #161d26 panel surface, 1px #424650 border, 16px rounded corners
+// (docs/mockups/mockup-redesign.html). Applied to ALL Material dialog surfaces, not
+// just those opting in via panelClass, so every modal matches.
+.mat-mdc-dialog-surface {
+    background-color: variables.$background-browser-panel !important; // #161d26
+    border: 1px solid #424650 !important;
+    border-radius: var(--fme-radius-card) !important;
+    overflow: hidden;
+}
+
+// Full-screen modals (welcome / setup wizard) opt out of the card chrome.
+.full-screen-modal .mat-mdc-dialog-surface {
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+// File-browser context / overflow menu (mockup grouped menu): wider, bordered panel.
+.fme-context-menu.mat-mdc-menu-panel {
+    min-width: 220px;
+    max-width: 320px;
+    border: 1px solid variables.$grey-600;
+    border-radius: 8px;
+}
+
 .label-font-size {
     font-size: calc(clamp(0.625rem, 0.5239rem + 0.4494vw, 0.875rem));
 }
@@ -165,16 +205,89 @@ mat-card-title {
     font-size: 16px !important;
 }
 
-.bottom-sheet-hints {
+// Info hint bottom-sheet. panelClass lands on the overlay pane; the visible box is the
+// inner .mat-bottom-sheet-container. Style the container as the single card and keep the
+// pane invisible so it doesn't read as a box-in-a-box. (Selectors cover the class landing
+// on either the pane or the container.)
+.bottom-sheet-hints:not(.mat-bottom-sheet-container) {
     max-width: 800px !important;
-    min-height: 150px;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.bottom-sheet-hints .mat-bottom-sheet-container,
+.mat-bottom-sheet-container.bottom-sheet-hints {
+    max-width: 800px !important;
     max-height: 50vh;
+    background-color: variables.$background-browser-panel !important; // #161d26
+    border: 1px solid #424650 !important;
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+    padding: 8px 24px !important;
 }
 
 /* TODO(mdc-migration): The following rule targets internal classes of chips that may no longer apply for the MDC version. */
 mat-chip.warning {
     background-color: variables.$snackbar-error-background !important;
     color: variables.$snackbar-error-color !important;
+}
+
+// Settings opened as a modal (panelClass 'settings-dialog'): the dialog surface is
+// already the card, so flatten the component's own inner card + drop its page margins
+// and width caps so it fills the dialog instead of nesting a second bordered card.
+.settings-dialog {
+    // The Settings component renders its own bordered card (nav + content). Drop the
+    // dialog surface's border so there's no double border, and pad the title/card/buttons
+    // off the edges (with room below Save/Cancel).
+    .mat-mdc-dialog-surface {
+        border: none !important;
+    }
+
+    fme-config {
+        margin: 0 !important;
+        display: block;
+        padding: 20px 24px 20px;
+    }
+
+    fme-config h1,
+    fme-config .settings-card,
+    fme-config .settings-buttons {
+        max-width: none;
+    }
+}
+
+// Settings > Hot Folders: the hot-folder form sits flush on the panel — drop the extra
+// nested expansion-panel card (blue-ish fill + heavy border) the user flagged.
+.settings-content mat-expansion-panel {
+    --mat-expansion-container-background-color: transparent;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+// Update/Add Remote Configuration modal (panelClass 'rc-editor-dialog'): the form
+// renders its own unified bordered card (.rc-card, nav + content) just like Settings,
+// so drop the dialog surface's border to avoid a double box (box-in-a-box).
+.rc-editor-dialog .mat-mdc-dialog-surface {
+    border: none !important;
+}
+
+// The footer actions (Delete / Close / Update) were touching the rounded bottom
+// edge when the Performance tab is scrolled to the bottom — give them breathing room.
+.rc-editor-dialog .mat-mdc-dialog-actions {
+    padding: 12px 24px 20px;
+}
+
+// "Discard Unsaved Changes?" prompt: show Discard (secondary) on the left and Keep
+// Editing (primary/default) on the right by reversing the button row.
+.discard-changes-dialog .modal-buttons {
+    flex-direction: row-reverse;
+    gap: 12px;
+
+    fme-button:not(:last-child) {
+        margin-right: 0;
+    }
 }
 
 .mdc-dialog__content, .mdc-dialog__actions {
@@ -203,8 +316,175 @@ mat-chip.warning {
     box-shadow: inset 0 0 10px 10px variables.$grey-500;
 }
 
+// The corner where a horizontal and vertical scrollbar meet — otherwise renders as a
+// bright default square in the bottom-right of scrollable panels.
 ::-webkit-scrollbar-corner {
     background: transparent;
 }
 
+// endregion
+
+// region toolbar (top bar) icon buttons
+// Match the mockup's muted toolbar icons (grey, ~20px, brighten on hover) instead of the
+// default bright/heavy Material icon buttons. Scoped to mat-toolbar; the bell and menu
+// render in child components, so a global (non-scoped) rule is used deliberately here.
+mat-toolbar {
+    .mat-mdc-icon-button {
+        width: 36px;
+        height: 36px;
+        padding: 6px;
+
+        mat-icon {
+            color: variables.$grey-450;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+
+        &:hover mat-icon {
+            color: variables.$white;
+        }
+    }
+}
+// endregion
+
+// region jobs-tray Filter field
+// The Jobs tray Filter is a Material outlined mat-form-field. By default it renders a heavy
+// 2px outline (see the global .mdc-text-field--outlined rule) that clashes with the compact
+// custom fields in the Local/S3 panels. Nudge it toward the panel field look (1px grey-600
+// border, 8px radius, 12px) via Material design tokens. Scoped to the jobs filter only; a
+// scoped global rule is used because the outline segments live inside mat-form-field's own
+// template (reached here without ::ng-deep, per convention).
+// region tray form fields — Jobs Filter, Logs Search/Levels/Jobs, Bucket Reports Search
+// All tray tabs use a `.filter` control row of Material outlined fields. Make them match the
+// Local/S3 panel dropdowns exactly: 28px tall, 8px radius, 1px grey-600 border, and 12px / 400 /
+// grey-300 text (measured from the panel dropdowns). Scoped global rules reach the Material
+// internals here (no ::ng-deep, per convention).
+.jobs-table-wrapper .filter,
+.logs-table-wrapper .filter,
+.reports-table-wrapper .filter,
+.jd-modal .tasks-table-wrapper .card-title {
+    mat-form-field.mat-mdc-form-field {
+        --mdc-outlined-text-field-container-shape: 8px;
+        --mdc-outlined-text-field-outline-color: #{variables.$grey-600};
+        --mdc-outlined-text-field-hover-outline-color: #{variables.$grey-550};
+    }
+
+    // Drop the reserved hint/error space below the control so it reads as a compact dropdown.
+    .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+    }
+
+    // Override the global 2px outline (set with !important on this element) to 1px.
+    .mdc-text-field--outlined {
+        --mat-form-field-outlined-outline-width: 1px !important;
+    }
+
+    // Pin to the 28px height of the panel dropdowns.
+    .mat-mdc-text-field-wrapper {
+        height: 28px;
+    }
+
+    .mat-mdc-form-field-flex {
+        height: 28px;
+        align-items: center;
+    }
+
+    .mat-mdc-form-field-infix {
+        min-height: 28px;
+        padding-top: 0;
+        padding-bottom: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .mat-mdc-select-trigger {
+        height: 28px;
+    }
+
+    // Match the panel dropdown text exactly (12px / 400 / grey-300); the Material defaults were
+    // 16px / 500 / white-70%.
+    .mat-mdc-select-value,
+    .mat-mdc-select-value-text,
+    .mat-mdc-select-placeholder,
+    input.mat-mdc-input-element {
+        font-size: 12px !important;
+        font-weight: 400 !important;
+        color: #{variables.$text} !important;
+    }
+
+    .mat-mdc-select-arrow {
+        color: variables.$text-disabled-form-field;
+    }
+}
+
+// Jobs Filter fixed width (single control); Logs #jobSelector keeps its own 400px width.
+.jobs-table-wrapper .filter mat-form-field.mat-mdc-form-field {
+    width: 180px;
+}
+// endregion
+
+// region Job Details modal paginator — compact + flush on the modal surface (mockup language)
+.jd-modal mat-paginator.mat-mdc-paginator {
+    background: transparent;
+    color: variables.$grey-450;
+    font-size: 11px;
+
+    .mat-mdc-paginator-page-size-select {
+        --mdc-outlined-text-field-container-shape: 8px;
+        --mdc-outlined-text-field-outline-color: #{variables.$grey-600};
+        --mat-form-field-container-height: 32px;
+        width: 72px;
+
+        // The global label-above rule adds margin-top:22px + a 38px box to every
+        // mat-form-field; the paginator select has no label, so cancel both here.
+        &.mat-mdc-form-field {
+            margin-top: 0;
+        }
+
+        .mat-mdc-form-field-infix {
+            min-height: 32px !important;
+            padding-top: 4px !important;
+            padding-bottom: 4px !important;
+        }
+
+        .mat-mdc-form-field-subscript-wrapper {
+            display: none;
+        }
+    }
+
+    .mat-mdc-icon-button {
+        width: 32px;
+        height: 32px;
+        padding: 4px;
+    }
+}
+// endregion
+// endregion
+
+// region jobs/logs/reports tray tabs
+// Match the mockup's tray tabs (.tray-tab): no vertical dividers between tabs, 12px labels,
+// and an accent-blue active label + indicator (mockup uses a bright blue, mapped to the
+// project's $active blue). Scoped to the tray tab group (.table-group-wrapper) so the
+// Settings mat-tabs keep their existing treatment. Colours use mat.tabs-overrides tokens;
+// the divider is a pseudo-element hidden via a scoped rule (no ::ng-deep).
+.table-group-wrapper {
+    --mat-tab-label-text-size: 12px;
+
+    @include mat.tabs-overrides((
+        active-label-text-color: variables.$active,
+        active-indicator-color: variables.$active,
+    ));
+
+    // The global rule draws a 2px vertical divider before every tab after the first; the
+    // mockup's tray tabs have none.
+    .mat-mdc-tab:not(:first-child)::after {
+        display: none;
+    }
+
+    // The global tab-header underline is a heavy 2px; soften it to a 1px hairline for the tray.
+    .mat-mdc-tab-header {
+        border-bottom: 1px solid variables.$grey-750;
+    }
+}
 // endregion

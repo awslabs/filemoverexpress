@@ -14,7 +14,7 @@ mat-form-field {
 }
 
 div.form-field {
-    width: 90%;
+    width: 100%;
     display: block;
     margin-bottom: 14px;
     margin-top: 14px;
@@ -65,4 +65,160 @@ a {
 
 .warning-hint {
     color: variables.$yellow-700;
+}
+
+.redirect-uri-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    background: rgba(33, 150, 243, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(33, 150, 243, 0.2);
+
+    mat-icon {
+        color: #2196f3;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .redirect-uri-title {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    code {
+        display: inline-block;
+        font-size: 12px;
+        padding: 1px 4px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+        margin: 2px 0;
+        user-select: all;
+    }
+}
+
+.auth-method-section {
+    margin-bottom: 0;
+}
+
+/* ---- Left-nav Remote Configuration layout (matches the Settings modal) ---- */
+.rc-card {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    // One unified bordered card (nav + content), identical to the Settings modal's
+    // .settings-card. The dialog surface border is removed via the 'rc-editor-dialog'
+    // panelClass so this is the single visible card — no box-in-a-box.
+    background: variables.$background-browser-panel;   // #161d26
+    border: 1px solid variables.$grey-600;             // #424650
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.rc-nav {
+    background: variables.$background-tray;             // #0f141a — darker sidebar
+    border-right: 1px solid variables.$grey-600;
+    padding: 12px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.rc-nav-item {
+    appearance: none;
+    background: none;
+    border: none;
+    border-right: 2px solid transparent;
+    text-align: left;
+    padding: 8px 16px;
+    font: inherit;
+    font-size: 12px;
+    color: variables.$grey-450;
+    cursor: pointer;
+
+    &:hover {
+        color: variables.$grey-100;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    &.active {
+        color: variables.$blue-500;
+        font-weight: 600;
+        background: rgba(66, 180, 255, 0.08);
+        border-right-color: variables.$blue-500;
+    }
+}
+
+.rc-content {
+    min-width: 0;
+}
+
+.tab-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    // Match the Settings form: a 16px flex gap stacks on each field's 22px label-above
+    // top margin (~38px effective), so the non-OIDC fields aren't compressed. Field
+    // bottom margin is zeroed below, so this doesn't double-space.
+    gap: 16px;
+}
+
+// [hidden] must beat display:flex above.
+.tab-body[hidden] {
+    display: none;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.section-subhead {
+    font-family: fonts.$font-family-heavy;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: variables.$text-link;
+    margin: 4px 0 0;
+}
+
+.oidc-config-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .oidc-config-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: variables.$text-link;
+        margin: 0;
+
+        mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+    }
+}
+
+.toggle-note {
+    font-size: 11px;
+    color: var(--mat-sys-on-surface-variant, #93a4bd);
+    margin: 4px 0 0 4px;
+}
+
+/* The tab body owns vertical rhythm via flex gap, so drop the default field margin. */
+.tab-body mat-form-field {
+    margin-bottom: 0;
 }

@@ -1,7 +1,6 @@
 @use "../../../../styles/mixins";
 
-$nav-height: 48px;
-$footer-height: 20px;
+$nav-height: 40px;
 
 .app-wrapper {
     height: 100%;
@@ -12,12 +11,11 @@ $footer-height: 20px;
     // The main row shrinks to fit small windows (down to the window minimum); the browser
     // and table panes inside scroll internally rather than forcing the whole window taller
     // than the screen. A previous fixed 730px floor made the app too tall for 1366x768.
-    grid-template-rows: $nav-height minmax(0, 1fr) $footer-height;
+    grid-template-rows: $nav-height minmax(0, 1fr);
     grid-gap: 0;
     grid-template-areas:
         'nav'
-        'main'
-        'footer';
+        'main';
 }
 
 .nav {
@@ -33,12 +31,5 @@ $footer-height: 20px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    padding: 10px 15px;
-}
-
-.footer {
-    grid-area: footer;
-    min-width: 0;
-    width: 100%;
-    max-width: 100%;
+    padding: 0;
 }

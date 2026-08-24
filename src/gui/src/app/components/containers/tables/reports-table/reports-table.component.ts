@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { MatFormField, MatInput } from '@angular/material/input';
 import { MatSort, MatSortHeader } from '@angular/material/sort';
 import {
     MatCell,
@@ -35,7 +35,6 @@ const OUTPUT_FILE = 'outputFile';
     styleUrls: ['./reports-table.component.scss'],
     imports: [
         MatFormField,
-        MatLabel,
         MatInput,
         MatTable,
         MatSort,

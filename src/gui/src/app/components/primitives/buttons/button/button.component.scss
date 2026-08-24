@@ -4,9 +4,9 @@
 @use "../../../../../styles/fonts";
 @use "../../../../../styles/variables";
 
-$border-width: 2px;
+$border-width: 1px;
 // connect this button's styling with custom-fields global styling
-$button-height: #{custom-fields.$form-field-height + (2*custom-fields.$form-field-vertical-padding) + (2*$border-width)};
+$button-height: 34px;
 $button-padding: 0px 15px 0px 15px;
 $line-height: #{$button-height - (2*$border-width)};
 $button-color: variables.$theme-accent-main;
@@ -25,7 +25,9 @@ $button-disabled-background-color: variables.$background-disabled-button;
 $button-disabled-text-color: variables.$text-disabled-button;
 
 $inline-icon-size: 20px;
-$icon-button-icon-size: 26px;
+// One step smaller than the old 26px — the Refresh/overflow icons read oversized
+// next to the compact 28px fields (matches the 20px top-bar icon language).
+$icon-button-icon-size: 20px;
 
 button {
     .mat-badge-content {
@@ -36,13 +38,14 @@ button {
 
 .button-base {
     position: relative;
+    box-sizing: border-box;
     height: $button-height;
     line-height: $button-height;
     border: $border-width solid $button-color;
-    border-radius: 100px;
+    border-radius: var(--fme-radius-button);
     font-family: fonts.$font-family;
     font-weight: $button-text-font-weight;
-    letter-spacing: 1px;
+    letter-spacing: 0.2px;
     display: flex;
     flex-direction: row;
     justify-content: center;
@@ -95,13 +98,35 @@ button {
     }
 }
 
+// Icon buttons (New Folder, Refresh, etc.) are borderless in the redesign: no pill
+// outline, transparent surface, muted glyph, subtle hover-fill. Declared after
+// .button-type-stroked so it wins on equal specificity.
+.button-type-icon {
+    border: none;
+    background: transparent;
+    color: variables.$text-table-header;
+    border-radius: 8px;
+
+    &:hover {
+        background: variables.$grey-700;
+        border-color: transparent;
+        color: variables.$text;
+    }
+
+    &:active {
+        background: variables.$grey-700;
+        border-color: transparent;
+        color: variables.$text;
+    }
+}
+
 .button-text {
     height: 100%;
     display: flex;
     justify-content: center;
     align-content: center;
     flex-direction: column;
-    font-size: 15px;
+    font-size: 13px;
     // Keep multi-word labels (e.g. "Bucket Report") on a single line. Without this, a
     // button squeezed by a tight flex row wraps the label to two lines, which overflows
     // the fixed button height and overlaps neighbouring controls.
@@ -201,6 +226,20 @@ button {
 
     &:hover {
         border: $border-width solid $button-disabled-text-color;
+        background: transparent;
+        color: $button-disabled-text-color;
+        cursor: default;
+    }
+}
+
+// keep disabled icon buttons borderless too (no pill outline)
+.button-type-icon.disabled {
+    border: none;
+    background: transparent;
+    color: $button-disabled-text-color;
+
+    &:hover {
+        border: none;
         background: transparent;
         color: $button-disabled-text-color;
         cursor: default;

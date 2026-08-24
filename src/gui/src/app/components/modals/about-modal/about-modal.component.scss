@@ -1,0 +1,83 @@
+@use "../../../../styles/variables";
+
+.dialog-title {
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .spacer {
+        flex: 1 auto;
+    }
+
+    button {
+        mat-icon {
+            color: variables.$pg-blue;
+        }
+    }
+}
+
+.about-app-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: variables.$white;
+}
+
+.about-tagline {
+    margin: 4px 0 16px;
+    font-size: 13px;
+    color: variables.$grey-300;
+}
+
+.about-rows {
+    border-top: 1px solid variables.$grey-600;
+}
+
+.about-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid variables.$grey-600;
+    font-size: 13px;
+
+    .rk {
+        flex: 0 0 120px;
+        color: variables.$grey-300;
+    }
+
+    .rv {
+        color: variables.$white;
+
+        a {
+            color: variables.$pg-blue;
+            text-decoration: none;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+}
+
+.about-actions {
+    margin-top: 20px;
+    padding-bottom: 8px;
+}
+
+// Same button language as the Job Details footer (.jd-btn ghost)
+.about-btn {
+    padding: 6px 16px;
+    border-radius: 18px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid variables.$grey-600;
+    color: variables.$grey-450;
+
+    &:hover {
+        border-color: variables.$grey-450;
+        color: variables.$grey-300;
+    }
+}

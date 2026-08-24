@@ -8,6 +8,9 @@
 </div>
 
 <div mat-dialog-actions class="modal-buttons">
+    @if (data.mode === 'update') {
+        <fme-button class="delete-action" type="stroked" text="Delete" color="warn" [onClick]="delete()"></fme-button>
+    }
     <fme-button type="stroked" text="Close" [onClick]="cancel()"></fme-button>
     <fme-button type="filled"
                 [text]="data.mode | titlecase"

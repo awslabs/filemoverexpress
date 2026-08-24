@@ -41,6 +41,9 @@ service FmeService {
     rpc RenameS3Path (s3_shared.v1.RenameS3PathRequest) returns (s3_shared.v1.RenameS3PathResponse) {}
     rpc DeleteLocalPath (fme.v1.DeleteLocalPathRequest) returns (fme.v1.DeleteLocalPathResponse) {}
     rpc RenameLocalPath (fme.v1.RenameLocalPathRequest) returns (fme.v1.RenameLocalPathResponse) {}
+    rpc InitiateOIDCLogin (fme.v1.OIDCLoginRequest) returns (fme.v1.OIDCLoginResponse) {}
+    rpc GetOIDCStatus (fme.v1.OIDCStatusRequest) returns (fme.v1.OIDCStatusResponse) {}
+    rpc LogoutOIDC (fme.v1.OIDCLogoutRequest) returns (fme.v1.OIDCLogoutResponse) {}
 }
 
 // ListEventsRequest and Response must be in the main file, as it uses values from each sub-file and would otherwise
@@ -76,3 +79,28 @@ message ListEventsResponse {
         fme.v1.TransferStatsEvent transfer_stats_event = 21;
     }
 }
+
+message OIDCLoginRequest {
+    string transfer_profile = 1;
+}
+
+message OIDCLoginResponse {
+    string authorization_url = 1;
+}
+
+message OIDCStatusRequest {
+    string transfer_profile = 1;
+}
+
+message OIDCStatusResponse {
+    bool authenticated = 1;
+    string identity = 2;
+    int64 expires_at = 3;
+    string error = 4;
+}
+
+message OIDCLogoutRequest {
+    string transfer_profile = 1;
+}
+
+message OIDCLogoutResponse {}

@@ -53,8 +53,11 @@ func main() {
 	})
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:               "main",
-		Title:              ProductName,
+		Name: "main",
+		// Empty so the native OS title bar (which carries the min/max/close controls)
+		// shows no redundant product name — the app's own top bar now displays the
+		// logo + "File Mover Express". App identity is still set via application Name.
+		Title:              "",
 		Width:              DefaultWindowWidth,
 		Height:             DefaultWindowHeight,
 		MinWidth:           MinWindowWidth,

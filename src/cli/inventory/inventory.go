@@ -30,12 +30,7 @@ func GenerateInventory(input inventorytypes.GenerateInventoryInput) error {
 		StartTime:           time.Now(),
 	})
 
-	s3m, err := transferapi.NewS3Manager(transferapi.S3ManagerConfig{
-		AwsProfile: input.TransferProfile.Profile,
-		Bucket:     input.TransferProfile.Bucket,
-		Region:     input.TransferProfile.Region,
-		Endpoint:   input.TransferProfile.Endpoint,
-	})
+	s3m, err := transferapi.NewS3Manager(input.TransferProfile)
 	if err != nil {
 		events.Events.Send(&eventtypes.InventoryReportErrorEvent{
 			ReportId:            reportId,

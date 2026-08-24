@@ -1,6 +1,7 @@
 <button [class]="type() === 'icon' ? 'button-base' : 'text-button-base'"
         [class.button-type-filled]="type() === 'filled'"
         [class.button-type-stroked]="type() !== 'filled'"
+        [class.button-type-icon]="type() === 'icon'"
         [class.disabled]="disabled()"
         [class.warn]="color() === 'warn'"
         [disabled]="disabled()"

@@ -32,6 +32,27 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 .logs-container {
     @extend .table-container;
 
+    // Mockup: flush on the dark tray — no bordered/rounded card.
+    border: none;
+    border-radius: 0;
+
+    // Clear the shared Material table token so rows sit on the tray's black surface.
+    .mat-mdc-table,
+    .mdc-data-table__table,
+    .mdc-data-table__content,
+    .mdc-data-table__row,
+    .mdc-data-table__cell {
+        background: transparent;
+    }
+
+    // The header is sticky; give it the opaque tray colour so scrolling rows don't
+    // bleed through it (rows/cells above are transparent).
+    .mat-mdc-header-row,
+    th.mat-mdc-header-cell,
+    .mdc-data-table__header-cell {
+        background: variables.$background-tray !important;
+    }
+
     // selected row styles
     .selected-row {
         background: $table-row-selected-color !important;
@@ -56,11 +77,11 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
     // column widths
     .mat-column-timestamp {
-        width: 200px;
+        width: 150px;
     }
 
     .mat-column-level {
-        width: 120px;
+        width: 70px;
     }
 
     .remaining-table-space {
@@ -78,15 +99,73 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     font-size: 11px !important;
     display: flex;
     flex-direction: row;
+    align-items: center;
     gap: 6px;
+
+    // The Logs toolbar fields have no label — cancel the global label-above top margin
+    // (meant for modal/settings forms) so Search + Jobs line up with the level chips.
+    .mat-mdc-form-field {
+        margin-top: 0;
+    }
 }
 
-.row-error {
-    background-color: rgba(variables.$red-600, .15) !important;
+// Mockup log-level filter: rounded chip toggles prefixed with "Level:".
+.level-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .level-chips-label {
+        font-size: 11px;
+        color: variables.$text-table-header;
+        margin-right: 2px;
+    }
+
+    .level-chip {
+        padding: 3px 10px;
+        border: 1px solid variables.$grey-600;
+        border-radius: 12px;
+        background: transparent;
+        color: variables.$text;
+        font-size: 11px;
+        cursor: pointer;
+
+        &:hover {
+            border-color: variables.$grey-450;
+        }
+
+        &.active {
+            border-color: variables.$blue-500;
+            color: variables.$blue-500;
+            background: rgba(variables.$blue-500, 0.08);
+        }
+    }
 }
 
-.row-warn {
-    background-color: rgba(variables.$orange-accent, .35) !important;
+// Log rows read as a monospace stream (mockup); level token is colour-coded.
+.logs-container {
+    .mat-column-timestamp,
+    .mat-column-message {
+        font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+        font-size: 11px;
+    }
+
+    .mat-column-timestamp {
+        color: variables.$text-table-header;
+    }
+
+    .log-level {
+        text-transform: uppercase;
+        font-weight: 600;
+        font-size: 11px;
+    }
+
+    .log-level-info { color: variables.$blue-500; }
+    .log-level-warning { color: #fbd332; }
+    .log-level-error { color: #ff7a7a; }
+    .log-level-debug { color: #656871; }
+    .log-level-trace { color: #656871; }
+    .log-level-fatal { color: #ff7a7a; }
 }
 
 mat-option {

@@ -1,0 +1,30 @@
+.intro {
+    color: var(--mat-sys-on-surface-variant, #aaa);
+    font-size: 14px;
+    margin: 0 0 14px;
+}
+
+.waiting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.error-box {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(244, 67, 54, 0.12);
+    color: #ef9a9a;
+    font-size: 13px;
+
+    mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+    }
+}

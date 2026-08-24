@@ -1,19 +1,12 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
-import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { AfterContentInit, AfterViewInit, Component, ElementRef, inject, input, OnDestroy, OnInit, output, ViewChild } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatChipGrid, MatChipInput, MatChipInputEvent, MatChipRow } from '@angular/material/chips';
-import {
-    MatAccordion,
-    MatExpansionPanel,
-    MatExpansionPanelDescription,
-    MatExpansionPanelHeader,
-    MatExpansionPanelTitle,
-} from '@angular/material/expansion';
 import { MatIcon } from '@angular/material/icon';
-import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import {
@@ -23,6 +16,7 @@ import {
     chunksizeMinValidator,
     fileExtensionRegExp,
     handleStreamError,
+    oidcIssuerUrlValidator,
     s3ArnRgx,
     threadsMinValidator,
     TransferProfile,
@@ -45,16 +39,12 @@ import { WailsService } from '@services/wails/wails.service';
     styleUrls: ['./transfer-profile-form.component.scss'],
     imports: [
         ReactiveFormsModule,
-        MatAccordion,
-        MatExpansionPanel,
-        MatExpansionPanelHeader,
-        MatExpansionPanelTitle,
-        MatExpansionPanelDescription,
         MatFormField,
         MatLabel,
         MatHint,
         MatError,
         MatInput,
+        MatSuffix,
         MatSelect,
         MatOption,
         MatAutocompleteTrigger,
@@ -67,7 +57,6 @@ import { WailsService } from '@services/wails/wails.service';
         MatIcon,
         MatChipInput,
         MatSlideToggle,
-        NgTemplateOutlet,
         ObjectSortPipe,
     ],
 })
@@ -85,6 +74,8 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
     @ViewChild('fileOrderChipList') fileOrderChipList!: MatChipGrid;
     @ViewChild('bucketHint') bucketHint!: ElementRef;
     transferProfileForm: FormGroup = new FormGroup({});
+    // Left-nav section (matches the Settings page). Panels stay mounted; nav toggles them.
+    activeTab: 'connection' | 'authentication' | 'performance' = 'connection';
     daemonOS = '';
     errorMessages = formErrorMessages;
     regions: string[];
@@ -126,6 +117,11 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
         if (bucketControl) {
             const bucketSubscription = bucketControl.valueChanges.subscribe(
                 () => {
+                    // In the tabbed layout the bucket hint only exists while the Connection
+                    // tab is rendered; guard against it being absent (e.g. another tab active).
+                    if (!this.bucketHint) {
+                        return;
+                    }
                     const bucketHintString = (this.bucketHint.nativeElement as Element).innerHTML;
                     (this.bucketHint.nativeElement as Element).innerHTML = this.getOriginalHint(bucketHintString);
                 },
@@ -171,6 +167,40 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
 
     setupFormGroup(): FormGroup<TransferProfileForm> {
         const form = createTransferProfileForm(this.storageClasses, this.checksumAlgorithms);
+
+        // OIDC conditional validation: require fields when auth method is OIDC
+        const authMethodControl = form.get('authMethod');
+        if (authMethodControl) {
+            const oidcFieldNames = ['oidcIssuerUrl',
+                'oidcClientId',
+                'oidcRoleArn'] as const;
+            const issuerUrlAsyncValidator = oidcIssuerUrlValidator(this.wails);
+            const authMethodSubscription = authMethodControl.valueChanges.subscribe((value) => {
+                for (const fieldName of oidcFieldNames) {
+                    const control = form.get(fieldName);
+                    if (control) {
+                        if (value === 'oidc') {
+                            control.addValidators(Validators.required);
+                            if (fieldName === 'oidcIssuerUrl') {
+                                control.addAsyncValidators(issuerUrlAsyncValidator);
+                            }
+                        } else {
+                            control.removeValidators(Validators.required);
+                            if (fieldName === 'oidcIssuerUrl') {
+                                control.removeAsyncValidators(issuerUrlAsyncValidator);
+                            }
+                        }
+                        control.updateValueAndValidity({onlySelf: true});
+                        // Switching auth method shouldn't paint empty fields red on its own.
+                        // Reset the touched/dirty state so the "required" errors only surface
+                        // once the user actually edits a field (or attempts to save).
+                        control.markAsUntouched();
+                        control.markAsPristine();
+                    }
+                }
+            });
+            this.subscriptions.push(authMethodSubscription);
+        }
 
         form.get('chunkSize')?.addValidators([
             autotuningFieldsRequiredValidator,

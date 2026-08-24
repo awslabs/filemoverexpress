@@ -1,8 +1,12 @@
 <mat-toolbar>
+    <div class="app-brand">
+        <img src="/assets/logo.svg" class="app-logo" alt="File Mover Express logo"/>
+        <span class="app-title">File Mover Express</span>
+    </div>
     <span class="spacer"></span>
     <div class="buttons">
         <fme-version-update></fme-version-update>
-        <button mat-icon-button (click)="openWelcomeModal()">
+        <button mat-icon-button aria-label="About File Mover Express" (click)="openAboutModal()">
             <mat-icon>info</mat-icon>
         </button>
         <fme-notifications></fme-notifications>

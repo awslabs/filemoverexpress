@@ -7,7 +7,6 @@ import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/ma
 import { isAbsolutePathValidator } from '@app/classes';
 import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
 import {
-    StartingPathEditorData,
     StartingPathType,
 } from '@app/components/modals/starting-path-editor-modal/starting-path-editor-modal.interfaces';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
@@ -31,7 +30,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
     ],
 })
 export class StartingPathEditorModalComponent {
-    data = inject<StartingPathEditorData>(MAT_DIALOG_DATA);
+    data = inject(MAT_DIALOG_DATA);
     private dialogRef = inject<MatDialogRef<StartingPathEditorModalComponent, string | null>>(MatDialogRef);
     private bottomSheet = inject(MatBottomSheet);
 
@@ -43,7 +42,7 @@ export class StartingPathEditorModalComponent {
         const data = this.data;
 
         this.startingPath = new FormControl<string>(data.newStartingPath, isAbsolutePathValidator(data.fileBrowserType));
-        this.configFieldName = data.type === StartingPathType.S3 ? 'S3 bucket prefix' : 'Local directory';
+        this.configFieldName = data.type === StartingPathType.S3 ? 'bucket starting directory' : 'local starting directory';
     }
 
     /**

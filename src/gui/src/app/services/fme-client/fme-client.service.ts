@@ -94,6 +94,14 @@ import {
     InventoryReportStartedEvent,
 } from '@events/inventory';
 import {
+    OIDCLoginRequestSchema,
+    OIDCLoginResponse,
+    OIDCLogoutRequestSchema,
+    OIDCLogoutResponse,
+    OIDCStatusRequestSchema,
+    OIDCStatusResponse,
+} from '@gen/es/fme/v1/fme_service_pb';
+import {
     JobChecksumProgressEvent,
     JobCompleteEvent,
     JobCreateEvent,
@@ -122,6 +130,9 @@ export class FmeClientService {
     private eventStreamCancel: (() => void | null) | null = null;
     private currentConnectAttemptID = '';
     private connectionAttempts = 0;
+    // Tracks whether we've already surfaced the "couldn't connect" toast for the
+    // current run of failures, so quiet background retries don't spam it.
+    private connectionFailureNotified = false;
 
     init() {
         this.store.select(selectConnectionState).pipe(
@@ -147,6 +158,7 @@ export class FmeClientService {
                         this.currentBookmark = currentSelection;
                         this.currentConnectAttemptID = this.generateNewConnectID(currentSelection);
                         this.connectionAttempts = 0;
+                        this.connectionFailureNotified = false;
                         this.connect(true, this.currentConnectAttemptID);
                     } else {
                         console.log(`New connection to ${currentSelection.name} requested, but missing the server address: ${currentSelection.address}`);
@@ -1026,6 +1038,10 @@ export class FmeClientService {
             (event) => {
                 if (this.connectedState != ConnectionState.CONNECTED) {
                     this.store.dispatch(succeedConnect());
+                    // Fresh successful connection — reset backoff + failure notice so a
+                    // future disconnection can surface its own failure toast.
+                    this.connectionAttempts = 0;
+                    this.connectionFailureNotified = false;
                 }
 
                 try {
@@ -1042,30 +1058,44 @@ export class FmeClientService {
                 }
             },
             (err) => {
-                if (this.currentConnectAttemptID === connectAttemptID) {
-                    if (this.connectedState != ConnectionState.DISCONNECTED) {
-                        // set status to disconnected only when retry connects fail
+                const isCurrentAttempt = this.currentConnectAttemptID === connectAttemptID;
+
+                if (err instanceof ConnectError && err.code === Code.Canceled) {
+                    // Intentional teardown (bookmark switch, stop daemon, disconnect()) —
+                    // reflect it immediately regardless of the grace period.
+                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
                         this.store.dispatch(ProgressActions.disconnect());
                     }
+                    this.notifications.info(`Disconnected from ${currentBookmark.name}. Clearing jobs table due to disconnection.`);
+                    return;
                 }
-                if (err instanceof ConnectError) {
-                    switch (err.code) {
-                        case Code.Canceled:
-                            this.notifications.info(`Disconnected from ${currentBookmark.name}. Clearing jobs table due to disconnection.`);
-                            return;
-                        case Code.Unauthenticated:
-                            this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
-                            return;
-                        default:
-                            // Suppress the error notification during initial connection attempts
-                            // (e.g. when the daemon is still starting up). Only show after the
-                            // first few backoff retries have been exhausted to avoid alarming
-                            // users with a transient startup race condition.
-                            if (err.rawMessage !== 'Failed to fetch' && this.connectionAttempts >= initialConnectionGracePeriod) {
-                                this.notifications.error(
-                                    'An unexpected connection error occurred. Attempting to reconnect. Clearing jobs table due to disconnection.');
-                            }
+
+                if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+                    // Terminal auth failure (bad/expired key) — surface immediately and stop
+                    // retrying; waiting out the grace period would just delay a clear error.
+                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
+                        this.store.dispatch(ProgressActions.disconnect());
                     }
+                    this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
+                    return;
+                }
+
+                // Transient/network failure (includes "Failed to fetch" while the daemon is
+                // still starting up). During the initial grace period, keep the UI in
+                // CONNECTING and retry quietly — flipping to DISCONNECTED here is what caused
+                // the "Connection Failed"/"Disconnected" flash on app startup, since the
+                // panels classify any CONNECTING -> DISCONNECTED transition as a failure.
+                // Only once the grace period is exhausted do we surface the disconnected
+                // state and a one-time failure toast; background retries continue afterwards.
+                const gracePeriodExhausted = this.connectionAttempts >= initialConnectionGracePeriod;
+                if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED && gracePeriodExhausted) {
+                    this.store.dispatch(ProgressActions.disconnect());
+                }
+                if (gracePeriodExhausted && !this.connectionFailureNotified) {
+                    this.connectionFailureNotified = true;
+                    this.notifications.error(
+                        `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
+                        'reachable and that your connection settings are correct, then retry.');
                 }
 
                 let retryConnectionTime = 5000;
@@ -1086,6 +1116,72 @@ export class FmeClientService {
                 }, retryConnectionTime);
             },
         );
+    }
+
+    initiateOIDCLogin(profileName: string): Observable<OIDCLoginResponse> {
+        const sub = new Subject<OIDCLoginResponse>();
+        const req = create(OIDCLoginRequestSchema);
+        req.transferProfile = profileName;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.initiateOIDCLogin(
+            req,
+            (err: ConnectError | undefined, res: OIDCLoginResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    getOIDCStatus(profileName: string): Observable<OIDCStatusResponse> {
+        const sub = new Subject<OIDCStatusResponse>();
+        const req = create(OIDCStatusRequestSchema);
+        req.transferProfile = profileName;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.getOIDCStatus(
+            req,
+            (err: ConnectError | undefined, res: OIDCStatusResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    logoutOIDC(profileName: string): Observable<OIDCLogoutResponse> {
+        const sub = new Subject<OIDCLogoutResponse>();
+        const req = create(OIDCLogoutRequestSchema);
+        req.transferProfile = profileName;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.logoutOIDC(
+            req,
+            (err: ConnectError | undefined, res: OIDCLogoutResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
     }
 }
 

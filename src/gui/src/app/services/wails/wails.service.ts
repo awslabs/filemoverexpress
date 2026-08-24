@@ -11,6 +11,7 @@ import {
     StartDaemon,
     SystemOpen,
     SystemShowItemInFolder,
+    ValidateOIDCIssuer,
 } from '@wailsApp/fmeapp';
 import { ExportJobList } from '@wailsApp/models';
 import { EMPTY, from, Observable } from 'rxjs';
@@ -156,6 +157,20 @@ export class WailsService {
     generateExcelReport(data: ExportJobList): Observable<string> {
         try {
             return from(GenerateExcelReport(data));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
+    }
+
+    /**
+     * Validates an OIDC Issuer URL by fetching its .well-known/openid-configuration
+     * endpoint from native Go code (bypasses CORS). Returns an empty string on success
+     * or an error key ('invalidUrl', 'oidcUnreachable', 'oidcInvalidDoc') on failure.
+     */
+    validateOIDCIssuer(issuerUrl: string): Observable<string> {
+        try {
+            return from(ValidateOIDCIssuer(issuerUrl));
         } catch (error) {
             console.debug(`Failed to call wails: ${error}`);
             return EMPTY;

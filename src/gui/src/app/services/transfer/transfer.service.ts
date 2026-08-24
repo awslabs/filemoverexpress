@@ -128,7 +128,8 @@ export class TransferService {
                     status: JobStatus.Completed,
                     hasTaskErrors: evt.hasTaskErrors,
                     hasSuccessfulTasks: evt.hasSuccessfulTasks,
-                    lastUpdate: new Date(),
+                    timestampCompleted: evt.completed,
+                    lastUpdate: evt.completed,
                 },
             },
         }));

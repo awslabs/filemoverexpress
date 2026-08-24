@@ -1,15 +1,13 @@
-import { DatePipe, KeyValuePipe, NgClass } from '@angular/common';
-import { Component, inject, ViewChildren } from '@angular/core';
+import { KeyValuePipe, NgClass } from '@angular/common';
+import { AfterViewInit, Component, DestroyRef, inject, ViewChild, ViewChildren } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
-import { MatFormField, MatLabel } from '@angular/material/input';
+import { MatFormField } from '@angular/material/input';
 import { MatDivider } from '@angular/material/list';
 import { MatMenu, MatMenuContent, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatOption, MatSelect } from '@angular/material/select';
-import { MatSort } from '@angular/material/sort';
 import {
     MatCell,
     MatColumnDef,
@@ -22,6 +20,7 @@ import {
     MatTable,
     MatTableDataSource,
 } from '@angular/material/table';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
 import { MatTooltip } from '@angular/material/tooltip';
 import { handleStreamError } from '@app/classes/rxjs-operators';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
@@ -31,16 +30,15 @@ import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, TransferDirection } from '@app/interfaces/jobs-table';
+import { DomElementPosition } from '@app/components/layout/file-browser/file-browser.interfaces';
 import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import {
     JobDurationPipe,
-    JobSpeedPipe,
     JobsTableChecksumProgressPipe,
     JobStatusClassPipe,
     JobStatusPipe,
 } from '@app/pipes/jobs-table-status.pipe';
 import { PascalCaseToSpacesPipe } from '@app/pipes/pascal-case-to-spaces.pipe';
-import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { buildFilterString, jobsTableFilterPredicate } from '@app/utils/transfer-utils';
 import { stringToJobStatus } from '@app/utils/utils';
 import { INITIAL_TRANSFER_SUMMARY_STATS, TransferSummaryStats } from '@containers/tables/jobs-table/jobs-table.interfaces';
@@ -66,34 +64,29 @@ const RETRY_COUNT = 5;
     imports: [
         ReactiveFormsModule,
         MatFormField,
-        MatLabel,
         MatSelect,
         KeyValuePipe,
         MatOption,
         PascalCaseToSpacesPipe,
         MatIcon,
-        FormatBytesPipe,
         MatTable,
-        MatSort,
         MatColumnDef,
+        MatCell,
         MatHeaderCell,
         MatHeaderCellDef,
-        MatCell,
-        TypeSafeMatCellDefDirective,
-        MatTooltip,
-        TextEllipsesPipe,
-        JobDurationPipe,
-        JobSpeedPipe,
-        DatePipe,
-        NgClass,
-        JobStatusClassPipe,
-        MatProgressBar,
-        JobsTableChecksumProgressPipe,
-        JobStatusPipe,
-        MatIconButton,
-        MatMenuTrigger,
         MatHeaderRow,
         MatHeaderRowDef,
+        MatSort,
+        MatSortHeader,
+        TypeSafeMatCellDefDirective,
+        MatTooltip,
+        FormatBytesPipe,
+        JobDurationPipe,
+        NgClass,
+        JobStatusClassPipe,
+        JobsTableChecksumProgressPipe,
+        JobStatusPipe,
+        MatMenuTrigger,
         MatRow,
         MatRowDef,
         MatMenu,
@@ -102,34 +95,38 @@ const RETRY_COUNT = 5;
         MatDivider,
     ],
 })
-export class JobsTableComponent {
+export class JobsTableComponent implements AfterViewInit {
     private fmeClientService = inject(FmeClientService);
     private dialog = inject(MatDialog);
     private store = inject(Store);
     private notifications = inject(NotificationsService);
     private exportSvc = inject(ExportService);
+    private destroyRef = inject(DestroyRef);
 
     @ViewChildren(MatMenuTrigger) contextMenus: MatMenuTrigger[] = [];
+    // Single cursor-positioned trigger for the row context menu (opened on right-click).
+    @ViewChild(MatMenuTrigger) contextMenuTrigger!: MatMenuTrigger;
+    @ViewChild(MatSort) sort!: MatSort;
+    contextMenuPosition: DomElementPosition = {
+        x: '0px',
+        y: '0px',
+    };
     filterForm = new FormGroup({
         term: new FormControl<string>(''),
         status: new FormControl<string[]>([]),
     });
     jobStates = JobStatus;
 
+    // Mockup Jobs tray is a minimal card-row list; Size + Duration added back per DIT feedback
+    // (how big the job was and how long it took).
     displayedColumns: string[] = [
         'type',
         'name',
-        'remoteConfiguration',
         'size',
         'duration',
-        'eta',
-        // 'speed', // TODO: Disabled this for now, due to inconsistently weird speed data being show (implausibly high speeds)
-        'startTime',
         'progress',
         'status',
-        'action',
     ];
-    protected readonly MAX_TABLE_STRING_LENGTH = 40;
     dataSource: MatTableDataSource<Job>;
     uploadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};
     downloadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};
@@ -139,10 +136,29 @@ export class JobsTableComponent {
     constructor() {
         this.dataSource = new MatTableDataSource<Job>([]);
         this.dataSource.filterPredicate = jobsTableFilterPredicate;
+        // Sort the computed/pill columns by their underlying value, not the rendered
+        // string (e.g. Duration sorts by elapsed seconds, Size by raw bytes).
+        this.dataSource.sortingDataAccessor = (job, columnId): string | number => {
+            switch (columnId) {
+                case 'name':
+                    return job.name?.toLowerCase() ?? '';
+                case 'size':
+                    return job.totalBytes ?? 0;
+                case 'duration':
+                    return this.jobDurationSeconds(job);
+                case 'progress':
+                    return job.progress ?? 0;
+                case 'status':
+                    return job.status ?? '';
+                default:
+                    return '';
+            }
+        };
         this.filterForm.valueChanges.pipe(
             debounceTime(DELAY),
             distinctUntilChanged(),
             handleStreamError({retryCount: RETRY_COUNT}),
+            takeUntilDestroyed(this.destroyRef),
         ).subscribe(
             () => {
                 this.dataSource.filter = buildFilterString(this.filterForm.getRawValue());
@@ -151,6 +167,7 @@ export class JobsTableComponent {
 
         this.fmeClientService.connectionState.pipe(
             distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef),
         ).subscribe((connState) => {
             if (connState === ConnectionState.CONNECTED) {
                 this.fmeClientService.listJobs().subscribe((jobs) => {
@@ -219,7 +236,9 @@ export class JobsTableComponent {
             }
         });
 
-        this.store.select(jobSelectAll).subscribe((jobs) => {
+        this.store.select(jobSelectAll).pipe(
+            takeUntilDestroyed(this.destroyRef),
+        ).subscribe((jobs) => {
             const openMenus = this.contextMenus.find((item) => item.menuOpen);
             if (openMenus) {
                 if (this.menuClosed) {
@@ -237,6 +256,28 @@ export class JobsTableComponent {
             this.dataSource.data = jobs;
             this.updateSummaryStats(jobs);
         });
+    }
+
+    ngAfterViewInit() {
+        // Wire the sort directive after the view initializes so header clicks sort the table.
+        this.dataSource.sort = this.sort;
+    }
+
+    /**
+     * Elapsed job duration in seconds, matching JobDurationPipe's basis (created ->
+     * completed for terminal jobs, else created -> now). Used only to sort the Duration
+     * column numerically rather than by its rendered string.
+     * @param job {Job} Job to measure
+     * @private
+     */
+    private jobDurationSeconds(job: Job): number {
+        if (!job.timestampCreated) {
+            return 0;
+        }
+        const end = TERMINAL_STATES.includes(job.status) && job.timestampCompleted
+            ? job.timestampCompleted
+            : new Date();
+        return (end.getTime() - job.timestampCreated.getTime()) / 1000;
     }
 
     /**
@@ -286,6 +327,21 @@ export class JobsTableComponent {
     }
 
     /**
+     * Opens the row context menu at the cursor position on right-click.
+     */
+    rightClickJobRow(event: MouseEvent, job: Job) {
+        event.preventDefault();
+        this.contextMenuPosition.x = event.clientX + 'px';
+        this.contextMenuPosition.y = event.clientY + 'px';
+        // Set the menu data imperatively (not via [matMenuTriggerData]): openMenu() reads
+        // menuData synchronously, and the async input binding wouldn't have propagated the
+        // new job yet on the first open — the menu content would render with a null job,
+        // throw, and leave a stuck overlay backdrop that swallows all clicks.
+        this.contextMenuTrigger.menuData = {job};
+        this.contextMenuTrigger.openMenu();
+    }
+
+    /**
      * Opens the details modal for the given job
      *
      * @param job {Job} Job to display details modal for
@@ -293,8 +349,9 @@ export class JobsTableComponent {
     jobDetails(job: Job) {
         this.dialog.open<JobDetailsModalComponent, JobDetailsData>(
             JobDetailsModalComponent, {
-                minWidth: '800px',
-                width: '800px',
+                minWidth: '820px',
+                width: '60%',
+                maxWidth: '1100px',
                 height: '70%',
                 maxHeight: '1000px',
                 autoFocus: false,
@@ -306,6 +363,14 @@ export class JobsTableComponent {
                     remoteConfiguration: job.transferProfile,
                     started: job.timestampCreated,
                     completed: job.timestampCompleted,
+                    status: job.status,
+                    statusMessage: job.statusMessage,
+                    totalBytes: job.totalBytes,
+                    bytesTransferred: job.bytesTransferred,
+                    progress: job.progress,
+                    timestampTransferring: job.timestampTransferring,
+                    hasTaskErrors: job.hasTaskErrors,
+                    hasSuccessfulTasks: job.hasSuccessfulTasks,
                 },
             },
         );

@@ -2,7 +2,7 @@ import { inject, Injectable, OnDestroy, signal } from '@angular/core';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { TransferProfileEditorModalComponent } from '@app/components/modals/transfer-profile-editor-modal/transfer-profile-editor-modal.component';
 import { MetadataService } from '../metadata/metadata.service';
-import { BehaviorSubject, Observable, Subject, Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -20,15 +20,17 @@ export class TransferProfileService implements OnDestroy {
     private readonly transferProfileState$: BehaviorSubject<TransferProfileState> = new BehaviorSubject<TransferProfileState>({
         transferProfileList: null,
         currentTransferProfile: null,
+        currentProfileIsOIDC: false,
     });
     public readonly transferProfileStateSig = signal<TransferProfileState>(
-        {transferProfileList: null, currentTransferProfile: null},
+        {transferProfileList: null, currentTransferProfile: null, currentProfileIsOIDC: false},
     );
     private readonly transferProfileEdited$: Subject<string> = new Subject<string>();
     private _subscriptions: Subscription[] = [];
     private _transferProfileState: TransferProfileState = {
         transferProfileList: null,
         currentTransferProfile: null,
+        currentProfileIsOIDC: false,
     };
 
     init() {
@@ -70,6 +72,7 @@ export class TransferProfileService implements OnDestroy {
         this._transferProfileState = {
             currentTransferProfile: null,
             transferProfileList: null,
+            currentProfileIsOIDC: false,
         };
         this.transferProfileState$.next(this._transferProfileState);
         this.transferProfileStateSig.set({...this._transferProfileState});
@@ -100,9 +103,9 @@ export class TransferProfileService implements OnDestroy {
      * If the currently selected transfer profile is the one being deleted, sets the current selection to null.
      * @param transferProfile Name of the transfer profile to delete
      */
-    delete(transferProfile: string) {
+    delete(transferProfile: string): Observable<boolean> {
         if (!this.checkTransferProfileExists(transferProfile)) {
-            return;
+            return of(false);
         }
         let confirmationMessage = `Are you sure you want to delete <b>${transferProfile}</b>?`;
         if (this._transferProfileState.transferProfileList?.length === 1) {
@@ -117,12 +120,14 @@ export class TransferProfileService implements OnDestroy {
                 data: {
                     cancelText: 'Cancel',
                     confirmText: 'Delete',
+                    confirmClass: 'warn',
                     message: confirmationMessage,
                     title: 'Delete Remote Configuration',
                 },
             },
         );
-        dialogRef.afterClosed().subscribe((result) => {
+        const afterClosed$ = dialogRef.afterClosed();
+        afterClosed$.subscribe((result) => {
             if (result) {
                 this.fmeClientService.getConfiguration().subscribe({
                     next: (config) => {
@@ -145,6 +150,7 @@ export class TransferProfileService implements OnDestroy {
                 });
             }
         });
+        return afterClosed$;
     }
 
     /**
@@ -164,7 +170,9 @@ export class TransferProfileService implements OnDestroy {
                     return;
                 }
                 const dialogRef = this.dialog.open(TransferProfileEditorModalComponent, {
-                    width: '50%',
+                    width: '60%',
+                    maxWidth: '820px',
+                    panelClass: 'rc-editor-dialog',
                     data: {
                         transferProfile: transferProfileData,
                         mode: 'update',
@@ -193,7 +201,9 @@ export class TransferProfileService implements OnDestroy {
      */
     add() {
         const dialogRef = this.dialog.open(TransferProfileEditorModalComponent, {
-            width: '50%',
+            width: '60%',
+            maxWidth: '820px',
+            panelClass: 'rc-editor-dialog',
             data: {
                 mode: 'add',
             },

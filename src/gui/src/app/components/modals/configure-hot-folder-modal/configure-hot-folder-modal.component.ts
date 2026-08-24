@@ -96,6 +96,13 @@ export class ConfigureHotFolderModalComponent implements OnInit {
      */
     save() {
         return () => {
+            // Surface validation (e.g. a missing hot folder name) instead of silently
+            // saving. markAllAsTouched makes the required-field errors render.
+            if (this.hotFolderForm && this.hotFolderForm.invalid) {
+                this.hotFolderForm.markAllAsTouched();
+                this.notifications.warning('Give each hot folder a name and complete the required fields before saving.');
+                return;
+            }
             if (this.originalConfig && this.hotFolderForm) {
                 if (this.hotFolderForm) {
                     this.originalConfig.uploadHotFolders = this.hotFolderForm.getRawValue();

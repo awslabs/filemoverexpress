@@ -241,7 +241,7 @@ export class BookmarksService {
         bookmark.favoritePaths = editedFavoritePaths;
         this.edit(bookmark);
         return {
-            message: `Deleted favorite path ${favoritePath} from daemon ${bookmark.name}.`,
+            message: `Removed favorite path ${favoritePath} from daemon ${bookmark.name}.`,
             level: PanelLevel.SUCCESS,
         };
     }
