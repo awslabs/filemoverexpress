@@ -5,5 +5,5 @@ export interface NavigateOptions {
 
 export interface WailsFileList {
     files: Record<string,string>;
-    target: string;
+    targetId: string;
 }

@@ -168,7 +168,7 @@ export class BucketBrowserComponent implements OnDestroy {
             }
 
             const wfl = event.data as unknown as WailsFileList;
-            this.handleExternalFilesDropped(wfl.files);
+            this.handleExternalFilesDropped(wfl.files, wfl.targetId);
         });
         this.setContextMenuData();
 
@@ -442,7 +442,7 @@ export class BucketBrowserComponent implements OnDestroy {
      * directory, making external OS -> S3 uploads work without the DOM drop. Intra-app
      * drags (local <-> S3) still flow through the DOM drop / dragDropUpload path.
      */
-    private handleExternalFilesDropped(files: Record<string, string>) {
+    private handleExternalFilesDropped(files: Record<string, string>, targetId: string) {
         const basenames = Object.keys(files ?? {});
         if (!basenames.length) {
             return;
@@ -469,10 +469,23 @@ export class BucketBrowserComponent implements OnDestroy {
             sourceContainerID: null,
             sources: sources,
             destinationContainerID: this.fileBrowserID,
-            destination: this.currentDirectory,
+            destination: this.externalDropDestination(targetId),
             dragOriginSourceName: sources[0].name,
         });
         this.wailsFileList.set(files);
+    }
+
+    /**
+     * Resolve where an external OS drop should land. When the drop hit a folder row (marked
+     * with a decodable `fbdt:<id>:<path>` drop-target id), upload into that folder; otherwise
+     * fall back to the current directory.
+     */
+    private externalDropDestination(targetId: string): string {
+        const prefix = `fbdt:${this.fileBrowserID}:`;
+        if (targetId && targetId.startsWith(prefix)) {
+            return decodeURIComponent(targetId.slice(prefix.length));
+        }
+        return this.currentDirectory;
     }
 
     /**

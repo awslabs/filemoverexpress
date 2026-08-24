@@ -350,6 +350,20 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
     }
 
     /**
+     * Drop-target id for a folder row. Marking folder rows with a decodable id (+ the
+     * data-file-drop-target attribute in the template) lets a native OS file drop report
+     * WHICH folder it landed on, so external drops can target a subfolder instead of always
+     * the current directory. Non-folders and the parent-directory row get null (their drop
+     * resolves to the table = current directory).
+     */
+    dropTargetId(row: FileBrowserObject): string | null {
+        if (row.type !== FileBrowserObjectType.FOLDER || this.isPreviousDirectoryRow(row)) {
+            return null;
+        }
+        return `fbdt:${this.fileBrowserID}:${encodeURIComponent(row.name)}`;
+    }
+
+    /**
      * Checks if a row is the navigator to the parent directory
      * @param row
      */

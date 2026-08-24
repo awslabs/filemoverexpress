@@ -64,6 +64,8 @@
             </tr>
             <tr mat-row
                 *matRowDef="let row; columns: COLUMNS;"
+                [attr.id]="dropTargetId(row)"
+                [attr.data-file-drop-target]="dropTargetId(row) !== null ? '' : null"
                 [class.disabled-row]="row.storageClass?.toLowerCase().match(rgxGlacier)"
                 [class.selected-row]="isSelected(row)"
                 [class.row-hot]="row.isHotFolder"
