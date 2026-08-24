@@ -53,7 +53,14 @@ export class ExportService {
             error: (err) => {
                 console.error(err);
                 if (notifyEmpty) {
-                    this.notifications.error(`Couldn't export job report: ${err}`);
+                    // An empty task stream (e.g. a skipped job with no transfers) terminates
+                    // without a gRPC-Web trailer, which connect-web surfaces as "missing
+                    // trailer". Treat that as an empty report, not a failure.
+                    if (jobTasks.length === 0 && String(err).includes('missing trailer')) {
+                        this.notifications.info('This job has no transfers to export.');
+                    } else {
+                        this.notifications.error(`Couldn't export job report: ${err}`);
+                    }
                 }
             },
             complete: () => {
