@@ -15,4 +15,5 @@ export interface Preferences {
     transferExport: PreferenceTransferExport;
     transferPageSize: number;
     daemonClose: PreferenceDaemonClose;
+    trayHeight: number;
 }

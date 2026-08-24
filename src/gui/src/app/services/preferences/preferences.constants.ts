@@ -11,5 +11,6 @@ export const defaultOptions: Preferences = {
     transferExport: 'ask',
     transferPageSize: 15,
     daemonClose: 'ask',
+    trayHeight: 260,
 };
 

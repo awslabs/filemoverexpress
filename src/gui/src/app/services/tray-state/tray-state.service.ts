@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { PreferencesService } from '@services/preferences/preferences.service';
 
 /** Tab order of the expanded tray, matching the template's <mat-tab> order. */
 export enum TrayTab {
@@ -17,8 +18,30 @@ export enum TrayTab {
  */
 @Injectable({providedIn: 'root'})
 export class TrayStateService {
+    private prefs = inject(PreferencesService);
+
     /** True when the tray is collapsed to the summary bar. Defaults to collapsed on app open. */
     readonly collapsed = signal(true);
+
+    /**
+     * Expanded tray height in px (drag-resizable via the handle on the tray's top edge).
+     * Seeded from the persisted preference and clamped so the panels above stay usable.
+     */
+    readonly expandedHeight = signal<number>(this.prefs.trayHeight);
+
+    /** Floor so the tabs + a few rows stay visible. */
+    private static readonly MIN_HEIGHT = 160;
+
+    /** Clamp and apply a new tray height (leaves room for the panels above). */
+    setExpandedHeight(px: number): void {
+        const max = Math.max(TrayStateService.MIN_HEIGHT, window.innerHeight - 280);
+        this.expandedHeight.set(Math.max(TrayStateService.MIN_HEIGHT, Math.min(px, max)));
+    }
+
+    /** Persist the current height (call once at the end of a drag). */
+    commitExpandedHeight(): void {
+        this.prefs.trayHeight = this.expandedHeight();
+    }
 
     /**
      * Which tab the expanded tray shows. Two-way bound to the mat-tab-group's selectedIndex so
