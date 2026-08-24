@@ -238,6 +238,34 @@ export class BucketBrowserComponent implements OnDestroy {
                 this.selectedBookmark = bookmark;
             },
         ));
+
+        // When the currently-selected Remote Configuration is edited + saved, re-list it so
+        // a config that now fails actually attempts a connection (its ERROR result then
+        // flips the header pill to Disconnected instead of leaving a stale "Connected").
+        this.subscriptions.push(this.transferProfileService.transferProfileEdited.subscribe(
+            (editedProfile) => {
+                if (editedProfile === this.selectedTransferProfile) {
+                    this.resolveProfileAndLoad(this.selectedTransferProfile);
+                }
+            },
+        ));
+    }
+
+    /**
+     * Connection state shown in the header pill. Reflects S3/profile REACHABILITY (the
+     * result of listing the selected Remote Configuration), not the daemon event stream —
+     * so a config edited to fail flips the pill to Disconnected. The daemon `connectionState`
+     * is still used to gate controls and the "no active session" state.
+     */
+    get s3ConnectionState(): ConnectionState {
+        switch (this.fileBrowserData.state) {
+            case FileBrowserState.LOADED:
+                return ConnectionState.CONNECTED;
+            case FileBrowserState.LOADING:
+                return ConnectionState.CONNECTING;
+            default:
+                return ConnectionState.DISCONNECTED;
+        }
     }
 
     /**
