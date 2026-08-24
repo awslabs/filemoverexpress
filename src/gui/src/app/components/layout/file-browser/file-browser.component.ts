@@ -342,6 +342,14 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
     }
 
     /**
+     * The current multi-selection as an array (empty when nothing is selected).
+     * Used by parent browsers to act on all selected rows (e.g. multi-delete).
+     */
+    getSelectedObjects(): FileBrowserObject[] {
+        return Array.from(this.selectedObjects.values());
+    }
+
+    /**
      * Checks if a row is the navigator to the parent directory
      * @param row
      */

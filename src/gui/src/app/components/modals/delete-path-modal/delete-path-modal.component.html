@@ -1,14 +1,22 @@
-<h1 mat-dialog-title>Delete {{ data.pathType.toString() | titlecase }}</h1>
+<h1 mat-dialog-title>Delete {{ isMulti ? displayPaths.length + ' ' : '' }}{{ data.pathType.toString() | titlecase }}{{ isMulti ? 's' : '' }}</h1>
 <div mat-dialog-content>
     <div class="modal-text">
         <div>
-            {{ data.pathType.toString() | titlecase }} to delete@if (data.transferProfile) {
+            {{ isMulti ? displayPaths.length + ' ' : '' }}{{ data.pathType.toString() | titlecase }}{{ isMulti ? 's' : '' }} to delete@if (data.transferProfile) {
             for remote configuration <i>{{ data.transferProfile }}</i>
         }
         </div>
-        <p class="path-string">
-            {{ pathToDeleteDisplayPath }}
-        </p>
+        @if (isMulti) {
+            <ul class="path-list">
+                @for (p of displayPaths; track p) {
+                    <li>{{ p }}</li>
+                }
+            </ul>
+        } @else {
+            <p class="path-string">
+                {{ pathToDeleteDisplayPath }}
+            </p>
+        }
         <p>
             To confirm deletion, type <i>{{ DELETE_CONFIRMATION_STRING }}</i> in the text input field.
         </p>

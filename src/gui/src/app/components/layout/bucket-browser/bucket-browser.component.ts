@@ -46,8 +46,8 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { TransferProfileState } from '@services/transfer-profile/transfer-profile.interfaces';
 import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Subscription, throwError } from 'rxjs';
-import { catchError, distinctUntilChanged } from 'rxjs/operators';
+import { forkJoin, of, Subscription, throwError } from 'rxjs';
+import { catchError, distinctUntilChanged, map } from 'rxjs/operators';
 import { DAEMON_FILE_BROWSER_ID } from '../daemon-browser/daemon-browser.constants';
 import { EMPTY_FILTER_DATA } from '../file-browser/file-browser.constants';
 import {
@@ -1130,25 +1130,39 @@ export class BucketBrowserComponent implements OnDestroy {
             if (!triggerObject) {
                 return;
             }
-            this.openDeleteS3PathModal(triggerObject.name, triggerObject.type);
+            // If the right-clicked row is part of a multi-selection, act on the whole
+            // selection; otherwise act on just that row.
+            const selected = this.fileBrowser.getSelectedObjects();
+            const targets = selected.length > 1 && selected.some((o) => o.name === triggerObject.name)
+                ? selected
+                : [triggerObject];
+            this.openDeleteS3PathModal(targets);
         };
     }
 
-    private openDeleteS3PathModal(pathToDelete: string, type: FileBrowserObjectType) {
+    private openDeleteS3PathModal(targets: FileBrowserObject[]) {
         const transferProfile = this.selectedTransferProfile;
         if (!transferProfile) {
-            this.notifications.error(`No remote configuration selected, cannot delete ${type === FileBrowserObjectType.FOLDER ? 'S3 prefix' : 'S3 object'}`);
+            this.notifications.error('No remote configuration selected, cannot delete');
+            return;
+        }
+        if (!targets.length) {
             return;
         }
 
-        const pathType: PathType = type === FileBrowserObjectType.FOLDER ? PathType.S3_PREFIX : PathType.S3_OBJECT;
+        // pathType drives the confirmation copy: use prefix wording only when every
+        // selected item is a folder, otherwise default to object wording.
+        const pathType: PathType = targets.every((t) => t.type === FileBrowserObjectType.FOLDER)
+            ? PathType.S3_PREFIX
+            : PathType.S3_OBJECT;
 
         const dialogRef = this.dialog.open<DeletePathModalComponent, DeletePathModalData>(
             DeletePathModalComponent,
             {
                 width: '700px',
                 data: {
-                    pathToDelete: pathToDelete,
+                    pathToDelete: targets[0].name,
+                    pathsToDelete: targets.map((t) => t.name),
                     pathType: pathType,
                     osType: 's3',
                     transferProfile: transferProfile,
@@ -1158,19 +1172,45 @@ export class BucketBrowserComponent implements OnDestroy {
         dialogRef.afterClosed().subscribe(
             (result) => {
                 if (result) {
-                    this.notifications.info(`Deletion in progress for ${pathToDelete}`);
-                    this.fmeClientService.deleteS3Path(pathToDelete, transferProfile, type).subscribe({
-                        next: () => {
-                            this.notifications.success(`Successfully deleted ${pathToDelete}`);
-                            this.refreshFileBrowser(true);
-                        },
-                        error: (error) => {
-                            this.notifications.warning(`Error occurred when deleting ${pathToDelete}: ${error}`);
-                        },
-                    });
+                    this.deleteS3Targets(targets, transferProfile);
                 }
             },
         );
+    }
+
+    /**
+     * Deletes every selected S3 target (one RPC per object/prefix), then reports an
+     * aggregated result and refreshes. Partial failures are surfaced without aborting
+     * the rest of the batch.
+     */
+    private deleteS3Targets(targets: FileBrowserObject[], transferProfile: string) {
+        const label = targets.length === 1 ? targets[0].name : `${targets.length} items`;
+        this.notifications.info(`Deletion in progress for ${label}`);
+
+        forkJoin(
+            targets.map((t) =>
+                this.fmeClientService.deleteS3Path(t.name, transferProfile, t.type).pipe(
+                    map(() => ({ name: t.name, ok: true })),
+                    catchError((error) => of({ name: t.name, ok: false, error })),
+                ),
+            ),
+        ).subscribe((results) => {
+            const failed = results.filter((r) => !r.ok);
+            if (failed.length === 0) {
+                this.notifications.success(targets.length === 1
+                    ? `Successfully deleted ${targets[0].name}`
+                    : `Successfully deleted ${targets.length} items`);
+            } else if (failed.length < results.length) {
+                this.notifications.warning(
+                    `Deleted ${results.length - failed.length} of ${results.length} items; ${failed.length} failed`,
+                );
+            } else {
+                this.notifications.warning(targets.length === 1
+                    ? `Error occurred when deleting ${targets[0].name}`
+                    : `Failed to delete ${failed.length} items`);
+            }
+            this.refreshFileBrowser(true);
+        });
     }
 
     private resolveProfileAndLoad(profileName: string) {

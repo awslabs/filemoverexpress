@@ -37,18 +37,25 @@ export class DeletePathModalComponent {
 
     deletePathForm: FormGroup;
     pathToDeleteDisplayPath: string;
+    displayPaths: string[];
     protected readonly PathType = PathType;
     protected readonly DELETE_CONFIRMATION_STRING = DELETE_CONFIRMATION_STRING;
 
     constructor() {
         const data = this.data;
 
-        this.pathToDeleteDisplayPath = grpcPathToDisplayPath(data.pathToDelete, data.osType);
+        const paths = data.pathsToDelete?.length ? data.pathsToDelete : [data.pathToDelete];
+        this.displayPaths = paths.map((p) => grpcPathToDisplayPath(p, data.osType));
+        this.pathToDeleteDisplayPath = this.displayPaths[0];
         this.deletePathForm = new FormGroup({
             confirmDelete: new FormControl<string>('', [
                 Validators.required, isEqualValidator(DELETE_CONFIRMATION_STRING),
             ]),
         });
+    }
+
+    get isMulti(): boolean {
+        return this.displayPaths.length > 1;
     }
 
     toggleHint(event: MouseEvent, message: string) {
