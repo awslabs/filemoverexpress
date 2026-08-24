@@ -50,7 +50,7 @@ import * as JobActions from '@state/job/actions/job.actions';
 import { clearCompleted as clearCompletedJobsAction } from '@state/job/actions/job.actions';
 import { selectAll as jobSelectAll } from '@state/job/job.selectors';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Job, JobStatus, PROGRESS_STATES, TERMINAL_STATES } from '@state/models/job.model';
+import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TERMINAL_STATES } from '@state/models/job.model';
 import { debounceTime, Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
@@ -466,8 +466,8 @@ export class JobsTableComponent implements AfterViewInit {
      * @param job {Job} Job to cancel
      */
     resubmitJob(job: Job) {
-        if (!TERMINAL_STATES.includes(job.status)) {
-            this.notifications.error('Unable to resubmit, only failed and completed jobs can be resubmitted');
+        if (!RESUBMITTABLE_STATES.includes(job.status)) {
+            this.notifications.error('Unable to resubmit, only failed, cancelled, and completed jobs can be resubmitted');
             return;
         }
         this.fmeClientService.resubmitJob(job.id).subscribe((data) => {

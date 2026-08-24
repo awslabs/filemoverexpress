@@ -1,12 +1,11 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatInput } from '@angular/material/input';
 import { isEqualValidator } from '@app/classes';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { DELETE_CONFIRMATION_STRING } from '@app/components/modals/delete-path-modal/delete-path-modal.constants';
 import { DeletePathModalData } from '@app/components/modals/delete-path-modal/delete-path-modal.interfaces';
 import { PathType } from '@app/interfaces/paths';
@@ -33,7 +32,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
 export class DeletePathModalComponent {
     data = inject<DeletePathModalData>(MAT_DIALOG_DATA);
     dialogRef = inject<MatDialogRef<DeletePathModalComponent>>(MatDialogRef);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
 
 
     deletePathForm: FormGroup;
@@ -56,10 +55,7 @@ export class DeletePathModalComponent {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     cancel() {

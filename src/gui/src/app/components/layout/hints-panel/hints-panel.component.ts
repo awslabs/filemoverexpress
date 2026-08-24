@@ -1,9 +1,11 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, inject } from '@angular/core';
-import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { Component, inject, InjectionToken } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { isPackagedApp } from '@app/utils/utils';
 import { WailsService } from '@services/wails/wails.service';
+
+/** The hint "mode" (which help section to show), supplied by HintPopoverService via the portal injector. */
+export const HINT_POPOVER_MODE = new InjectionToken<string>('HINT_POPOVER_MODE');
 
 @Component({
     selector: 'fme-hints-panel',
@@ -12,9 +14,8 @@ import { WailsService } from '@services/wails/wails.service';
     imports: [MatIcon, NgTemplateOutlet],
 })
 export class HintsPanelComponent {
-    private _bottomSheetRef = inject<MatBottomSheetRef<HintsPanelComponent>>(MatBottomSheetRef);
     private wails = inject(WailsService);
-    mode = inject(MAT_BOTTOM_SHEET_DATA);
+    mode = inject(HINT_POPOVER_MODE);
 
     openExternalLink(event: Event, url: string) {
         event.preventDefault();

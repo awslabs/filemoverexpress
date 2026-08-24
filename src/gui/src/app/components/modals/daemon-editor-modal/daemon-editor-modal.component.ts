@@ -1,12 +1,11 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { bookmarkFormMessages } from '@app/constants/common.constants';
 import { DEFAULT_BOOKMARK_NAME } from '@app/services/bookmarks/bookmarks.constants';
 import { Bookmark as IBookmark } from '@app/services/bookmarks/bookmarks.interfaces';
@@ -37,7 +36,7 @@ import { WailsService } from '@services/wails/wails.service';
 export class DaemonEditorModalComponent {
     data = inject<DaemonEditorModalData>(MAT_DIALOG_DATA);
     dialogRef = inject<MatDialogRef<DaemonEditorModalComponent>>(MatDialogRef);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
     private wails = inject(WailsService);
 
     @Output() bookmarkSaved = new EventEmitter<IBookmark>();
@@ -96,10 +95,7 @@ export class DaemonEditorModalComponent {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     openExternalLink(event: Event, url: string) {

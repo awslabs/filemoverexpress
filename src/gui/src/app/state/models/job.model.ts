@@ -57,3 +57,12 @@ export const PROGRESS_STATES: JobStatus[] = [
 ];
 
 export const TERMINAL_STATES: JobStatus[] = [JobStatus.Completed, JobStatus.Error];
+
+// States a job can be resubmitted from. Broader than TERMINAL_STATES: a cancelled
+// job can also be re-run (the daemon accepts it), so it must be included here even
+// though it is not a "completed" terminal state used for duration calculations.
+export const RESUBMITTABLE_STATES: JobStatus[] = [
+    JobStatus.Completed,
+    JobStatus.Cancelled,
+    JobStatus.Error,
+];

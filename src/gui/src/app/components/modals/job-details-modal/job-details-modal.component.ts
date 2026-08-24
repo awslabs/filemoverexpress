@@ -39,10 +39,11 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { WailsService } from '@services/wails/wails.service';
 import { Store } from '@ngrx/store';
+import { NotificationsService } from '@services/notifications/notifications.service';
 import { selectAll as jobSelectAll } from '@state/job/job.selectors';
 import { selectAll as logsSelectAll } from '@state/logs/logs.selectors';
 import { LogEntry } from '@state/models/log-entry.model';
-import { Job, JobStatus, PROGRESS_STATES, TaskStatus, TERMINAL_STATES } from '@state/models/job.model';
+import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TaskStatus, TERMINAL_STATES } from '@state/models/job.model';
 import { debounceTime, finalize, Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
@@ -95,6 +96,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     private wails = inject(WailsService);
     private metadata = inject(MetadataService);
     private store = inject(Store);
+    private notifications = inject(NotificationsService);
     protected readonly TransferDirection = TransferDirection;
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -384,10 +386,23 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
         if (this.isError) {
             return 'error';
         }
+        if (this.isSkipped) {
+            return 'skipped';
+        }
         if (this.jobDetails.status === JobStatus.Completed) {
             return 'complete';
         }
         return 'in-progress';
+    }
+
+    /**
+     * A "skipped" job is a COMPLETED job where nothing actually transferred (no successful
+     * and no errored tasks) — e.g. a hot-folder sweep where every file already existed in S3.
+     * There is no dedicated JobStatus.Skipped; it is derived the same way the status pill is.
+     */
+    get isSkipped(): boolean {
+        const d = this.jobDetails;
+        return d.status === JobStatus.Completed && !d.hasSuccessfulTasks && !d.hasTaskErrors;
     }
 
     get bytesLabel(): string {
@@ -400,9 +415,16 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     private get durationMs(): number {
-        const start = this.jobDetails.timestampTransferring ?? this.jobDetails.started;
-        const end = this.jobDetails.completed ?? new Date();
-        return start ? Math.max(new Date(end).getTime() - new Date(start).getTime(), 0) : 0;
+        // Reject null/undefined AND invalid/epoch/Go-zero-time ("0001-01-01T00:00:00Z") values.
+        // A skipped job never enters the transfer phase, so the daemon sends timestampTransferring
+        // as Go's zero time — non-null, so a plain ?? fallback would compute a ~2025-year duration.
+        const valid = (d: unknown): number | null => {
+            const t = d ? new Date(d as string).getTime() : NaN;
+            return Number.isFinite(t) && t > 0 ? t : null;
+        };
+        const start = valid(this.jobDetails.timestampTransferring) ?? valid(this.jobDetails.started);
+        const end = valid(this.jobDetails.completed) ?? Date.now();
+        return start ? Math.max(end - start, 0) : 0;
     }
 
     get durationLabel(): string {
@@ -565,7 +587,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     get canRetry(): boolean {
-        return TERMINAL_STATES.includes(this.jobDetails.status);
+        return RESUBMITTABLE_STATES.includes(this.jobDetails.status);
     }
 
     reveal(): void {
@@ -573,11 +595,19 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     copyS3Uri(): void {
-        navigator.clipboard?.writeText(this.s3Uri || this.jobDetails.destination);
+        const uri = this.s3Uri || this.jobDetails.destination;
+        if (!uri) {
+            return;
+        }
+        this.wails.setClipboardText(uri).subscribe(() => this.notifications.success('Copied S3 URI to clipboard'));
     }
 
     copyError(): void {
-        navigator.clipboard?.writeText(this.jobDetails.statusMessage);
+        if (!this.jobDetails.statusMessage) {
+            return;
+        }
+        this.wails.setClipboardText(this.jobDetails.statusMessage)
+            .subscribe(() => this.notifications.success('Copied error to clipboard'));
     }
 
     pauseOrResume(): void {

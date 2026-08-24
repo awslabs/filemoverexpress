@@ -29,7 +29,7 @@
         </div>
         <div class="jd-bytes">
             <span>{{ bytesLabel }}</span>
-            <span>{{ isActive ? 'In progress' : (isError ? 'Stopped' : 'Complete') }}</span>
+            <span>{{ isActive ? 'In progress' : (isError ? 'Stopped' : statusLabel) }}</span>
         </div>
 
         <!-- Stat tiles: Size / Duration / Avg Speed / Completed (Status when active) -->

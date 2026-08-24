@@ -1,11 +1,10 @@
 import { Component, inject, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatLabel } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { BucketReportForm } from '@app/components/modals/bucket-report-modal/bucket-report-modal.interfaces';
 import { concatLatestFrom } from '@ngrx/operators';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
@@ -43,7 +42,7 @@ export class BucketReportModalComponent implements OnDestroy {
     private transferProfileService = inject(TransferProfileService);
     private tray = inject(TrayStateService);
     dialogRef = inject<MatDialogRef<BucketReportModalComponent>>(MatDialogRef);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
     private bookmarks = inject(BookmarksService);
 
     outputFormats: string[] = [
@@ -126,10 +125,7 @@ export class BucketReportModalComponent implements OnDestroy {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     private setupForm(): FormGroup<BucketReportForm> {

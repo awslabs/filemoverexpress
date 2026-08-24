@@ -15,7 +15,7 @@ import {
 } from '@wailsApp/fmeapp';
 import { ExportJobList } from '@wailsApp/models';
 import { EMPTY, from, Observable } from 'rxjs';
-import { Application, Events } from '@wailsio/runtime';
+import { Application, Clipboard, Events } from '@wailsio/runtime';
 
 @Injectable({
     providedIn: 'root',
@@ -171,6 +171,20 @@ export class WailsService {
     validateOIDCIssuer(issuerUrl: string): Observable<string> {
         try {
             return from(ValidateOIDCIssuer(issuerUrl));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
+    }
+
+    /**
+     * Writes text to the OS clipboard via the Wails runtime. The webview's
+     * navigator.clipboard is unavailable (non-secure context) and silently no-ops,
+     * so clipboard copies must go through the native runtime binding instead.
+     */
+    setClipboardText(text: string): Observable<void> {
+        try {
+            return from(Clipboard.SetText(text));
         } catch (error) {
             console.debug(`Failed to call wails: ${error}`);
             return EMPTY;

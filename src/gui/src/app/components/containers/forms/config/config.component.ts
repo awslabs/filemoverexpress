@@ -1,14 +1,13 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
 import { MatOption, MatSelect, MatSelectChange } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { discardUnsavedChangesDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
 import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
 import { FmeConfig, HotFolders, TransferProfile } from '@classes/config';
@@ -62,7 +61,7 @@ export class ConfigComponent implements OnInit {
     private versionService = inject(VersionService);
     private notificationService = inject(NotificationsService);
     private historyService = inject(HistoryService);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
     private prefService = inject(PreferencesService);
     private dialog = inject(MatDialog);
     // Present when Settings is opened as a modal (from the toolbar cog); null when it is
@@ -328,10 +327,7 @@ export class ConfigComponent implements OnInit {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     /**

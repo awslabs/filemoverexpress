@@ -45,15 +45,24 @@ export class ExportService {
         });
     }
 
-    private getJobTasks(job: Job, exportData: ExportJobList, cfg: ExportJobConfig) {
+    private getJobTasks(job: Job, exportData: ExportJobList, cfg: ExportJobConfig, notifyEmpty = false) {
         const jobTasks: Task[] = [];
 
         this.fmeClientService.listTasksForJob(job.jobId).subscribe({
             next: (task) => jobTasks.push(task),
             error: (err) => {
                 console.error(err);
+                if (notifyEmpty) {
+                    this.notifications.error(`Couldn't export job report: ${err}`);
+                }
             },
             complete: () => {
+                // A job with no transfers (e.g. a skipped job where every file was filtered
+                // out) would otherwise produce a content-free file with no feedback.
+                if (notifyEmpty && jobTasks.length === 0) {
+                    this.notifications.info('This job has no transfers to export.');
+                    return;
+                }
                 exportData[job.jobId] = {
                     jobName: job.name,
                     destination: job.destination,
@@ -85,13 +94,15 @@ export class ExportService {
         ).subscribe({
             next: (job) => {
                 if (!job) {
+                    this.notifications.error('Couldn\'t export job report: job not found.');
                     return;
                 }
 
-                this.getJobTasks(job, exportData, cfg);
+                this.getJobTasks(job, exportData, cfg, true);
             },
             error: (err) => {
                 console.error(err);
+                this.notifications.error(`Couldn't export job report: ${err}`);
             },
         });
     }

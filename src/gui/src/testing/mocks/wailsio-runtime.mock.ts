@@ -4,6 +4,11 @@ export const Application = {
     Quit: () => Promise.resolve(),
 };
 
+export const Clipboard = {
+    SetText: (__text: string) => Promise.resolve(),
+    Text: () => Promise.resolve(''),
+};
+
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Events {
     export class WailsEvent {

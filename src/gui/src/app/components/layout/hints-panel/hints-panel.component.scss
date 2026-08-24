@@ -1,13 +1,32 @@
 @use "../../../../styles/variables";
 
 div {
-    padding: 12px 0;
+    padding: 8px 0;
 }
 
 section {
+    // Section-group label (e.g. "General settings", "Destinations") — blue uppercase, per mockup.
     h2 {
-        font-size: 18px;
-        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: variables.$blue-500;
+        margin: 16px 0 6px;
+    }
+
+    // The hot-folder hint (and some others) use <h4> for sub-items; white item heading.
+    h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: variables.$text-heading-element;
+        margin: 10px 0 3px;
+    }
+
+    p {
+        font-size: 12.5px;
+        color: variables.$grey-300;
+        margin: 0 0 4px;
     }
 
     a {
