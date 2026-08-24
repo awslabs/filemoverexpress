@@ -1,5 +1,6 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { ConfirmationModalData, ConfirmationModalDataDefaults } from './confirmation-modal.interfaces';
 
@@ -12,6 +13,7 @@ import { ConfirmationModalData, ConfirmationModalDataDefaults } from './confirma
         MatDialogContent,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class ConfirmationModalComponent {

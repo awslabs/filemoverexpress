@@ -1,5 +1,6 @@
 <h1 mat-dialog-title>{{ data.mode | titlecase }} Remote Configuration</h1>
-<div mat-dialog-content>
+<div mat-dialog-content
+     (fmeEnterSubmit)="!transferProfileForm.invalid && save()()">
     <fme-transfer-profile-form [tutorialMode]="false"
                                [mode]="data.mode"
                                [transferProfile]="transferProfile"

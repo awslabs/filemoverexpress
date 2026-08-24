@@ -10,6 +10,7 @@ import { bookmarkFormMessages } from '@app/constants/common.constants';
 import { DEFAULT_BOOKMARK_NAME } from '@app/services/bookmarks/bookmarks.constants';
 import { Bookmark as IBookmark } from '@app/services/bookmarks/bookmarks.interfaces';
 import { isPackagedApp } from '@app/utils/utils';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { DaemonEditorModalData } from './daemon-editor-modal.interfaces';
 import { WailsService } from '@services/wails/wails.service';
@@ -31,6 +32,7 @@ import { WailsService } from '@services/wails/wails.service';
         MatIcon,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class DaemonEditorModalComponent {

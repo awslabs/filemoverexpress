@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatD
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatInput } from '@angular/material/input';
 import { isEqualValidator } from '@app/classes';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { DELETE_CONFIRMATION_STRING } from '@app/components/modals/delete-path-modal/delete-path-modal.constants';
 import { DeletePathModalData } from '@app/components/modals/delete-path-modal/delete-path-modal.interfaces';
@@ -27,6 +28,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class DeletePathModalComponent {

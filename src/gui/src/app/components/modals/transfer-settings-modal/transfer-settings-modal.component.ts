@@ -15,6 +15,7 @@ import {
 } from '@app/components/modals/transfer-settings-modal/transfer-settings-modal.interfaces';
 import { BasenamePipe } from '@app/pipes/basename.pipe';
 import { FileBrowserIconPipe } from '@app/pipes/file-browser-icon.pipe';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 
 @Component({
@@ -40,6 +41,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         MatHint,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class TransferSettingsModalComponent {

@@ -10,6 +10,7 @@ import {
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { ConfigureHotFolderModalData } from '@app/components/modals/configure-hot-folder-modal/configure-hot-folder-modal.interfaces';
 import { NotificationMessages } from '@app/constants/common.constants';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { FmeConfig, HotFolders } from '@classes/config';
 import { HotFolderFormComponent } from '@containers/forms/hot-folder-form/hot-folder-form.component';
 import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
@@ -27,6 +28,7 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
         HotFolderFormComponent,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class ConfigureHotFolderModalComponent implements OnInit {

@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatD
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
 import { isNotEmptyString, isNotEqualValidator } from '@app/classes';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { RenamePathModalData } from '@app/components/modals/rename-path-modal/rename-path-modal.interfaces';
 import { GRPC_PATH_SEPARATOR } from '@app/constants/common.constants';
@@ -33,6 +34,7 @@ import { NotificationsService } from '@services/notifications/notifications.serv
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class RenamePathModalComponent {

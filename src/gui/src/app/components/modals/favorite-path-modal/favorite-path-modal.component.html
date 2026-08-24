@@ -1,5 +1,5 @@
 <h1 mat-dialog-title>Add Favorite Path</h1>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="save()()" [enterSubmitDisabled]="favoritePathForm.invalid">
     <div class="modal-text">
         Add a favorite path to the daemon{{ bookmark ? ' ' + bookmark.name + '.' : '.' }}
         After adding this path, you can navigate to it by selecting it in the <b>Local</b> dropdown.

@@ -9,6 +9,7 @@ import {
     StartingPathType,
 } from '@app/components/modals/starting-path-editor-modal/starting-path-editor-modal.interfaces';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 
 @Component({
     selector: 'fme-starting-path-editor-modal',
@@ -26,6 +27,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class StartingPathEditorModalComponent {

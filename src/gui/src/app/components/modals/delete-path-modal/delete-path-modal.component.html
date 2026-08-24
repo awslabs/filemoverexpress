@@ -1,5 +1,5 @@
 <h1 mat-dialog-title>@if (multiSummary) {Delete {{ multiSummary }}} @else if (isMulti) {Delete {{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s} @else {Delete {{ data.pathType.toString() | titlecase }}}</h1>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="submit()()" [enterSubmitDisabled]="deletePathForm.invalid">
     <div class="modal-text">
         <div>
             @if (multiSummary) {{{ multiSummary }} to delete} @else if (isMulti) {{{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s to delete} @else {{{ data.pathType.toString() | titlecase }} to delete}@if (data.transferProfile) {

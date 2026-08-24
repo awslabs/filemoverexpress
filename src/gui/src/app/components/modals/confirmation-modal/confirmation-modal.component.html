@@ -1,7 +1,7 @@
 <div>
     <h1 mat-dialog-title>{{ config.title }}</h1>
 </div>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="confirm()()" [enterSubmitDisabled]="false">
     <div class="modal-text" [innerHTML]="config.message"></div>
 </div>
 <div mat-dialog-actions class="modal-buttons">

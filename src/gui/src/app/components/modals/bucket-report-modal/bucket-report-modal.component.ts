@@ -5,6 +5,7 @@ import { MatError, MatFormField, MatLabel } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { BucketReportForm } from '@app/components/modals/bucket-report-modal/bucket-report-modal.interfaces';
 import { concatLatestFrom } from '@ngrx/operators';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
@@ -34,6 +35,7 @@ import { BehaviorSubject, Subscription } from 'rxjs';
         MatSlideToggle,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class BucketReportModalComponent implements OnDestroy {

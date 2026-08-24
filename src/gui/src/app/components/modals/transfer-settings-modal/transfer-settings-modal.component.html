@@ -1,5 +1,5 @@
 <h1 mat-dialog-title>{{ transferDirection | titlecase }} Files</h1>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="transfer()()" [enterSubmitDisabled]="!jobName.valid">
     <div class="transfer-description">
         {{ (transferDirection | titlecase) + 'ing' }}
         <!--    Number of folders-->

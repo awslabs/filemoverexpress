@@ -3,6 +3,7 @@ import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { TransferProfile } from '@app/classes/config';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { TransferProfileFormComponent } from '@containers/forms/transfer-profile-form/transfer-profile-form.component';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
@@ -19,6 +20,7 @@ import { TransferProfileEditorModalData } from './transfer-profile-editor-modal.
         TransferProfileFormComponent,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class TransferProfileEditorModalComponent {

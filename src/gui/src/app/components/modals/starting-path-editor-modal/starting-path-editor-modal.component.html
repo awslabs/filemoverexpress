@@ -3,7 +3,7 @@
     <div class="spacer"></div>
     <a (click)="toggleHint($event, data.type === StartingPathType.Local ? 'local-starting-path-info' : 'remote-starting-path-info')">Info</a>
 </header>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="save()()" [enterSubmitDisabled]="startingPath.invalid">
     <div>
         <p class="modal-text">
             This is the "home" folder the {{ data.type === StartingPathType.Local ? 'Local File System' : 'S3 Bucket' }}

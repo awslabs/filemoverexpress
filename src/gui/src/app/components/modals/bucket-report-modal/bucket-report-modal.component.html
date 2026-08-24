@@ -3,7 +3,9 @@
     <div class="spacer"></div>
     <a (click)="toggleHint($event, 'bucket-report-modal')">Info</a>
 </header>
-<mat-dialog-content>
+<mat-dialog-content
+    (fmeEnterSubmit)="generateReport()()"
+    [enterSubmitDisabled]="exportForm.invalid">
     <div class="modal-text">
         Generate and save a bucket report file that lists the contents of an S3 bucket.
     </div>
