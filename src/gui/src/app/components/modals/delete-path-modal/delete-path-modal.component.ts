@@ -58,6 +58,31 @@ export class DeletePathModalComponent {
         return this.displayPaths.length > 1;
     }
 
+    /**
+     * Multi-delete summary that splits folders from files/objects, e.g. "3 folders and
+     * 2 objects". Returns '' when not a multi-delete or when counts weren't provided
+     * (callers pass folderCount/fileCount); the template falls back to a plain count.
+     */
+    get multiSummary(): string {
+        if (!this.isMulti) {
+            return '';
+        }
+        const folders = this.data.folderCount ?? 0;
+        const files = this.data.fileCount ?? 0;
+        if (folders === 0 && files === 0) {
+            return '';
+        }
+        const fileNoun = this.data.osType === 's3' ? 'object' : 'file';
+        const parts: string[] = [];
+        if (folders > 0) {
+            parts.push(`${folders} folder${folders === 1 ? '' : 's'}`);
+        }
+        if (files > 0) {
+            parts.push(`${files} ${fileNoun}${files === 1 ? '' : 's'}`);
+        }
+        return parts.join(' and ');
+    }
+
     toggleHint(event: MouseEvent, message: string) {
         event.stopPropagation();
         event.preventDefault();

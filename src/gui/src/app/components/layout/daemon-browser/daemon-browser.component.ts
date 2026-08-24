@@ -536,6 +536,18 @@ export class DaemonBrowserComponent implements OnDestroy {
         };
     }
 
+    /** Rename requires a single target: allowed AND not part of a multi-selection. */
+    isLocalRenameSingleTarget(): FileBrowserContextMenuTriggerCondition {
+        const base = this.isLocalRenameDeleteAllowed();
+        return (row) => {
+            if (!base(row)) {
+                return false;
+            }
+            const selected = this.fileBrowser.getSelectedObjects();
+            return selected.length <= 1 || !selected.some((o) => o.name === row.name);
+        };
+    }
+
     /**
      * Returns a click handler for adding a favorite path from the context menu
      *
@@ -904,7 +916,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                 icon: 'edit',
                 iconColor: 'inherit',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
-                    ['file', this.isLocalRenameDeleteAllowed()], ['folder', this.isLocalRenameDeleteAllowed()],
+                    ['file', this.isLocalRenameSingleTarget()], ['folder', this.isLocalRenameSingleTarget()],
                 ]),
                 action: this.renameLocalPath(),
             },
@@ -1233,7 +1245,8 @@ export class DaemonBrowserComponent implements OnDestroy {
         if (!targets.length) {
             return;
         }
-        const pathType: PathType = targets.every((t) => t.type === FileBrowserObjectType.FOLDER)
+        const folderCount = targets.filter((t) => t.type === FileBrowserObjectType.FOLDER).length;
+        const pathType: PathType = folderCount === targets.length
             ? PathType.FOLDER
             : PathType.FILE;
 
@@ -1244,6 +1257,8 @@ export class DaemonBrowserComponent implements OnDestroy {
                 data: {
                     pathToDelete: targets[0].name,
                     pathsToDelete: targets.map((t) => t.name),
+                    folderCount: folderCount,
+                    fileCount: targets.length - folderCount,
                     pathType: pathType,
                     osType: this.fileBrowserType,
                 },

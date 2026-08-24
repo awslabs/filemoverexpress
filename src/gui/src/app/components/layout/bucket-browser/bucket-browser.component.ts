@@ -168,7 +168,7 @@ export class BucketBrowserComponent implements OnDestroy {
             }
 
             const wfl = event.data as unknown as WailsFileList;
-            this.wailsFileList.set(wfl.files);
+            this.handleExternalFilesDropped(wfl.files);
         });
         this.setContextMenuData();
 
@@ -431,6 +431,48 @@ export class BucketBrowserComponent implements OnDestroy {
                 };
             },
         });
+    }
+
+    /**
+     * Handle an OS file drop delivered by the Wails native runtime. On the Wails macOS
+     * webview the browser DOM `drop` event is intercepted natively and no longer reliably
+     * reaches the file browser, so the old path (which required both the DOM drop AND this
+     * native event) silently did nothing. This event carries the real absolute paths
+     * (basename -> path), so we synthesize the drop result here and target the current S3
+     * directory, making external OS -> S3 uploads work without the DOM drop. Intra-app
+     * drags (local <-> S3) still flow through the DOM drop / dragDropUpload path.
+     */
+    private handleExternalFilesDropped(files: Record<string, string>) {
+        const basenames = Object.keys(files ?? {});
+        if (!basenames.length) {
+            return;
+        }
+        if (!this.selectedTransferProfile) {
+            this.notifications.error(notificationMessages.NO_TRANSFER_PROFILE_SELECTED_ERROR);
+            return;
+        }
+        // Cannot externally drag in files when connected to a remote daemon.
+        if (this.selectedBookmark?.name !== DEFAULT_BOOKMARK_NAME) {
+            this.notifications.error(notificationMessages.REMOTE_DAEMON_EXTERNAL_UPLOAD_ERROR);
+            return;
+        }
+
+        const sources: FileBrowserObject[] = basenames.map((name) => ({
+            name: name,
+            size: 0n,
+            dateModified: new Date(),
+            type: FileBrowserObjectType.UNKNOWN,
+        }));
+        // The join effect maps each source name (basename) to its absolute path via wailsFileList.
+        this.dropResult.set({
+            fromExternalSource: true,
+            sourceContainerID: null,
+            sources: sources,
+            destinationContainerID: this.fileBrowserID,
+            destination: this.currentDirectory,
+            dragOriginSourceName: sources[0].name,
+        });
+        this.wailsFileList.set(files);
     }
 
     /**
@@ -839,7 +881,7 @@ export class BucketBrowserComponent implements OnDestroy {
                 icon: 'edit',
                 iconColor: 'inherit',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
-                    ['file', this.isRemoteRenameDeleteAllowed()], ['folder', this.isRemoteRenameDeleteAllowed()],
+                    ['file', this.isRemoteRenameSingleTarget()], ['folder', this.isRemoteRenameSingleTarget()],
                 ]),
                 action: this.renameS3Path(),
             },
@@ -1076,6 +1118,18 @@ export class BucketBrowserComponent implements OnDestroy {
         };
     }
 
+    /** Rename requires a single target: allowed AND not part of a multi-selection. */
+    isRemoteRenameSingleTarget(): FileBrowserContextMenuTriggerCondition {
+        const base = this.isRemoteRenameDeleteAllowed();
+        return (row) => {
+            if (!base(row)) {
+                return false;
+            }
+            const selected = this.fileBrowser.getSelectedObjects();
+            return selected.length <= 1 || !selected.some((o) => o.name === row.name);
+        };
+    }
+
     private renameS3Path(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
             if (!triggerObject) {
@@ -1152,7 +1206,8 @@ export class BucketBrowserComponent implements OnDestroy {
 
         // pathType drives the confirmation copy: use prefix wording only when every
         // selected item is a folder, otherwise default to object wording.
-        const pathType: PathType = targets.every((t) => t.type === FileBrowserObjectType.FOLDER)
+        const folderCount = targets.filter((t) => t.type === FileBrowserObjectType.FOLDER).length;
+        const pathType: PathType = folderCount === targets.length
             ? PathType.S3_PREFIX
             : PathType.S3_OBJECT;
 
@@ -1163,6 +1218,8 @@ export class BucketBrowserComponent implements OnDestroy {
                 data: {
                     pathToDelete: targets[0].name,
                     pathsToDelete: targets.map((t) => t.name),
+                    folderCount: folderCount,
+                    fileCount: targets.length - folderCount,
                     pathType: pathType,
                     osType: 's3',
                     transferProfile: transferProfile,

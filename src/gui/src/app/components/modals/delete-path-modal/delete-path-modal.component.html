@@ -1,8 +1,8 @@
-<h1 mat-dialog-title>Delete {{ isMulti ? displayPaths.length + ' ' : '' }}{{ data.pathType.toString() | titlecase }}{{ isMulti ? 's' : '' }}</h1>
+<h1 mat-dialog-title>@if (multiSummary) {Delete {{ multiSummary }}} @else if (isMulti) {Delete {{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s} @else {Delete {{ data.pathType.toString() | titlecase }}}</h1>
 <div mat-dialog-content>
     <div class="modal-text">
         <div>
-            {{ isMulti ? displayPaths.length + ' ' : '' }}{{ data.pathType.toString() | titlecase }}{{ isMulti ? 's' : '' }} to delete@if (data.transferProfile) {
+            @if (multiSummary) {{{ multiSummary }} to delete} @else if (isMulti) {{{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s to delete} @else {{{ data.pathType.toString() | titlecase }} to delete}@if (data.transferProfile) {
             for remote configuration <i>{{ data.transferProfile }}</i>
         }
         </div>
