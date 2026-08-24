@@ -210,6 +210,18 @@ a {
             height: 18px;
         }
     }
+
+    .oidc-config-help {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--mat-sys-on-surface-variant, #93a4bd);
+        margin: -8px 0 0;
+
+        a {
+            color: variables.$text-link;
+            cursor: pointer;
+        }
+    }
 }
 
 .toggle-note {
