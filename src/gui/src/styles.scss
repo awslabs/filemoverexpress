@@ -234,12 +234,26 @@ mat-chip.warning {
     // off the edges (with room below Save/Cancel).
     .mat-mdc-dialog-surface {
         border: none !important;
+        // Own the flex context explicitly (rather than relying on Material's default) so
+        // the scrollable fme-config below always has a bounded height. Let the inner
+        // fme-config own the scroll so we never get a double scrollbar.
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
+    // ConfigComponent is a routed component reused in a dialog, so — unlike the other
+    // modals — it has no mat-dialog-content scroll region. The dialog surface is a
+    // column flexbox capped at maxHeight, so make fme-config fill the available height
+    // and scroll internally; otherwise tall panels (e.g. an expanded Hot Folder) overflow
+    // the cap and get clipped with no way to scroll down.
     fme-config {
         margin: 0 !important;
         display: block;
         padding: 20px 24px 20px;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
     }
 
     fme-config h1,
