@@ -40,7 +40,6 @@ WORKDIR /workspace
 # Pre-install npm dependencies (layer cached unless lockfile changes)
 COPY package.json package-lock.json ./
 COPY src/gui/package.json src/gui/
-COPY src/windows-daemon-launcher/package.json src/windows-daemon-launcher/
 RUN npm ci
 
 # Final verification
