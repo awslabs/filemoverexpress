@@ -1,4 +1,5 @@
 import { inject, Injectable, RendererFactory2 } from '@angular/core';
+import { Code, ConnectError } from '@connectrpc/connect';
 import { formatDate, isPackagedApp } from '@app/utils/utils';
 import { ExportJobConfig, ExportJobList, ExportMimeTypes } from './export.interfaces';
 import { DEFAULT_EXPORT_JOB_CONFIG } from './export.constants';
@@ -54,9 +55,10 @@ export class ExportService {
                 console.error(err);
                 if (notifyEmpty) {
                     // An empty task stream (e.g. a skipped job with no transfers) terminates
-                    // without a gRPC-Web trailer, which connect-web surfaces as "missing
-                    // trailer". Treat that as an empty report, not a failure.
-                    if (jobTasks.length === 0 && String(err).includes('missing trailer')) {
+                    // without a gRPC-Web trailer, which connect-web surfaces as a ConnectError
+                    // with Code.Internal ("missing trailer"). Classify by the code rather than
+                    // the message text so a future connect-web wording change can't regress this.
+                    if (jobTasks.length === 0 && err instanceof ConnectError && err.code === Code.Internal) {
                         this.notifications.info('This job has no transfers to export.');
                     } else {
                         this.notifications.error(`Couldn't export job report: ${err}`);

@@ -12,7 +12,7 @@ Adds single sign-on authentication and a refreshed GUI, along with a batch of us
 * **Drag files from Finder / File Explorer into S3**: Drag items straight from the OS file manager onto the S3 panel to upload. Dropping onto a folder uploads into that folder; the S3 panel highlights as a drop zone during the drag (macOS).
 * **Enter-to-submit in dialogs**: Pressing Enter/Return in any modal activates its primary action when the form is valid (Escape still cancels).
 * **Resizable transfer tray**: Drag the top edge of the Jobs / Logs / Bucket Reports tray to resize it; the height persists across restarts.
-* **Jobs tray overflow menu**: Tray-wide actions (Clear All Completed Jobs, Refresh) now live in a **⋯** menu on the Jobs toolbar and via right-click on empty space, rather than being buried in a single job's menu.
+* **Jobs tray overflow menu**: Tray-wide actions (Clear All Completed Jobs) now live in a **⋯** menu on the Jobs toolbar and via right-click on empty space, rather than being buried in a single job's menu.
 
 ### Changed
 

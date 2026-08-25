@@ -154,7 +154,7 @@ Click the Action arrow button for each job to access:
 - Jobs display in order of creation
 - Earlier jobs appear at the top
 - Filter by status to show specific job types
-- **Overflow menu (⋯)**: Tray-wide actions live in the **⋯** button on the Jobs toolbar (you can also right-click empty space in the jobs list). Use it to **Clear All Completed Jobs** and **Refresh**. Per-job actions (Details, Rename, Pause/Cancel, Resubmit, Generate Report) remain on each job's action menu.
+- **Overflow menu (⋯)**: Tray-wide actions live in the **⋯** button on the Jobs toolbar (you can also right-click empty space in the jobs list). Use it to **Clear All Completed Jobs**. Per-job actions (Details, Rename, Pause/Cancel, Resubmit, Generate Report) remain on each job's action menu.
 - **Resubmit** is available for completed, failed, and cancelled jobs.
 
 ### Job Details

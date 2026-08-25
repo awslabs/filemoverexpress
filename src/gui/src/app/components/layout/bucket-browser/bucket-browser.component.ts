@@ -506,6 +506,10 @@ export class BucketBrowserComponent implements OnDestroy {
             type: FileBrowserObjectType.UNKNOWN,
         }));
         // The join effect maps each source name (basename) to its absolute path via wailsFileList.
+        // Set the data (wailsFileList) BEFORE the gate (dropResult) so the effect never observes
+        // a dropResult with a null wailsFileList, even if these updates are ever separated by an
+        // await/microtask in a future refactor.
+        this.wailsFileList.set(files);
         this.dropResult.set({
             fromExternalSource: true,
             sourceContainerID: null,
@@ -514,7 +518,6 @@ export class BucketBrowserComponent implements OnDestroy {
             destination: this.externalDropDestination(targetId),
             dragOriginSourceName: sources[0].name,
         });
-        this.wailsFileList.set(files);
     }
 
     /**

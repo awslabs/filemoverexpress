@@ -1,4 +1,4 @@
-import { ConnectedPosition, Overlay } from '@angular/cdk/overlay';
+import { ConnectedPosition, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { Injectable, Injector, inject } from '@angular/core';
 import { HINT_POPOVER_MODE, HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
@@ -16,8 +16,14 @@ import { HINT_POPOVER_MODE, HintsPanelComponent } from '@app/components/layout/h
 export class HintPopoverService {
     private overlay = inject(Overlay);
     private injector = inject(Injector);
+    private activeOverlay: OverlayRef | null = null;
 
     open(origin: HTMLElement, mode: string): void {
+        // Dispose any popover already open (e.g. a fast double-click on the "Info" link)
+        // so overlays never stack.
+        this.activeOverlay?.dispose();
+        this.activeOverlay = null;
+
         // Prefer below the link (right edge aligned); fall back to above if there isn't room.
         const below: ConnectedPosition = { originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 8 };
         const above: ConnectedPosition = { originX: 'end', originY: 'top', overlayX: 'end', overlayY: 'bottom', offsetY: -8 };
@@ -34,6 +40,7 @@ export class HintPopoverService {
             backdropClass: 'cdk-overlay-transparent-backdrop',
             panelClass: 'hint-popover',
         });
+        this.activeOverlay = overlayRef;
 
         const portalInjector = Injector.create({
             parent: this.injector,
@@ -41,10 +48,16 @@ export class HintPopoverService {
         });
         overlayRef.attach(new ComponentPortal(HintsPanelComponent, null, portalInjector));
 
-        overlayRef.backdropClick().subscribe(() => overlayRef.dispose());
+        const dispose = () => {
+            overlayRef.dispose();
+            if (this.activeOverlay === overlayRef) {
+                this.activeOverlay = null;
+            }
+        };
+        overlayRef.backdropClick().subscribe(dispose);
         overlayRef.keydownEvents().subscribe((e) => {
             if (e.key === 'Escape') {
-                overlayRef.dispose();
+                dispose();
             }
         });
     }
