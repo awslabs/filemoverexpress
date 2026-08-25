@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, NgZone } from '@angular/core';
 import {
     FmeConfig,
     handleStreamError,
@@ -120,6 +120,7 @@ export class FmeClientService {
     private notifications = inject(NotificationsService);
     private bookmarksService = inject(BookmarksService);
     private wails = inject(WailsService);
+    private zone = inject(NgZone);
 
     private readonly _events$ = new Subject<BaseEvent>();
     private connectedState = ConnectionState.DISCONNECTED;
@@ -1036,84 +1037,95 @@ export class FmeClientService {
         this.eventStreamCancel = this.connectClient.listEvents(
             create(ListEventsRequestSchema),
             (event) => {
-                if (this.connectedState != ConnectionState.CONNECTED) {
-                    this.store.dispatch(succeedConnect());
-                    // Fresh successful connection — reset backoff + failure notice so a
-                    // future disconnection can surface its own failure toast.
-                    this.connectionAttempts = 0;
-                    this.connectionFailureNotified = false;
-                }
-
-                try {
-                    const convertedEvent = this.convertEvent(event);
-                    if (convertedEvent === null) {
-                        console.error(`Unsupported event received: ${event.eventType}`);
-                        console.debug(event);
-                        return;
+                // The connect-web server-streaming callback fires from ReadableStream reads,
+                // which zone.js does NOT patch — so without re-entering the Angular zone here,
+                // the NgRx dispatches below update the store but never trigger change detection,
+                // leaving the jobs table and file-browser "stale" indicator frozen until a manual
+                // window reload. Re-enter the zone so every streamed event re-renders live.
+                this.zone.run(() => {
+                    if (this.connectedState != ConnectionState.CONNECTED) {
+                        this.store.dispatch(succeedConnect());
+                        // Fresh successful connection — reset backoff + failure notice so a
+                        // future disconnection can surface its own failure toast.
+                        this.connectionAttempts = 0;
+                        this.connectionFailureNotified = false;
                     }
 
-                    this._events$.next(convertedEvent);
-                } catch (e) {
-                    console.log(e);
-                }
+                    try {
+                        const convertedEvent = this.convertEvent(event);
+                        if (convertedEvent === null) {
+                            console.error(`Unsupported event received: ${event.eventType}`);
+                            console.debug(event);
+                            return;
+                        }
+
+                        this._events$.next(convertedEvent);
+                    } catch (e) {
+                        console.log(e);
+                    }
+                });
             },
             (err) => {
-                const isCurrentAttempt = this.currentConnectAttemptID === connectAttemptID;
+                // Same zone re-entry as the message callback: stream-error handling dispatches
+                // disconnect and shows toasts, which must run inside Angular's zone to render.
+                this.zone.run(() => {
+                    const isCurrentAttempt = this.currentConnectAttemptID === connectAttemptID;
 
-                if (err instanceof ConnectError && err.code === Code.Canceled) {
+                    if (err instanceof ConnectError && err.code === Code.Canceled) {
                     // Intentional teardown (bookmark switch, stop daemon, disconnect()) —
                     // reflect it immediately regardless of the grace period.
-                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
-                        this.store.dispatch(ProgressActions.disconnect());
-                    }
-                    this.notifications.info(`Disconnected from ${currentBookmark.name}. Clearing jobs table due to disconnection.`);
-                    return;
-                }
-
-                if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
-                    // Terminal auth failure (bad/expired key) — surface immediately and stop
-                    // retrying; waiting out the grace period would just delay a clear error.
-                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
-                        this.store.dispatch(ProgressActions.disconnect());
-                    }
-                    this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
-                    return;
-                }
-
-                // Transient/network failure (includes "Failed to fetch" while the daemon is
-                // still starting up). During the initial grace period, keep the UI in
-                // CONNECTING and retry quietly — flipping to DISCONNECTED here is what caused
-                // the "Connection Failed"/"Disconnected" flash on app startup, since the
-                // panels classify any CONNECTING -> DISCONNECTED transition as a failure.
-                // Only once the grace period is exhausted do we surface the disconnected
-                // state and a one-time failure toast; background retries continue afterwards.
-                const gracePeriodExhausted = this.connectionAttempts >= initialConnectionGracePeriod;
-                if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED && gracePeriodExhausted) {
-                    this.store.dispatch(ProgressActions.disconnect());
-                }
-                if (gracePeriodExhausted && !this.connectionFailureNotified) {
-                    this.connectionFailureNotified = true;
-                    this.notifications.error(
-                        `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
-                        'reachable and that your connection settings are correct, then retry.');
-                }
-
-                let retryConnectionTime = 5000;
-                if (this.connectionAttempts <= backoffconnectionFactors.length - 1) {
-                    retryConnectionTime = backoffconnectionFactors[this.connectionAttempts] * 1000;
-                }
-                this.connectionAttempts = Math.min(this.connectionAttempts + 1, backoffconnectionFactors.length - 1);
-
-                setTimeout(() => {
-                    try {
-                        if (this.currentConnectAttemptID === connectAttemptID) {
-                            this.connect(false, connectAttemptID);
+                        if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
+                            this.store.dispatch(ProgressActions.disconnect());
                         }
-                    } catch {
-                        this.notifications.error(NotificationMessages.BOOKMARK_CONNECT_ERROR);
+                        this.notifications.info(`Disconnected from ${currentBookmark.name}. Clearing jobs table due to disconnection.`);
                         return;
                     }
-                }, retryConnectionTime);
+
+                    if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+                    // Terminal auth failure (bad/expired key) — surface immediately and stop
+                    // retrying; waiting out the grace period would just delay a clear error.
+                        if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
+                            this.store.dispatch(ProgressActions.disconnect());
+                        }
+                        this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
+                        return;
+                    }
+
+                    // Transient/network failure (includes "Failed to fetch" while the daemon is
+                    // still starting up). During the initial grace period, keep the UI in
+                    // CONNECTING and retry quietly — flipping to DISCONNECTED here is what caused
+                    // the "Connection Failed"/"Disconnected" flash on app startup, since the
+                    // panels classify any CONNECTING -> DISCONNECTED transition as a failure.
+                    // Only once the grace period is exhausted do we surface the disconnected
+                    // state and a one-time failure toast; background retries continue afterwards.
+                    const gracePeriodExhausted = this.connectionAttempts >= initialConnectionGracePeriod;
+                    if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED && gracePeriodExhausted) {
+                        this.store.dispatch(ProgressActions.disconnect());
+                    }
+                    if (gracePeriodExhausted && !this.connectionFailureNotified) {
+                        this.connectionFailureNotified = true;
+                        this.notifications.error(
+                            `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
+                        'reachable and that your connection settings are correct, then retry.');
+                    }
+
+                    let retryConnectionTime = 5000;
+                    if (this.connectionAttempts <= backoffconnectionFactors.length - 1) {
+                        retryConnectionTime = backoffconnectionFactors[this.connectionAttempts] * 1000;
+                    }
+                    this.connectionAttempts = Math.min(this.connectionAttempts + 1, backoffconnectionFactors.length - 1);
+
+                    setTimeout(() => {
+                        try {
+                            if (this.currentConnectAttemptID === connectAttemptID) {
+                                this.connect(false, connectAttemptID);
+                            }
+                        } catch {
+                            this.notifications.error(NotificationMessages.BOOKMARK_CONNECT_ERROR);
+                            return;
+                        }
+                    }, retryConnectionTime);
+                });
             },
         );
     }
