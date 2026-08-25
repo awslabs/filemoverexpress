@@ -1,4 +1,5 @@
 import { inject, Injectable, RendererFactory2 } from '@angular/core';
+import { Code, ConnectError } from '@connectrpc/connect';
 import { formatDate, isPackagedApp } from '@app/utils/utils';
 import { ExportJobConfig, ExportJobList, ExportMimeTypes } from './export.interfaces';
 import { DEFAULT_EXPORT_JOB_CONFIG } from './export.constants';
@@ -45,15 +46,32 @@ export class ExportService {
         });
     }
 
-    private getJobTasks(job: Job, exportData: ExportJobList, cfg: ExportJobConfig) {
+    private getJobTasks(job: Job, exportData: ExportJobList, cfg: ExportJobConfig, notifyEmpty = false) {
         const jobTasks: Task[] = [];
 
         this.fmeClientService.listTasksForJob(job.jobId).subscribe({
             next: (task) => jobTasks.push(task),
             error: (err) => {
                 console.error(err);
+                if (notifyEmpty) {
+                    // An empty task stream (e.g. a skipped job with no transfers) terminates
+                    // without a gRPC-Web trailer, which connect-web surfaces as a ConnectError
+                    // with Code.Internal ("missing trailer"). Classify by the code rather than
+                    // the message text so a future connect-web wording change can't regress this.
+                    if (jobTasks.length === 0 && err instanceof ConnectError && err.code === Code.Internal) {
+                        this.notifications.info('This job has no transfers to export.');
+                    } else {
+                        this.notifications.error(`Couldn't export job report: ${err}`);
+                    }
+                }
             },
             complete: () => {
+                // A job with no transfers (e.g. a skipped job where every file was filtered
+                // out) would otherwise produce a content-free file with no feedback.
+                if (notifyEmpty && jobTasks.length === 0) {
+                    this.notifications.info('This job has no transfers to export.');
+                    return;
+                }
                 exportData[job.jobId] = {
                     jobName: job.name,
                     destination: job.destination,
@@ -85,13 +103,15 @@ export class ExportService {
         ).subscribe({
             next: (job) => {
                 if (!job) {
+                    this.notifications.error('Couldn\'t export job report: job not found.');
                     return;
                 }
 
-                this.getJobTasks(job, exportData, cfg);
+                this.getJobTasks(job, exportData, cfg, true);
             },
             error: (err) => {
                 console.error(err);
+                this.notifications.error(`Couldn't export job report: ${err}`);
             },
         });
     }

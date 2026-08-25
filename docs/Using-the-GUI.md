@@ -29,7 +29,10 @@ The GUI consists of three main areas:
 **Remote Configuration Dropdown:**
 - Select from configured S3 destinations
 - Each configuration represents a specific bucket and settings
-- Green checkmark indicates active connection
+- The **Connected** indicator reflects whether the selected Remote Configuration can actually reach S3. If you edit a configuration so it can no longer list the bucket (wrong bucket, region, or credentials), the indicator turns to **Disconnected** and the panel shows the listing error. While a listing is in progress it shows **Connecting…**
+
+**Authentication:**
+- A Remote Configuration authenticates with either an AWS named profile / access keys or your organization's single sign-on. To use SSO, set the **Authentication method** to **OIDC / SSO** on the configuration's Authentication tab. See [OIDC / SSO Authentication](OIDC-Authentication) for setup.
 
 **Navigation:**
 - Browse S3 objects and prefixes like folders
@@ -62,6 +65,8 @@ File Mover Express uploads to all S3 storage classes. We recommend disabling sle
    - View real-time progress in the Jobs tab
    - See transfer speed, ETA, and completion status
 
+**Uploading from Finder / File Explorer:** You can also drag files and folders straight from your operating system's file manager onto the S3 Bucket browser. While a drag is over the window, the S3 panel highlights as a drop zone. Drop onto a specific folder to upload into it, or onto empty space to upload to the folder you're currently viewing. (The drop-zone highlight is shown on macOS.)
+
 ## Downloading Files
 
 File Mover Express cannot download directly from Deep Archive or Glacier storage classes, as these require restoration first. For more information, see [Restoring archived objects](https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects.html).
@@ -85,6 +90,14 @@ File Mover Express cannot download directly from Deep Archive or Glacier storage
 
 5. **Monitor progress**:
    - View real-time progress in the Jobs tab
+
+## Deleting Files and Objects
+
+You can delete items from either browser by right-clicking a selection and choosing **Delete**.
+
+- **Multi-select delete**: Select several files/folders (Ctrl/Cmd-click or Shift-click), then right-click one of them and choose **Delete**. The confirmation dialog lists every selected item in a scrollable list and reports how many folders and files will be removed, so you can confirm the full set before deleting.
+- **Confirmation guard**: Deletions are permanent. You must type `permanently delete` to enable the **Delete** button (pressing **Enter** then confirms). For S3, all versions of the object and any delete markers are removed.
+- **Rename** applies to a single item. When more than one item is selected, **Rename** is hidden from the context menu.
 
 ## Hot Folders
 
@@ -141,6 +154,15 @@ Click the Action arrow button for each job to access:
 - Jobs display in order of creation
 - Earlier jobs appear at the top
 - Filter by status to show specific job types
+- **Overflow menu (⋯)**: Tray-wide actions live in the **⋯** button on the Jobs toolbar (you can also right-click empty space in the jobs list). Use it to **Clear All Completed Jobs**. Per-job actions (Details, Rename, Pause/Cancel, Resubmit, Generate Report) remain on each job's action menu.
+- **Resubmit** is available for completed, failed, and cancelled jobs.
+
+### Job Details
+
+Double-click a job (or choose **Job Details**) to open a detailed view with per-file progress and a job-scoped **Logs** view.
+
+- **Copy S3 URI**: For uploads, copies the object's `s3://bucket/key` URI to the clipboard.
+- **Skipped jobs**: A job that transferred nothing (for example, files already present in S3 or excluded by a filter) is shown as **Skipped**.
 
 ## Logs Tab
 
@@ -231,6 +253,8 @@ Connect to File Mover Express running on other machines:
 - **Double-click**: Enter folders
 - **Breadcrumbs**: Click to navigate up directory tree
 - **Ctrl+Click** (Cmd+Click on Mac): Multi-select files
+- **Enter / Return**: In any dialog, submits the primary action (Save, Delete, etc.) when the form is valid — the same as clicking the primary button. **Escape** cancels.
+- **Resizable bottom panel**: Drag the top edge of the Jobs / Logs / Bucket Reports tray upward to enlarge it (useful for reading long logs). The height is remembered across restarts.
 
 ### Transfer Tips
 - **Drag and Drop**: Primary transfer method

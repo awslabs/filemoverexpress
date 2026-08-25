@@ -9,6 +9,24 @@
     background: variables.$background-tray;
     border-top: 1px solid variables.$grey-600;
     overflow: hidden;
+    position: relative;
+}
+
+// Drag strip overlaying the tray's top edge; drag up/down to resize the tray.
+.tray-resize-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: row-resize;
+    z-index: 5;
+    touch-action: none;
+
+    &:hover {
+        background: variables.$blue-500;
+        opacity: 0.5;
+    }
 }
 
 // Vertical shell: tabs (when expanded) fill the space above the persistent summary bar.

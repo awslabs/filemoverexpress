@@ -4,6 +4,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatFormField, MatLabel } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 
 @Component({
@@ -21,6 +22,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         KeyValuePipe,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class ExportJobModalComponent {

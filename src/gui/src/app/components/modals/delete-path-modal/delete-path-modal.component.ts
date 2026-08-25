@@ -1,12 +1,12 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatInput } from '@angular/material/input';
 import { isEqualValidator } from '@app/classes';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { DELETE_CONFIRMATION_STRING } from '@app/components/modals/delete-path-modal/delete-path-modal.constants';
 import { DeletePathModalData } from '@app/components/modals/delete-path-modal/delete-path-modal.interfaces';
 import { PathType } from '@app/interfaces/paths';
@@ -28,23 +28,27 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class DeletePathModalComponent {
     data = inject<DeletePathModalData>(MAT_DIALOG_DATA);
     dialogRef = inject<MatDialogRef<DeletePathModalComponent>>(MatDialogRef);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
 
 
     deletePathForm: FormGroup;
     pathToDeleteDisplayPath: string;
+    displayPaths: string[];
     protected readonly PathType = PathType;
     protected readonly DELETE_CONFIRMATION_STRING = DELETE_CONFIRMATION_STRING;
 
     constructor() {
         const data = this.data;
 
-        this.pathToDeleteDisplayPath = grpcPathToDisplayPath(data.pathToDelete, data.osType);
+        const paths = data.pathsToDelete?.length ? data.pathsToDelete : [data.pathToDelete];
+        this.displayPaths = paths.map((p) => grpcPathToDisplayPath(p, data.osType));
+        this.pathToDeleteDisplayPath = this.displayPaths[0];
         this.deletePathForm = new FormGroup({
             confirmDelete: new FormControl<string>('', [
                 Validators.required, isEqualValidator(DELETE_CONFIRMATION_STRING),
@@ -52,14 +56,40 @@ export class DeletePathModalComponent {
         });
     }
 
+    get isMulti(): boolean {
+        return this.displayPaths.length > 1;
+    }
+
+    /**
+     * Multi-delete summary that splits folders from files/objects, e.g. "3 folders and
+     * 2 objects". Returns '' when not a multi-delete or when counts weren't provided
+     * (callers pass folderCount/fileCount); the template falls back to a plain count.
+     */
+    get multiSummary(): string {
+        if (!this.isMulti) {
+            return '';
+        }
+        const folders = this.data.folderCount ?? 0;
+        const files = this.data.fileCount ?? 0;
+        if (folders === 0 && files === 0) {
+            return '';
+        }
+        const fileNoun = this.data.osType === 's3' ? 'object' : 'file';
+        const parts: string[] = [];
+        if (folders > 0) {
+            parts.push(`${folders} folder${folders === 1 ? '' : 's'}`);
+        }
+        if (files > 0) {
+            parts.push(`${files} ${fileNoun}${files === 1 ? '' : 's'}`);
+        }
+        return parts.join(' and ');
+    }
+
     toggleHint(event: MouseEvent, message: string) {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     cancel() {

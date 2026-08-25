@@ -112,7 +112,9 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     padding: 22px 22px 18px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    // Allow the whole body to scroll as a fallback so the lower content (nav + Logs)
+    // stays reachable when the summary + expanded Advanced block is taller than the modal.
+    overflow-y: auto;
 }
 
 .jd-progress-track {
@@ -132,6 +134,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
     &.complete {
         background: variables.$green-500;
+    }
+
+    &.skipped {
+        background: variables.$grey-450;
     }
 
     &.error {
@@ -285,7 +291,9 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     border-radius: 12px;
     overflow: hidden;
     margin-top: 16px;
-    min-height: 0;
+    // Floor so an expanded Advanced block can't squeeze the nav + Logs pane to nothing;
+    // combined with .jd-body overflow-y:auto, tall content scrolls instead of clipping.
+    min-height: 240px;
     flex: 1;
 }
 

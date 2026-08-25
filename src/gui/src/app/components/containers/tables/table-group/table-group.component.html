@@ -1,5 +1,6 @@
 <div class="tray-shell">
     @if (!tray.collapsed()) {
+        <div class="tray-resize-handle" (pointerdown)="onResizeStart($event)" title="Drag to resize"></div>
         <div class="tray-expanded">
             <button class="tray-collapse-top" type="button" (click)="tray.collapse()" aria-label="Collapse transfers">&#9660;</button>
             <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start" color="accent" class="table-group-wrapper"

@@ -45,8 +45,8 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { TransferProfileState } from '@services/transfer-profile/transfer-profile.interfaces';
 import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Subscription } from 'rxjs';
-import { catchError, distinctUntilChanged } from 'rxjs/operators';
+import { forkJoin, of, Subscription } from 'rxjs';
+import { catchError, distinctUntilChanged, map } from 'rxjs/operators';
 import { BUCKET_FILE_BROWSER_ID } from '../bucket-browser/bucket-browser.constants';
 import { EMPTY_FILTER_DATA } from '../file-browser/file-browser.constants';
 import {
@@ -536,6 +536,18 @@ export class DaemonBrowserComponent implements OnDestroy {
         };
     }
 
+    /** Rename requires a single target: allowed AND not part of a multi-selection. */
+    isLocalRenameSingleTarget(): FileBrowserContextMenuTriggerCondition {
+        const base = this.isLocalRenameDeleteAllowed();
+        return (row) => {
+            if (!base(row)) {
+                return false;
+            }
+            const selected = this.fileBrowser.getSelectedObjects();
+            return selected.length <= 1 || !selected.some((o) => o.name === row.name);
+        };
+    }
+
     /**
      * Returns a click handler for adding a favorite path from the context menu
      *
@@ -904,7 +916,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                 icon: 'edit',
                 iconColor: 'inherit',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
-                    ['file', this.isLocalRenameDeleteAllowed()], ['folder', this.isLocalRenameDeleteAllowed()],
+                    ['file', this.isLocalRenameSingleTarget()], ['folder', this.isLocalRenameSingleTarget()],
                 ]),
                 action: this.renameLocalPath(),
             },
@@ -1219,19 +1231,34 @@ export class DaemonBrowserComponent implements OnDestroy {
             if (!triggerObject) {
                 return;
             }
-            this.openDeleteLocalPathModal(triggerObject.name, triggerObject.type);
+            // If the right-clicked row is part of a multi-selection, act on the whole
+            // selection; otherwise act on just that row.
+            const selected = this.fileBrowser.getSelectedObjects();
+            const targets = selected.length > 1 && selected.some((o) => o.name === triggerObject.name)
+                ? selected
+                : [triggerObject];
+            this.openDeleteLocalPathModal(targets);
         };
     }
 
-    private openDeleteLocalPathModal(pathToDelete: string, type: FileBrowserObjectType) {
-        const pathType: PathType = type === FileBrowserObjectType.FOLDER ? PathType.FOLDER : PathType.FILE;
+    private openDeleteLocalPathModal(targets: FileBrowserObject[]) {
+        if (!targets.length) {
+            return;
+        }
+        const folderCount = targets.filter((t) => t.type === FileBrowserObjectType.FOLDER).length;
+        const pathType: PathType = folderCount === targets.length
+            ? PathType.FOLDER
+            : PathType.FILE;
 
         const dialogRef = this.dialog.open<DeletePathModalComponent, DeletePathModalData>(
             DeletePathModalComponent,
             {
                 width: '700px',
                 data: {
-                    pathToDelete: pathToDelete,
+                    pathToDelete: targets[0].name,
+                    pathsToDelete: targets.map((t) => t.name),
+                    folderCount: folderCount,
+                    fileCount: targets.length - folderCount,
                     pathType: pathType,
                     osType: this.fileBrowserType,
                 },
@@ -1240,19 +1267,46 @@ export class DaemonBrowserComponent implements OnDestroy {
         dialogRef.afterClosed().subscribe(
             (result) => {
                 if (result) {
-                    const displayPathToDelete = grpcPathToDisplayPath(pathToDelete, this.fileBrowserType);
-                    this.notifications.info(`Deletion in progress for ${displayPathToDelete}`);
-                    this.fmeClientService.deleteLocalPath(pathToDelete, type).subscribe({
-                        next: () => {
-                            this.notifications.success(`Successfully deleted ${displayPathToDelete}`);
-                            this.refreshFileBrowser(true);
-                        },
-                        error: (error) => {
-                            this.notifications.warning(`Error occurred when deleting ${displayPathToDelete}: ${error}`);
-                        },
-                    });
+                    this.deleteLocalTargets(targets);
                 }
             },
         );
+    }
+
+    /**
+     * Deletes every selected local target (one RPC per file/folder), then reports an
+     * aggregated result and refreshes. Partial failures are surfaced without aborting
+     * the rest of the batch.
+     */
+    private deleteLocalTargets(targets: FileBrowserObject[]) {
+        const label = targets.length === 1
+            ? grpcPathToDisplayPath(targets[0].name, this.fileBrowserType)
+            : `${targets.length} items`;
+        this.notifications.info(`Deletion in progress for ${label}`);
+
+        forkJoin(
+            targets.map((t) =>
+                this.fmeClientService.deleteLocalPath(t.name, t.type).pipe(
+                    map(() => ({ name: t.name, ok: true })),
+                    catchError((error) => of({ name: t.name, ok: false, error })),
+                ),
+            ),
+        ).subscribe((results) => {
+            const failed = results.filter((r) => !r.ok);
+            if (failed.length === 0) {
+                this.notifications.success(targets.length === 1
+                    ? `Successfully deleted ${label}`
+                    : `Successfully deleted ${targets.length} items`);
+            } else if (failed.length < results.length) {
+                this.notifications.warning(
+                    `Deleted ${results.length - failed.length} of ${results.length} items; ${failed.length} failed`,
+                );
+            } else {
+                this.notifications.warning(targets.length === 1
+                    ? `Error occurred when deleting ${label}`
+                    : `Failed to delete ${failed.length} items`);
+            }
+            this.refreshFileBrowser(true);
+        });
     }
 }

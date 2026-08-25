@@ -26,6 +26,11 @@ export class TransferProfileService implements OnDestroy {
         {transferProfileList: null, currentTransferProfile: null, currentProfileIsOIDC: false},
     );
     private readonly transferProfileEdited$: Subject<string> = new Subject<string>();
+
+    /** Emits the profile name whenever an existing Remote Configuration is edited and saved. */
+    get transferProfileEdited(): Observable<string> {
+        return this.transferProfileEdited$.asObservable();
+    }
     private _subscriptions: Subscription[] = [];
     private _transferProfileState: TransferProfileState = {
         transferProfileList: null,

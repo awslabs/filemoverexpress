@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
+import { MatIconButton } from '@angular/material/button';
 import { MatFormField } from '@angular/material/input';
 import { MatDivider } from '@angular/material/list';
 import { MatMenu, MatMenuContent, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -50,7 +51,7 @@ import * as JobActions from '@state/job/actions/job.actions';
 import { clearCompleted as clearCompletedJobsAction } from '@state/job/actions/job.actions';
 import { selectAll as jobSelectAll } from '@state/job/job.selectors';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Job, JobStatus, PROGRESS_STATES, TERMINAL_STATES } from '@state/models/job.model';
+import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TERMINAL_STATES } from '@state/models/job.model';
 import { debounceTime, Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
@@ -93,6 +94,7 @@ const RETRY_COUNT = 5;
         MatMenuContent,
         MatMenuItem,
         MatDivider,
+        MatIconButton,
     ],
 })
 export class JobsTableComponent implements AfterViewInit {
@@ -104,10 +106,18 @@ export class JobsTableComponent implements AfterViewInit {
     private destroyRef = inject(DestroyRef);
 
     @ViewChildren(MatMenuTrigger) contextMenus: MatMenuTrigger[] = [];
-    // Single cursor-positioned trigger for the row context menu (opened on right-click).
-    @ViewChild(MatMenuTrigger) contextMenuTrigger!: MatMenuTrigger;
+    // Cursor-positioned trigger for the per-row context menu (opened on right-click).
+    // Named so it resolves correctly regardless of other MatMenuTrigger DOM order.
+    @ViewChild('rowMenuTrigger') contextMenuTrigger!: MatMenuTrigger;
+    // Trigger for the global "panel" menu (Clear All Completed), opened from the overflow
+    // button and from an empty-space right-click.
+    @ViewChild('panelMenuTrigger') panelMenuTrigger!: MatMenuTrigger;
     @ViewChild(MatSort) sort!: MatSort;
     contextMenuPosition: DomElementPosition = {
+        x: '0px',
+        y: '0px',
+    };
+    panelMenuPosition: DomElementPosition = {
         x: '0px',
         y: '0px',
     };
@@ -331,6 +341,7 @@ export class JobsTableComponent implements AfterViewInit {
      */
     rightClickJobRow(event: MouseEvent, job: Job) {
         event.preventDefault();
+        event.stopPropagation();
         this.contextMenuPosition.x = event.clientX + 'px';
         this.contextMenuPosition.y = event.clientY + 'px';
         // Set the menu data imperatively (not via [matMenuTriggerData]): openMenu() reads
@@ -339,6 +350,17 @@ export class JobsTableComponent implements AfterViewInit {
         // throw, and leave a stuck overlay backdrop that swallows all clicks.
         this.contextMenuTrigger.menuData = {job};
         this.contextMenuTrigger.openMenu();
+    }
+
+    /**
+     * Opens the global (panel) menu at the cursor when right-clicking empty space in the
+     * jobs table — mirrors the file-browser panels' empty-space menu.
+     */
+    openEmptySpaceMenu(event: MouseEvent) {
+        event.preventDefault();
+        this.panelMenuPosition.x = event.clientX + 'px';
+        this.panelMenuPosition.y = event.clientY + 'px';
+        this.panelMenuTrigger.openMenu();
     }
 
     /**
@@ -466,8 +488,8 @@ export class JobsTableComponent implements AfterViewInit {
      * @param job {Job} Job to cancel
      */
     resubmitJob(job: Job) {
-        if (!TERMINAL_STATES.includes(job.status)) {
-            this.notifications.error('Unable to resubmit, only failed and completed jobs can be resubmitted');
+        if (!RESUBMITTABLE_STATES.includes(job.status)) {
+            this.notifications.error('Unable to resubmit, only failed, cancelled, and completed jobs can be resubmitted');
             return;
         }
         this.fmeClientService.resubmitJob(job.id).subscribe((data) => {

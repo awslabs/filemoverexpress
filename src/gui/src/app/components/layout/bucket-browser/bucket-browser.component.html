@@ -6,13 +6,13 @@
     <div class="title-row">
         <h1 class="title">S3 Bucket</h1>
         <span class="conn-pill"
-              [class.connected]="connectionState === ConnectionState.CONNECTED"
-              [class.connecting]="connectionState === ConnectionState.CONNECTING"
-              [class.disconnected]="connectionState === ConnectionState.DISCONNECTED">
+              [class.connected]="s3ConnectionState === ConnectionState.CONNECTED"
+              [class.connecting]="s3ConnectionState === ConnectionState.CONNECTING"
+              [class.disconnected]="s3ConnectionState === ConnectionState.DISCONNECTED">
             <span class="conn-dot"></span>
-            @if (connectionState === ConnectionState.CONNECTED) {
+            @if (s3ConnectionState === ConnectionState.CONNECTED) {
                 Connected
-            } @else if (connectionState === ConnectionState.CONNECTING) {
+            } @else if (s3ConnectionState === ConnectionState.CONNECTING) {
                 Connecting&hellip;
             } @else {
                 Disconnected
@@ -45,7 +45,8 @@
                     [disabled]="connectionState !== ConnectionState.CONNECTED"
         ></fme-button>
     </div>
-    <div class="file-browser">
+    <div class="file-browser"
+         [class.external-drag-active]="externalDragActive() && selectedBookmark?.name === DEFAULT_BOOKMARK_NAME">
         <fme-file-browser
                 #fileBrowser
                 fileBrowserType="s3"

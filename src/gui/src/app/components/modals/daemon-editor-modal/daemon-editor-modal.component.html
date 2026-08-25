@@ -3,7 +3,7 @@
     <div class="spacer"></div>
     <a (click)="toggleHint($event, 'daemon-editor-modal')">Info</a>
 </header>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="save()()" [enterSubmitDisabled]="bookmarkForm.invalid">
     @if (mode === 'add') {
         <div class="modal-text">
             The remote daemon feature enables you to control file transfers to or from S3 on a remote computer.

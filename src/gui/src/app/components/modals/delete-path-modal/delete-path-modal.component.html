@@ -1,14 +1,22 @@
-<h1 mat-dialog-title>Delete {{ data.pathType.toString() | titlecase }}</h1>
-<div mat-dialog-content>
+<h1 mat-dialog-title>@if (multiSummary) {Delete {{ multiSummary }}} @else if (isMulti) {Delete {{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s} @else {Delete {{ data.pathType.toString() | titlecase }}}</h1>
+<div mat-dialog-content (fmeEnterSubmit)="submit()()" [enterSubmitDisabled]="deletePathForm.invalid">
     <div class="modal-text">
         <div>
-            {{ data.pathType.toString() | titlecase }} to delete@if (data.transferProfile) {
+            @if (multiSummary) {{{ multiSummary }} to delete} @else if (isMulti) {{{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s to delete} @else {{{ data.pathType.toString() | titlecase }} to delete}@if (data.transferProfile) {
             for remote configuration <i>{{ data.transferProfile }}</i>
         }
         </div>
-        <p class="path-string">
-            {{ pathToDeleteDisplayPath }}
-        </p>
+        @if (isMulti) {
+            <ul class="path-list">
+                @for (p of displayPaths; track p) {
+                    <li>{{ p }}</li>
+                }
+            </ul>
+        } @else {
+            <p class="path-string">
+                {{ pathToDeleteDisplayPath }}
+            </p>
+        }
         <p>
             To confirm deletion, type <i>{{ DELETE_CONFIRMATION_STRING }}</i> in the text input field.
         </p>

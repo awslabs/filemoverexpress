@@ -10,6 +10,8 @@ Before starting, ensure you have completed:
 2. **[IAM Permissions](Security.md#required-iam-permissions)** — AWS credentials and S3 access
 3. **[Configuration](Configuration.md)** — Add a Remote Configuration for your S3 bucket
 
+> **Using single sign-on?** Instead of an AWS named profile or access keys, you can authenticate a Remote Configuration with your organization's identity provider. See [OIDC / SSO Authentication](OIDC-Authentication.md) to set it up.
+
 ## Quick Start Guide
 
 ### Step 1: Launch File Mover Express

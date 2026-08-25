@@ -1,9 +1,28 @@
 @use '../../../../styles/modal';
+@use '../../../../styles/variables';
 
 .modal-form-field {
     width: 100%;
 
     ::placeholder {
         font-style: italic;
+    }
+}
+
+.path-list {
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 8px 0;
+    padding: 8px 12px 8px 28px;
+    border: 1px solid variables.$grey-600;
+    border-radius: 8px;
+    background: variables.$grey-800;
+
+    li {
+        font-family: monospace;
+        font-size: 12px;
+        color: variables.$grey-300;
+        padding: 2px 0;
+        word-break: break-all;
     }
 }

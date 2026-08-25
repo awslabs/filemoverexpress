@@ -16,7 +16,10 @@
     // Lower row floors so the two stacked panes fit a small window (down to the 1024x640
     // window minimum); each pane scrolls internally when short. Previously 400px + 300px
     // (+ nav/footer) required ~798px of height, which didn't fit 1366x768 screens.
-    grid-template-rows: minmax(200px, 1fr) minmax(160px, 40%);
+    // Tray row height is user-resizable via --tray-height (drag handle on the tray's top
+    // edge); clamped so the top pane always keeps at least 200px. Collapsed state below
+    // overrides this to shrink the tray to its summary bar.
+    grid-template-rows: minmax(200px, 1fr) clamp(160px, var(--tray-height, 40%), calc(100% - 200px));
     grid-gap: 0;
     grid-template-areas:
         'file-browser-section'

@@ -1,5 +1,5 @@
 <h1 mat-dialog-title>Rename {{ data.pathType.toString() | titlecase }}</h1>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="submit()()" [enterSubmitDisabled]="renamePathForm.invalid">
     <div class="modal-text">
         <div class="description">
             <div>

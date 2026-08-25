@@ -164,6 +164,12 @@
                                     <mat-icon>lock</mat-icon> OIDC Configuration
                                 </div>
 
+                                <p class="oidc-config-help">
+                                    New to SSO setup? Read the
+                                    <a href="" (click)="openExternalLink($event,'https://github.com/awslabs/filemoverexpress/blob/main/docs/OIDC-Authentication.md')">OIDC / SSO Authentication guide</a>
+                                    for identity-provider registration, the IAM role trust policy, and what to enter in each field below.
+                                </p>
+
                                 <mat-form-field color="accent">
                                     <mat-label>Issuer URL</mat-label>
                                     <input matInput type="text" formControlName="oidcIssuerUrl"

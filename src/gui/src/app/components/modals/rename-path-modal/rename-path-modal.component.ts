@@ -1,12 +1,12 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
 import { isNotEmptyString, isNotEqualValidator } from '@app/classes';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { RenamePathModalData } from '@app/components/modals/rename-path-modal/rename-path-modal.interfaces';
 import { GRPC_PATH_SEPARATOR } from '@app/constants/common.constants';
 import { PathType } from '@app/interfaces/paths';
@@ -34,13 +34,14 @@ import { NotificationsService } from '@services/notifications/notifications.serv
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class RenamePathModalComponent {
     data = inject<RenamePathModalData>(MAT_DIALOG_DATA);
     private dialogRef = inject<MatDialogRef<RenamePathModalComponent>>(MatDialogRef);
     private notifications = inject(NotificationsService);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
 
     renamePathForm: FormControl;
     parentDirectoryGRPCPath: string;
@@ -79,10 +80,7 @@ export class RenamePathModalComponent {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     cancel() {

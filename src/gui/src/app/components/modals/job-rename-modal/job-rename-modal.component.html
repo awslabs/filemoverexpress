@@ -1,5 +1,5 @@
 <h1 mat-dialog-title>Rename job</h1>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="save()()" [enterSubmitDisabled]="jobName.invalid">
     <div>
         <p>
             Set a descriptive name for your job

@@ -79,4 +79,13 @@ export class PreferencesService {
         this.save();
     }
 
+    get trayHeight(): number {
+        return this.preferences.trayHeight;
+    }
+
+    set trayHeight(value: number) {
+        this.preferences.trayHeight = value;
+        this.save();
+    }
+
 }

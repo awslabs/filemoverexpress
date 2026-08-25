@@ -1,15 +1,15 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
 import { isAbsolutePathValidator } from '@app/classes';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import {
     StartingPathType,
 } from '@app/components/modals/starting-path-editor-modal/starting-path-editor-modal.interfaces';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 
 @Component({
     selector: 'fme-starting-path-editor-modal',
@@ -27,12 +27,13 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class StartingPathEditorModalComponent {
     data = inject(MAT_DIALOG_DATA);
     private dialogRef = inject<MatDialogRef<StartingPathEditorModalComponent, string | null>>(MatDialogRef);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
 
     startingPath: FormControl;
     configFieldName = '';
@@ -55,10 +56,7 @@ export class StartingPathEditorModalComponent {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     cancel() {

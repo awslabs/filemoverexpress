@@ -10,6 +10,7 @@ File Mover Express for AWS is a solution designed to accelerate media asset tran
 - [Configuration](Configuration)
 - [Using the GUI](Using-the-GUI)
 - [Using the CLI](Using-the-CLI)
+- [OIDC / SSO Authentication](OIDC-Authentication)
 - [MCP Server (AI Assistant Integration)](MCP-Server)
 - [Best Practices](Best-Practices)
 - [Troubleshooting](Troubleshooting)
@@ -35,6 +36,7 @@ Studios can use File Mover Express for camera to cloud, work in-progress synchro
 - **Bucket Reports** - Export reports of files and folders in S3 buckets without needing to log into the AWS S3 console
 - **Upload Hot Folder** – Designate folders on local storage for File Mover Express to monitor and automatically upload new content to Amazon S3
 - **Remote daemon** – Use a remote daemon to start transfers from a different machine for better performance or multi-user scenarios
+- **OIDC / SSO Authentication** – Sign in with your organization's identity provider (Okta, Microsoft Entra ID, Auth0, Ping, and others) to obtain temporary AWS credentials instead of managing long-lived access keys. See [OIDC / SSO Authentication](OIDC-Authentication)
 - **Multiple AWS Regions** – Works with Amazon S3 in any available region
 - **Bandwidth Throttling** - Set target average speeds to limit transfer speeds
 - **MCP Server for AI Assistants** - Control transfers through natural language with any MCP-compatible AI assistant (Claude Desktop, Kiro, Cursor, etc.)

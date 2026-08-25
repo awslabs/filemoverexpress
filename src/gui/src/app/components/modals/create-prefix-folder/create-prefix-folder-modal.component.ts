@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { CreatePrefixFolderData, CreatePrefixFolderType } from './create-prefix-folder-modal.interfaces';
@@ -22,6 +23,7 @@ const SEPARATOR = '/';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class CreatePrefixFolderModalComponent {

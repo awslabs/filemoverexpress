@@ -108,6 +108,26 @@ export class TableGroupComponent {
         }
     }
 
+    /**
+     * Drag-resize the tray from its top edge. Updates the shared height signal live while
+     * dragging (the parent grid reads it via --tray-height), then persists on release.
+     */
+    protected onResizeStart(event: PointerEvent): void {
+        event.preventDefault();
+        const startY = event.clientY;
+        const startHeight = this.tray.expandedHeight();
+        const onMove = (e: PointerEvent) => {
+            // Dragging up (smaller clientY) grows the tray.
+            this.tray.setExpandedHeight(startHeight + (startY - e.clientY));
+        };
+        const onUp = () => {
+            window.removeEventListener('pointermove', onMove);
+            this.tray.commitExpandedHeight();
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp, { once: true });
+    }
+
     /** Human ETA for the collapsed summary bar (mockup "~2 min"). */
     private formatEta(seconds: number): string {
         if (!Number.isFinite(seconds) || seconds <= 0) {

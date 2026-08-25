@@ -1,6 +1,5 @@
 import { Component, EventEmitter, inject, OnInit, Output } from '@angular/core';
 import { FormArray, FormGroup } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -8,9 +7,10 @@ import {
     MatDialogRef,
     MatDialogTitle,
 } from '@angular/material/dialog';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { ConfigureHotFolderModalData } from '@app/components/modals/configure-hot-folder-modal/configure-hot-folder-modal.interfaces';
 import { NotificationMessages } from '@app/constants/common.constants';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { FmeConfig, HotFolders } from '@classes/config';
 import { HotFolderFormComponent } from '@containers/forms/hot-folder-form/hot-folder-form.component';
 import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
@@ -28,6 +28,7 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
         HotFolderFormComponent,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class ConfigureHotFolderModalComponent implements OnInit {
@@ -35,7 +36,7 @@ export class ConfigureHotFolderModalComponent implements OnInit {
     dialogRef = inject<MatDialogRef<ConfigureHotFolderModalComponent>>(MatDialogRef);
     private fmeClientService = inject(FmeClientService);
     private notifications = inject(NotificationsService);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
 
     @Output() hotFoldersSaved = new EventEmitter<boolean>();
     hotFolders: HotFolders[] = [];
@@ -67,10 +68,7 @@ export class ConfigureHotFolderModalComponent implements OnInit {
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     /**

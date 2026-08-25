@@ -76,6 +76,17 @@ func main() {
 		app.Event.Emit("files-dropped", DroppedFileResult{}.fromEvent(event))
 	})
 
+	// macOS surfaces when an OS file drag enters/leaves the window (there is no per-move
+	// event). The GUI uses these to highlight the S3 panel as a drop zone, so users
+	// discover they can drag files in from Finder. Windows has no equivalent hover event;
+	// the drop itself still works there.
+	window.OnWindowEvent(events.Mac.WindowFileDraggingEntered, func(_ *application.WindowEvent) {
+		app.Event.Emit("file-dragging-entered", nil)
+	})
+	window.OnWindowEvent(events.Mac.WindowFileDraggingExited, func(_ *application.WindowEvent) {
+		app.Event.Emit("file-dragging-exited", nil)
+	})
+
 	// On first show, clamp the window to the display's work area and center it so it never
 	// opens larger than the screen — otherwise a window taller/wider than the display pushes
 	// the title bar off-screen or behind the taskbar on low-resolution / multi-monitor setups.

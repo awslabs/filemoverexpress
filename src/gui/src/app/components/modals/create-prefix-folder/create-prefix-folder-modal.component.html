@@ -6,7 +6,7 @@
         Create local folder
     }
 </h1>
-<div mat-dialog-content>
+<div mat-dialog-content (fmeEnterSubmit)="save()()" [enterSubmitDisabled]="folder.invalid">
     <div>
         @if (data.type === CreatePrefixFolderType.S3) {
             <p>

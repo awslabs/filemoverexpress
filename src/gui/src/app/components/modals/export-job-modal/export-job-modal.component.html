@@ -2,7 +2,9 @@
     <h1>Export Job Report</h1>
     <div class="spacer"></div>
 </header>
-<mat-dialog-content>
+<mat-dialog-content
+    (fmeEnterSubmit)="submit()()"
+    [enterSubmitDisabled]="outputFormat.invalid">
     <div class="modal-text">
         Export job report and save it in the following format
     </div>

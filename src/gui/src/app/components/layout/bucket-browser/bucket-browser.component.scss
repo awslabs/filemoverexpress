@@ -125,4 +125,31 @@
 .file-browser {
     grid-area: file-browser;
     min-width: 0;
+
+    // Drop-zone cue while an OS file drag is over the window (macOS): a dashed accent
+    // border + soft glow so users discover they can drag files in from Finder.
+    &.external-drag-active {
+        position: relative;
+        outline: 2px dashed vars.$blue-500;
+        outline-offset: -4px;
+        border-radius: 8px;
+        box-shadow: inset 0 0 0 9999px rgba(83, 159, 229, 0.06);
+        transition: box-shadow 0.12s ease;
+
+        &::after {
+            content: 'Drop files to upload';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: vars.$blue-500;
+            color: vars.$white;
+            font-size: 12px;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 5;
+        }
+    }
 }

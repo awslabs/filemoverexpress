@@ -17,6 +17,7 @@ The documentation has been organized into the following pages:
 ### User Guides
 - **[Using the GUI](Using-the-GUI.md)** - Comprehensive GUI usage guide
 - **[Using the CLI](Using-the-CLI.md)** - Command-line interface and scripting
+- **[OIDC / SSO Authentication](OIDC-Authentication.md)** - Sign in with an identity provider for temporary AWS credentials
 - **[Hot Folders](Hot-Folders.md)** - Automated file monitoring and uploads
 - **[Checksums](Checksums.md)** - File integrity verification
 

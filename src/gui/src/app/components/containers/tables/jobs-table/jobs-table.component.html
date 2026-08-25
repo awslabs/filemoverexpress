@@ -9,9 +9,13 @@
                 </mat-select>
             </mat-form-field>
         </div>
+        <button mat-icon-button class="jobs-overflow-btn" [matMenuTriggerFor]="panelMenu"
+                matTooltip="More actions" aria-label="More actions">
+            <mat-icon>more_horiz</mat-icon>
+        </button>
     </div>
     <div class="table-section">
-        <div class="jobs-container">
+        <div class="jobs-container" (contextmenu)="openEmptySpaceMenu($event)">
             <table mat-table [dataSource]="dataSource" matSort>
                 <!-- Direction: filled triangle (▲ upload / ▼ download), coloured per the mockup.
                      Uses Material icons (arrow_drop_up/down) rather than Unicode glyphs so it
@@ -97,7 +101,15 @@
     <div style="visibility: hidden; position: fixed"
          [style.left]="contextMenuPosition.x"
          [style.top]="contextMenuPosition.y"
+         #rowMenuTrigger="matMenuTrigger"
          [matMenuTriggerFor]="contextMenu">
+    </div>
+    <!-- Hidden element positions the global (panel) menu at the cursor for empty-space right-click. -->
+    <div style="visibility: hidden; position: fixed"
+         [style.left]="panelMenuPosition.x"
+         [style.top]="panelMenuPosition.y"
+         #panelMenuTrigger="matMenuTrigger"
+         [matMenuTriggerFor]="panelMenu">
     </div>
 </div>
 
@@ -141,9 +153,14 @@
                 Resubmit
             </button>
         }
-        <button mat-menu-item (click)="clearJobs()">
-            <mat-icon color="warn">check_circle_outline</mat-icon>
-            Clear All Completed Jobs
-        </button>
     </ng-template>
+</mat-menu>
+
+<!-- Global (panel) menu: actions that apply to the whole jobs list, not a single row.
+     Opened from the overflow (…) button in the toolbar and by right-clicking empty space. -->
+<mat-menu #panelMenu="matMenu">
+    <button mat-menu-item (click)="clearJobs()">
+        <mat-icon color="warn">check_circle_outline</mat-icon>
+        Clear All Completed Jobs
+    </button>
 </mat-menu>

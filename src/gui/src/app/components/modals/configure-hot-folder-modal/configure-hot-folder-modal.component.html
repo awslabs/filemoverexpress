@@ -4,7 +4,9 @@
     <a (click)="toggleHint($event, 'hot-folder-settings')">Info</a>
 </header>
 
-<div mat-dialog-content>
+<div mat-dialog-content
+     (fmeEnterSubmit)="save()()"
+     [enterSubmitDisabled]="false">
     <fme-hot-folder-form
             [preFillNewHotFolderData]="data"
             [hotFolders]="hotFolders"

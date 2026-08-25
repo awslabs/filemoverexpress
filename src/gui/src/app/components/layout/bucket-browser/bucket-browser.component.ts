@@ -1,4 +1,4 @@
-import { Component, effect, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, effect, ElementRef, inject, NgZone, OnDestroy, signal, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
@@ -46,8 +46,8 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { TransferProfileState } from '@services/transfer-profile/transfer-profile.interfaces';
 import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Subscription, throwError } from 'rxjs';
-import { catchError, distinctUntilChanged } from 'rxjs/operators';
+import { forkJoin, of, Subscription, throwError } from 'rxjs';
+import { catchError, distinctUntilChanged, map } from 'rxjs/operators';
 import { DAEMON_FILE_BROWSER_ID } from '../daemon-browser/daemon-browser.constants';
 import { EMPTY_FILTER_DATA } from '../file-browser/file-browser.constants';
 import {
@@ -99,6 +99,9 @@ export class BucketBrowserComponent implements OnDestroy {
     private bookmarks = inject(BookmarksService);
     private store = inject<Store<AppState>>(Store);
     private wails = inject(WailsService);
+    private zone = inject(NgZone);
+    /** True while an OS file drag is over the window (macOS); drives the S3 drop-zone highlight. */
+    externalDragActive = signal(false);
     private wailsFileList = signal<Record<string, string> | null>(null);
     private dropResult = signal<FileBrowserDropResult | null>(null);
     /**
@@ -168,7 +171,18 @@ export class BucketBrowserComponent implements OnDestroy {
             }
 
             const wfl = event.data as unknown as WailsFileList;
-            this.wailsFileList.set(wfl.files);
+            this.externalDragActive.set(false);
+            this.handleExternalFilesDropped(wfl.files, wfl.targetId);
+        });
+
+        // macOS drag enter/exit over the window -> toggle the S3 drop-zone highlight so
+        // users discover they can drag files in from Finder. Run in the Angular zone since
+        // the Wails event fires outside it.
+        this.wails.onEvent('file-dragging-entered', () => {
+            this.zone.run(() => this.externalDragActive.set(true));
+        });
+        this.wails.onEvent('file-dragging-exited', () => {
+            this.zone.run(() => this.externalDragActive.set(false));
         });
         this.setContextMenuData();
 
@@ -224,6 +238,34 @@ export class BucketBrowserComponent implements OnDestroy {
                 this.selectedBookmark = bookmark;
             },
         ));
+
+        // When the currently-selected Remote Configuration is edited + saved, re-list it so
+        // a config that now fails actually attempts a connection (its ERROR result then
+        // flips the header pill to Disconnected instead of leaving a stale "Connected").
+        this.subscriptions.push(this.transferProfileService.transferProfileEdited.subscribe(
+            (editedProfile) => {
+                if (editedProfile === this.selectedTransferProfile) {
+                    this.resolveProfileAndLoad(this.selectedTransferProfile);
+                }
+            },
+        ));
+    }
+
+    /**
+     * Connection state shown in the header pill. Reflects S3/profile REACHABILITY (the
+     * result of listing the selected Remote Configuration), not the daemon event stream —
+     * so a config edited to fail flips the pill to Disconnected. The daemon `connectionState`
+     * is still used to gate controls and the "no active session" state.
+     */
+    get s3ConnectionState(): ConnectionState {
+        switch (this.fileBrowserData.state) {
+            case FileBrowserState.LOADED:
+                return ConnectionState.CONNECTED;
+            case FileBrowserState.LOADING:
+                return ConnectionState.CONNECTING;
+            default:
+                return ConnectionState.DISCONNECTED;
+        }
     }
 
     /**
@@ -431,6 +473,64 @@ export class BucketBrowserComponent implements OnDestroy {
                 };
             },
         });
+    }
+
+    /**
+     * Handle an OS file drop delivered by the Wails native runtime. On the Wails macOS
+     * webview the browser DOM `drop` event is intercepted natively and no longer reliably
+     * reaches the file browser, so the old path (which required both the DOM drop AND this
+     * native event) silently did nothing. This event carries the real absolute paths
+     * (basename -> path), so we synthesize the drop result here and target the current S3
+     * directory, making external OS -> S3 uploads work without the DOM drop. Intra-app
+     * drags (local <-> S3) still flow through the DOM drop / dragDropUpload path.
+     */
+    private handleExternalFilesDropped(files: Record<string, string>, targetId: string) {
+        const basenames = Object.keys(files ?? {});
+        if (!basenames.length) {
+            return;
+        }
+        if (!this.selectedTransferProfile) {
+            this.notifications.error(notificationMessages.NO_TRANSFER_PROFILE_SELECTED_ERROR);
+            return;
+        }
+        // Cannot externally drag in files when connected to a remote daemon.
+        if (this.selectedBookmark?.name !== DEFAULT_BOOKMARK_NAME) {
+            this.notifications.error(notificationMessages.REMOTE_DAEMON_EXTERNAL_UPLOAD_ERROR);
+            return;
+        }
+
+        const sources: FileBrowserObject[] = basenames.map((name) => ({
+            name: name,
+            size: 0n,
+            dateModified: new Date(),
+            type: FileBrowserObjectType.UNKNOWN,
+        }));
+        // The join effect maps each source name (basename) to its absolute path via wailsFileList.
+        // Set the data (wailsFileList) BEFORE the gate (dropResult) so the effect never observes
+        // a dropResult with a null wailsFileList, even if these updates are ever separated by an
+        // await/microtask in a future refactor.
+        this.wailsFileList.set(files);
+        this.dropResult.set({
+            fromExternalSource: true,
+            sourceContainerID: null,
+            sources: sources,
+            destinationContainerID: this.fileBrowserID,
+            destination: this.externalDropDestination(targetId),
+            dragOriginSourceName: sources[0].name,
+        });
+    }
+
+    /**
+     * Resolve where an external OS drop should land. When the drop hit a folder row (marked
+     * with a decodable `fbdt:<id>:<path>` drop-target id), upload into that folder; otherwise
+     * fall back to the current directory.
+     */
+    private externalDropDestination(targetId: string): string {
+        const prefix = `fbdt:${this.fileBrowserID}:`;
+        if (targetId && targetId.startsWith(prefix)) {
+            return decodeURIComponent(targetId.slice(prefix.length));
+        }
+        return this.currentDirectory;
     }
 
     /**
@@ -839,7 +939,7 @@ export class BucketBrowserComponent implements OnDestroy {
                 icon: 'edit',
                 iconColor: 'inherit',
                 triggers: new Map<FileBrowserContextMenuTrigger, FileBrowserContextMenuTriggerCondition | null>([
-                    ['file', this.isRemoteRenameDeleteAllowed()], ['folder', this.isRemoteRenameDeleteAllowed()],
+                    ['file', this.isRemoteRenameSingleTarget()], ['folder', this.isRemoteRenameSingleTarget()],
                 ]),
                 action: this.renameS3Path(),
             },
@@ -1076,6 +1176,18 @@ export class BucketBrowserComponent implements OnDestroy {
         };
     }
 
+    /** Rename requires a single target: allowed AND not part of a multi-selection. */
+    isRemoteRenameSingleTarget(): FileBrowserContextMenuTriggerCondition {
+        const base = this.isRemoteRenameDeleteAllowed();
+        return (row) => {
+            if (!base(row)) {
+                return false;
+            }
+            const selected = this.fileBrowser.getSelectedObjects();
+            return selected.length <= 1 || !selected.some((o) => o.name === row.name);
+        };
+    }
+
     private renameS3Path(): FileBrowserContextMenuClickHandler {
         return (_triggerType: FileBrowserContextMenuTrigger | null, triggerObject: FileBrowserObject | null, __currentDirectory: string) => {
             if (!triggerObject) {
@@ -1130,25 +1242,42 @@ export class BucketBrowserComponent implements OnDestroy {
             if (!triggerObject) {
                 return;
             }
-            this.openDeleteS3PathModal(triggerObject.name, triggerObject.type);
+            // If the right-clicked row is part of a multi-selection, act on the whole
+            // selection; otherwise act on just that row.
+            const selected = this.fileBrowser.getSelectedObjects();
+            const targets = selected.length > 1 && selected.some((o) => o.name === triggerObject.name)
+                ? selected
+                : [triggerObject];
+            this.openDeleteS3PathModal(targets);
         };
     }
 
-    private openDeleteS3PathModal(pathToDelete: string, type: FileBrowserObjectType) {
+    private openDeleteS3PathModal(targets: FileBrowserObject[]) {
         const transferProfile = this.selectedTransferProfile;
         if (!transferProfile) {
-            this.notifications.error(`No remote configuration selected, cannot delete ${type === FileBrowserObjectType.FOLDER ? 'S3 prefix' : 'S3 object'}`);
+            this.notifications.error('No remote configuration selected, cannot delete');
+            return;
+        }
+        if (!targets.length) {
             return;
         }
 
-        const pathType: PathType = type === FileBrowserObjectType.FOLDER ? PathType.S3_PREFIX : PathType.S3_OBJECT;
+        // pathType drives the confirmation copy: use prefix wording only when every
+        // selected item is a folder, otherwise default to object wording.
+        const folderCount = targets.filter((t) => t.type === FileBrowserObjectType.FOLDER).length;
+        const pathType: PathType = folderCount === targets.length
+            ? PathType.S3_PREFIX
+            : PathType.S3_OBJECT;
 
         const dialogRef = this.dialog.open<DeletePathModalComponent, DeletePathModalData>(
             DeletePathModalComponent,
             {
                 width: '700px',
                 data: {
-                    pathToDelete: pathToDelete,
+                    pathToDelete: targets[0].name,
+                    pathsToDelete: targets.map((t) => t.name),
+                    folderCount: folderCount,
+                    fileCount: targets.length - folderCount,
                     pathType: pathType,
                     osType: 's3',
                     transferProfile: transferProfile,
@@ -1158,19 +1287,45 @@ export class BucketBrowserComponent implements OnDestroy {
         dialogRef.afterClosed().subscribe(
             (result) => {
                 if (result) {
-                    this.notifications.info(`Deletion in progress for ${pathToDelete}`);
-                    this.fmeClientService.deleteS3Path(pathToDelete, transferProfile, type).subscribe({
-                        next: () => {
-                            this.notifications.success(`Successfully deleted ${pathToDelete}`);
-                            this.refreshFileBrowser(true);
-                        },
-                        error: (error) => {
-                            this.notifications.warning(`Error occurred when deleting ${pathToDelete}: ${error}`);
-                        },
-                    });
+                    this.deleteS3Targets(targets, transferProfile);
                 }
             },
         );
+    }
+
+    /**
+     * Deletes every selected S3 target (one RPC per object/prefix), then reports an
+     * aggregated result and refreshes. Partial failures are surfaced without aborting
+     * the rest of the batch.
+     */
+    private deleteS3Targets(targets: FileBrowserObject[], transferProfile: string) {
+        const label = targets.length === 1 ? targets[0].name : `${targets.length} items`;
+        this.notifications.info(`Deletion in progress for ${label}`);
+
+        forkJoin(
+            targets.map((t) =>
+                this.fmeClientService.deleteS3Path(t.name, transferProfile, t.type).pipe(
+                    map(() => ({ name: t.name, ok: true })),
+                    catchError((error) => of({ name: t.name, ok: false, error })),
+                ),
+            ),
+        ).subscribe((results) => {
+            const failed = results.filter((r) => !r.ok);
+            if (failed.length === 0) {
+                this.notifications.success(targets.length === 1
+                    ? `Successfully deleted ${targets[0].name}`
+                    : `Successfully deleted ${targets.length} items`);
+            } else if (failed.length < results.length) {
+                this.notifications.warning(
+                    `Deleted ${results.length - failed.length} of ${results.length} items; ${failed.length} failed`,
+                );
+            } else {
+                this.notifications.warning(targets.length === 1
+                    ? `Error occurred when deleting ${targets[0].name}`
+                    : `Failed to delete ${failed.length} items`);
+            }
+            this.refreshFileBrowser(true);
+        });
     }
 
     private resolveProfileAndLoad(profileName: string) {

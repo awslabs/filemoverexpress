@@ -7,6 +7,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { Bookmark } from '@services/bookmarks/bookmarks.classes';
 import { favoritePathExistsValidator } from '@app/classes/form-validators';
 import { favoritePathFormMessages } from '@app/constants/common.constants';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 
 @Component({
     selector: 'fme-favorite-path-modal',
@@ -22,6 +23,7 @@ import { favoritePathFormMessages } from '@app/constants/common.constants';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class FavoritePathModalComponent {

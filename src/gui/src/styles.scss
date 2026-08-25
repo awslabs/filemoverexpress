@@ -205,27 +205,18 @@ mat-card-title {
     font-size: 16px !important;
 }
 
-// Info hint bottom-sheet. panelClass lands on the overlay pane; the visible box is the
-// inner .mat-bottom-sheet-container. Style the container as the single card and keep the
-// pane invisible so it doesn't read as a box-in-a-box. (Selectors cover the class landing
-// on either the pane or the container.)
-.bottom-sheet-hints:not(.mat-bottom-sheet-container) {
-    max-width: 800px !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-}
-
-.bottom-sheet-hints .mat-bottom-sheet-container,
-.mat-bottom-sheet-container.bottom-sheet-hints {
-    max-width: 800px !important;
-    max-height: 50vh;
-    background-color: variables.$background-browser-panel !important; // #161d26
-    border: 1px solid #424650 !important;
-    border-top-left-radius: 12px !important;
-    border-top-right-radius: 12px !important;
-    padding: 8px 24px !important;
+// Info hint popover (anchored to the "Info" link via HintPopoverDirective + CDK overlay).
+// panelClass 'hint-popover' lands on the overlay pane; it is the single visible card.
+.hint-popover {
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    max-height: 60vh;
+    overflow-y: auto;
+    background-color: variables.$background-browser-panel; // #161d26
+    border: 1px solid #424650;
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    padding: 4px 18px 14px;
 }
 
 /* TODO(mdc-migration): The following rule targets internal classes of chips that may no longer apply for the MDC version. */

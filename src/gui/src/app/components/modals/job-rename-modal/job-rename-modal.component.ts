@@ -3,6 +3,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
+import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 
 @Component({
@@ -19,6 +20,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         MatError,
         MatDialogActions,
         ButtonComponent,
+        EnterSubmitDirective,
     ],
 })
 export class JobRenameModalComponent {

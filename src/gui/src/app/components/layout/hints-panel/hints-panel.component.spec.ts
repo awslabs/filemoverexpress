@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HintsPanelComponent } from './hints-panel.component';
-import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetModule, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { HINT_POPOVER_MODE, HintsPanelComponent } from './hints-panel.component';
 
 describe('HintsPanelComponent', () => {
     let component: HintsPanelComponent;
@@ -10,15 +9,12 @@ describe('HintsPanelComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
-                MatBottomSheetModule,
+                HintsPanelComponent,
             ],
             providers: [
                 {
-                    provide: MAT_BOTTOM_SHEET_DATA,
-                    useValue: {},
-                }, {
-                    provide: MatBottomSheetRef,
-                    useValue: {},
+                    provide: HINT_POPOVER_MODE,
+                    useValue: 'config',
                 },
             ],
         })

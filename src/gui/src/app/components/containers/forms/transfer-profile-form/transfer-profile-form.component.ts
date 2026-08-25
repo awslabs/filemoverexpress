@@ -3,7 +3,6 @@ import { NgClass } from '@angular/common';
 import { AfterContentInit, AfterViewInit, Component, ElementRef, inject, input, OnDestroy, OnInit, output, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatChipGrid, MatChipInput, MatChipInputEvent, MatChipRow } from '@angular/material/chips';
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
@@ -21,7 +20,7 @@ import {
     threadsMinValidator,
     TransferProfile,
 } from '@app/classes';
-import { HintsPanelComponent } from '@app/components/layout/hints-panel/hints-panel.component';
+import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { formErrorMessages } from '@app/constants/common.constants';
 import { ObjectSortPipe } from '@app/pipes/object-sort.pipe';
 import { isPackagedApp } from '@app/utils/utils';
@@ -63,7 +62,7 @@ import { WailsService } from '@services/wails/wails.service';
 export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterViewInit, AfterContentInit {
     private regionsService = inject(RegionsService);
     private fmeClientService = inject(FmeClientService);
-    private bottomSheet = inject(MatBottomSheet);
+    private hintPopover = inject(HintPopoverService);
     private wails = inject(WailsService);
 
     tutorialMode = input<boolean>(false);
@@ -376,10 +375,7 @@ export class TransferProfileFormComponent implements OnInit, OnDestroy, AfterVie
         event.stopPropagation();
         event.preventDefault();
 
-        this.bottomSheet.open(HintsPanelComponent, {
-            data: message,
-            panelClass: 'bottom-sheet-hints',
-        });
+        this.hintPopover.open(event.currentTarget as HTMLElement, message);
     }
 
     private processMetadata(metadata: MetadataEvent) {
