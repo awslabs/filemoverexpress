@@ -21,7 +21,6 @@ const (
 	SessionStatePending
 	SessionStateAuthenticated
 
-	defaultSessionDuration  = 3600
 	credentialRefreshWindow = 5 * time.Minute
 	maxSessionNameLength    = 64
 	dirPermissions          = 0o700

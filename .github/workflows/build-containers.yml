@@ -1,13 +1,17 @@
 name: Build CI Containers
 
-on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/docker/**'
-      - 'package-lock.json'
-      - 'src/*/package.json'
-  workflow_dispatch:
+# Disabled: container builds are not currently used and the Dockerfiles
+# reference stale workspace paths that cause failures. Re-enable when the
+# Dockerfiles are updated to match the current monorepo layout.
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - '.github/docker/**'
+#       - 'package-lock.json'
+#       - 'src/*/package.json'
+#   workflow_dispatch:
+on: workflow_dispatch
 
 permissions:
   contents: read

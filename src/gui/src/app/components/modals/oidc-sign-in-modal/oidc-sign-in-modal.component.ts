@@ -11,7 +11,8 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { ButtonComponent } from '@app/components/primitives/buttons/button/button.component';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { WailsService } from '@services/wails/wails.service';
-import { Subscription, timer } from 'rxjs';
+import { Subject, Subscription, timer } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { OidcSignInModalData, OidcSignInModalResult } from './oidc-sign-in-modal.interfaces';
 
 /**
@@ -43,14 +44,15 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
     error = '';
     private pollSubscription: Subscription | null = null;
     private startTime = 0;
-    private alive = true;
+    private readonly destroy$ = new Subject<void>();
 
     ngOnInit() {
         this.beginSignIn();
     }
 
     ngOnDestroy() {
-        this.alive = false;
+        this.destroy$.next();
+        this.destroy$.complete();
         this.stopPolling();
     }
 
@@ -61,7 +63,9 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
     beginSignIn() {
         this.error = '';
         this.pending = true;
-        this.fmeClient.initiateOIDCLogin(this.data.profileName).subscribe({
+        this.fmeClient.initiateOIDCLogin(this.data.profileName).pipe(
+            takeUntil(this.destroy$),
+        ).subscribe({
             next: (res) => {
                 if (res.authorizationUrl) {
                     this.openAuthUrl(res.authorizationUrl);
@@ -119,19 +123,15 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
         };
 
         const poll = () => {
-            if (!this.alive) {
-                return;
-            }
             if (Date.now() - this.startTime > maxDuration) {
                 this.pending = false;
                 this.error = 'Sign-in timed out after 5 minutes. Please try again.';
                 return;
             }
-            this.fmeClient.getOIDCStatus(this.data.profileName).subscribe({
+            this.fmeClient.getOIDCStatus(this.data.profileName).pipe(
+                takeUntil(this.destroy$),
+            ).subscribe({
                 next: (res) => {
-                    if (!this.alive) {
-                        return;
-                    }
                     if (res.error) {
                         this.pending = false;
                         this.error = res.error;
@@ -142,18 +142,21 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
                         this.dialogRef.close('authenticated');
                         return;
                     }
-                    this.pollSubscription = timer(nextInterval()).subscribe(() => poll());
+                    this.pollSubscription = timer(nextInterval()).pipe(
+                        takeUntil(this.destroy$),
+                    ).subscribe(() => poll());
                 },
                 error: () => {
-                    if (!this.alive) {
-                        return;
-                    }
-                    this.pollSubscription = timer(nextInterval()).subscribe(() => poll());
+                    this.pollSubscription = timer(nextInterval()).pipe(
+                        takeUntil(this.destroy$),
+                    ).subscribe(() => poll());
                 },
             });
         };
 
-        this.pollSubscription = timer(2000).subscribe(() => poll());
+        this.pollSubscription = timer(2000).pipe(
+            takeUntil(this.destroy$),
+        ).subscribe(() => poll());
     }
 
     private stopPolling() {

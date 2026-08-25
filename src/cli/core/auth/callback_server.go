@@ -14,7 +14,12 @@ import (
 	"time"
 )
 
-const callbackShutdownTimeout = 5 * time.Second
+const (
+	callbackShutdownTimeout = 5 * time.Second
+	callbackReadTimeout     = 30 * time.Second
+	callbackWriteTimeout    = 30 * time.Second
+	callbackIdleTimeout     = 60 * time.Second
+)
 
 var (
 	//go:embed templates/*.html
@@ -74,8 +79,11 @@ func NewCallbackServer(ctx context.Context, state string) (*CallbackServer, erro
 
 		cs.port = port
 		cs.server = &http.Server{
-			Handler: mux,
-			Addr:    addr,
+			Handler:      mux,
+			Addr:         addr,
+			ReadTimeout:  callbackReadTimeout,
+			WriteTimeout: callbackWriteTimeout,
+			IdleTimeout:  callbackIdleTimeout,
 		}
 
 		go func() {

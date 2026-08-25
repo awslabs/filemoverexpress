@@ -17,6 +17,13 @@ import (
 )
 
 func TestChecksumManager_isChecksumCachedValid(t *testing.T) {
+	// Use an isolated temp directory for the BoltDB database so these tests don't conflict
+	// with a running daemon holding the lock on the real checksum-cache.db.
+	tmpDir := t.TempDir()
+	t.Setenv("FME_CONFIG_DIR", tmpDir)
+	resetDatabaseSingleton()
+	t.Cleanup(resetDatabaseSingleton)
+
 	type (
 		args struct {
 			file      jobmanagertypes.LocalFile

@@ -20,6 +20,19 @@ var sep = string(filepath.Separator)
 
 var ld = local_discovery.NewLocalDiscovery("", "random-id", "")
 
+// resetDatabaseSingleton closes the package-level BoltDB singleton and marks it
+// uninitialized so the next New() call re-opens it with the current FME_CONFIG_DIR.
+// It also resets the ChecksumManager singleton so it picks up the new database instance.
+func resetDatabaseSingleton() {
+	// Reset ChecksumManager singleton so it doesn't hold a stale DB reference.
+	instance = nil
+
+	dbInstance, err := databasetypes.New()
+	if err == nil && dbInstance != nil {
+		dbInstance.Close()
+	}
+}
+
 // computeExpectedChecksums reads each file from disk and computes its MD5 at test time,
 // avoiding hardcoded checksums that break when Git normalizes line endings.
 func computeExpectedChecksums(dir string) (map[string]string, error) {
@@ -43,6 +56,14 @@ func computeExpectedChecksums(dir string) (map[string]string, error) {
 }
 
 func TestChecksumManager_ChecksumTasks(t *testing.T) {
+	// Use an isolated temp directory for the BoltDB database so these tests don't conflict
+	// with a running daemon holding the lock on the real checksum-cache.db.
+	tmpDir := t.TempDir()
+	t.Setenv("FME_CONFIG_DIR", tmpDir)
+	// Reset the database singleton so it re-initializes with the new FME_CONFIG_DIR.
+	resetDatabaseSingleton()
+	t.Cleanup(resetDatabaseSingleton)
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Errorf("Failed getting current dir: %s", err)

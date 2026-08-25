@@ -2,7 +2,7 @@ package transfer_api
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"sync"
 
@@ -30,7 +30,7 @@ var (
 	// oidcProvider is the package-level OIDC provider instance, set during daemon initialization.
 	oidcProvider *auth.OIDCProvider
 
-	errOIDCProviderNotInitialized = fmt.Errorf("OIDC provider not initialized")
+	errOIDCProviderNotInitialized = errors.New("OIDC provider not initialized")
 )
 
 type (
