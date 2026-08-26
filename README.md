@@ -6,6 +6,8 @@
 
 File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Unlike traditional transfer clients that tie transfers to your desktop session, File Mover Express runs a daemon-based transfer engine that can live on any machine — your workstation, a server in the data center, or an EC2 instance — while you control it from the GUI or CLI over an encrypted connection. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
 
+![File Mover Express — transferring camera media directly to Amazon S3](docs/screenshots/01-active-transfer.png)
+
 ## Key Features
 
 - **High-Performance Transfers**: Auto-tuned parallel processing using native S3 APIs — your files go directly to S3 with no intermediary servers
@@ -19,6 +21,21 @@ File Mover Express is a high-performance file transfer application designed to a
 - **Checksumming & MHL Support**: Optional file integrity verification, with XXH3 being the fastest option. XXHash, XXHash64 and MD5 are available for workflows that require them. Reads MHL files for camera-to-cloud verification workflows.
 - **Cross-Platform**: Works on macOS, Windows, and Linux
 - **Multi-Region**: Works with any AWS region where S3 is available
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/01-active-transfer.png" alt="Live transfer of camera media to Amazon S3"><br><sub><b>Live transfer</b> — auto-tuned parallel upload of a camera offload, with a running throughput/ETA summary.</sub></td>
+    <td width="50%"><img src="docs/screenshots/02-job-details.png" alt="Job details with MHL and XXH3 verification"><br><sub><b>Job details</b> — per-file progress and logs; a camera MHL is honored and every file is XXH3-verified.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/03-jobs-completed.png" alt="Completed transfer jobs in the transfer queue"><br><sub><b>Transfer queue</b> — completed uploads and downloads, with a hot folder auto-ingesting new media.</sub></td>
+    <td width="50%"><img src="docs/screenshots/04-browse-vfx-plates.png" alt="Browsing a VFX plate sequence in Amazon S3"><br><sub><b>Browse S3</b> — dual-pane local ↔ S3 browser navigating a VFX plate (EXR) sequence.</sub></td>
+  </tr>
+</table>
+
+> Screens show an illustrative media-and-entertainment workflow with sample data.
 
 ## Quick Start
 
