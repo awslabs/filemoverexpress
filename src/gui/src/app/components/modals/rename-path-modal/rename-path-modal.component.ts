@@ -1,5 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -20,6 +20,7 @@ import { NotificationsService } from '@services/notifications/notifications.serv
     selector: 'fme-rename-path-modal',
     templateUrl: './rename-path-modal.component.html',
     styleUrls: ['./rename-path-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         TitleCasePipe,

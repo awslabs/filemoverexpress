@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIcon } from '@angular/material/icon';
 
@@ -7,6 +7,7 @@ import { MatIcon } from '@angular/material/icon';
     selector: 'fme-text-input',
     templateUrl: './text-input.component.html',
     styleUrls: ['./text-input.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         NgClass,
         MatIcon,

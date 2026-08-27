@@ -1,5 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -17,6 +17,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
     selector: 'fme-delete-path-modal',
     templateUrl: './delete-path-modal.component.html',
     styleUrls: ['./delete-path-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         TitleCasePipe,

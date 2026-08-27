@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { MatBadge } from '@angular/material/badge';
 import { ThemePalette } from '@angular/material/core';
 import { MatIcon } from '@angular/material/icon';
@@ -14,6 +14,7 @@ import { ButtonType } from '@app/components/primitives/buttons/button/button.int
         MatTooltip,
         MatIcon,
     ],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: true,
 })
 

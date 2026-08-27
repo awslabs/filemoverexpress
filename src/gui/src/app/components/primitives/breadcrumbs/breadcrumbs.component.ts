@@ -1,4 +1,4 @@
-import { Component, computed, input, model, output } from '@angular/core';
+import { Component, computed, input, model, output, ChangeDetectionStrategy } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -12,6 +12,7 @@ const ellipseUpperBound = 5;
     selector: 'fme-breadcrumbs',
     templateUrl: './breadcrumbs.component.html',
     styleUrls: ['./breadcrumbs.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [MatIcon,
         MatTooltip,
         MatMenu,

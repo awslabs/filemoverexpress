@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -25,6 +25,7 @@ import { OidcSignInModalData, OidcSignInModalResult } from './oidc-sign-in-modal
     selector: 'fme-oidc-sign-in-modal',
     templateUrl: './oidc-sign-in-modal.component.html',
     styleUrls: ['./oidc-sign-in-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

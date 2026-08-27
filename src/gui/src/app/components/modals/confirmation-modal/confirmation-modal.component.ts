@@ -1,4 +1,4 @@
-import { Component, HostListener, inject } from '@angular/core';
+import { Component, HostListener, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
@@ -8,6 +8,7 @@ import { ConfirmationModalData, ConfirmationModalDataDefaults } from './confirma
     selector: 'fme-confirmation-modal',
     templateUrl: './confirmation-modal.component.html',
     styleUrls: ['./confirmation-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

@@ -1,5 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, EventEmitter, inject, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, inject, OnDestroy, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { TransferProfile } from '@app/classes/config';
@@ -14,6 +14,7 @@ import { TransferProfileEditorModalData } from './transfer-profile-editor-modal.
     selector: 'fme-transfer-profile-editor-modal',
     templateUrl: './transfer-profile-editor-modal.component.html',
     styleUrls: ['./transfer-profile-editor-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         TitleCasePipe,

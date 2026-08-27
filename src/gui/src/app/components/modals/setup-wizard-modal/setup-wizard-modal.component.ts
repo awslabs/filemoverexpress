@@ -1,5 +1,5 @@
 import { KeyValuePipe, NgClass } from '@angular/common';
-import { AfterViewInit, Component, inject, viewChild } from '@angular/core';
+import { AfterViewInit, Component, inject, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup, FormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -28,6 +28,7 @@ import { WailsService } from '@services/wails/wails.service';
     selector: 'fme-setup-wizard-modal',
     templateUrl: './setup-wizard-modal.component.html',
     styleUrls: ['./setup-wizard-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         TransferProfileFormComponent,
         MatStepper,

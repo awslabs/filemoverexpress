@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
@@ -10,6 +10,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
     selector: 'fme-job-rename-modal',
     templateUrl: './job-rename-modal.component.html',
     styleUrls: ['./job-rename-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

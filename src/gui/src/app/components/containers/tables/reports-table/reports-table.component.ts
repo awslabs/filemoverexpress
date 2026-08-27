@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MatFormField, MatInput } from '@angular/material/input';
 import { MatSort, MatSortHeader } from '@angular/material/sort';
 import {
@@ -33,6 +33,7 @@ const OUTPUT_FILE = 'outputFile';
     selector: 'fme-reports-table',
     templateUrl: './reports-table.component.html',
     styleUrls: ['./reports-table.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatFormField,
         MatInput,

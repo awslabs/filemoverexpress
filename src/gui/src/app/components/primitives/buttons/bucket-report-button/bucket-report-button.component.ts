@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, inject, input, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BucketReportModalComponent } from '@app/components/modals/bucket-report-modal/bucket-report-modal.component';
 import { ButtonComponent } from '@app/components/primitives/buttons/button/button.component';
@@ -10,6 +10,7 @@ import { ButtonComponent } from '@app/components/primitives/buttons/button/butto
     imports: [
         ButtonComponent,
     ],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: true,
 })
 export class BucketReportButtonComponent {

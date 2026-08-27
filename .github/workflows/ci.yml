@@ -77,4 +77,4 @@ jobs:
         run: mkdir -p src/wails/frontend/dist/browser && touch src/wails/frontend/dist/browser/.gitkeep
         shell: bash
       - name: Run Wails tests
-        run: task test:wails
+        run: task wails:test

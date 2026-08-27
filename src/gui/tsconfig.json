@@ -47,6 +47,7 @@
                 "src/gen/wails/frontend/bindings/github.com/wailsapp/wails/v3/*"
             ]
         },
+        "ignoreDeprecations": "6.0",
         "outDir": "./dist/out-tsc",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,

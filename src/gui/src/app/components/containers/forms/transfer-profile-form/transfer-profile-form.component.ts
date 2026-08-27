@@ -1,6 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { NgClass } from '@angular/common';
-import { AfterContentInit, AfterViewInit, Component, ElementRef, inject, input, OnDestroy, OnInit, output, ViewChild } from '@angular/core';
+import { AfterContentInit, AfterViewInit, Component, ElementRef, inject, input, OnDestroy, OnInit, output, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatChipGrid, MatChipInput, MatChipInputEvent, MatChipRow } from '@angular/material/chips';
@@ -36,6 +36,7 @@ import { WailsService } from '@services/wails/wails.service';
     selector: 'fme-transfer-profile-form',
     templateUrl: './transfer-profile-form.component.html',
     styleUrls: ['./transfer-profile-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         ReactiveFormsModule,
         MatFormField,

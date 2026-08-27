@@ -1,5 +1,5 @@
 import { DatePipe, TitleCasePipe } from '@angular/common';
-import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatSort, MatSortHeader } from '@angular/material/sort';
 import {
@@ -26,6 +26,7 @@ import { FTNotification } from '@state/models/notifications.model';
     selector: 'fme-notification-history-modal',
     templateUrl: './notification-history-modal.component.html',
     styleUrl: './notification-history-modal.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

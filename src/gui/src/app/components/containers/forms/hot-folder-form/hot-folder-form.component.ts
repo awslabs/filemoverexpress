@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, OnDestroy, output, viewChildren } from '@angular/core';
+import { Component, computed, inject, input, OnDestroy, output, viewChildren, ChangeDetectionStrategy } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
     MatAccordion,
@@ -33,6 +33,7 @@ import { PanelComponent } from '@app/components/layout/panel/panel.component';
     selector: 'fme-hot-folder-form',
     templateUrl: './hot-folder-form.component.html',
     styleUrls: ['./hot-folder-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         ReactiveFormsModule,
         MatAccordion,

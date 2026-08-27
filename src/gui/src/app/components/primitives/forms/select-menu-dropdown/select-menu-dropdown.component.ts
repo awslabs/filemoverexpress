@@ -1,5 +1,5 @@
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -10,6 +10,7 @@ import { ActionIcon, DropdownIcon, DropdownItem } from './select-menu-dropdown.i
     selector: 'fme-select-menu-dropdown',
     templateUrl: './select-menu-dropdown.component.html',
     styleUrls: ['./select-menu-dropdown.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         NgClass,
         MatMenuTrigger,

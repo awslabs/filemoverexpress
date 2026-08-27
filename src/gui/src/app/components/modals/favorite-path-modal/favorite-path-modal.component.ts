@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Output, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
@@ -13,6 +13,7 @@ import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
     selector: 'fme-favorite-path-modal',
     templateUrl: './favorite-path-modal.component.html',
     styleUrls: ['./favorite-path-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

@@ -1,4 +1,4 @@
-import { Component, inject, input, OnInit, output } from '@angular/core';
+import { Component, inject, input, OnInit, output, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonComponent } from '@app/components/primitives/buttons/button/button.component';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 
@@ -13,6 +13,7 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
     selector: 'fme-oidc-auth-status',
     templateUrl: './oidc-auth-status.component.html',
     styleUrls: ['./oidc-auth-status.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         ButtonComponent,
     ],

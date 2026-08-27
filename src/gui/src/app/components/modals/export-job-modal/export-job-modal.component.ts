@@ -1,5 +1,5 @@
 import { KeyValuePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatFormField, MatLabel } from '@angular/material/input';
@@ -11,6 +11,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
     selector: 'fme-export-job-modal',
     templateUrl: './export-job-modal.component.html',
     styleUrls: ['./export-job-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,
