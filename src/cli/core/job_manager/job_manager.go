@@ -443,7 +443,11 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	}
 
 	if !job.Force() {
-		filteredTasks = filterTasks(filterList, filteredTasks)
+		// The object-already-exists filter issues a HeadObject per file. Run it
+		// concurrently rather than one-at-a-time: the serial pass was the dominant
+		// bottleneck on many-file uploads (~N sequential round-trips before any
+		// transfer started). Concurrency is bounded by maxActiveTransfers.
+		filteredTasks = filterTasksConcurrent(filterList, filteredTasks, int(cfg.General.MaxActiveTransfers))
 	}
 	//endregion
 
@@ -643,6 +647,52 @@ func filterTasks(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.
 			}
 		}
 		if !shouldExclude {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
+	return filteredTasks
+}
+
+// filterTasksConcurrent is an order-preserving, bounded-concurrency variant of
+// filterTasks for NETWORK-BOUND filters (notably object-already-exists, which
+// issues a HeadObject per file). Running that check serially made ~N sequential
+// round-trips before any upload began, dominating many-file wall time. Fan-out
+// is capped at `concurrency`; input order is preserved so downstream transfer
+// priority is unchanged.
+func filterTasksConcurrent(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.Task, concurrency int) []*jobmanagertypes.Task {
+	if concurrency < 1 {
+		concurrency = 1
+	}
+	keep := make([]bool, len(tasks))
+	sem := make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
+	for i := range tasks {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(idx int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			task := tasks[idx]
+			shouldExclude := false
+			for _, filter := range filterList {
+				excluded, err := filter.IsFiltered(task)
+				if err != nil {
+					events.Events.Warn("Error running filter: %s", err)
+					continue
+				}
+				if excluded {
+					task.SetStatus(jobmanagertypes.TaskStatusSkipped)
+					shouldExclude = true
+					break
+				}
+			}
+			keep[idx] = !shouldExclude
+		}(i)
+	}
+	wg.Wait()
+	filteredTasks := make([]*jobmanagertypes.Task, 0, len(tasks))
+	for i, task := range tasks {
+		if keep[i] {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
