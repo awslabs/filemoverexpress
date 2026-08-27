@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { TypeSafeMatCellDefDirective } from './type-safe-mat-cell-def.directive';
@@ -20,6 +20,7 @@ interface TestRow {
             <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
     `,
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [MatTableModule, TypeSafeMatCellDefDirective],
 })
 class HostComponent {

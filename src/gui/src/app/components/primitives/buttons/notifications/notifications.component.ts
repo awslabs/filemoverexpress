@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -13,6 +13,7 @@ import { Observable } from 'rxjs';
     selector: 'fme-notifications',
     templateUrl: './notifications.component.html',
     styleUrls: ['./notifications.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatIconButton,
         MatIcon,

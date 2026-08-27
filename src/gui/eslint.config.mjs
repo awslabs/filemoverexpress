@@ -2,9 +2,7 @@
 import tsEslint from 'typescript-eslint';
 import eslint from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
-import angularEslint from '@angular-eslint/eslint-plugin';
-import angularTemplateEslint from '@angular-eslint/eslint-plugin-template';
-import angularTemplateParser from '@angular-eslint/template-parser';
+import angular from 'angular-eslint';
 
 export default tsEslint.config(
     // Global ignores
@@ -14,23 +12,25 @@ export default tsEslint.config(
     // TypeScript files configuration
     {
         files: ['**/*.ts'],
-        extends: [eslint.configs.recommended, ...tsEslint.configs.recommended, ...tsEslint.configs.stylistic],
-        ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.angular/**', 'src/gen/**'],
-        plugins: {
-            '@angular-eslint': angularEslint, '@stylistic': stylistic,
-        },
-        processor: angularTemplateEslint.processors['extract-inline-html'],
+        extends: [
+            eslint.configs.recommended,
+            ...tsEslint.configs.recommended,
+            ...tsEslint.configs.stylistic,
+            ...angular.configs.tsRecommended,
+        ],
+        processor: angular.processInlineTemplates,
         languageOptions: {
             parserOptions: {
                 project: ['tsconfig.json'],
             },
         },
+        plugins: {
+            '@stylistic': stylistic,
+        },
         rules: {
-            // Angular recommended rules
-            ...angularEslint.configs.recommended.rules,
-
             // Override certain Angular rules
             '@angular-eslint/prefer-standalone': 'off',
+            '@angular-eslint/prefer-on-push-component-change-detection': 'off',
 
             // Formatting rules (using @stylistic plugin)
             '@stylistic/indent': ['error', 4],
@@ -76,15 +76,11 @@ export default tsEslint.config(
     {
         // HTML template files configuration
         files: ['**/*.html'],
-        plugins: {
-            '@angular-eslint/template': angularTemplateEslint,
-        },
-        languageOptions: {
-            parser: angularTemplateParser,
-        },
+        extends: [
+            ...angular.configs.templateRecommended,
+            ...angular.configs.templateAccessibility,
+        ],
         rules: {
-            ...angularTemplateEslint.configs.recommended.rules, ...angularTemplateEslint.configs.accessibility.rules,
-
             // Disable built-in angular lint checks until we can implement a long term solution
             '@angular-eslint/template/click-events-have-key-events': 'off',
             '@angular-eslint/template/interactive-supports-focus': 'off',

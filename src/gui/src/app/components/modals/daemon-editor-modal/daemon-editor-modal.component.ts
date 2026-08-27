@@ -1,5 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -19,6 +19,7 @@ import { WailsService } from '@services/wails/wails.service';
     selector: 'fme-daemon-editor',
     templateUrl: './daemon-editor-modal.component.html',
     styleUrls: ['./daemon-editor-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         TitleCasePipe,

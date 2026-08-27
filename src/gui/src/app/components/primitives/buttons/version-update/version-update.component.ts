@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy } from '@angular/core';
+import { Component, inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -20,6 +20,7 @@ import { STORAGE_SERVICE_ERROR } from './version-update.constants';
     selector: 'fme-version-update',
     templateUrl: './version-update.component.html',
     styleUrls: ['./version-update.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatIconButton,
         MatIcon,

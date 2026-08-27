@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTab, MatTabGroup } from '@angular/material/tabs';
 import { Store } from '@ngrx/store';
@@ -16,6 +16,7 @@ import { formatBytes } from '@app/utils/utils';
     selector: 'fme-table-group',
     templateUrl: './table-group.component.html',
     styleUrls: ['./table-group.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatTabGroup,
         MatTab,

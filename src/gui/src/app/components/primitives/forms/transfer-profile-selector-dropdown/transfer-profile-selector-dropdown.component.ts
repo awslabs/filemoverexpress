@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { SelectMenuDropdownComponent } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.component';
 import { ADD_CIRCLE_ICON, EDIT_ICON, TRASH_ICON } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.constants';
 import { ActionIcon, DropdownItem } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.interfaces';
@@ -10,6 +10,7 @@ import { CLOUD_ICON, PLACEHOLDER_TEXT } from './transfer-profile-selector-dropdo
     selector: 'fme-transfer-profile-selector-dropdown',
     templateUrl: './transfer-profile-selector-dropdown.component.html',
     styleUrls: ['./transfer-profile-selector-dropdown.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [SelectMenuDropdownComponent],
 })
 export class TransferProfileSelectorDropdownComponent {

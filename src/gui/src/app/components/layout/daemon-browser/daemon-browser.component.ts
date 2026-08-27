@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, OnDestroy, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
 import { FileBrowserComponent } from '@app/components/layout/file-browser/file-browser.component';
@@ -74,6 +74,7 @@ import { WailsService } from '@services/wails/wails.service';
     selector: 'fme-daemon-browser',
     templateUrl: './daemon-browser.component.html',
     styleUrls: ['./daemon-browser.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         TextInputComponent,
         DaemonSelectorDropdownComponent,

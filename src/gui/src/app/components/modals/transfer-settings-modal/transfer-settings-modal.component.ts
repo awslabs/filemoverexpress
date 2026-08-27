@@ -1,6 +1,6 @@
 import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { NgTemplateOutlet, TitleCasePipe } from '@angular/common';
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -22,6 +22,7 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
     selector: 'fme-transfer-settings-modal',
     templateUrl: './transfer-settings-modal.component.html',
     styleUrls: ['./transfer-settings-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         TitleCasePipe,

@@ -12,6 +12,7 @@ import {
     Output,
     SimpleChanges,
     ViewChild,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { MatDivider } from '@angular/material/list';
@@ -84,6 +85,7 @@ import {
     selector: 'fme-file-browser',
     templateUrl: './file-browser.component.html',
     styleUrls: ['./file-browser.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatTable,
         MatSort,

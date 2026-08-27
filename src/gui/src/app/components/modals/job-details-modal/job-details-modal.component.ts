@@ -1,5 +1,5 @@
 import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
-import { AfterViewInit, Component, inject, OnDestroy, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, inject, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
@@ -60,6 +60,7 @@ const SKIPPED_STATES = [TaskStatus.Skipped, TaskStatus.Cancelled];
     selector: 'fme-job-details-modal',
     templateUrl: './job-details-modal.component.html',
     styleUrls: ['./job-details-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatIconButton,

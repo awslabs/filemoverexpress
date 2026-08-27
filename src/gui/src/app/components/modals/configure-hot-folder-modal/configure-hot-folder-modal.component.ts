@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, inject, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FormArray, FormGroup } from '@angular/forms';
 import {
     MAT_DIALOG_DATA,
@@ -22,6 +22,7 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
     selector: 'fme-configure-hot-folder-modal',
     templateUrl: './configure-hot-folder-modal.component.html',
     styleUrls: ['./configure-hot-folder-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

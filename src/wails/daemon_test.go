@@ -16,11 +16,19 @@ import (
 // process with the expected arguments and FME_GUI_DAEMON=true environment variable.
 // Requirements: 3.1
 func TestStartSpawnsProcessWithCorrectArgsAndEnv(t *testing.T) {
-	// Use a binary that exits quickly. On Windows use "cmd /c exit 0",
-	// on Unix use "true" or the Go binary itself.
+	// Isolate HOME/USERPROFILE so CheckExisting cannot find a real PID file.
+	tmpDir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", tmpDir)
+	} else {
+		t.Setenv("HOME", tmpDir)
+	}
+
+	// Use a binary that exits quickly. On Windows use "hostname" (prints and
+	// exits 0 with no args), on Unix use "true".
 	var binaryPath string
 	if runtime.GOOS == "windows" {
-		binaryPath = "cmd"
+		binaryPath = "hostname"
 	} else {
 		binaryPath = "true"
 	}
@@ -32,8 +40,13 @@ func TestStartSpawnsProcessWithCorrectArgsAndEnv(t *testing.T) {
 	err := dm.Start()
 	require.NoError(t, err, "Start() should not return an error")
 
+	// Check running state immediately after Start() returns — before monitorExit
+	// has a chance to clear the process reference.
 	assert.True(t, dm.IsRunning(), "daemon should be marked as running after Start()")
+
+	dm.mu.Lock()
 	assert.NotNil(t, dm.process, "process should be set after Start()")
+	dm.mu.Unlock()
 
 	// Wait for the process to exit naturally
 	time.Sleep(500 * time.Millisecond)
@@ -262,10 +275,20 @@ func TestCheckExistingWithDeadProcess(t *testing.T) {
 // a non-zero exit code, the running state is reset to false.
 // Requirements: 3.4, 3.5
 func TestStateResetOnProcessExit(t *testing.T) {
-	// Spawn a process that exits with a non-zero exit code
+	// Isolate HOME/USERPROFILE so CheckExisting cannot find a real PID file.
+	tmpDir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", tmpDir)
+	} else {
+		t.Setenv("HOME", tmpDir)
+	}
+
+	// Spawn a process that exits quickly. On Windows "hostname" exits 0
+	// immediately (cmd without args hangs waiting for input); on Unix "false"
+	// exits 1.
 	var binaryPath string
 	if runtime.GOOS == "windows" {
-		binaryPath = "cmd"
+		binaryPath = "hostname"
 	} else {
 		binaryPath = "false"
 	}
@@ -293,6 +316,14 @@ func TestStateResetOnProcessExit(t *testing.T) {
 // the binary path is invalid/nonexistent.
 // Requirements: 3.1
 func TestStartErrorWithInvalidBinary(t *testing.T) {
+	// Isolate HOME/USERPROFILE so CheckExisting cannot find a real PID file.
+	tmpDir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", tmpDir)
+	} else {
+		t.Setenv("HOME", tmpDir)
+	}
+
 	dm := NewDaemonManager("nonexistent-binary-that-does-not-exist-12345")
 
 	err := dm.Start()

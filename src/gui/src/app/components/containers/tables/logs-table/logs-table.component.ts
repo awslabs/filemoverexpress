@@ -1,5 +1,5 @@
 import { AsyncPipe, DatePipe, NgClass } from '@angular/common';
-import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormField, MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
@@ -33,6 +33,7 @@ import { distinctUntilChanged } from 'rxjs/operators';
     selector: 'fme-logs-table',
     templateUrl: './logs-table.component.html',
     styleUrls: ['./logs-table.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         ReactiveFormsModule,
         MatFormField,

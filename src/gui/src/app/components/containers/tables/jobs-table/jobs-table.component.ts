@@ -1,5 +1,5 @@
 import { KeyValuePipe, NgClass } from '@angular/common';
-import { AfterViewInit, Component, DestroyRef, inject, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, ViewChild, ViewChildren, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -62,6 +62,7 @@ const RETRY_COUNT = 5;
     selector: 'fme-jobs-table',
     templateUrl: './jobs-table.component.html',
     styleUrls: ['./jobs-table.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         ReactiveFormsModule,
         MatFormField,

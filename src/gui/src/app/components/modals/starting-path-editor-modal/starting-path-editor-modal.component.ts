@@ -1,5 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
@@ -15,6 +15,7 @@ import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
     selector: 'fme-starting-path-editor-modal',
     templateUrl: './starting-path-editor-modal.component.html',
     styleUrls: ['./starting-path-editor-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         TitleCasePipe,

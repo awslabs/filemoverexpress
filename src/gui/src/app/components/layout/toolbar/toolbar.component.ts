@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy } from '@angular/core';
+import { Component, inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -17,6 +17,7 @@ import { Subscription } from 'rxjs';
     selector: 'fme-toolbar',
     templateUrl: './toolbar.component.html',
     styleUrls: ['./toolbar.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatToolbar,
         MatIconButton,

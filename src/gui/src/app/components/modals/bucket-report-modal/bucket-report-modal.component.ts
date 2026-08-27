@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy } from '@angular/core';
+import { Component, inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatLabel } from '@angular/material/input';
@@ -23,6 +23,7 @@ import { BehaviorSubject, Subscription } from 'rxjs';
     selector: 'fme-bucket-report-modal',
     templateUrl: './bucket-report-modal.component.html',
     styleUrls: ['./bucket-report-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

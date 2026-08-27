@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
@@ -13,6 +13,7 @@ const SEPARATOR = '/';
     selector: 'fme-create-prefix-folder-modal',
     templateUrl: './create-prefix-folder-modal.component.html',
     styleUrls: ['./create-prefix-folder-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

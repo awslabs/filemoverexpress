@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
@@ -39,6 +39,7 @@ import {
     selector: 'fme-config',
     templateUrl: './config.component.html',
     styleUrls: ['./config.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         ReactiveFormsModule,
         MatFormField,

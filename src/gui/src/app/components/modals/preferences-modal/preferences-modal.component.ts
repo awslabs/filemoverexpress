@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatFormField, MatOption, MatSelect, MatSelectChange } from '@angular/material/select';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
@@ -11,6 +11,7 @@ import { DaemonCloseOptions, NotificationDelay, NotificationPositions } from './
     selector: 'fme-preferences',
     templateUrl: './preferences-modal.component.html',
     styleUrls: ['./preferences-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

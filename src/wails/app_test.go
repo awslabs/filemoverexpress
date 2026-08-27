@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -115,6 +116,14 @@ func TestStartDaemonDelegatesToDaemonManager(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid binary", func(t *testing.T) {
+		// Isolate HOME/USERPROFILE so CheckExisting cannot find a real PID file.
+		tmpDir := t.TempDir()
+		if runtime.GOOS == "windows" {
+			t.Setenv("USERPROFILE", tmpDir)
+		} else {
+			t.Setenv("HOME", tmpDir)
+		}
+
 		dm := NewDaemonManager("nonexistent-binary-xyz-12345")
 		app := &FMEApp{daemonManager: dm}
 

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { VersionService } from '@services/version/version.service';
@@ -9,6 +9,7 @@ import { WailsService } from '@services/wails/wails.service';
     selector: 'fme-version-update-modal',
     templateUrl: './version-update-modal.component.html',
     styleUrls: ['./version-update-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatDialogContent,

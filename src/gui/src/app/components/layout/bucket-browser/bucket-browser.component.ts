@@ -1,4 +1,4 @@
-import { Component, effect, ElementRef, inject, NgZone, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, effect, ElementRef, inject, NgZone, OnDestroy, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
@@ -80,6 +80,7 @@ import { Events } from '@wailsio/runtime';
     selector: 'fme-bucket-browser',
     templateUrl: './bucket-browser.component.html',
     styleUrls: ['./bucket-browser.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         TextInputComponent,
         TransferProfileSelectorDropdownComponent,

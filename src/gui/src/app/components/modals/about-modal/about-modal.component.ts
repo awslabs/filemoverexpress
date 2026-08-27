@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import {
     MAT_DIALOG_DATA,
@@ -19,6 +19,7 @@ export interface AboutModalData {
     selector: 'fme-about-modal',
     templateUrl: './about-modal.component.html',
     styleUrls: ['./about-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         MatDialogTitle,
         MatIconButton,

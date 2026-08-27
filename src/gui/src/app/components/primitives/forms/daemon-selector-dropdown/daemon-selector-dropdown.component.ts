@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnDestroy, Output, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { handleStreamError } from '@app/classes/rxjs-operators';
 import { FileBrowserType } from '@app/components/layout/file-browser/file-browser.interfaces';
@@ -31,6 +31,7 @@ import { CONNECTED_ICON, CONNECTING_ICON, DISCONNECTED_ICON, PLACEHOLDER_TEXT, S
     selector: 'fme-daemon-selector-dropdown',
     templateUrl: './daemon-selector-dropdown.component.html',
     styleUrls: ['./daemon-selector-dropdown.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
         SelectMenuDropdownComponent,
     ],
