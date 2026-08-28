@@ -15,7 +15,7 @@
 <ng-template #dropdownFieldContent let-menuOpen='menuOpen'>
     <div class="select-dropdown-field-content"
          [class.disabled-select-dropdown-field-content]="disabled()">
-        @if (selectedField().leadingIcon; as leadingIcon) {
+        @if (fieldLeadingIcon(); as leadingIcon) {
             <div
                     [ngClass]="leadingIcon.iconColor !== 'inherit' ? 'icon-color-' + leadingIcon.iconColor : ''"
                     class="icon-spacer">
@@ -26,7 +26,7 @@
                 </mat-icon>
             </div>
         } @else {
-            @if (fieldLeadingIcon(); as leadingIcon) {
+            @if (selectedField().leadingIcon; as leadingIcon) {
                 <div
                         [ngClass]="leadingIcon.iconColor !== 'inherit' ? 'icon-color-' + leadingIcon.iconColor : ''"
                         class="icon-spacer">
@@ -69,7 +69,16 @@
                          (click)="handleRowClick($event, dropdownItem)"
                          (keydown.enter)="handleRowClick($event, dropdownItem)"
                     >
-                        @if (dropdownItem.type === 'section-item' || dropdownItem.text === selectedField().text) {
+                        @if (dropdownItem.statusIcon; as statusIcon) {
+                            <div class="icon-spacer"
+                                 [ngClass]="statusIcon.iconColor !== 'inherit' ? 'icon-color-' + statusIcon.iconColor : ''">
+                                <mat-icon class="icon"
+                                          [class.outlined-icon]="statusIcon.style === 'outlined'"
+                                          [color]="statusIcon.iconThemePalette">
+                                    {{ statusIcon.icon }}
+                                </mat-icon>
+                            </div>
+                        } @else if (dropdownItem.type === 'section-item' || dropdownItem.text === selectedField().text) {
                             <div class="icon-spacer">
                                 @if (dropdownItem.text === selectedField().text) {
                                     <mat-icon class="icon">{{ CHECK_ICON.icon }}</mat-icon>

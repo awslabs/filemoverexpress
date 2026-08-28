@@ -25,7 +25,7 @@ import { ConnectionState } from '@state/models/connection-state-model';
 import { ShutdownResult } from '@gen/es/fme/v1/shared_pb';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
-import { CONNECTED_ICON, CONNECTING_ICON, DISCONNECTED_ICON, PLACEHOLDER_TEXT, STAR_ICON } from './daemon-selector-dropdown.constants';
+import { CONNECTED_ICON, CONNECTING_ICON, DISCONNECTED_ICON, LOCAL_DAEMON_ICON, PLACEHOLDER_TEXT, REMOTE_DAEMON_ICON, STAR_ICON } from './daemon-selector-dropdown.constants';
 
 @Component({
     selector: 'fme-daemon-selector-dropdown',
@@ -118,6 +118,27 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
     }
 
     /**
+     * Returns the connection-status circle for a daemon row: green check circle when it's
+     * the daemon you're currently connected to, orange while connecting, otherwise a muted
+     * empty circle. Shown on every daemon row so status is obvious and rows stay aligned.
+     * @param bookmark Daemon the row represents
+     * @private
+     */
+    private getDaemonStatusIcon(bookmark: Bookmark): DropdownIcon {
+        if (this.currentBookmark?.name === bookmark.name) {
+            switch (this.connectionState) {
+                case ConnectionState.CONNECTED:
+                    return {...CONNECTED_ICON};
+                case ConnectionState.CONNECTING:
+                    return {...CONNECTING_ICON};
+                default:
+                    return {...DISCONNECTED_ICON};
+            }
+        }
+        return {...DISCONNECTED_ICON};
+    }
+
+    /**
      * Creates the DropdownItem row for daemon name in the dropdown
      * @param bookmark Daemon name to display
      * @private
@@ -134,13 +155,13 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
             },
         ];
         if (bookmark.name === DEFAULT_BOOKMARK_NAME) {
-            // only don't show stop daemon button if on the local daemon and not connected
-            if (this.currentBookmark?.name === DEFAULT_BOOKMARK_NAME && this.connectionState !== ConnectionState.CONNECTED) {
-                actionIcons.push({
-                    id: 'placeholder',
-                    type: 'placeholder',
-                });
-            } else {
+            // Show the Stop button only when the local daemon is the one you're actually
+            // using (selected and not disconnected). While you're connected to a remote
+            // daemon, a Stop button on the local row is confusing — it reads as if the
+            // local daemon were the active session. In that case render a placeholder.
+            const localIsActive = this.currentBookmark?.name === DEFAULT_BOOKMARK_NAME
+                && this.connectionState !== ConnectionState.DISCONNECTED;
+            if (localIsActive) {
                 actionIcons.push({
                     id: 'stop-action-icon',
                     type: 'action-icon',
@@ -148,6 +169,11 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
                     iconClickHandler: () => {
                         this.stopLocalDaemon();
                     },
+                });
+            } else {
+                actionIcons.push({
+                    id: 'placeholder',
+                    type: 'placeholder',
                 });
             }
         } else {
@@ -160,10 +186,19 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
                 },
             });
         }
+        const isLocalDaemon = bookmark.name === DEFAULT_BOOKMARK_NAME;
         return {
             id: `daemon-name-header-row-${bookmark.name}`,
             type: 'section-header',
             text: bookmark.name,
+            // Distinguish a remote daemon from the local file system at a glance, and
+            // surface where a remote one points on hover.
+            tooltipText: isLocalDaemon ? 'This computer' : `${bookmark.host}:${bookmark.port}`,
+            // Per-row connection status: green check circle for the daemon you're
+            // connected to, orange while connecting, muted empty circle otherwise.
+            // Rendered on every row so the list stays aligned.
+            statusIcon: this.getDaemonStatusIcon(bookmark),
+            leadingIcon: isLocalDaemon ? {...LOCAL_DAEMON_ICON} : {...REMOTE_DAEMON_ICON},
             itemClickHandler: () => {
                 this.selectDaemon(bookmark, bookmark.onConnectStartingPath);
             },
@@ -397,6 +432,9 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
                     if (this.bookmarks.add(new Bookmark(bookmark))) {
                         dialogRef.close();
                         this.notifications.success(`Added daemon ${bookmark.name}`);
+                        // Select the daemon you just added so it connects and lists
+                        // immediately, instead of silently sitting in the list.
+                        this.bookmarks.setSelection(bookmark.name);
                     } else {
                         this.notifications.warning(`Could not add daemon, the name ${bookmark.name} is already in use`);
                     }
@@ -443,6 +481,12 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
                     }));
                     dialogRef.close();
                     this.notifications.success(`Updated daemon ${bookmark.name}`);
+                    // If you edited the daemon you're currently connected to (e.g. to fix
+                    // the key/host/port), reconnect with the new settings and re-list —
+                    // otherwise the save appears to do nothing.
+                    if (this.currentBookmark?.name === bookmark.name) {
+                        this.bookmarks.setSelection(bookmark.name);
+                    }
                 } catch (e) {
                     console.error(e);
                     this.notifications.error(NotificationMessages.EDIT_BOOKMARK_ERROR);

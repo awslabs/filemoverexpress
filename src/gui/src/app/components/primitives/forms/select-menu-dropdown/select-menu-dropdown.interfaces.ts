@@ -41,6 +41,10 @@ export interface DropdownItem {
     type: DropdownItemType,
     text: string,
     tooltipText?: string,
+    // Optional per-row status indicator rendered in the leading status slot (before
+    // leadingIcon). When set, it replaces the default "selected row gets a check"
+    // behavior and is shown on EVERY row that provides one, so rows stay aligned.
+    statusIcon?: DropdownIcon,
     leadingIcon?: DropdownIcon,
     itemClickHandler?: DropdownClickHandler,
     actionIcons?: ActionIcon[],

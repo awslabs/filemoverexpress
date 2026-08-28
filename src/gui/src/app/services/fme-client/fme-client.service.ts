@@ -57,6 +57,7 @@ import { CreateSupportFileRequestSchema, CreateSupportFileResponse } from '@gen/
 import { Store } from '@ngrx/store';
 import * as ProgressActions from '@state/fme-client/actions/fme-client.actions';
 import { succeedConnect, tryConnect } from '@state/fme-client/actions/fme-client.actions';
+import { addLog } from '@state/logs/actions/logs.actions';
 import { selectConnectionState } from '@state/fme-client/fme-client.selectors';
 import { FmeClientState } from '@state/fme-client/reducers/fme-client.reducer';
 import { ConnectionState } from '@state/models/connection-state-model';
@@ -1087,6 +1088,20 @@ export class FmeClientService {
                         if (isCurrentAttempt && this.connectedState != ConnectionState.DISCONNECTED) {
                             this.store.dispatch(ProgressActions.disconnect());
                         }
+                        // Also record it in the Logs table. A failed connection produces no
+                        // daemon event stream, so without this the Logs tab is empty exactly
+                        // when the user goes looking for a reason. The daemon returns the same
+                        // code for a wrong key and for a too-many-attempts lockout, so cover both.
+                        this.store.dispatch(addLog({
+                            log: {
+                                level: 'error',
+                                message: `Authentication rejected by ${currentBookmark.name} (${currentBookmark.address}). ` +
+                                    'Verify the pre-shared key. Repeated failed attempts are temporarily locked out by the ' +
+                                    'daemon — if you just corrected the key, wait a few minutes and retry.',
+                                timestamp: new Date(),
+                                jobId: null,
+                            },
+                        }));
                         this.notifications.error('Failed authenticating with daemon. Update key and reconnect.');
                         return;
                     }
@@ -1104,6 +1119,15 @@ export class FmeClientService {
                     }
                     if (gracePeriodExhausted && !this.connectionFailureNotified) {
                         this.connectionFailureNotified = true;
+                        this.store.dispatch(addLog({
+                            log: {
+                                level: 'warn',
+                                message: `Couldn't reach ${currentBookmark.name} (${currentBookmark.address}). ` +
+                                    'Make sure the daemon is running and the port is open, then retry.',
+                                timestamp: new Date(),
+                                jobId: null,
+                            },
+                        }));
                         this.notifications.error(
                             `Couldn't connect to ${currentBookmark.name}. Make sure the daemon is running and ` +
                         'reachable and that your connection settings are correct, then retry.');
