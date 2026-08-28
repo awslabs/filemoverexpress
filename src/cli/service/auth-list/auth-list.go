@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/awslabs/filemoverexpress/events"
@@ -30,6 +31,7 @@ type (
 		BackoffFactor float64
 		MaxTries      int8
 		Entries       map[string]AuthAttemptListEntry
+		mu            sync.Mutex
 	}
 
 	AuthAttemptListConfig struct {
@@ -41,6 +43,9 @@ type (
 
 // Add takes an IP/hostname and either creates a new entry, or updates the existing entry with the new login attempt
 func (aal *AuthAttemptList) Add(remote string) {
+	aal.mu.Lock()
+	defer aal.mu.Unlock()
+
 	if strings.Contains(remote, ":") {
 		parts := strings.Split(remote, ":")
 		if len(parts) > 0 {
@@ -63,16 +68,27 @@ func (aal *AuthAttemptList) Add(remote string) {
 	}
 }
 
-// GetDelay calculates the amount of time to sleep based on the number of login attempts within a certain window.
-// The delay is exponential, where the BackoffFactor is the base, and the number of failed login attempts is the exponent.
-func (aal *AuthAttemptList) GetDelay(remote string) time.Duration {
-	if _, ok := aal.Entries[remote]; ok {
-		return time.Duration(math.Pow(aal.BackoffFactor, float64(aal.Entries[remote].Count))) * time.Second
+// Reset clears any recorded failed-attempt state for a remote, so a successful
+// authentication wipes the slate — a legitimate client that mistyped its key once
+// or twice does not carry those failures toward a future lockout.
+func (aal *AuthAttemptList) Reset(remote string) {
+	aal.mu.Lock()
+	defer aal.mu.Unlock()
+
+	if strings.Contains(remote, ":") {
+		parts := strings.Split(remote, ":")
+		if len(parts) > 0 {
+			remote = parts[0]
+		}
 	}
-	return time.Duration(1)
+
+	delete(aal.Entries, remote)
 }
 
 func (aal *AuthAttemptList) IsBlocked(remote string) error {
+	aal.mu.Lock()
+	defer aal.mu.Unlock()
+
 	if strings.Contains(remote, ":") {
 		parts := strings.Split(remote, ":")
 		if len(parts) > 0 {
@@ -83,12 +99,13 @@ func (aal *AuthAttemptList) IsBlocked(remote string) error {
 	aal.cleanup()
 	aal.updateBlockedStatus(remote)
 
-	if _, ok := aal.Entries[remote]; ok {
-		if aal.Entries[remote].Blocked {
-			return fmt.Errorf(strBlockedAuthAttempt, remote)
-		}
-
-		return fmt.Errorf(strFailedAuthAttempt, remote)
+	// Only reject a client that has actually crossed the failure threshold and is
+	// blocked. A sub-threshold failure entry must NOT reject the request here —
+	// otherwise a single wrong attempt would lock out the correct key until the
+	// entry ages out (~Cutoff minutes). The key is validated by the caller after
+	// this returns nil.
+	if entry, ok := aal.Entries[remote]; ok && entry.Blocked {
+		return fmt.Errorf(strBlockedAuthAttempt, remote)
 	}
 
 	return nil
@@ -168,8 +185,8 @@ func (aal *AuthAttemptList) cleanup() {
 }
 
 // NewAuthAttemptList takes a config containing a cutoff and backoff factor, and returns a new AuthAttemptList struct
-func NewAuthAttemptList(config AuthAttemptListConfig) AuthAttemptList {
-	return AuthAttemptList{
+func NewAuthAttemptList(config AuthAttemptListConfig) *AuthAttemptList {
+	return &AuthAttemptList{
 		Cutoff:        int8(math.Max(MinCutoff, float64(config.Cutoff))),
 		BackoffFactor: math.Max(MinBackoffFactor, config.BackoffFactor),
 		MaxTries:      config.MaxTries,

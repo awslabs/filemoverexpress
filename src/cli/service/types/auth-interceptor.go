@@ -21,7 +21,7 @@ const (
 var errNoToken = errors.New("invalid or missing preshared key")
 
 type AuthInterceptor struct {
-	authList auth_list.AuthAttemptList
+	authList *auth_list.AuthAttemptList
 	config   ServiceConfig
 }
 
@@ -95,5 +95,8 @@ func (i *AuthInterceptor) isAllowed(header string, procedure string, remoteAddr 
 		return errors.New(strUserNotAuthorized)
 	}
 
+	// Successful authentication — clear any recorded failures for this client so a
+	// past mistyped key never counts toward a future lockout.
+	i.authList.Reset(remoteAddr)
 	return nil
 }
