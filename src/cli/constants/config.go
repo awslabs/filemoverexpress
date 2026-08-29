@@ -6,7 +6,11 @@ const (
 	DefaultRetryCount         = 3
 	MaxRetryCount             = 10000
 	DefaultMaxActiveTransfers = 100
-	DefaultTargetBandwidth    = 0
+	// DefaultAutoMaxActiveTransfers is the default for the opt-in AutoMAT toggle.
+	// When false, maxActiveTransfers uses its explicit value (DefaultMaxActiveTransfers
+	// unless overridden). When true, the daemon auto-scales concurrency to the machine.
+	DefaultAutoMaxActiveTransfers = false
+	DefaultTargetBandwidth        = 0
 
 	// Logging
 	DefaultLoggingDirectory = "logs"

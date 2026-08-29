@@ -59,19 +59,20 @@ var (
 		Args:  cobra.ExactArgs(1),
 	}
 
-	profileName          string
-	threads              int
-	chunkSize            int64
-	maxAge               string
-	filter               string
-	maxActiveTransfers   int32
-	force                bool
-	maxActiveChecksums   int
-	checksumAlgorithm    string
-	retryCount           uint64
-	enableMetadataFilter bool
-	prefix               string
-	autoTuning           bool
+	profileName            string
+	threads                int
+	chunkSize              int64
+	maxAge                 string
+	filter                 string
+	maxActiveTransfers     int32
+	autoMaxActiveTransfers bool
+	force                  bool
+	maxActiveChecksums     int
+	checksumAlgorithm      string
+	retryCount             uint64
+	enableMetadataFilter   bool
+	prefix                 string
+	autoTuning             bool
 )
 
 func init() {
@@ -96,6 +97,7 @@ func setSharedFlags(command *cobra.Command) {
 	pFlags.StringVar(&maxAge, "max-age", "0", strS3MaxAgeUsage)
 	pFlags.StringVar(&filter, "filter", "", strS3FilterUsage)
 	pFlags.Int32Var(&maxActiveTransfers, "max-active-transfers", 0, strS3MaxActiveTransfersUsage)
+	pFlags.BoolVar(&autoMaxActiveTransfers, "auto-max-active-transfers", false, strS3AutoMaxActiveTransfersUsage)
 	pFlags.BoolVar(&force, "force", false, strS3ForceUsage)
 	pFlags.StringVar(&checksumAlgorithm, "checksum-algorithm", "md5", strS3ChecksumAlgorithmUsage)
 	pFlags.Uint64Var(&retryCount, "retry-count", constants.DefaultRetryCount, strS3RetryCountUsage)
@@ -125,6 +127,7 @@ func bindConfigsToFlags(command *cobra.Command, _ []string) {
 		"protocols.s3.maxAge":            "max-age",
 		"protocols.s3.filter":            "filter",
 		"general.maxActiveTransfers":     "max-active-transfers",
+		"general.autoMaxActiveTransfers": "auto-max-active-transfers",
 		"general.maxActiveChecksums":     "max-active-checksums",
 		"protocols.s3.checksumAlgorithm": "checksum-algorithm",
 		"general.retryCount":             "retry-count",

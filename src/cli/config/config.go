@@ -41,11 +41,12 @@ type (
 func buildDefaultsMap() map[string]interface{} {
 	return map[string]interface{}{
 		// General
-		configkeys.GeneralNoSleep:            constants.DefaultNoSleep,
-		configkeys.GeneralRetryCount:         constants.DefaultRetryCount,
-		configkeys.GeneralMaxActiveChecksums: systeminfo.GetCoreCount(),
-		configkeys.GeneralMaxActiveTransfers: constants.DefaultMaxActiveTransfers,
-		configkeys.GeneralTargetBandwidth:    constants.DefaultTargetBandwidth,
+		configkeys.GeneralNoSleep:                constants.DefaultNoSleep,
+		configkeys.GeneralRetryCount:             constants.DefaultRetryCount,
+		configkeys.GeneralMaxActiveChecksums:     systeminfo.GetCoreCount(),
+		configkeys.GeneralMaxActiveTransfers:     int32(constants.DefaultMaxActiveTransfers),
+		configkeys.GeneralAutoMaxActiveTransfers: constants.DefaultAutoMaxActiveTransfers,
+		configkeys.GeneralTargetBandwidth:        constants.DefaultTargetBandwidth,
 
 		// Logging
 		configkeys.LoggingDirectory: constants.DefaultLoggingDirectory,
@@ -101,6 +102,27 @@ func LoadConfiguration() configtypes.FmeConfig {
 	}
 
 	return loadConfig()
+}
+
+// EffectiveMaxActiveTransfers returns the file-level transfer concurrency the
+// daemon should use for the given (already-loaded) config. When the AutoMaxActiveTransfers opt-in is enabled it returns
+// the machine-derived AutoMAT value (scaled to cores, bounded by the open-file
+// limit); otherwise it returns the explicit MaxActiveTransfers setting. AutoMAT is
+// opt-in: it can raise throughput on capable hosts but, on slower or shared
+// machines, higher concurrency can cause resource contention and less predictable
+// behavior, so the explicit value (default 100) remains the default.
+func EffectiveMaxActiveTransfers(cfg configtypes.FmeConfig) int32 {
+	if cfg.General.AutoMaxActiveTransfers {
+		auto := int32(systeminfo.AutoMaxActiveTransfers())
+		// Debug (not Info): this getter is called per upload (worker spawn) and per
+		// job (existence-check filter), so an Info line here is duplicate noise.
+		logger.Debug(
+			"AutoMAT enabled: auto-scaling maxActiveTransfers to %d (explicit setting %d ignored)",
+			auto, cfg.General.MaxActiveTransfers,
+		)
+		return auto
+	}
+	return cfg.General.MaxActiveTransfers
 }
 
 func loadConfig() configtypes.FmeConfig {

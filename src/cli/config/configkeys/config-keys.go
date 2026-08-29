@@ -8,6 +8,7 @@ const (
 	GeneralRetryCount                           = General + KeySeparator + "retryCount"
 	GeneralMaxActiveChecksums                   = General + KeySeparator + "maxActiveChecksums"
 	GeneralMaxActiveTransfers                   = General + KeySeparator + "maxActiveTransfers"
+	GeneralAutoMaxActiveTransfers               = General + KeySeparator + "autoMaxActiveTransfers"
 	GeneralTargetBandwidth                      = General + KeySeparator + "targetBandwidth"
 	Logging                                     = "logging"
 	LoggingDirectory                            = Logging + KeySeparator + "directory"
