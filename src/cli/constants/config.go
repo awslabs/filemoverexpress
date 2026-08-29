@@ -5,7 +5,7 @@ const (
 	DefaultNoSleep            = false
 	DefaultRetryCount         = 3
 	MaxRetryCount             = 10000
-	DefaultMaxActiveTransfers = 10
+	DefaultMaxActiveTransfers = 100
 	DefaultTargetBandwidth    = 0
 
 	// Logging

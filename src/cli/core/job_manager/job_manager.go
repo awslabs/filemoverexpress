@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	checksumMgr "github.com/awslabs/filemoverexpress/core/checksums/checksum-manager"
@@ -443,7 +445,11 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	}
 
 	if !job.Force() {
-		filteredTasks = filterTasks(filterList, filteredTasks)
+		// The object-already-exists filter issues a HeadObject per file. Run it
+		// concurrently rather than one-at-a-time: the serial pass was the dominant
+		// bottleneck on many-file uploads (~N sequential round-trips before any
+		// transfer started). Concurrency is bounded by maxActiveTransfers.
+		filteredTasks = filterTasksConcurrent(filterList, filteredTasks, int(cfg.General.MaxActiveTransfers))
 	}
 	//endregion
 
@@ -625,24 +631,57 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	}
 }
 
+// evaluateFilters runs every filter against task and reports whether it should
+// be excluded, marking it Skipped if so. Shared by the serial (filterTasks) and
+// concurrent (filterTasksConcurrent) passes so the per-task decision lives in
+// one place and the two variants cannot drift.
+func evaluateFilters(filterList []filters.FileMoverFilter, task *jobmanagertypes.Task) bool {
+	for _, filter := range filterList {
+		excluded, err := filter.IsFiltered(task)
+		if err != nil {
+			events.Events.Warn("Error running filter: %s", err)
+			continue
+		}
+		if excluded {
+			task.SetStatus(jobmanagertypes.TaskStatusSkipped)
+			return true
+		}
+	}
+	return false
+}
+
 // TODO: Write unit test for this function
 func filterTasks(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.Task) []*jobmanagertypes.Task {
 	var filteredTasks []*jobmanagertypes.Task
-	var err error
 	for _, task := range tasks {
-		shouldExclude := false
-		for _, filter := range filterList {
-			shouldExclude, err = filter.IsFiltered(task)
-			if err != nil {
-				events.Events.Warn("Error running filter: %s", err)
-				continue
-			}
-			if shouldExclude {
-				task.SetStatus(jobmanagertypes.TaskStatusSkipped)
-				break
-			}
+		if !evaluateFilters(filterList, task) {
+			filteredTasks = append(filteredTasks, task)
 		}
-		if !shouldExclude {
+	}
+	return filteredTasks
+}
+
+// filterTasksConcurrent is an order-preserving, bounded-concurrency variant of
+// filterTasks for NETWORK-BOUND filters (notably object-already-exists, which
+// issues a HeadObject per file). Running that check serially made ~N sequential
+// round-trips before any upload began, dominating many-file wall time. Fan-out
+// is capped at `concurrency`; input order is preserved so downstream transfer
+// priority is unchanged.
+func filterTasksConcurrent(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.Task, concurrency int) []*jobmanagertypes.Task {
+	concurrency = max(concurrency, 1)
+	keep := make([]bool, len(tasks))
+	var g errgroup.Group
+	g.SetLimit(concurrency)
+	for i := range tasks {
+		g.Go(func() error {
+			keep[i] = !evaluateFilters(filterList, tasks[i])
+			return nil
+		})
+	}
+	_ = g.Wait()
+	filteredTasks := make([]*jobmanagertypes.Task, 0, len(tasks))
+	for i, task := range tasks {
+		if keep[i] {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
