@@ -10,6 +10,7 @@ import { discardUnsavedChangesDialog } from '@app/components/modals/confirmation
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
 import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
+import { DEFAULT_GENERAL_SETTINGS } from '@app/constants/config';
 import { FmeConfig, HotFolders, TransferProfile } from '@classes/config';
 import { isIntegerValidator, maxActiveChecksumsValidator, oneOfValidator } from '@classes/form-validators';
 import { handleStreamError } from '@classes/rxjs-operators';
@@ -113,6 +114,7 @@ export class ConfigComponent implements OnInit {
                         nonNullable: true,
                     },
                 ),
+                autoMaxActiveTransfers: new FormControl<boolean>(false, {nonNullable: true}),
                 maxActiveChecksums: new FormControl<number>(1,
                     {
                         validators: [
@@ -197,6 +199,11 @@ export class ConfigComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadUiPreferences();
+        // When AutoMAT is on, the daemon picks maxActiveTransfers, so disable the manual
+        // field (its value is still preserved and saved via getRawValue).
+        this.configForm.controls.general.controls.autoMaxActiveTransfers.valueChanges.subscribe(
+            (auto) => this.setMaxActiveTransfersDisabled(auto),
+        );
         // check version compatibility
         if (!this.versionService.requiredApiVersion(`edit ${sectionTitles.CONFIGURATION}`)) {
             this.closeSettings();
@@ -215,6 +222,11 @@ export class ConfigComponent implements OnInit {
                 });
                 this.hotFolders = result.uploadHotFolders;
 
+                // Apply the AutoMAT disabled state BEFORE marking pristine — toggling a
+                // control's enabled state dirties the form, so doing it after markAsPristine
+                // would make Cancel prompt "Discard changes?" on an untouched form.
+                this.setMaxActiveTransfersDisabled(result.general.autoMaxActiveTransfers);
+
                 this.configForm.markAllAsTouched();
                 this.markFormGroupDirty(this.configForm);
 
@@ -224,6 +236,26 @@ export class ConfigComponent implements OnInit {
                 this.notificationService.warning(`${NotificationMessages.GET_CONFIG_FAILURE}: ${error}`);
             },
         });
+    }
+
+    /**
+     * Enables/disables the manual Max Active Transfers field based on the AutoMAT opt-in.
+     * A disabled control's value is still included in getRawValue(), so the last manual
+     * number is preserved when saving with AutoMAT on.
+     */
+    private setMaxActiveTransfersDisabled(auto: boolean) {
+        const ctrl = this.configForm.controls.general.controls.maxActiveTransfers;
+        if (auto) {
+            // getRawValue() includes disabled controls, so a value the user left invalid
+            // (cleared or 0) before enabling AutoMAT would be saved and resurface when
+            // AutoMAT is later turned off. Normalize to the default before disabling.
+            if (ctrl.value == null || ctrl.value < 1) {
+                ctrl.setValue(DEFAULT_GENERAL_SETTINGS.maxActiveTransfers, {emitEvent: false});
+            }
+            ctrl.disable({emitEvent: false});
+        } else {
+            ctrl.enable({emitEvent: false});
+        }
     }
 
     onSubmit() {

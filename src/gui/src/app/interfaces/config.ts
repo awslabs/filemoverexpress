@@ -20,6 +20,7 @@ export interface ConfigGeneral {
     noSleep: boolean;
     retryCount: number;
     maxActiveTransfers: number;
+    autoMaxActiveTransfers: boolean;
     maxActiveChecksums: number;
     targetBandwidth: number;
 }

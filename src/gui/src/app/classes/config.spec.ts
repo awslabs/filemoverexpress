@@ -38,6 +38,7 @@ describe('General', () => {
         noSleep: true,
         retryCount: 3,
         maxActiveTransfers: 20,
+        autoMaxActiveTransfers: true,
         maxActiveChecksums: 8,
         targetBandwidth: 150,
     };
@@ -47,6 +48,7 @@ describe('General', () => {
         expect(gen.noSleep).toEqual(data.noSleep);
         expect(gen.retryCount).toEqual(data.retryCount);
         expect(gen.maxActiveTransfers).toEqual(data.maxActiveTransfers);
+        expect(gen.autoMaxActiveTransfers).toEqual(data.autoMaxActiveTransfers);
         expect(gen.maxActiveChecksums).toEqual(data.maxActiveChecksums);
         expect(gen.targetBandwidth).toEqual(data.targetBandwidth);
     }
@@ -56,6 +58,7 @@ describe('General', () => {
             data.noSleep,
             data.retryCount,
             data.maxActiveTransfers,
+            data.autoMaxActiveTransfers,
             data.maxActiveChecksums,
             data.targetBandwidth,
         );
