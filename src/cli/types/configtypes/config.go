@@ -37,11 +37,12 @@ type (
 		UploadHotFolders []UploadHotFolderSettings `koanf:"hotFolders" yaml:"hotFolders"`
 	}
 	General struct {
-		NoSleep            bool   `koanf:"noSleep" yaml:"noSleep"`
-		RetryCount         uint32 `koanf:"retryCount" yaml:"retryCount"`
-		MaxActiveChecksums int32  `koanf:"maxActiveChecksums" yaml:"maxActiveChecksums"`
-		MaxActiveTransfers int32  `koanf:"maxActiveTransfers" yaml:"maxActiveTransfers"`
-		TargetBandwidth    int32  `koanf:"targetBandwidth" yaml:"targetBandwidth"`
+		NoSleep                bool   `koanf:"noSleep" yaml:"noSleep"`
+		RetryCount             uint32 `koanf:"retryCount" yaml:"retryCount"`
+		MaxActiveChecksums     int32  `koanf:"maxActiveChecksums" yaml:"maxActiveChecksums"`
+		MaxActiveTransfers     int32  `koanf:"maxActiveTransfers" yaml:"maxActiveTransfers"`
+		AutoMaxActiveTransfers bool   `koanf:"autoMaxActiveTransfers" yaml:"autoMaxActiveTransfers"`
+		TargetBandwidth        int32  `koanf:"targetBandwidth" yaml:"targetBandwidth"`
 	}
 	Logging struct {
 		Directory string `koanf:"directory" yaml:"directory"`

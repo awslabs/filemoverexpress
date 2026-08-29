@@ -90,7 +90,8 @@ func GetInstance() *JobManager {
 			s3ManagerLock:  &sync.RWMutex{},
 			priorityQueue:  NewPriorityQueue(),
 		}
-		maxActiveTransfers := config.LoadConfiguration().General.MaxActiveTransfers
+		cfg := config.LoadConfiguration()
+		maxActiveTransfers := config.EffectiveMaxActiveTransfers(cfg)
 		maxActiveTransfers = max(maxActiveTransfers, 1)
 
 		for i := 0; i < int(maxActiveTransfers); i++ {
@@ -448,8 +449,9 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		// The object-already-exists filter issues a HeadObject per file. Run it
 		// concurrently rather than one-at-a-time: the serial pass was the dominant
 		// bottleneck on many-file uploads (~N sequential round-trips before any
-		// transfer started). Concurrency is bounded by maxActiveTransfers.
-		filteredTasks = filterTasksConcurrent(filterList, filteredTasks, int(cfg.General.MaxActiveTransfers))
+		// transfer started). Concurrency is bounded by the effective maxActiveTransfers
+		// (AutoMAT-scaled when the opt-in is enabled, else the explicit value).
+		filteredTasks = filterTasksConcurrent(filterList, filteredTasks, int(config.EffectiveMaxActiveTransfers(cfg)))
 	}
 	//endregion
 

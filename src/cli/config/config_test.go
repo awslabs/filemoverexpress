@@ -76,6 +76,7 @@ func TestDefaultValuesMatchConstants(t *testing.T) {
 	assert.Equal(t, constants.DefaultNoSleep, cfg.General.NoSleep)
 	assert.Equal(t, uint32(constants.DefaultRetryCount), cfg.General.RetryCount)
 	assert.Equal(t, int32(constants.DefaultMaxActiveTransfers), cfg.General.MaxActiveTransfers)
+	assert.Equal(t, constants.DefaultAutoMaxActiveTransfers, cfg.General.AutoMaxActiveTransfers)
 	assert.Equal(t, systeminfo.GetCoreCount(), cfg.General.MaxActiveChecksums)
 	assert.Equal(t, int32(constants.DefaultTargetBandwidth), cfg.General.TargetBandwidth)
 
@@ -602,6 +603,7 @@ func TestBuildDefaultConfig(t *testing.T) {
 	assert.Equal(t, constants.DefaultNoSleep, cfg.General.NoSleep)
 	assert.Equal(t, uint32(constants.DefaultRetryCount), cfg.General.RetryCount)
 	assert.Equal(t, int32(constants.DefaultMaxActiveTransfers), cfg.General.MaxActiveTransfers)
+	assert.Equal(t, constants.DefaultAutoMaxActiveTransfers, cfg.General.AutoMaxActiveTransfers)
 	assert.Equal(t, constants.DefaultLoggingDirectory, cfg.Logging.Directory)
 	assert.Equal(t, constants.DefaultAPIServerEnabled, cfg.APIServer.Enabled)
 }
@@ -683,4 +685,18 @@ func initTestLogger() {
 		MaxAge:   1,
 		Compress: false,
 	})
+}
+
+func TestEffectiveMaxActiveTransfers(t *testing.T) {
+	// Opt-in OFF: the explicit MaxActiveTransfers value wins.
+	var off configtypes.FmeConfig
+	off.General.AutoMaxActiveTransfers = false
+	off.General.MaxActiveTransfers = 123
+	assert.Equal(t, int32(123), EffectiveMaxActiveTransfers(off))
+
+	// Opt-in ON: the machine-derived AutoMAT value wins; the explicit value is ignored.
+	var on configtypes.FmeConfig
+	on.General.AutoMaxActiveTransfers = true
+	on.General.MaxActiveTransfers = 123
+	assert.Equal(t, int32(systeminfo.AutoMaxActiveTransfers()), EffectiveMaxActiveTransfers(on))
 }
