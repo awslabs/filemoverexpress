@@ -50,6 +50,16 @@
             <!-- TRANSFERS -->
             <div class="tab-body" formGroupName="general" [hidden]="activeSection !== 'transfers'">
                 <div class="set-section-label">Concurrency &amp; limits</div>
+                <div class="automat-toggle">
+                    <mat-slide-toggle formControlName="autoMaxActiveTransfers" color="accent">
+                        Auto-scale active transfers
+                    </mat-slide-toggle>
+                    <p class="automat-sub">
+                        Let FME choose the number of parallel transfers from this machine’s CPU and
+                        file-descriptor limits. Higher throughput on capable machines; on slower or
+                        shared machines it can cause resource contention and less predictable transfers.
+                    </p>
+                </div>
                 <div class="form-grid-2">
                     <mat-form-field color="accent">
                         <mat-label>Retry Count</mat-label>
@@ -63,14 +73,19 @@
                     </mat-form-field>
                     <mat-form-field color="accent" data-multi-hint>
                         <mat-label>Max Active Transfers</mat-label>
-                        <input matInput type="number" formControlName="maxActiveTransfers" step="1">
+                        <input matInput type="number" formControlName="maxActiveTransfers" step="1"
+                               [placeholder]="configForm.controls.general.controls.autoMaxActiveTransfers.value ? 'Auto — scaled to this machine' : ''">
                         @if (configForm.controls.general.controls.maxActiveTransfers.hasError('required')) {
                             <mat-error>{{ formErrorMessages.maxActiveTransfer.required }}</mat-error>
                         }
                         @if (configForm.controls.general.controls.maxActiveTransfers.hasError('min')) {
                             <mat-error>{{ formErrorMessages.maxActiveTransfer.minValue }}</mat-error>
                         }
-                        @if (configForm.controls.general.controls.maxActiveTransfers.value > 200) {
+                        @if (configForm.controls.general.controls.autoMaxActiveTransfers.value) {
+                            <mat-hint>Turn off “Auto-scale active transfers” to set this manually.</mat-hint>
+                        }
+                        @if (!configForm.controls.general.controls.autoMaxActiveTransfers.value
+                            && configForm.controls.general.controls.maxActiveTransfers.value > 200) {
                             <mat-hint>Value higher than 200 can cause problems</mat-hint>
                         }
                         @if (originalConfig && configForm.controls.general.controls.maxActiveTransfers.value !== originalConfig.general.maxActiveTransfers) {

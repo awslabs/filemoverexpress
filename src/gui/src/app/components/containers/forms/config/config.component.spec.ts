@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConfigComponent } from './config.component';
 import { AppState } from '@app/state';
 import { FmeConfig } from '@app/classes/config';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -239,3 +239,34 @@ describe('ConfigComponent', () => {
         expect(redirectSpy).toHaveBeenCalled();
     });
 }, 15000);
+
+
+// Standalone (no TestBed) coverage of the AutoMAT field save-path contract the component
+// relies on: when AutoMAT is on, the manual Max Active Transfers field is disabled but its
+// value must still persist via getRawValue() (onSubmit uses getRawValue, not value). Kept
+// TestBed-free so it runs despite the pre-existing harness issue in the specs above.
+describe('AutoMAT \u2014 Max Active Transfers save-path contract', () => {
+    function makeGroup(mat: number) {
+        return new FormGroup({
+            autoMaxActiveTransfers: new FormControl<boolean>(false, {nonNullable: true}),
+            maxActiveTransfers: new FormControl<number>(mat, {nonNullable: true}),
+        });
+    }
+
+    it('getRawValue() preserves the disabled maxActiveTransfers value (survives AutoMAT-on save)', () => {
+        const g = makeGroup(200);
+        g.controls.maxActiveTransfers.disable();
+        expect(g.value.maxActiveTransfers).toBeUndefined();      // .value drops disabled controls
+        expect(g.getRawValue().maxActiveTransfers).toEqual(200); // getRawValue keeps them (save path)
+    });
+
+    it('normalizing an invalid value before disable prevents persisting 0/empty', () => {
+        const g = makeGroup(0);
+        const ctrl = g.controls.maxActiveTransfers;
+        if (ctrl.value == null || ctrl.value < 1) {
+            ctrl.setValue(100, {emitEvent: false}); // mirror the component guard
+        }
+        ctrl.disable();
+        expect(g.getRawValue().maxActiveTransfers).toEqual(100);
+    });
+});

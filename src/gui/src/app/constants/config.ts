@@ -26,7 +26,8 @@ export const DEFAULT_GENERAL_SETTINGS: ConfigGeneral = {
     noSleep: false,
     retryCount: 3,
     maxActiveChecksums: 10,
-    maxActiveTransfers: 10,
+    maxActiveTransfers: 100,
+    autoMaxActiveTransfers: false,
     targetBandwidth: 0,
 };
 

@@ -6,6 +6,7 @@ export interface ConfigFormGeneralGroup {
     noSleep: FormControl<boolean>;
     retryCount: FormControl<number>;
     maxActiveTransfers: FormControl<number>;
+    autoMaxActiveTransfers: FormControl<boolean>;
     maxActiveChecksums: FormControl<number>;
     targetBandwidth: FormControl<number>;
 }

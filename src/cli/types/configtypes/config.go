@@ -180,11 +180,12 @@ func (fmeConfig FmeConfig) ToGRPCProtobuf() *fmev1.GRPCFmeConfig {
 
 	return &fmev1.GRPCFmeConfig{
 		General: &fmev1.GeneralSettings{
-			NoSleep:            fmeConfig.General.NoSleep,
-			RetryCount:         fmeConfig.General.RetryCount,
-			MaxActiveTransfers: fmeConfig.General.MaxActiveTransfers,
-			MaxActiveChecksums: fmeConfig.General.MaxActiveChecksums,
-			TargetBandwidth:    fmeConfig.General.TargetBandwidth,
+			NoSleep:                fmeConfig.General.NoSleep,
+			RetryCount:             fmeConfig.General.RetryCount,
+			MaxActiveTransfers:     fmeConfig.General.MaxActiveTransfers,
+			AutoMaxActiveTransfers: fmeConfig.General.AutoMaxActiveTransfers,
+			MaxActiveChecksums:     fmeConfig.General.MaxActiveChecksums,
+			TargetBandwidth:        fmeConfig.General.TargetBandwidth,
 		},
 		Logging: &fmev1.LoggingSettings{
 			Directory: fmeConfig.Logging.Directory,
@@ -225,11 +226,12 @@ func FromGRPCProtobuf(newConfig *fmev1.GRPCFmeConfig, apiServerConfig APIServer)
 
 	return FmeConfig{
 		General: General{
-			NoSleep:            newConfig.General.NoSleep,
-			RetryCount:         newConfig.General.RetryCount,
-			MaxActiveChecksums: newConfig.General.MaxActiveChecksums,
-			MaxActiveTransfers: newConfig.General.MaxActiveTransfers,
-			TargetBandwidth:    newConfig.General.TargetBandwidth,
+			NoSleep:                newConfig.General.NoSleep,
+			RetryCount:             newConfig.General.RetryCount,
+			MaxActiveChecksums:     newConfig.General.MaxActiveChecksums,
+			MaxActiveTransfers:     newConfig.General.MaxActiveTransfers,
+			AutoMaxActiveTransfers: newConfig.General.AutoMaxActiveTransfers,
+			TargetBandwidth:        newConfig.General.TargetBandwidth,
 		},
 		Logging: Logging{
 			Directory: newConfig.Logging.Directory,

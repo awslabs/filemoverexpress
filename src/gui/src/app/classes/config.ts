@@ -82,6 +82,7 @@ export class General implements ConfigInterfaces.ConfigGeneral {
         public noSleep: boolean,
         public retryCount: number,
         public maxActiveTransfers: number,
+        public autoMaxActiveTransfers: boolean,
         public maxActiveChecksums: number,
         public targetBandwidth: number,
     ) {
@@ -92,6 +93,7 @@ export class General implements ConfigInterfaces.ConfigGeneral {
             input.noSleep,
             input.retryCount,
             input.maxActiveTransfers,
+            input.autoMaxActiveTransfers,
             input.maxActiveChecksums,
             input.targetBandwidth,
         );
@@ -102,6 +104,7 @@ export class General implements ConfigInterfaces.ConfigGeneral {
             input.noSleep,
             input.retryCount,
             input.maxActiveTransfers,
+            input.autoMaxActiveTransfers,
             input.maxActiveChecksums,
             input.targetBandwidth,
         );
@@ -112,6 +115,7 @@ export class General implements ConfigInterfaces.ConfigGeneral {
         generateSettings.noSleep = input.noSleep;
         generateSettings.retryCount = input.retryCount;
         generateSettings.maxActiveTransfers = input.maxActiveTransfers;
+        generateSettings.autoMaxActiveTransfers = input.autoMaxActiveTransfers;
         generateSettings.maxActiveChecksums = input.maxActiveChecksums;
         generateSettings.targetBandwidth = input.targetBandwidth;
         return generateSettings;

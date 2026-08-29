@@ -36,6 +36,9 @@ message GeneralSettings {
     int32 max_active_transfers = 5;
     int32 max_active_checksums = 6;
     int32 target_bandwidth = 7;
+    // Opt-in: when true, the daemon auto-scales max_active_transfers to the machine
+    // (CPU cores bounded by the open-file limit), ignoring the explicit value above.
+    bool auto_max_active_transfers = 8;
 }
 
 message LoggingSettings {
