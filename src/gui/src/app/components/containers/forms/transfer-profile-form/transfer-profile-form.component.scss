@@ -119,6 +119,10 @@ a {
     border-radius: 12px;
     overflow: hidden;
     margin-top: 4px;
+    // Fixed height so switching tabs (Connection / Authentication / Performance)
+    // doesn't resize the dialog; content scrolls within. Matches the Settings modal.
+    height: 62vh;
+    min-height: 360px;
 }
 
 .rc-nav {
@@ -156,6 +160,8 @@ a {
 
 .rc-content {
     min-width: 0;
+    // Scroll the content pane when a tab overflows the fixed-height card.
+    overflow-y: auto;
 }
 
 .tab-body {
