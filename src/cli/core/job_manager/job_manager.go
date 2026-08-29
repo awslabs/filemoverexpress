@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/constants"
 	checksumMgr "github.com/awslabs/filemoverexpress/core/checksums/checksum-manager"
@@ -629,24 +631,30 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	}
 }
 
+// evaluateFilters runs every filter against task and reports whether it should
+// be excluded, marking it Skipped if so. Shared by the serial (filterTasks) and
+// concurrent (filterTasksConcurrent) passes so the per-task decision lives in
+// one place and the two variants cannot drift.
+func evaluateFilters(filterList []filters.FileMoverFilter, task *jobmanagertypes.Task) bool {
+	for _, filter := range filterList {
+		excluded, err := filter.IsFiltered(task)
+		if err != nil {
+			events.Events.Warn("Error running filter: %s", err)
+			continue
+		}
+		if excluded {
+			task.SetStatus(jobmanagertypes.TaskStatusSkipped)
+			return true
+		}
+	}
+	return false
+}
+
 // TODO: Write unit test for this function
 func filterTasks(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.Task) []*jobmanagertypes.Task {
 	var filteredTasks []*jobmanagertypes.Task
-	var err error
 	for _, task := range tasks {
-		shouldExclude := false
-		for _, filter := range filterList {
-			shouldExclude, err = filter.IsFiltered(task)
-			if err != nil {
-				events.Events.Warn("Error running filter: %s", err)
-				continue
-			}
-			if shouldExclude {
-				task.SetStatus(jobmanagertypes.TaskStatusSkipped)
-				break
-			}
-		}
-		if !shouldExclude {
+		if !evaluateFilters(filterList, task) {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
@@ -660,36 +668,17 @@ func filterTasks(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.
 // is capped at `concurrency`; input order is preserved so downstream transfer
 // priority is unchanged.
 func filterTasksConcurrent(filterList []filters.FileMoverFilter, tasks []*jobmanagertypes.Task, concurrency int) []*jobmanagertypes.Task {
-	if concurrency < 1 {
-		concurrency = 1
-	}
+	concurrency = max(concurrency, 1)
 	keep := make([]bool, len(tasks))
-	sem := make(chan struct{}, concurrency)
-	var wg sync.WaitGroup
+	var g errgroup.Group
+	g.SetLimit(concurrency)
 	for i := range tasks {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func(idx int) {
-			defer wg.Done()
-			defer func() { <-sem }()
-			task := tasks[idx]
-			shouldExclude := false
-			for _, filter := range filterList {
-				excluded, err := filter.IsFiltered(task)
-				if err != nil {
-					events.Events.Warn("Error running filter: %s", err)
-					continue
-				}
-				if excluded {
-					task.SetStatus(jobmanagertypes.TaskStatusSkipped)
-					shouldExclude = true
-					break
-				}
-			}
-			keep[idx] = !shouldExclude
-		}(i)
+		g.Go(func() error {
+			keep[i] = !evaluateFilters(filterList, tasks[i])
+			return nil
+		})
 	}
-	wg.Wait()
+	_ = g.Wait()
 	filteredTasks := make([]*jobmanagertypes.Task, 0, len(tasks))
 	for i, task := range tasks {
 		if keep[i] {
