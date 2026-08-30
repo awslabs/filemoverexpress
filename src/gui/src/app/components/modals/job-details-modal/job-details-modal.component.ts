@@ -160,6 +160,9 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
         skipped: 0,
         failed: 0,
     };
+    // Sum of fully-completed files' sizes (the durable "committed" floor for the
+    // progress bar). Recomputed on each task reload; never recedes on pause.
+    committedBytes = 0;
 
     // Remote Configuration details (fetched from the daemon config for this job's profile).
     s3Bucket = '';
@@ -272,6 +275,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                         skipped: 0,
                         failed: 0,
                     };
+                    let committedBytes = 0;
 
                     for (const task of this.dataSource.data) {
                         if (PENDING_STATES.includes(task.status)) {
@@ -282,6 +286,9 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                             switch (task.status) {
                                 case TaskStatus.Completed:
                                     newCounts.completed++;
+                                    // Committed = fully-uploaded files. This is the durable floor
+                                    // for the progress bar: it never recedes on pause.
+                                    committedBytes += task.sizeBytes ?? 0;
                                     break;
 
                                 case TaskStatus.Error:
@@ -295,6 +302,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                         newCounts.total++;
                     }
                     this.counts = {...newCounts};
+                    this.committedBytes = committedBytes;
                     if (!TERMINAL_STATES.includes(this.jobDetails.status)) {
                         this.refreshTimer = window.setTimeout(this.loadTasks.bind(this), TASK_RELOAD_INTERVAL);
                     }
@@ -426,6 +434,50 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
     get progressPct(): number {
         return Math.min(Math.round(this.jobDetails.progress), 100);
+    }
+
+    /**
+     * Two-part progress bar. The bar splits the transferred total into a durable
+     * "committed" floor (bytes belonging to fully-completed files) and a volatile
+     * "in-flight" remainder (sampled bytes of files still uploading). FME has no
+     * mid-object resume, so in-flight bytes are discarded on pause — the committed
+     * floor is what actually survives. Splitting them lets the solid fill hold
+     * steady on pause instead of lurching backward.
+     */
+    private get committedFloorBytes(): number {
+        return Math.min(this.committedBytes, this.jobDetails.bytesTransferred);
+    }
+
+    /** Durable floor as a % of the job total. Never recedes on pause. */
+    get committedPct(): number {
+        const total = this.jobDetails.totalBytes;
+        if (total <= 0) {
+            return 0;
+        }
+        return Math.max(0, Math.min((this.committedFloorBytes / total) * 100, 100));
+    }
+
+    /** Volatile in-flight portion as a % of the job total (sits after the floor). */
+    get inFlightPct(): number {
+        const total = this.jobDetails.totalBytes;
+        if (total <= 0) {
+            return 0;
+        }
+        const inflight = Math.max(0, this.jobDetails.bytesTransferred - this.committedFloorBytes);
+        return Math.max(0, Math.min((inflight / total) * 100, 100 - this.committedPct));
+    }
+
+    /** Only surface the committed/in-flight legend while there is volatile progress. */
+    get showProgressBreakdown(): boolean {
+        return this.isActive && this.inFlightPct > 0;
+    }
+
+    get committedLabel(): string {
+        return formatBytes(this.committedFloorBytes, 1, 1000);
+    }
+
+    get inFlightLabel(): string {
+        return formatBytes(Math.max(0, this.jobDetails.bytesTransferred - this.committedFloorBytes), 1, 1000);
     }
 
     get progressFillClass(): string {

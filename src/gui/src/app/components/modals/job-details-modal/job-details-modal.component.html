@@ -23,14 +23,23 @@
             </div>
         }
 
-        <!-- Progress -->
+        <!-- Progress: committed floor (solid, never recedes on pause) + in-flight overlay (volatile) -->
         <div class="jd-progress-track">
-            <div class="jd-progress-fill" [ngClass]="progressFillClass" [style.width.%]="progressPct"></div>
+            <div class="jd-progress-fill" [ngClass]="progressFillClass" [style.width.%]="committedPct"></div>
+            @if (inFlightPct > 0) {
+                <div class="jd-progress-inflight" [style.left.%]="committedPct" [style.width.%]="inFlightPct"></div>
+            }
         </div>
         <div class="jd-bytes">
             <span>{{ bytesLabel }}</span>
             <span>{{ isActive ? 'In progress' : (isError ? 'Stopped' : statusLabel) }}</span>
         </div>
+        @if (showProgressBreakdown) {
+            <div class="jd-legend">
+                <span class="jd-legend-item"><span class="sw sw-committed"></span>{{ committedLabel }} committed</span>
+                <span class="jd-legend-item"><span class="sw sw-inflight"></span>{{ inFlightLabel }} in flight</span>
+            </div>
+        }
 
         <!-- Stat tiles: Size / Duration / Avg Speed / Completed (Status when active) -->
         <div class="jd-tiles">

@@ -118,6 +118,7 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-progress-track {
+    position: relative;
     flex-shrink: 0;
     height: 8px;
     margin-top: 12px;
@@ -127,8 +128,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-progress-fill {
-    height: 100%;
-    border-radius: 4px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
     transition: width 0.3s ease;
     background: variables.$blue-500;
 
@@ -142,6 +145,53 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
     &.error {
         background: variables.$red-500;
+    }
+}
+
+// Volatile in-flight portion: sampled bytes of files still uploading. Hatched to
+// read as "not durable yet" — it recedes to the committed floor on pause.
+.jd-progress-inflight {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    transition: width 0.3s ease, left 0.3s ease;
+    background: repeating-linear-gradient(
+        135deg,
+        rgba(variables.$blue-500, 0.55) 0 8px,
+        rgba(variables.$blue-500, 0.28) 8px 16px
+    );
+}
+
+.jd-legend {
+    flex-shrink: 0;
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: variables.$grey-500;
+    margin-top: 6px;
+
+    .jd-legend-item {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .sw {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        margin-right: 6px;
+    }
+
+    .sw-committed {
+        background: variables.$blue-500;
+    }
+
+    .sw-inflight {
+        background: repeating-linear-gradient(
+            135deg,
+            rgba(variables.$blue-500, 0.7) 0 4px,
+            rgba(variables.$blue-500, 0.35) 4px 8px
+        );
     }
 }
 
