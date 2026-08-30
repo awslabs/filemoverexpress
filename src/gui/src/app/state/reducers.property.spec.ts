@@ -119,8 +119,12 @@ function jobActionArb(): fc.Arbitrary<Action> {
         fc.constant(JobActions.clearCompleted()),
         // clearAll
         fc.constant(JobActions.clearAll()),
-        // updateJobs (set all)
-        fc.array(jobArb, { minLength: 0, maxLength: 3 }).map((jobs) => JobActions.updateJobs({ jobs })),
+        // updateJobs (set all). Job lists from the daemon always have unique ids, and
+        // adapter.setAll desyncs ids/entities if fed duplicates — so generate unique-id
+        // arrays here to match the real contract (otherwise the invariant tests flake on a
+        // rare duplicate-id counterexample that can't occur in production).
+        fc.uniqueArray(jobArb, { minLength: 0, maxLength: 3, selector: (job) => job.id })
+            .map((jobs) => JobActions.updateJobs({ jobs })),
         // updateStatus
         fc.record({
             id: jobIdArb,
