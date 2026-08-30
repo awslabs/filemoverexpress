@@ -33,7 +33,14 @@ func (*FileMoverServer) ResumeJob(
 	newCtx, newCancelFunc := context.WithCancelCause(context.Background())
 	job.CancelCtx = newCtx
 	job.CancelFunc = newCancelFunc
+	// SetStatus(InProgress) re-stamps TimestampTransferring to time.Now(); preserve
+	// the original transfer-start time across resume so the elapsed-time clock (and
+	// any throughput/ETA derived from it) doesn't reset on every pause-resume cycle.
+	startedAt := job.GetTimestampTransferring()
 	job.SetStatus(jobmanagertypes.JobStatusInProgress)
+	if !startedAt.IsZero() {
+		job.SetTimestampTransferring(startedAt)
+	}
 	taskMap := jm.GetTasks(jobId)
 	for _, task := range taskMap {
 		taskStatus := task.Status()
