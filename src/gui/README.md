@@ -109,13 +109,13 @@ ng test
 ng test --include='**/app.component.spec.ts'
 
 # Run tests with coverage
-ng test --code-coverage
+ng test --coverage
 
-# Run tests in headless mode (CI)
-ng test --browsers=ChromeHeadless --watch=false
+# Run tests once (no watch, for CI)
+ng test --watch=false
 ```
 
-Tests use Karma test runner with Jasmine framework. Configuration is in `karma.conf.js`.
+Tests run on the Vitest runner via the Angular `@angular/build:unit-test` builder (configured in `vitest.config.ts`). Property-based tests use `@fast-check/vitest`.
 
 ## Linting
 

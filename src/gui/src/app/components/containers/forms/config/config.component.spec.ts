@@ -38,6 +38,7 @@ const FORM_DATA = FmeConfig.fromJson({
 
         maxActiveChecksums: 10,
         maxActiveTransfers: 10,
+        autoMaxActiveTransfers: false,
         targetBandwidth: 0,
     },
     logging: {
