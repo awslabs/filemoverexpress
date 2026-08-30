@@ -95,7 +95,19 @@
 
 .item,
 .section-header {
-    font-size: 14px;
+    font-size: 13px;
+}
+
+// Group label rows (e.g. "This computer", "Remote daemons") — small, uppercase, muted;
+// non-interactive section headings that group the daemon rows below them.
+.dropdown-label {
+    padding: 14px 16px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: variables.$grey-450;
+    user-select: none;
 }
 
 .row-text-wrapper {
@@ -144,6 +156,33 @@
 
 .outlined-icon {
     font-family: material-icons.$material-icon-font-family-outlined;
+}
+
+// CSS status/indicator shapes — used where the bundled icon font only offers outlines.
+// Colour comes from the parent's .icon-color-* class (currentColor). 12px inside the
+// 16px icon-spacer, so they line up with the glyph icons in the same column.
+.icon-shape {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.shape-dot {
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.shape-ring {
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    background: transparent;
+}
+
+.shape-square {
+    border-radius: 3px;
+    background: currentColor;
 }
 
 .row-action-icon-wrapper {
@@ -199,6 +238,21 @@
 
 .icon-color-black {
     color: variables.$grey-900;
+}
+
+// endregion
+
+// region text colors (call-to-action rows, e.g. the blue "Add Remote Daemon…" footer)
+.text-color-blue {
+    color: variables.$blue-500;
+}
+
+.text-color-green {
+    color: variables.$green-500;
+}
+
+.text-color-red {
+    color: variables.$red-600;
 }
 
 // endregion

@@ -57,7 +57,7 @@ export const FILE_BROWSER_INITIAL_DATA: FileBrowserData = {
 };
 
 export const fileBrowserObjectIcon = {
-    FILE: 'text_snippet',
+    FILE: 'insert_drive_file',
     FOLDER: 'folder',
     PREVIOUS_DIRECTORY: 'drive_file_move_rtl',
     UNKNOWN: 'note',

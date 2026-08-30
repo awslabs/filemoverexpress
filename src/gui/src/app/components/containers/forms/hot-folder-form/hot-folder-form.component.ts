@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, OnDestroy, output, viewChildren, ChangeDetectionStrategy } from '@angular/core';
-import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ErrorStateMatcher } from '@angular/material/core';
 import {
     MatAccordion,
     MatExpansionPanel,
@@ -29,11 +30,25 @@ import { Store } from '@ngrx/store';
 import { selectBucketBrowserPath } from '@state/ui-context/ui-context.selectors';
 import { PanelComponent } from '@app/components/layout/panel/panel.component';
 
+/**
+ * Only surface a field's validation error once the user has actually edited it (dirty) AND
+ * left it (touched) — or after a save attempt, which marks the whole form dirty+touched.
+ * The Material default shows errors on `touched` alone, so merely focusing an empty Name
+ * field and clicking away lit the whole card red on a brand-new hot folder. Requiring
+ * `dirty` too keeps a never-edited folder clean until the user types or hits Save.
+ */
+export class HotFolderErrorStateMatcher implements ErrorStateMatcher {
+    isErrorState(control: FormControl | null): boolean {
+        return !!control && control.invalid && control.dirty && control.touched;
+    }
+}
+
 @Component({
     selector: 'fme-hot-folder-form',
     templateUrl: './hot-folder-form.component.html',
     styleUrls: ['./hot-folder-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.Eager,
+    providers: [{provide: ErrorStateMatcher, useClass: HotFolderErrorStateMatcher}],
     imports: [
         ReactiveFormsModule,
         MatAccordion,
@@ -160,6 +175,26 @@ export class HotFolderFormComponent implements OnDestroy {
             clearTimeout(this.pendingEmit);
             this.pendingEmit = null;
         }
+    }
+
+    /**
+     * Whether a hot folder's header should show its error state (red title + icon). This
+     * mirrors exactly when a FIELD inside it is visibly errored — i.e. a leaf control that
+     * is invalid AND dirty AND touched (the same rule as HotFolderErrorStateMatcher). Using
+     * the group's own `touched`/`dirty` was too coarse: a sibling field gets marked touched
+     * (e.g. a focus/blur as the panel opens) while you're still typing the name, which lit
+     * the header red mid-typing even though no field was showing an error yet.
+     */
+    protected hasVisibleError(group: FormGroup<HotFolderFormGroup>): boolean {
+        return this.controlHasVisibleError(group);
+    }
+
+    private controlHasVisibleError(control: AbstractControl): boolean {
+        const children = (control as FormGroup | FormArray).controls;
+        if (children) {
+            return Object.values(children).some((child) => this.controlHasVisibleError(child as AbstractControl));
+        }
+        return control.invalid && control.dirty && control.touched;
     }
 
     /**

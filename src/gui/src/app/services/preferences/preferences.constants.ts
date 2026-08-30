@@ -12,5 +12,6 @@ export const defaultOptions: Preferences = {
     transferPageSize: 15,
     daemonClose: 'ask',
     trayHeight: 260,
+    showHiddenFiles: false,
 };
 

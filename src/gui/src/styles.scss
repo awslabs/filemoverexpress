@@ -244,16 +244,16 @@ mat-chip.warning {
 
     // ConfigComponent is a routed component reused in a dialog, so — unlike the other
     // modals — it has no mat-dialog-content scroll region. The dialog surface is a
-    // column flexbox capped at maxHeight, so make fme-config fill the available height
-    // and scroll internally; otherwise tall panels (e.g. an expanded Hot Folder) overflow
-    // the cap and get clipped with no way to scroll down.
+    // column flexbox capped at maxHeight; the inner .settings-content (inside the fixed
+    // 62vh card) owns the scroll. fme-config itself must NOT also scroll, or a tall tab
+    // shows TWO nested scrollbars (fme-config + .settings-content). Keep it overflow:hidden.
     fme-config {
         margin: 0 !important;
         display: block;
         padding: 20px 24px 20px;
         flex: 1 1 auto;
         min-height: 0;
-        overflow-y: auto;
+        overflow: hidden;
     }
 
     fme-config h1,
@@ -276,6 +276,16 @@ mat-chip.warning {
 // so drop the dialog surface's border to avoid a double box (box-in-a-box).
 .rc-editor-dialog .mat-mdc-dialog-surface {
     border: none !important;
+}
+
+// The RC form wraps its fixed-height card (.rc-card, 62vh) whose .rc-content owns the
+// scroll — but it sits inside a <div mat-dialog-content>, which by default scrolls too
+// (max-height:65vh; overflow:auto). That produced two nested scrollbars. Neutralize the
+// Material content scroll so only the inner .rc-content scrolls (mirrors the Job Details
+// modal's fix).
+.rc-editor-dialog .mat-mdc-dialog-content {
+    max-height: unset;
+    overflow: hidden;
 }
 
 // The footer actions (Delete / Close / Update) were touching the rounded bottom

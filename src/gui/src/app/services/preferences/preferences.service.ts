@@ -88,4 +88,13 @@ export class PreferencesService {
         this.save();
     }
 
+    get showHiddenFiles(): boolean {
+        return this.preferences.showHiddenFiles;
+    }
+
+    set showHiddenFiles(value: boolean) {
+        this.preferences.showHiddenFiles = value;
+        this.save();
+    }
+
 }

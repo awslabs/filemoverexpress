@@ -1,115 +1,185 @@
 @use 'sass:color';
 @use '../../../../../styles/variables';
 
-$button-color: variables.$theme-accent-main;
-$button-hover-color: color.adjust(variables.$theme-accent-main, $lightness: 12%, $space: hsl);
-
 .mat-mdc-form-field {
     width: 100%;
     display: block;
 }
 
-div.form-field {
-    width: 100%;
-    display: block;
-    margin-bottom: 14px;
-    margin-top: 4px;
-}
-
-// Each hot folder reads as a distinct bordered card (the modal surface is the outer
-// card; a 1px border + radius here makes an existing hot folder obviously present
-// instead of a bare line of text). Fields inside keep their darker fill for contrast.
-mat-expansion-panel {
+// Each hot folder reads as a distinct bordered card (mockup "hf-card"): a 12px rounded
+// border groups the header (flame + name + enable toggle) with its expanded body.
+mat-expansion-panel.hf-card {
     background: transparent !important;
     border: 1px solid variables.$grey-600 !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     box-shadow: none !important;
     margin-bottom: 12px;
+    overflow: hidden;
 
     &:last-of-type {
         margin-bottom: 0;
     }
 }
 
-// The hot folder name in the (collapsed) header — prominent, not muted afterthought.
-.section-header {
-    font-size: 14px;
-    font-weight: 600;
-    color: variables.$text-heading-element;
-}
-
-// The source path shown on the right of the header, so multiple hot folders are
-// distinguishable at a glance without expanding each one.
-.hf-panel-desc.mat-expansion-panel-header-description {
-    justify-content: flex-end;
-    align-items: center;
-    color: variables.$grey-500;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-form > div {
-    margin-bottom: 20px;
-}
-
-mat-form-field:not(:last-child) {
-    margin-bottom: 12px;
-}
-
-.mat-expansion-panel-header-description {
+// region card header
+.hf-head-title {
     display: flex;
-    justify-content: flex-end;
-}
-
-.padding {
-    padding: 10px;
-}
-
-.hftxp-grid {
-    display: grid;
-    // Wrap to a single column when the panel is narrow (prevents the right side being
-    // cut off), and top-align the two columns so a validation error under one field
-    // doesn't drag the whole column out of alignment with the other.
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    align-items: start;
-    grid-gap: 16px;
-}
-
-.hftxp-general,
-.hftxp-txp {
+    align-items: center;
+    gap: 10px;
     min-width: 0;
 }
 
-.hftxp-txp-list {
-    margin-bottom: 35px !important;
+.hf-flame {
+    color: variables.$badge-hot-color;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    line-height: 18px;
+    flex-shrink: 0;
+}
 
-    &:last-child {
-        margin-bottom: 0 !important;
+.hf-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: variables.$text-heading-element;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.error {
+        color: variables.$theme-warn-main;
     }
 }
 
-.add-button {
-    float: right;
-    color: $button-color;
+.hf-error-icon {
+    color: variables.$theme-warn-main;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    line-height: 18px;
+    flex-shrink: 0;
+}
+
+// Right side of the header: destination count + the enable toggle, pushed to the right.
+.hf-head-desc.mat-expansion-panel-header-description {
+    flex-grow: 1;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+
+.hf-dest-count {
+    font-size: 11px;
+    color: variables.$grey-500;
+    white-space: nowrap;
+}
+// endregion
+
+// region card body
+.hf-card-body {
+    padding: 16px;
+    border-top: 1px solid variables.$grey-600;
+}
+
+// Name + Local Source Folder side by side (wraps to one column when narrow).
+.hf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: start;
+    grid-gap: 16px;
+    margin-bottom: 4px;
+}
+
+.hf-dest-label {
+    font-size: 12px;
+    color: variables.$text-form-field-hint;
+    margin-bottom: 8px;
+}
+
+.hf-dest-error {
+    color: variables.$theme-warn-main;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+// Each destination is a bordered block: the two fields plus a Remove link.
+.hf-dest-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid variables.$grey-600;
+    border-radius: 8px;
+}
+
+.hf-dest-fields {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    align-items: start;
+    grid-gap: 12px;
+}
+
+.hf-remove {
+    color: variables.$theme-warn-main;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-top: 18px;
 
     &:hover {
-        cursor: pointer;
-        color: $button-hover-color;
+        text-decoration: underline;
     }
 }
 
-.error {
+// Blue "+ Add destination" call-to-action (mockup).
+.hf-add-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: variables.$text-link;
+    font-size: 12px;
+    cursor: pointer;
+
+    mat-icon {
+        font-size: 16px;
+        height: 16px;
+        width: 16px;
+        line-height: 16px;
+    }
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+// Muted destructive text link at the bottom of the card.
+.hf-delete-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     color: variables.$theme-warn-main;
-}
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 18px;
 
-.panel-title-icon {
-    font-size: 20px;
-}
+    mat-icon {
+        font-size: 16px;
+        height: 16px;
+        width: 16px;
+        line-height: 16px;
+    }
 
-.hot-folder-form-fields-container {
-    padding-bottom: 12px;
+    &:hover {
+        text-decoration: underline;
+    }
+}
+// endregion
+
+.padding {
+    padding: 10px;
 }
 
 // Zero-state for the Configure Hot Folders modal: an intentional empty-state block

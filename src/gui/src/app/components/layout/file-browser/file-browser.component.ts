@@ -40,6 +40,7 @@ import { TruncateStringPipe } from '@app/pipes/truncate-string.pipe';
 import { dirname } from '@app/utils/utils';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { FileBrowserService } from '@services/file-browser/file-browser.service';
+import { PreferencesService } from '@services/preferences/preferences.service';
 import { interval, Subscription } from 'rxjs';
 import {
     AUTO_REFRESH_INTERVAL_MSECS,
@@ -118,6 +119,10 @@ import {
 })
 export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
     protected fileBrowser = inject(FileBrowserService);
+    private preferences = inject(PreferencesService);
+    // Cached copy of the "Show hidden files" preference. When false (default) the browser
+    // hides dotfiles; kept in sync via the preferences.onUpdate subscription below.
+    private showHiddenFiles = false;
 
     @Input() fileBrowserType: FileBrowserType = 'unknown';
     @Input() fileBrowserID = '';
@@ -163,6 +168,15 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
     readonly rgxGlacier = new RegExp(/glacier|snow|deep[\s|_]*archive/);
 
     constructor() {
+        this.showHiddenFiles = this.preferences.showHiddenFiles;
+        // Re-filter the listing when "Show hidden files" is toggled in Settings. Only act
+        // on an actual change so unrelated preference updates don't reset the table.
+        this.subscriptions.push(this.preferences.onUpdate.subscribe(() => {
+            if (this.showHiddenFiles !== this.preferences.showHiddenFiles) {
+                this.showHiddenFiles = this.preferences.showHiddenFiles;
+                this.datasource.data = this.getFileBrowserList();
+            }
+        }));
         // check if the auto refresh request is relevant and update hasPendingChanges if so
         this.subscriptions.push(this.fileBrowser.autoRefreshRequests.subscribe({
             next: (refreshData) => {
@@ -851,12 +865,28 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
      */
     private getFileBrowserList(): FileBrowserObject[] {
         if (this.isRoot || this.fileBrowserData.state !== FileBrowserState.LOADED) {
-            return this.fileBrowserData.state === FileBrowserState.LOADED ? [...this.fileBrowserData.list] : [];
+            return this.fileBrowserData.state === FileBrowserState.LOADED ? this.applyHiddenFilter([...this.fileBrowserData.list]) : [];
         } else {
             return [
-                PREVIOUS_FOLDER_OBJECT, ...this.fileBrowserData.list,
+                PREVIOUS_FOLDER_OBJECT, ...this.applyHiddenFilter(this.fileBrowserData.list),
             ];
         }
+    }
+
+    /**
+     * Hides dotfiles (entries whose basename starts with '.') unless the user has enabled
+     * "Show hidden files" in Settings > UI Preferences. The parent-directory ('..') row is
+     * added separately by getFileBrowserList and is never passed through this filter.
+     * @private
+     */
+    private applyHiddenFilter(list: FileBrowserObject[]): FileBrowserObject[] {
+        if (this.showHiddenFiles) {
+            return list;
+        }
+        return list.filter((obj) => {
+            const basename = obj.name.split('/').filter(Boolean).pop() ?? obj.name;
+            return !basename.startsWith('.');
+        });
     }
 
     /**

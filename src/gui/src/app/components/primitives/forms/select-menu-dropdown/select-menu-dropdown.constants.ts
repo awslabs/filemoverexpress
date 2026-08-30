@@ -27,8 +27,8 @@ export const TRASH_ICON: DropdownIcon = {
 };
 
 export const STOP_ICON: DropdownIcon = {
-    icon: 'stop_circle',
-    style: 'outlined',
+    icon: '',
     iconColor: 'orange',
+    shape: 'square',
     tooltipText: 'Stop the daemon',
 };

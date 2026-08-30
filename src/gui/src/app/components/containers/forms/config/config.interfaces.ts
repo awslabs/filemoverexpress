@@ -1,5 +1,4 @@
-import { FormArray, FormControl, FormGroup } from '@angular/forms';
-import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
+import { FormControl, FormGroup } from '@angular/forms';
 import { TransferProfile } from '@app/classes';
 
 export interface ConfigFormGeneralGroup {
@@ -36,5 +35,4 @@ export interface ConfigFormGroup {
     logging: FormGroup<ConfigFormLoggingGroup>;
     reports: FormGroup<ConfigFormReportsGroup>;
     protocols: FormGroup<ConfigFormProtocolsGroup>;
-    uploadHotFolders: FormArray<FormGroup<HotFolderFormGroup>>;
 }

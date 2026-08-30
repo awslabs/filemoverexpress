@@ -1,18 +1,24 @@
 @use "../../../../styles/variables";
+@use "../../../../styles/fonts";
 
 div {
     padding: 8px 0;
 }
 
 section {
-    // Section-group label (e.g. "General settings", "Destinations") — blue uppercase, per mockup.
+    // Section-group label (e.g. "NAME", "HOST", "PORT NUMBER") — a small blue caps label.
+    // The global `h2` rule (styles.scss) forces 20px/900/heavy-font with !important, which
+    // made these headings read huge and jarring; override with !important to keep them a
+    // compact, calmer label sized in line with the rest of the app.
     h2 {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        font-family: fonts.$font-family !important;
+        line-height: 1.4 !important;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
         color: variables.$blue-500;
-        margin: 16px 0 6px;
+        margin: 14px 0 4px !important;
     }
 
     // The hot-folder hint (and some others) use <h4> for sub-items; white item heading.

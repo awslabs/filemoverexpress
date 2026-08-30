@@ -46,10 +46,9 @@
     align-items: center;
     gap: 2px;
 
-    // Compact the icon buttons so they sit comfortably in the slimmer 40px bar.
-    .mat-mdc-icon-button {
-        width: 34px;
-        height: 34px;
-        padding: 5px;
-    }
+    // NOTE: icon-button sizing lives in the global `mat-toolbar .mat-mdc-icon-button`
+    // rule (styles.scss). A component-scoped size here only reached the Info button
+    // (the bell/gear render in child components that view-encapsulation can't touch),
+    // which made its box narrower and the gaps uneven. Sizing all three from the one
+    // global rule keeps the spacing even.
 }
