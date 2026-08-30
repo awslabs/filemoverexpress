@@ -5,7 +5,10 @@ inputs:
   node-version:
     description: 'Node.js version to install on the runner'
     required: false
-    default: '25'
+    # Node 24 is the current LTS and satisfies the Angular 22 toolchain engine
+    # range (^22.22.3 || ^24.15.0 || >=26.0.0). Node 25 is an odd/non-LTS release
+    # that is explicitly excluded by that range, so do not use it here.
+    default: '24'
   go-version:
     description: 'Go version to install on the runner'
     required: false
