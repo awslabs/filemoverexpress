@@ -8,7 +8,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { AppState } from '@app/state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 describe('DaemonSelectorDropdownComponent', () => {
@@ -22,7 +21,6 @@ describe('DaemonSelectorDropdownComponent', () => {
                 MatMenuModule,
                 MatIconModule,
                 MatDialogModule,
-                NoopAnimationsModule,
                 MatTooltipModule,
             ],
             providers: [

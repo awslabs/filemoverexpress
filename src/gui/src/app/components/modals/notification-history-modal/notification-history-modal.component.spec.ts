@@ -11,7 +11,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSortModule } from '@angular/material/sort';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('NotificationHistoryModalComponent', () => {
     let component: NotificationHistoryModalComponent;
@@ -26,7 +25,6 @@ describe('NotificationHistoryModalComponent', () => {
                 MatSortModule,
                 ReactiveFormsModule,
                 MatTableModule,
-                NoopAnimationsModule,
             ],
             providers: [{provide: MatDialogRef, useValue: {}}, provideMockStore<AppState>({initialState: initialTestState})],
         });

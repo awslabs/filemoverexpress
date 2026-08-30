@@ -6,7 +6,6 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
 import { StoreModule } from '@ngrx/store';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('BucketReportService', () => {
     let service: BucketReportService;
@@ -14,9 +13,7 @@ describe('BucketReportService', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
-                StoreModule,
-                MatSnackBarModule,
-                NoopAnimationsModule,
+                StoreModule, MatSnackBarModule,
             ],
             providers: [
                 provideMockStore<AppState>({initialState: initialTestState}),

@@ -10,7 +10,6 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('HotFolderFormComponent', () => {
     let component: HotFolderFormComponent;
@@ -25,7 +24,6 @@ describe('HotFolderFormComponent', () => {
                 MatFormFieldModule,
                 MatBadgeModule,
                 MatTooltipModule,
-                NoopAnimationsModule,
             ],
             providers: [provideMockStore<AppState>({initialState: initialTestState})],
         });

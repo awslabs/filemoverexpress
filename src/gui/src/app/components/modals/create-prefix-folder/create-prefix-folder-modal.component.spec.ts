@@ -8,7 +8,6 @@ import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreatePrefixFolderModalComponent } from '@modals/create-prefix-folder/create-prefix-folder-modal.component';
@@ -27,7 +26,6 @@ describe('CreatePrefixFolderComponent', () => {
                 ReactiveFormsModule,
                 MatFormFieldModule,
                 MatInputModule,
-                NoopAnimationsModule,
                 MatBadgeModule,
                 MatTooltipModule,
             ],

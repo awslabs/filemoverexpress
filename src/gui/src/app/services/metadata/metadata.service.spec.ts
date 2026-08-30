@@ -6,7 +6,6 @@ import { Overlay } from '@angular/cdk/overlay';
 import { provideMockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 
 describe('MetadataService', () => {
@@ -14,7 +13,7 @@ describe('MetadataService', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NoopAnimationsModule],
+            imports: [],
             providers: [
                 MatSnackBar,
                 FmeClientService,

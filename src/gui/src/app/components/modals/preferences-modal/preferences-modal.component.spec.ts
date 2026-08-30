@@ -6,7 +6,6 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FormsModule } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -23,7 +22,6 @@ describe('PreferencesComponent', () => {
                 MatIconModule,
                 MatTooltipModule,
                 MatSelectModule,
-                NoopAnimationsModule,
                 MatSlideToggleModule,
                 FormsModule,
                 MatBadgeModule,

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TableGroupComponent } from './table-group.component';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -26,7 +25,6 @@ describe('TableGroupComponent', () => {
             imports: [
                 MatSnackBarModule,
                 MatTabsModule,
-                NoopAnimationsModule,
                 MatMenuModule,
                 FormsModule,
                 ReactiveFormsModule,

@@ -5,7 +5,6 @@ import { StoreModule } from '@ngrx/store';
 import { MatOptionModule } from '@angular/material/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatInputModule } from '@angular/material/input';
 import { provideMockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
@@ -24,7 +23,6 @@ describe('ReportsTableComponent', () => {
                 MatOptionModule,
                 MatTableModule,
                 MatFormFieldModule,
-                NoopAnimationsModule,
                 MatInputModule,
             ],
             providers: [

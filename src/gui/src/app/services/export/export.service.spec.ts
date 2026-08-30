@@ -5,7 +5,6 @@ import { AppState } from '@app/state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ExportService', () => {
     let service: ExportService;
@@ -13,7 +12,7 @@ describe('ExportService', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
-                MatSnackBarModule, NoopAnimationsModule,
+                MatSnackBarModule,
             ],
             providers: [
                 ExportService, provideMockStore<AppState>({initialState: initialTestState}),

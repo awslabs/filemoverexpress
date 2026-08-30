@@ -9,7 +9,6 @@ import { StoreModule } from '@ngrx/store';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { appRoutes } from '@app/components/layout/shell/app.routes';
 import { BehaviorSubject } from 'rxjs';
 import { MetadataEvent } from '@events/core';
@@ -36,7 +35,6 @@ describe('configRouteGuard', () => {
                 RouterTestingModule.withRoutes(appRoutes),
                 MatSnackBarModule,
                 StoreModule,
-                NoopAnimationsModule,
             ],
             providers: [
                 { provide: FmeClientService, useValue: mockFmeClientService }, provideMockStore<AppState>({ initialState: initialTestState }),

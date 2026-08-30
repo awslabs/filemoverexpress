@@ -11,7 +11,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { AppState } from '@app/state';
 import { MatSelectModule } from '@angular/material/select';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatInputModule } from '@angular/material/input';
 
 describe('LogsTableComponent', () => {
@@ -28,7 +27,6 @@ describe('LogsTableComponent', () => {
                 ReactiveFormsModule,
                 MatFormFieldModule,
                 MatSelectModule,
-                NoopAnimationsModule,
                 MatInputModule,
             ],
             providers: [

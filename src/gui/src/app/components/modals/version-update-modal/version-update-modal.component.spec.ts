@@ -7,7 +7,6 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { StoreModule } from '@ngrx/store';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 
@@ -21,7 +20,6 @@ describe('VersionUpdateModalComponent', () => {
                 MatSnackBarModule,
                 StoreModule,
                 MatDialogModule,
-                NoopAnimationsModule,
                 MatTooltipModule,
                 MatBadgeModule,
             ],

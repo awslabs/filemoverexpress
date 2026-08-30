@@ -5,7 +5,6 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { provideMockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('TransferService', () => {
     let service: TransferService;
@@ -13,7 +12,7 @@ describe('TransferService', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
-                MatSnackBarModule, NoopAnimationsModule,
+                MatSnackBarModule,
             ],
             providers: [
                 TransferService, provideMockStore<AppState>({initialState: initialTestState}),

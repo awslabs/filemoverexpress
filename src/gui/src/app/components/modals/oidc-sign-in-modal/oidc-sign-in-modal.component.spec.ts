@@ -5,7 +5,6 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { WailsService } from '@services/wails/wails.service';
 import { of, Subject, throwError } from 'rxjs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { OidcSignInModalData } from './oidc-sign-in-modal.interfaces';
 
 describe('OidcSignInModalComponent', () => {
@@ -37,7 +36,7 @@ describe('OidcSignInModalComponent', () => {
         };
 
         await TestBed.configureTestingModule({
-            imports: [OidcSignInModalComponent, NoopAnimationsModule],
+            imports: [OidcSignInModalComponent],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: dialogData },
                 { provide: MatDialogRef, useValue: mockDialogRef },

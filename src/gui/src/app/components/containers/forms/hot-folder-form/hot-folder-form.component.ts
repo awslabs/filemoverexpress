@@ -61,6 +61,7 @@ export class HotFolderFormComponent implements OnDestroy {
     private metadata = inject(MetadataService);
     private metadataSignal = toSignal(this.metadata.onUpdate);
     private changeSub: Subscription | null = null;
+    private pendingEmit: ReturnType<typeof setTimeout> | null = null;
     private store = inject<Store<AppState>>(Store);
     private currentS3Path = this.store.selectSignal(selectBucketBrowserPath);
     protected warning: string | null = null;
@@ -140,13 +141,25 @@ export class HotFolderFormComponent implements OnDestroy {
         // statusChanges does not fire on subscription, so emit the initial state once.
         // Without this the parent modal's mirrored form stays null and its Save guard
         // can't see that a new hot folder is invalid (e.g. missing name).
-        setTimeout(() => this.hotFoldersEdited.emit(hff));
+        // Track the handle so a pending deferred emit can be cancelled on destroy
+        // (otherwise it fires against a destroyed OutputRef -> NG0953).
+        if (this.pendingEmit) {
+            clearTimeout(this.pendingEmit);
+        }
+        this.pendingEmit = setTimeout(() => {
+            this.pendingEmit = null;
+            this.hotFoldersEdited.emit(hff);
+        });
 
         return hff;
     });
 
     ngOnDestroy() {
         this.changeSub?.unsubscribe();
+        if (this.pendingEmit) {
+            clearTimeout(this.pendingEmit);
+            this.pendingEmit = null;
+        }
     }
 
     /**

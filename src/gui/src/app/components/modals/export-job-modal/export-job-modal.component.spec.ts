@@ -9,7 +9,6 @@ import { initialTestState } from '@state/test.state';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -24,7 +23,6 @@ describe('ExportJobModalComponent', () => {
             imports: [
                 MatDialogModule,
                 MatSelectModule,
-                NoopAnimationsModule,
                 MatFormFieldModule,
                 StoreModule,
                 MatSnackBarModule,

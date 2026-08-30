@@ -4,7 +4,6 @@ import { OidcAuthStatusComponent } from './oidc-auth-status.component';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { of } from 'rxjs';
 import { ComponentRef } from '@angular/core';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('OidcAuthStatusComponent', () => {
     let component: OidcAuthStatusComponent;
@@ -23,7 +22,7 @@ describe('OidcAuthStatusComponent', () => {
 
         await TestBed.configureTestingModule({
             imports: [
-                OidcAuthStatusComponent, NoopAnimationsModule,
+                OidcAuthStatusComponent,
             ],
             providers: [
                 { provide: FmeClientService, useValue: mockFmeClient },

@@ -9,7 +9,6 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
 import { MatInputModule } from '@angular/material/input';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -20,7 +19,6 @@ describe('StartingPathEditorModalComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
-                NoopAnimationsModule,
                 MatDialogModule,
                 MatBottomSheetModule,
                 MatFormFieldModule,

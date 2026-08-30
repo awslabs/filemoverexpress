@@ -6,7 +6,6 @@ import { RouterModule } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReactiveFormsModule } from '@angular/forms';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatInputModule } from '@angular/material/input';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -24,7 +23,6 @@ describe('DaemonEditorComponent', () => {
                 MatFormFieldModule,
                 MatSlideToggleModule,
                 ReactiveFormsModule,
-                NoopAnimationsModule,
                 MatInputModule,
                 MatBottomSheetModule,
                 MatTooltipModule,
