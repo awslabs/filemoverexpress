@@ -10,7 +10,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 
@@ -27,7 +26,6 @@ describe('TransferComponent', () => {
                 MatIconModule,
                 MatMenuModule,
                 FormsModule,
-                NoopAnimationsModule,
                 MatTooltipModule,
                 MatBadgeModule,
             ],

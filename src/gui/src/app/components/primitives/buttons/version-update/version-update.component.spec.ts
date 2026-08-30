@@ -7,7 +7,6 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { AppState } from '@app/state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('VersionUpdateComponent', () => {
     let component: VersionUpdateComponent;
@@ -19,7 +18,6 @@ describe('VersionUpdateComponent', () => {
                 MatSnackBarModule,
                 StoreModule,
                 MatDialogModule,
-                NoopAnimationsModule,
             ],
             providers: [
                 provideMockStore<AppState>({initialState: initialTestState}),

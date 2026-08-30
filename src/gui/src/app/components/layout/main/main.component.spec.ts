@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MainComponent } from './main.component';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { AppState } from '@app/state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -27,7 +26,6 @@ describe('MainComponent', () => {
         TestBed.configureTestingModule({
             imports: [
                 MatTabsModule,
-                NoopAnimationsModule,
                 MatSnackBarModule,
                 MatDialogModule,
                 MatMenuModule,

@@ -11,7 +11,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { StoreModule } from '@ngrx/store';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -40,7 +39,6 @@ describe('SetupWizardModalComponent', () => {
                 MatTooltipModule,
                 MatChipsModule,
                 MatCheckboxModule,
-                NoopAnimationsModule,
                 MatSnackBarModule,
                 StoreModule,
                 MatExpansionModule,

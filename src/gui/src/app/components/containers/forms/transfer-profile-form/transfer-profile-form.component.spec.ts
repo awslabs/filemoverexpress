@@ -11,7 +11,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { StoreModule } from '@ngrx/store';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -36,7 +35,6 @@ describe('TransferProfileFormComponent', () => {
                 MatSlideToggleModule,
                 MatTooltipModule,
                 MatChipsModule,
-                NoopAnimationsModule,
                 MatSnackBarModule,
                 StoreModule,
                 MatAutocompleteModule,

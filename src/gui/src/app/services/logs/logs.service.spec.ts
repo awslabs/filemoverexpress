@@ -4,7 +4,6 @@ import { LogsService } from './logs.service';
 import { provideMockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 describe('LogsService', () => {
@@ -12,7 +11,7 @@ describe('LogsService', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NoopAnimationsModule, MatSnackBarModule],
+            imports: [MatSnackBarModule],
             providers: [
                 provideMockStore<AppState>({initialState: initialTestState}),
             ],

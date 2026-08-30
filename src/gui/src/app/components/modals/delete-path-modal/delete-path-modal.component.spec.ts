@@ -5,7 +5,6 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -27,7 +26,6 @@ describe('DeletePathModalComponent', () => {
                 ReactiveFormsModule,
                 MatFormFieldModule,
                 MatInputModule,
-                NoopAnimationsModule,
                 MatBadgeModule,
                 MatTooltipModule,
                 MatIconModule,

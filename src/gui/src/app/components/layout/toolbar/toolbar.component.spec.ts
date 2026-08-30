@@ -13,7 +13,6 @@ import { StoreModule } from '@ngrx/store';
 import { AppState } from '@app/state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialTestState } from '@state/test.state';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ToolbarComponent', () => {
     let component: ToolbarComponent;
@@ -31,7 +30,6 @@ describe('ToolbarComponent', () => {
                 MatMenuModule,
                 MatDividerModule,
                 StoreModule,
-                NoopAnimationsModule,
             ],
             providers: [
                 provideMockStore<AppState>({initialState: initialTestState}),

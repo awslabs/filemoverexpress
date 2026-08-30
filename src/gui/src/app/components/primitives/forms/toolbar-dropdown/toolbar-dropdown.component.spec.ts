@@ -5,7 +5,6 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { AppState } from '@app/state';
 import { StoreModule } from '@ngrx/store';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -26,7 +25,6 @@ describe('ToolbarDropdownComponent', () => {
                 MatDialogModule,
                 MatDividerModule,
                 StoreModule,
-                NoopAnimationsModule,
             ],
             providers: [
                 provideMockStore<AppState>({initialState: initialTestState}), provideRouter([]),
