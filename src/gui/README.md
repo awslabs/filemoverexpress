@@ -115,7 +115,7 @@ ng test --coverage
 ng test --watch=false
 ```
 
-Tests run on the Vitest runner via the Angular `@angular/build:unit-test` builder (configured in `vitest.config.ts`). Property-based tests use `@fast-check/vitest`.
+Tests run on the Vitest runner via the Angular `@angular/build:unit-test` builder (configured in `vitest.config.mts`). Property-based tests use `@fast-check/vitest`.
 
 ## Linting
 
