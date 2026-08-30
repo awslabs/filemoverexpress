@@ -7,6 +7,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatInput } from '@angular/material/input';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatProgressBar } from '@angular/material/progress-bar';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
 import {
     MatCell,
     MatColumnDef,
@@ -27,6 +28,7 @@ import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
 import { JobStatusClassPipe, JobStatusPipe, TaskTableStatusClassPipe } from '@app/pipes/jobs-table-status.pipe';
 import { TaskStatusPipe } from '@app/pipes/task-status.pipe';
+import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { getOSFileBrowserName } from '@app/components/layout/file-browser/file-browser.utils';
 import {
@@ -80,9 +82,12 @@ const SKIPPED_STATES = [TaskStatus.Skipped, TaskStatus.Cancelled];
         MatHeaderCellDef,
         TaskTableStatusClassPipe,
         MatProgressBar,
+        MatSort,
+        MatSortHeader,
         NgClass,
         TypeSafeMatCellDefDirective,
         TaskStatusPipe,
+        FormatBytesPipe,
         MatNoDataRow,
         MatHeaderRow,
         MatRow,
@@ -101,14 +106,18 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     protected readonly TransferDirection = TransferDirection;
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
+    @ViewChild(MatSort) sort!: MatSort;
 
     protected readonly MAX_INFO_STRING_LENGTH = 32;
     protected readonly MAX_TABLE_STRING_LENGTH = 56;
     private refreshTimer: number | null = null;
     private subscriptions: Subscription[] = [];
 
-    // Left-nav view: the file-status filters (replacing the old tab bar) plus a Logs view.
-    view: 'all' | 'pending' | 'completed' | 'skipped' | 'failed' | 'logs' = 'all';
+    // Top-level view: Files (the task list + its status filters) vs Logs (job-level events).
+    // These are peers now — Logs is no longer stacked above the file table.
+    tab: 'files' | 'logs' = 'files';
+    // Status filter within the Files tab.
+    fileFilter: 'all' | 'pending' | 'completed' | 'skipped' | 'failed' = 'all';
     // Advanced details section is collapsed by default (status/progress/errors come first).
     advancedOpen = false;
     // Job-scoped log entries, sourced from the logs store (filtered by this job's id).
@@ -121,6 +130,8 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     tasksLoaded = false;
     displayedColumns: string[] = [
         'name',
+        'size',
+        'dateModified',
         'progress',
         'status',
     ];
@@ -175,8 +186,8 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
         this.loadTasks();
         this.loadProfileDetails();
         // Open on Logs for a failed job (users look there first to see why it failed),
-        // otherwise show all files.
-        this.view = this.isError ? 'logs' : 'all';
+        // otherwise show the file list.
+        this.tab = this.isError ? 'logs' : 'files';
         // Keep the summary live while the modal is open (progress/speed/status for active jobs).
         this.subscriptions.push(this.store.select(jobSelectAll).subscribe((jobs) => {
             const job = jobs.find((j) => j.id === this.jobDetails.jobId);
@@ -212,6 +223,26 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         this.dataSource.paginator = this.paginator;
+        this.dataSource.sort = this.sort;
+        // Sort by the underlying value, not the rendered string: numeric bytes for Size,
+        // epoch millis for Date Modified, and the human status label so identical statuses
+        // (Completed, In Progress, Skipped, …) group together in the All Files view.
+        this.dataSource.sortingDataAccessor = (item, property): string | number => {
+            switch (property) {
+                case 'name':
+                    return item.name.toLowerCase();
+                case 'size':
+                    return item.sizeBytes ?? 0;
+                case 'dateModified':
+                    return item.lastModified ? item.lastModified.getTime() : 0;
+                case 'progress':
+                    return item.progress;
+                case 'status':
+                    return this.taskStatusPipe.transform(item.status);
+                default:
+                    return '';
+            }
+        };
     }
 
     ngOnDestroy() {
@@ -287,13 +318,16 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     private processTask(task: Task): TaskElement {
         let source: string;
         let totalBytes: number;
+        let lastModified: Date | undefined;
 
         if (task.direction === 'DOWNLOAD') {
             source = task.s3Object.key;
             totalBytes = task.s3Object.size;
+            lastModified = task.s3Object.lastModified;
         } else {
             source = task.localFile.path;
             totalBytes = task.localFile.size;
+            lastModified = task.localFile.lastModified;
         }
 
         // Track the largest file — the Parallelism row derives auto-tune's picks from it.
@@ -315,36 +349,46 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
             progress: taskProgress,
             status: stringToTaskStatus(task.status),
             type: ObjectType.File,
+            sizeBytes: totalBytes,
+            lastModified: lastModified,
         };
     }
 
-    selectView(view: 'all' | 'pending' | 'completed' | 'skipped' | 'failed' | 'logs') {
-        this.view = view;
-        switch (view) {
+    selectFileFilter(filter: 'all' | 'pending' | 'completed' | 'skipped' | 'failed') {
+        this.fileFilter = filter;
+        switch (filter) {
             case 'all':
                 this.filterForm.controls.status.setValue([]);
                 this.displayedColumns = ['name',
+                    'size',
+                    'dateModified',
                     'progress',
                     'status'];
                 break;
             case 'pending':
                 this.filterForm.controls.status.setValue([...PENDING_STATES]);
-                this.displayedColumns = ['name'];
+                this.displayedColumns = ['name',
+                    'size',
+                    'dateModified'];
                 break;
             case 'completed':
                 this.filterForm.controls.status.setValue(['COMPLETED']);
-                this.displayedColumns = ['name'];
+                this.displayedColumns = ['name',
+                    'size',
+                    'dateModified'];
                 break;
             case 'skipped':
                 this.filterForm.controls.status.setValue([...SKIPPED_STATES]);
-                this.displayedColumns = ['name'];
+                this.displayedColumns = ['name',
+                    'size',
+                    'dateModified'];
                 break;
             case 'failed':
                 this.filterForm.controls.status.setValue(['ERROR']);
-                this.displayedColumns = ['name', 'progress'];
-                break;
-            case 'logs':
-                // Logs view renders its own list; the file filter is irrelevant.
+                this.displayedColumns = ['name',
+                    'size',
+                    'dateModified',
+                    'progress'];
                 break;
         }
     }
@@ -353,6 +397,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
     private readonly jobStatusPipe = new JobStatusPipe();
     private readonly jobStatusClassPipe = new JobStatusClassPipe();
+    private readonly taskStatusPipe = new TaskStatusPipe();
 
     get isActive(): boolean {
         return PROGRESS_STATES.includes(this.jobDetails.status);

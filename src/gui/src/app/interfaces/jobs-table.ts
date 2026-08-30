@@ -34,4 +34,10 @@ export interface TaskElement {
     progress: number;
     type: ObjectType;
     status: TaskStatus;
+    // Full size of the source file in bytes — shown/sortable in the Size column.
+    // Optional so other TaskElement producers don't have to supply it.
+    sizeBytes?: number;
+    // Last-modified time of the source (local file for uploads, S3 object for downloads).
+    // Shown/sortable in the Date Modified column.
+    lastModified?: Date;
 }

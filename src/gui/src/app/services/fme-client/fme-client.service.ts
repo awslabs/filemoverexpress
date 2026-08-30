@@ -919,6 +919,17 @@ export class FmeClientService {
         }
     }
 
+    /**
+     * User-initiated cancel of an in-flight connection attempt. A connection can otherwise
+     * sit on "Connecting…" indefinitely — the stream may hang without ever erroring (so the
+     * grace-period/backoff retry never advances), leaving no way out. This tears the attempt
+     * down via forceDisconnect() (cancels the stream, drops the client, invalidates the
+     * attempt id so the reconnect loop stops) and flips the UI to disconnected immediately.
+     */
+    cancelConnection(): void {
+        this.forceDisconnect();
+    }
+
     //endregion
 
     //region Alerts

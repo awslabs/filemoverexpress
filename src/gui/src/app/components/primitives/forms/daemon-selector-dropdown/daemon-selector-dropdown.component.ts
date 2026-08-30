@@ -129,10 +129,22 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
     /**
      * Pushes a daemon's rows — its name/header row plus its favorite paths and the
      * "Add Favorite Path…" action — onto the given list.
+     *
+     * A remote daemon's favorites (and its "Add Favorite Path…" action) are shown ONLY when
+     * that daemon is the one you're actually connected to. With several remote daemons each
+     * holding a handful of favorites, expanding them all at once floods the dropdown; a user
+     * can't navigate a favorite on a daemon they aren't connected to anyway. The local file
+     * system always expands (it's always reachable).
      * @private
      */
     private pushDaemonRows(items: DropdownItem[], bookmark: Bookmark) {
         items.push(this.createDaemonNameHeaderRow(bookmark));
+        const isLocal = bookmark.name === DEFAULT_BOOKMARK_NAME;
+        const isConnectedActive = this.currentBookmark?.name === bookmark.name
+            && this.connectionState === ConnectionState.CONNECTED;
+        if (!isLocal && !isConnectedActive) {
+            return;
+        }
         for (const favoritePath of bookmark.favoritePaths) {
             items.push(this.createFavoritePathSubRow(bookmark, favoritePath));
         }
