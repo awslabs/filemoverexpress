@@ -188,11 +188,10 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 				Level: eventtypes.Warning,
 			})
 		}
-		if errors.Is(err, fterrors.ErrJobPaused) {
-			atomic.AddInt64(&job.BytesDownloaded, -writer.BytesWritten())
-			atomic.StoreInt64(&task.BytesTransferred, 0)
-		}
 		cancelProgressChan <- true
+		if errors.Is(err, fterrors.ErrJobPaused) {
+			rollbackPausedTaskProgress(&job.BytesDownloaded, task)
+		}
 		return err
 	} else if task.TaskDirection() == jobmanagertypes.TaskDirectionUpload {
 		file, err := os.Open(task.LocalFile().Path)
@@ -238,12 +237,27 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 
 		cancelProgressChan <- true
 		if errors.Is(err, fterrors.ErrJobPaused) {
-			atomic.AddInt64(&job.BytesUploaded, -reader.BytesRead())
-			atomic.StoreInt64(&task.BytesTransferred, 0)
+			rollbackPausedTaskProgress(&job.BytesUploaded, task)
 		}
 		return err
 	}
 	return errors.New("unknown transfer direction")
+}
+
+// rollbackPausedTaskProgress reverses a paused task's contribution to the job's
+// running byte total. updateUploadJobProgress / updateDownloadJobProgress
+// increment the job counter and task.BytesTransferred in lockstep, so
+// task.BytesTransferred is exactly what this task added to the job total.
+// Subtract that — NOT the transport's read/written count, which runs ahead of
+// the last sampled progress (and can re-read multipart chunks). Subtracting the
+// transport total over-counted the un-sampled tail on every pause, so the job's
+// progress drifted downward across repeated pause/resume cycles even as more
+// files completed. The task's counter is then reset so it re-counts cleanly
+// when it restarts on resume.
+func rollbackPausedTaskProgress(jobCounter *int64, task *jobmanagertypes.Task) {
+	counted := atomic.LoadInt64(&task.BytesTransferred)
+	atomic.AddInt64(jobCounter, -counted)
+	atomic.StoreInt64(&task.BytesTransferred, 0)
 }
 
 func updateDownloadJobProgress(task *jobmanagertypes.Task, job *jobmanagertypes.Job, cancelChan chan bool,

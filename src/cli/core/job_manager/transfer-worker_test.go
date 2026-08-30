@@ -432,3 +432,51 @@ func TestFinishTask_DecrementsExactlyOnce(t *testing.T) {
 		t.Error("MarkFinished() returned true after the task was already finished")
 	}
 }
+
+// TestRollbackPausedTaskProgress is a regression test for the pause/resume
+// progress bug where a job's transferred-byte total ran backwards on resume.
+// Pausing a task mid-transfer must remove EXACTLY the bytes that task counted
+// into the job total (task.BytesTransferred), not the transport's read/written
+// count. The transport runs ahead of the last sampled progress, so subtracting
+// it over-counted the un-sampled tail and dragged the job's progress down on
+// every pause/resume cycle even as more files completed.
+func TestRollbackPausedTaskProgress(t *testing.T) {
+	job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
+		Name:      "pauseJob",
+		Direction: transfertypes.Upload,
+		TransferProfile: &configtypes.TransferProfile{
+			Name:         "pause-profile",
+			Bucket:       "test-bucket",
+			Region:       "us-west-2",
+			Profile:      "test-profile",
+			StorageClass: "standard",
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewJob() error = %v", err)
+	}
+	task, err := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+		Destination:   "/s3/path/pause.txt",
+		LocalFile:     jobmanagertypes.LocalFile{Path: "/tmp/pause.txt", Size: 10 * constants.MiB},
+		JobId:         job.JobId(),
+		TaskDirection: jobmanagertypes.TaskDirectionUpload,
+	})
+	if err != nil {
+		t.Fatalf("NewTask() error = %v", err)
+	}
+
+	// A previously completed file already counted 2 MiB into the job total, and
+	// this task was 3 MiB into its own transfer when the job was paused.
+	atomic.StoreInt64(&job.BytesUploaded, 5*constants.MiB)
+	atomic.StoreInt64(&task.BytesTransferred, 3*constants.MiB)
+
+	rollbackPausedTaskProgress(&job.BytesUploaded, task)
+
+	if got := atomic.LoadInt64(&job.BytesUploaded); got != 2*constants.MiB {
+		t.Errorf("job total after rollback = %d, want %d (only the paused task's counted bytes should be removed)",
+			got, int64(2*constants.MiB))
+	}
+	if got := atomic.LoadInt64(&task.BytesTransferred); got != 0 {
+		t.Errorf("task BytesTransferred after rollback = %d, want 0", got)
+	}
+}
