@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { fc } from '@fast-check/vitest';
 import { Action } from '@ngrx/store';
 import { reducer as jobReducer, initialState as jobInitialState, JobState } from './job/reducers/job.reducer';
@@ -142,6 +142,19 @@ function uiContextActionArb(): fc.Arbitrary<Action> {
 }
 
 // --- Property Tests ---
+
+// The job reducer emits console.debug diagnostics when it receives an event for a
+// job that was never created (a legitimate production edge case). The property tests
+// deliberately generate arbitrary action sequences that hit this path thousands of
+// times, so silence console.debug here to keep the test output readable. Production
+// logging is unaffected.
+beforeAll(() => {
+    vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+});
+
+afterAll(() => {
+    vi.restoreAllMocks();
+});
 
 describe('[Reducers] Job reducer state invariants - property tests', () => {
     it('state always has ids array and entities object after any action sequence', () => {
