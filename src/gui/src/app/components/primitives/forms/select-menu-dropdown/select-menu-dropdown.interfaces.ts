@@ -1,6 +1,6 @@
 import { ThemePalette } from '@angular/material/core';
 
-export type DropdownItemType = 'section-header' | 'section-item' | 'item';
+export type DropdownItemType = 'section-header' | 'section-item' | 'item' | 'label';
 // allowed colors for an icon in the dropdown
 export type DropdownIconColor = 'inherit' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'white' | 'gray';
 // Material icon font family style
@@ -19,6 +19,10 @@ export interface DropdownIcon {
     iconThemePalette?: ThemePalette,
     style?: DropdownIconStyle,
     tooltipText?: string,
+    // When set, the indicator renders as a solid CSS shape in `iconColor` instead of a
+    // Material glyph — used for the connection status dot (filled/hollow circle) and the
+    // Stop control (filled square), which the bundled icon font only offers as outlines.
+    shape?: 'dot' | 'ring' | 'square',
 }
 
 export interface ClickableIcon {
@@ -46,6 +50,12 @@ export interface DropdownItem {
     // behavior and is shown on EVERY row that provides one, so rows stay aligned.
     statusIcon?: DropdownIcon,
     leadingIcon?: DropdownIcon,
+    // Optional text color (e.g. 'blue' for a call-to-action row like "Add Remote Daemon…").
+    // Defaults to the inherited row text color when unset.
+    textColor?: DropdownIconColor,
+    // Draw a divider line above this row. Dividers are opt-in (the mockup menu has no
+    // per-row lines — only a single separator before the footer action).
+    dividerAbove?: boolean,
     itemClickHandler?: DropdownClickHandler,
     actionIcons?: ActionIcon[],
 }

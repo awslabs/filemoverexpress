@@ -1,20 +1,19 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
 import { MatOption, MatSelect, MatSelectChange } from '@angular/material/select';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { discardUnsavedChangesDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
 import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
 import { DEFAULT_GENERAL_SETTINGS } from '@app/constants/config';
-import { FmeConfig, HotFolders, TransferProfile } from '@classes/config';
+import { FmeConfig, TransferProfile } from '@classes/config';
 import { isIntegerValidator, maxActiveChecksumsValidator, oneOfValidator } from '@classes/form-validators';
 import { handleStreamError } from '@classes/rxjs-operators';
-import { HotFolderFormComponent } from '@containers/forms/hot-folder-form/hot-folder-form.component';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { HistoryService } from '@services/history/history.service';
 import { MetadataService } from '@services/metadata/metadata.service';
@@ -26,7 +25,6 @@ import { DaemonCloseOptions, NotificationDelay, NotificationPositions } from '@a
 import { VersionService } from '@services/version/version.service';
 import { ConnectionState } from '@state/models/connection-state-model';
 import { logSeverities } from './config.constants';
-import { HotFolderFormGroup } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
 import {
     ConfigFormGeneralGroup,
     ConfigFormGroup,
@@ -51,7 +49,6 @@ import {
         MatSlideToggle,
         MatSelect,
         MatOption,
-        HotFolderFormComponent,
         ButtonComponent,
         AsyncPipe,
 
@@ -75,10 +72,11 @@ export class ConfigComponent implements OnInit {
     logSeverities = logSeverities;
     ConnectionState = ConnectionState;
     transferProfiles: string[] = [];
-    hotFolders: HotFolders[] = [];
 
     // Left-nav sections (mockup config page). Panels stay mounted; nav toggles visibility.
-    activeSection: 'transfers' | 'hotfolders' | 'reports' | 'logging' | 'uiprefs' = 'transfers';
+    // Hot Folders is intentionally NOT here — it lives in its own Configure Hot Folders
+    // dialog (reachable from the Local panel overflow and right-click menus).
+    activeSection: 'transfers' | 'reports' | 'logging' | 'uiprefs' = 'transfers';
 
     // UI Preferences (client-side, saved on change via PreferencesService — NOT part of
     // the daemon config form's save/cancel flow). Rendered in the General tab.
@@ -88,7 +86,7 @@ export class ConfigComponent implements OnInit {
     selectedNotificationPosition = '';
     notificationDelay = defaultPreferences.notificationAutoHideDelay;
     selectedDaemonClose = defaultPreferences.daemonClose;
-    hotFolderForm: FormArray<FormGroup<HotFolderFormGroup>> | null = null;
+    showHiddenFiles = defaultPreferences.showHiddenFiles;
     originalConfig: FmeConfig | null = null;
     configForm: FormGroup<ConfigFormGroup> = new FormGroup<ConfigFormGroup>(
         {
@@ -167,7 +165,6 @@ export class ConfigComponent implements OnInit {
                     transferProfiles: new FormControl<Record<string, TransferProfile>>({}, {nonNullable: true}),
                 }),
             }),
-            uploadHotFolders: new FormArray<FormGroup<HotFolderFormGroup>>([]),
         },
     );
 
@@ -218,9 +215,7 @@ export class ConfigComponent implements OnInit {
                     logging: result.logging,
                     reports: result.reports,
                     protocols: result.protocols,
-                    uploadHotFolders: result.uploadHotFolders,
                 });
-                this.hotFolders = result.uploadHotFolders;
 
                 // Apply the AutoMAT disabled state BEFORE marking pristine — toggling a
                 // control's enabled state dirties the form, so doing it after markAsPristine
@@ -260,12 +255,11 @@ export class ConfigComponent implements OnInit {
 
     onSubmit() {
         return () => {
-            if (this.hotFolderForm) {
-                for (const ctrl of this.hotFolderForm.controls) {
-                    this.configForm.controls.uploadHotFolders.push(ctrl);
-                }
-            }
             const settings: IFmeConfig = this.configForm.getRawValue() as unknown as IFmeConfig;
+            // Hot folders are edited in their own Configure Hot Folders dialog, not here.
+            // The config save writes the whole config, so carry the loaded hot folders
+            // through unchanged — otherwise saving Settings would wipe them.
+            settings.uploadHotFolders = this.originalConfig?.uploadHotFolders ?? [];
             const input = FmeConfig.fromJson(settings);
 
             this.fmeClientService.setConfiguration(input).subscribe({
@@ -308,7 +302,7 @@ export class ConfigComponent implements OnInit {
         }
     }
 
-    selectSection(section: 'transfers' | 'hotfolders' | 'reports' | 'logging' | 'uiprefs') {
+    selectSection(section: 'transfers' | 'reports' | 'logging' | 'uiprefs') {
         this.activeSection = section;
     }
 
@@ -328,6 +322,7 @@ export class ConfigComponent implements OnInit {
             preferences.daemonClose = 'ask';
         }
         this.selectedDaemonClose = preferences.daemonClose;
+        this.showHiddenFiles = preferences.showHiddenFiles;
     }
 
     notificationPositionChanged(event: MatSelectChange) {
@@ -343,6 +338,10 @@ export class ConfigComponent implements OnInit {
 
     daemonCloseChanged(event: MatSelectChange) {
         this.prefService.daemonClose = event.value;
+    }
+
+    showHiddenFilesChanged(event: MatSlideToggleChange) {
+        this.prefService.showHiddenFiles = event.checked;
     }
     // endregion
 
@@ -361,14 +360,5 @@ export class ConfigComponent implements OnInit {
         event.preventDefault();
 
         this.hintPopover.open(event.currentTarget as HTMLElement, message);
-    }
-
-    /**
-     * Updates the stored hot folder FormGroup.
-     *
-     * @param {FormArray} hotFolderForm - FormGroup from nested hot folder form component
-     */
-    updateHotFolderForm(hotFolderForm: FormArray<FormGroup<HotFolderFormGroup>>) {
-        this.hotFolderForm = hotFolderForm;
     }
 }

@@ -16,4 +16,6 @@ export interface Preferences {
     transferPageSize: number;
     daemonClose: PreferenceDaemonClose;
     trayHeight: number;
+    // When false (default), file browsers hide dotfiles (names starting with '.').
+    showHiddenFiles: boolean;
 }

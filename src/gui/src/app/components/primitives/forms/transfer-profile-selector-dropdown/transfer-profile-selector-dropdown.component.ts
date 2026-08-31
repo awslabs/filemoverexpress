@@ -1,6 +1,6 @@
 import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { SelectMenuDropdownComponent } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.component';
-import { ADD_CIRCLE_ICON, EDIT_ICON, TRASH_ICON } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.constants';
+import { ADD_ICON, EDIT_ICON, TRASH_ICON } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.constants';
 import { ActionIcon, DropdownItem } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.interfaces';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { TransferProfileService } from '@services/transfer-profile/transfer-profile.service';
@@ -42,7 +42,7 @@ export class TransferProfileSelectorDropdownComponent {
     private createTransferProfileHeaderRow(): DropdownItem {
         return {
             id: 'transfer-profile-header-row',
-            type: 'section-header',
+            type: 'label',
             text: 'Remote Configurations',
         };
     }
@@ -95,7 +95,9 @@ export class TransferProfileSelectorDropdownComponent {
             return {
                 id: 'add-transfer-profile-sub-row',
                 type: 'section-item',
-                leadingIcon: ADD_CIRCLE_ICON,
+                leadingIcon: {...ADD_ICON, iconColor: 'blue'},
+                textColor: 'blue',
+                dividerAbove: true,
                 text: 'Add Remote Configuration...',
                 itemClickHandler: () => {
                     this.addTransferProfile();
@@ -105,7 +107,9 @@ export class TransferProfileSelectorDropdownComponent {
         return {
             id: 'add-transfer-profile-sub-row',
             type: 'section-item',
-            leadingIcon: ADD_CIRCLE_ICON,
+            leadingIcon: {...ADD_ICON, iconColor: 'blue'},
+            textColor: 'blue',
+            dividerAbove: true,
             text: 'Add Remote Configuration...',
             tooltipText: `The configuration for this daemon doesn't allow editing it through the GUI.
             Update the configuration file on the daemon machine to add a Remote Configuration.`,

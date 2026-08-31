@@ -284,37 +284,97 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 }
 
 .jd-main {
-    display: grid;
-    grid-template-columns: 150px 1fr;
-    grid-template-rows: 1fr;
+    display: flex;
+    flex-direction: column;
     border: 1px solid variables.$grey-600;
     border-radius: 12px;
     overflow: hidden;
     margin-top: 16px;
-    // Floor so an expanded Advanced block can't squeeze the nav + Logs pane to nothing;
+    // Floor so an expanded Advanced block can't squeeze the pane to nothing;
     // combined with .jd-body overflow-y:auto, tall content scrolls instead of clipping.
     min-height: 240px;
     flex: 1;
 }
 
-.jd-nav {
-    display: flex;
-    flex-direction: column;
-    background: variables.$background-tray;
-    border-right: 1px solid variables.$grey-600;
-    padding: 8px 0;
+// Utility: force-hide a kept-mounted pane. Plain [hidden] is defeated by the pane's
+// own display:flex, which is exactly why the file list used to bleed into the Logs view.
+.jd-hidden {
+    display: none !important;
+}
 
-    .jd-nav-item {
+// Top-level Files / Logs tabs.
+.jd-tabs {
+    display: flex;
+    flex-shrink: 0;
+    background: variables.$background-tray;
+    border-bottom: 1px solid variables.$grey-600;
+
+    .jd-tab {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 6px;
         appearance: none;
         background: none;
         border: none;
-        border-right: 2px solid transparent;
-        text-align: left;
-        padding: 8px 14px;
+        border-bottom: 2px solid transparent;
+        padding: 10px 18px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: variables.$grey-450;
+        cursor: pointer;
+
+        &:hover {
+            color: variables.$grey-100;
+        }
+
+        &.active {
+            color: variables.$blue-500;
+            border-bottom-color: variables.$blue-500;
+        }
+
+        .jd-tab-count {
+            font-size: 11px;
+            font-weight: 500;
+            color: variables.$grey-500;
+        }
+    }
+}
+
+.jd-nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: variables.$red-500;
+    flex-shrink: 0;
+}
+
+// A pane fills the area under the tabs; only one is visible at a time.
+.jd-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+// Status filter chips inside the Files pane.
+.jd-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 10px 12px 6px;
+
+    .jd-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        appearance: none;
+        background: variables.$background-content;
+        border: 1px solid variables.$grey-700;
+        border-radius: 14px;
+        padding: 3px 10px;
         font: inherit;
         font-size: 12px;
         color: variables.$grey-450;
@@ -322,40 +382,20 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
         &:hover {
             color: variables.$grey-100;
-            background: rgba(255, 255, 255, 0.03);
         }
 
         &.active {
             color: variables.$blue-500;
-            font-weight: 600;
+            border-color: variables.$blue-500;
             background: rgba(66, 180, 255, 0.08);
-            border-right-color: variables.$blue-500;
         }
 
-        .jd-nav-count {
+        .jd-chip-count {
             font-size: 11px;
             color: variables.$grey-500;
         }
-
-        .jd-nav-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: variables.$red-500;
-            flex-shrink: 0;
-        }
     }
 }
-
-.jd-view {
-    min-width: 0;
-    min-height: 0;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
 .jd-logs {
     flex: 1;
     min-height: 0;

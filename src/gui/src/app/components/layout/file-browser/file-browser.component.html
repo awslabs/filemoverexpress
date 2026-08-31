@@ -15,9 +15,18 @@
                 <td mat-cell *matCellDef="let element">
                     <div class="file-name">
                         <div class="row-icon-wrapper">
-                            <mat-icon fontSet="material-icons" [class.folder-icon]="element.type === FileBrowserObjectType.FOLDER">
-                                {{ element | fileBrowserIcon }}
-                            </mat-icon>
+                            @if (element.type === FileBrowserObjectType.FILE) {
+                                <svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                </svg>
+                            } @else {
+                                <mat-icon fontSet="material-icons"
+                                          [class.folder-icon]="element.type === FileBrowserObjectType.FOLDER">
+                                    {{ element | fileBrowserIcon }}
+                                </mat-icon>
+                            }
                         </div>
                         <!-- to modify the max length of truncateString, add a number to truncateString i.e.{{ truncateString : 60 }}  -->
                         <div class="file-name-string">{{ element.name | basename | truncateString }}</div>

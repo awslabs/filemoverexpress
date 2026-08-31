@@ -2,8 +2,12 @@
 @use "fonts";
 
 // mat-menu overrides
+// Unified popover surface (matches the daemon/profile dropdowns and the mockup): a thin
+// 1px border with 8px rounded corners rather than the old heavy 2px square panel. Applies
+// to every menu — dropdowns, right-click context menus, and the tray overflow menus.
 .mat-mdc-menu-panel {
-    border: 2px solid variables.$container-border !important;
+    border: 1px solid variables.$grey-600 !important;
+    border-radius: 8px !important;
     background-color: variables.$background-menu !important;
     color: variables.$text !important;
 }
@@ -17,6 +21,16 @@
 
     &:hover {
         background-color: variables.$background-menu-hover !important;
+    }
+
+    // Compact, consistent leading icons — match the dropdowns and the file-browser
+    // context menu (18px) rather than Material's heavier 24px default. Colour is left to
+    // each icon's own .icon-color-* class (do NOT force one here, or semantic colors —
+    // gold star, orange hot-folder, etc. — are washed out).
+    .mat-icon {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 18px !important;
     }
 }
 
@@ -60,7 +74,8 @@
 // mat-select overrides
 .mat-mdc-select-panel {
     --mat-select-panel-background-color: #{variables.$background-menu} !important;
-    border: 2px solid variables.$container-border !important;
+    border: 1px solid variables.$grey-600 !important;
+    border-radius: 8px !important;
     padding: 0 !important;
 }
 
@@ -70,7 +85,8 @@
 .mat-mdc-autocomplete-panel {
     --mat-autocomplete-background-color: #{variables.$background-menu} !important;
     background-color: variables.$background-menu !important;
-    border: 2px solid variables.$container-border !important;
+    border: 1px solid variables.$grey-600 !important;
+    border-radius: 8px !important;
     padding: 0 !important;
     color: variables.$text !important;
 }

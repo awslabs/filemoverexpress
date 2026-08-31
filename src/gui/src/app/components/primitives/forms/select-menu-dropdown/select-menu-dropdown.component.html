@@ -19,11 +19,15 @@
             <div
                     [ngClass]="leadingIcon.iconColor !== 'inherit' ? 'icon-color-' + leadingIcon.iconColor : ''"
                     class="icon-spacer">
-                <mat-icon class="icon"
-                          [class.outlined-icon]="leadingIcon.style === 'outlined'"
-                          [color]="leadingIcon.iconThemePalette">
-                    {{ leadingIcon.icon }}
-                </mat-icon>
+                @if (leadingIcon.shape) {
+                    <span class="icon-shape shape-{{ leadingIcon.shape }}"></span>
+                } @else {
+                    <mat-icon class="icon"
+                              [class.outlined-icon]="leadingIcon.style === 'outlined'"
+                              [color]="leadingIcon.iconThemePalette">
+                        {{ leadingIcon.icon }}
+                    </mat-icon>
+                }
             </div>
         } @else {
             @if (selectedField().leadingIcon; as leadingIcon) {
@@ -53,15 +57,15 @@
     @if (dropdownItems(); as items) {
         @for (dropdownItem of items; track dropdownItem.id; let rowIndex = $index) {
             <div [matTooltip]="dropdownItem.tooltipText ? dropdownItem.tooltipText : ''" matTooltipPosition="right">
-                <!-- Divider -->
-                @if (rowIndex !== 0 && (dropdownItem.type === 'section-header' || (dropdownItem.type === 'item' && items[rowIndex - 1].type === 'section-item'))) {
+                <!-- Divider (opt-in): the menu has no per-row lines, only where a row
+                     explicitly asks for one (e.g. before the "Add Remote Daemon…" footer). -->
+                @if (rowIndex !== 0 && dropdownItem.dividerAbove) {
                     <hr class="section-divider">
-                } @else {
-                    @if (rowIndex !== 0) {
-                        <hr class="row-divider">
-                    }
                 }
                 <!-- Row content -->
+                @if (dropdownItem.type === 'label') {
+                    <div class="dropdown-label">{{ dropdownItem.text }}</div>
+                } @else {
                 <div [ngClass]="dropdownItem.itemClickHandler ? 'clickable-dropdown-row' : 'dropdown-row'"
                      [class.section-header]="dropdownItem.type === 'section-header'"
                      [class.item]="dropdownItem.type !== 'section-header'">
@@ -72,11 +76,15 @@
                         @if (dropdownItem.statusIcon; as statusIcon) {
                             <div class="icon-spacer"
                                  [ngClass]="statusIcon.iconColor !== 'inherit' ? 'icon-color-' + statusIcon.iconColor : ''">
-                                <mat-icon class="icon"
-                                          [class.outlined-icon]="statusIcon.style === 'outlined'"
-                                          [color]="statusIcon.iconThemePalette">
-                                    {{ statusIcon.icon }}
-                                </mat-icon>
+                                @if (statusIcon.shape) {
+                                    <span class="icon-shape shape-{{ statusIcon.shape }}"></span>
+                                } @else {
+                                    <mat-icon class="icon"
+                                              [class.outlined-icon]="statusIcon.style === 'outlined'"
+                                              [color]="statusIcon.iconThemePalette">
+                                        {{ statusIcon.icon }}
+                                    </mat-icon>
+                                }
                             </div>
                         } @else if (dropdownItem.type === 'section-item' || dropdownItem.text === selectedField().text) {
                             <div class="icon-spacer">
@@ -95,7 +103,7 @@
                                 </mat-icon>
                             </div>
                         }
-                        <div class="row-text">
+                        <div class="row-text" [ngClass]="dropdownItem.textColor ? 'text-color-' + dropdownItem.textColor : ''">
                             {{ dropdownItem.text }}
                         </div>
                     </div>
@@ -104,21 +112,29 @@
                             @for (actionIcon of dropdownItem.actionIcons; track actionIcon.id) {
                                 <div (click)="handleIconClick($event, actionIcon, dropdownItem)" class="icon-spacer">
                                     @if (actionIcon.type === 'action-icon') {
-                                        <mat-icon
-                                                class="icon action-icon"
-                                                [class.outlined-icon]="actionIcon.dropdownIcon.style === 'outlined'"
-                                                [ngClass]="actionIcon.dropdownIcon.iconColor !== 'inherit' ? 'icon-color-' + actionIcon.dropdownIcon.iconColor : ''"
-                                                [color]="actionIcon.dropdownIcon.iconThemePalette"
-                                                [matTooltip]="actionIcon.dropdownIcon.tooltipText ? actionIcon.dropdownIcon.tooltipText : ''"
-                                                matTooltipPosition="right">
-                                            {{ actionIcon.dropdownIcon.icon }}
-                                        </mat-icon>
+                                        @if (actionIcon.dropdownIcon.shape) {
+                                            <span class="icon-shape shape-{{ actionIcon.dropdownIcon.shape }} action-icon"
+                                                  [ngClass]="actionIcon.dropdownIcon.iconColor !== 'inherit' ? 'icon-color-' + actionIcon.dropdownIcon.iconColor : ''"
+                                                  [matTooltip]="actionIcon.dropdownIcon.tooltipText ? actionIcon.dropdownIcon.tooltipText : ''"
+                                                  matTooltipPosition="right"></span>
+                                        } @else {
+                                            <mat-icon
+                                                    class="icon action-icon"
+                                                    [class.outlined-icon]="actionIcon.dropdownIcon.style === 'outlined'"
+                                                    [ngClass]="actionIcon.dropdownIcon.iconColor !== 'inherit' ? 'icon-color-' + actionIcon.dropdownIcon.iconColor : ''"
+                                                    [color]="actionIcon.dropdownIcon.iconThemePalette"
+                                                    [matTooltip]="actionIcon.dropdownIcon.tooltipText ? actionIcon.dropdownIcon.tooltipText : ''"
+                                                    matTooltipPosition="right">
+                                                {{ actionIcon.dropdownIcon.icon }}
+                                            </mat-icon>
+                                        }
                                     }
                                 </div>
                             }
                         </div>
                     }
                 </div>
+                }
             </div>
         }
     }

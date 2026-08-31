@@ -870,17 +870,64 @@ export class FmeClientService {
         this.connectClient.shutdown(
             create(ShutdownRequestSchema),
             (err, response) => {
-                if (err) {
-                    sub.error(err);
-                    return;
-                }
+                // The connect-web callback fires from ReadableStream reads, which zone.js
+                // does NOT patch (same as the listEvents callbacks) — re-enter the Angular
+                // zone so the disconnect below actually triggers change detection.
+                this.zone.run(() => {
+                    if (err) {
+                        // The local daemon usually drops the connection as it exits, so the
+                        // shutdown RPC errors even though the stop succeeded. Tear the
+                        // connection down and report success rather than leaving the UI
+                        // "connected" with a scary error.
+                        this.forceDisconnect();
+                        sub.next(ShutdownResult.SUCCEEDED);
+                        sub.complete();
+                        return;
+                    }
 
-                sub.next(response.result);
-                sub.complete();
+                    sub.next(response.result);
+                    sub.complete();
+
+                    if (response.result === ShutdownResult.SUCCEEDED) {
+                        this.forceDisconnect();
+                    }
+                });
             },
         );
 
         return sub.asObservable();
+    }
+
+    /**
+     * Immediately reflect a user-initiated stop/disconnect. This is the piece the earlier
+     * fixes missed: it CANCELS the event stream (so a trailing event can't re-dispatch
+     * succeedConnect and flip the UI back to "connected"), drops the client, halts the
+     * auto-reconnect loop by invalidating the attempt id (so the stream-error handler and
+     * its retry timer no-op for this connection), and dispatches disconnect so the status
+     * icon and file browsers update to a disconnected state now instead of spinning
+     * forever against a dead daemon.
+     */
+    private forceDisconnect() {
+        this.currentConnectAttemptID = '';
+        if (this.eventStreamCancel) {
+            this.eventStreamCancel();
+            this.eventStreamCancel = null;
+        }
+        this.connectClient = null;
+        if (this.connectedState !== ConnectionState.DISCONNECTED) {
+            this.store.dispatch(ProgressActions.disconnect());
+        }
+    }
+
+    /**
+     * User-initiated cancel of an in-flight connection attempt. A connection can otherwise
+     * sit on "Connecting…" indefinitely — the stream may hang without ever erroring (so the
+     * grace-period/backoff retry never advances), leaving no way out. This tears the attempt
+     * down via forceDisconnect() (cancels the stream, drops the client, invalidates the
+     * attempt id so the reconnect loop stops) and flips the UI to disconnected immediately.
+     */
+    cancelConnection(): void {
+        this.forceDisconnect();
     }
 
     //endregion

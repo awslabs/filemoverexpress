@@ -82,33 +82,50 @@
             }
         </div>
 
-        <!-- Main: left side-nav (Logs + per-file-status views) + content pane -->
+        <!-- Main: Files and Logs as peer top-level tabs. Files owns the status filters +
+             task table; Logs is a full-width job-event list (no longer stacked together). -->
         <div class="jd-main">
-            <nav class="jd-nav">
-                <button type="button" class="jd-nav-item" [class.active]="view === 'logs'" (click)="selectView('logs')">
+            <div class="jd-tabs">
+                <button type="button" class="jd-tab" [class.active]="tab === 'files'" (click)="tab = 'files'">
+                    <span>Files</span><span class="jd-tab-count">{{ counts.total }}</span>
+                </button>
+                <button type="button" class="jd-tab" [class.active]="tab === 'logs'" (click)="tab = 'logs'">
                     <span>Logs</span>
                     @if (isError) { <span class="jd-nav-dot" aria-label="has errors"></span> }
                 </button>
-                <button type="button" class="jd-nav-item" [class.active]="view === 'all'" (click)="selectView('all')">
-                    <span>All Files</span><span class="jd-nav-count">{{ counts.total }}</span>
-                </button>
-                <button type="button" class="jd-nav-item" [class.active]="view === 'pending'" (click)="selectView('pending')">
-                    <span>Pending</span><span class="jd-nav-count">{{ counts.pending }}</span>
-                </button>
-                <button type="button" class="jd-nav-item" [class.active]="view === 'completed'" (click)="selectView('completed')">
-                    <span>Completed</span><span class="jd-nav-count">{{ counts.completed }}</span>
-                </button>
-                <button type="button" class="jd-nav-item" [class.active]="view === 'skipped'" (click)="selectView('skipped')">
-                    <span>Skipped</span><span class="jd-nav-count">{{ counts.skipped }}</span>
-                </button>
-                <button type="button" class="jd-nav-item" [class.active]="view === 'failed'" (click)="selectView('failed')">
-                    <span>Failed</span><span class="jd-nav-count">{{ counts.failed }}</span>
-                </button>
-            </nav>
+            </div>
 
-            <div class="jd-view">
-                <!-- Logs view -->
-                <div class="jd-logs" [hidden]="view !== 'logs'">
+            <!-- Files pane (kept mounted so the paginator/sort ViewChilds resolve) -->
+            <div class="jd-pane" [class.jd-hidden]="tab === 'logs'">
+                <div class="jd-filters">
+                    <button type="button" class="jd-chip" [class.active]="fileFilter === 'all'" (click)="selectFileFilter('all')">
+                        All Files<span class="jd-chip-count">{{ counts.total }}</span>
+                    </button>
+                    <button type="button" class="jd-chip" [class.active]="fileFilter === 'pending'" (click)="selectFileFilter('pending')">
+                        Pending<span class="jd-chip-count">{{ counts.pending }}</span>
+                    </button>
+                    <button type="button" class="jd-chip" [class.active]="fileFilter === 'completed'" (click)="selectFileFilter('completed')">
+                        Completed<span class="jd-chip-count">{{ counts.completed }}</span>
+                    </button>
+                    <button type="button" class="jd-chip" [class.active]="fileFilter === 'skipped'" (click)="selectFileFilter('skipped')">
+                        Skipped<span class="jd-chip-count">{{ counts.skipped }}</span>
+                    </button>
+                    <button type="button" class="jd-chip" [class.active]="fileFilter === 'failed'" (click)="selectFileFilter('failed')">
+                        Failed<span class="jd-chip-count">{{ counts.failed }}</span>
+                    </button>
+                </div>
+                <div class="jd-file-view">
+                    <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
+                    <mat-paginator [pageSizeOptions]="[25, 50, 100]"
+                                   showFirstLastButtons
+                                   aria-label="Select number of tasks to display">
+                    </mat-paginator>
+                </div>
+            </div>
+
+            <!-- Logs pane: full-width, job-level events only -->
+            <div class="jd-pane" [class.jd-hidden]="tab !== 'logs'">
+                <div class="jd-logs">
                     @if (jobLogs.length === 0) {
                         <div class="jd-logs-empty">No log entries for this job yet.</div>
                     } @else {
@@ -120,14 +137,6 @@
                             </div>
                         }
                     }
-                </div>
-                <!-- File views (kept mounted so the paginator ViewChild resolves) -->
-                <div class="jd-file-view" [hidden]="view === 'logs'">
-                    <ng-container *ngTemplateOutlet="taskTableTemplate"></ng-container>
-                    <mat-paginator [pageSizeOptions]="[25, 50, 100]"
-                                   showFirstLastButtons
-                                   aria-label="Select number of tasks to display">
-                    </mat-paginator>
                 </div>
             </div>
         </div>
@@ -165,9 +174,9 @@
         </div>
         <div class="tasks-table-section">
             <div class="tasks-container">
-                <table mat-table [dataSource]="dataSource">
+                <table mat-table matSort [dataSource]="dataSource">
                     <ng-container matColumnDef="name">
-                        <th mat-header-cell *matHeaderCellDef> Name</th>
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Name</th>
                         <td mat-cell *matCellDef="let element; dataSource: dataSource">
                             <span [matTooltip]="element.name"
                                   [matTooltipDisabled]="element.name.length <= MAX_TABLE_STRING_LENGTH"
@@ -176,8 +185,20 @@
                             </span>
                         </td>
                     </ng-container>
+                    <ng-container matColumnDef="size">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Size</th>
+                        <td mat-cell *matCellDef="let element; dataSource: dataSource">
+                            {{ (element.sizeBytes ?? 0) | formatBytes : 1 : '' : '—' }}
+                        </td>
+                    </ng-container>
+                    <ng-container matColumnDef="dateModified">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Modified</th>
+                        <td mat-cell *matCellDef="let element; dataSource: dataSource">
+                            {{ element.lastModified ? (element.lastModified | date : "MMM dd, yyyy 'at' hh:mm a") : '—' }}
+                        </td>
+                    </ng-container>
                     <ng-container matColumnDef="progress">
-                        <th mat-header-cell *matHeaderCellDef> Progress</th>
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Progress</th>
                         <td mat-cell *matCellDef="let element; dataSource: dataSource">
                             <div class="status-progress-bar" [ngClass]="[element.status | taskClass]">
                                 <mat-progress-bar mode="determinate" [value]="element.progress"></mat-progress-bar>
@@ -188,7 +209,7 @@
                         </td>
                     </ng-container>
                     <ng-container matColumnDef="status">
-                        <th mat-header-cell *matHeaderCellDef> Status</th>
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Status</th>
                         <td mat-cell *matCellDef="let element; dataSource: dataSource">
                             {{ element.status | taskStatus }}
                         </td>

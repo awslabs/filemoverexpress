@@ -13,9 +13,11 @@
     }
 
     a {
-        font-weight: 500;
-        font-family: fonts.$font-family-heavy;
-        font-size: 16px;
+        // Compact "Info" link — small (11px), consistent with the inline info links
+        // used elsewhere rather than the previous oversized 16px heavy-font header link.
+        font-weight: 600;
+        font-family: fonts.$font-family;
+        font-size: 11px;
         color: variables.$text-link;
         cursor: pointer;
 

@@ -1,5 +1,5 @@
 import { Component, EventEmitter, inject, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
-import { FormArray, FormGroup } from '@angular/forms';
+import { FormArray, FormGroup, AbstractControl } from '@angular/forms';
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -91,14 +91,29 @@ export class ConfigureHotFolderModalComponent implements OnInit {
     }
 
     /**
+     * Recursively marks a control and all its descendants dirty. markAllAsTouched sets
+     * touched throughout but not dirty, and the hot-folder form only shows a field error
+     * when it is both dirty and touched, so a Save on an incomplete folder must set both.
+     */
+    private markControlTreeDirty(control: AbstractControl) {
+        control.markAsDirty();
+        const children = (control as FormGroup | FormArray).controls;
+        if (children) {
+            Object.values(children).forEach((child) => this.markControlTreeDirty(child as AbstractControl));
+        }
+    }
+
+    /**
      * Save the changes made to hot folders to the configuration file and close the dialog
      */
     save() {
         return () => {
             // Surface validation (e.g. a missing hot folder name) instead of silently
-            // saving. markAllAsTouched makes the required-field errors render.
+            // saving. The form only shows a field's error once it is dirty AND touched
+            // (so a brand-new folder isn't red before any input), so mark both here.
             if (this.hotFolderForm && this.hotFolderForm.invalid) {
                 this.hotFolderForm.markAllAsTouched();
+                this.markControlTreeDirty(this.hotFolderForm);
                 this.notifications.warning('Give each hot folder a name and complete the required fields before saving.');
                 return;
             }

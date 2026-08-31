@@ -8,24 +8,25 @@ export const STAR_ICON: DropdownIcon = {
 };
 
 export const DISCONNECTED_ICON: DropdownIcon = {
-    // Neutral, muted "not connected" indicator. The old red remove_circle_outline read
-    // like an error; connection state is now surfaced authoritatively by the panel's
-    // connection pill, so this only needs a calm at-a-glance marker.
-    icon: 'radio_button_unchecked',
+    // Hollow grey ring — a calm "not connected" marker (the panel's connection pill is
+    // the authoritative state). Rendered as a CSS shape so it's a clean ring.
+    icon: '',
     iconColor: 'gray',
-    style: 'outlined',
+    shape: 'ring',
 };
 
 export const CONNECTING_ICON: DropdownIcon = {
-    icon: 'pending',
+    // Solid orange dot while connecting.
+    icon: '',
     iconColor: 'orange',
-    style: 'outlined',
+    shape: 'dot',
 };
 
 export const CONNECTED_ICON: DropdownIcon = {
-    icon: 'check_circle_outline',
+    // Solid green dot when connected (matches the approved menu mockup).
+    icon: '',
     iconColor: 'green',
-    style: 'outlined',
+    shape: 'dot',
 };
 
 // Type marker for the built-in local daemon row (this computer).

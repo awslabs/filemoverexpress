@@ -119,6 +119,10 @@ export class DaemonBrowserComponent implements OnDestroy {
     filter: FileBrowserFilter = EMPTY_FILTER_DATA;
     subscriptions: Subscription[] = [];
     connectionState: ConnectionState = ConnectionState.DISCONNECTED;
+    // Set when the user cancels an in-flight connection so the resulting
+    // CONNECTING -> DISCONNECTED transition is shown as a neutral "no session"
+    // state rather than a connection failure.
+    private connectionCancelled = false;
     selectedTransferProfile: string | null = null;
     selectedBookmark: Bookmark | null = null;
     hotFolderList: string[] = [];
@@ -155,6 +159,17 @@ export class DaemonBrowserComponent implements OnDestroy {
                         list: [],
                         error: {
                             ...fileBrowserErrors.CONNECTING_TO_SESSION,
+                            // A connection can hang on "Connecting…" with no way out (the stream
+                            // may never error, so the retry loop never advances). Give the user an
+                            // explicit escape hatch that tears the attempt down immediately.
+                            actionButtons: [
+                                {
+                                    buttonText: 'Cancel',
+                                    buttonClickHandler: () => {
+                                        this.cancelConnection();
+                                    },
+                                },
+                            ],
                         },
                     };
                 } else if (connState === ConnectionState.DISCONNECTED) {
@@ -162,7 +177,10 @@ export class DaemonBrowserComponent implements OnDestroy {
                     this.isRoot = true;
                     // A CONNECTING -> DISCONNECTED transition means the connection attempt failed,
                     // as opposed to never having connected or the user disconnecting on purpose.
-                    const connectionFailed = oldConnectionState === ConnectionState.CONNECTING;
+                    // A user-initiated Cancel also lands here, but must NOT read as a failure.
+                    const connectionFailed = oldConnectionState === ConnectionState.CONNECTING
+                        && !this.connectionCancelled;
+                    this.connectionCancelled = false;
                     this.fileBrowserData = {
                         state: FileBrowserState.ERROR,
                         list: [],
@@ -828,6 +846,18 @@ export class DaemonBrowserComponent implements OnDestroy {
                 this.notifications.warning(`Failed to switch daemon: ${(e as Error).message}`);
             }
         }
+    }
+
+    /**
+     * Cancels an in-flight connection attempt (from the Cancel button on the
+     * "Connecting…" state) and flips the panel to a neutral no-session state with a
+     * Retry action, instead of leaving it spinning against an unreachable daemon.
+     * @private
+     */
+    private cancelConnection() {
+        this.connectionCancelled = true;
+        this.fmeClientService.cancelConnection();
+        this.notifications.info('Connection attempt cancelled.');
     }
 
     /**

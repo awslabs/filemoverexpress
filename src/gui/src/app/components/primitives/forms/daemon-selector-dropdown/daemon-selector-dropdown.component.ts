@@ -9,7 +9,6 @@ import { NotificationMessages } from '@app/constants/common.constants';
 import { displayPathToGrpcPath, grpcPathToDisplayPath } from '@app/utils/path-utils';
 import { SelectMenuDropdownComponent } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.component';
 import {
-    ADD_CIRCLE_ICON,
     ADD_ICON,
     EDIT_ICON,
     STOP_ICON,
@@ -106,15 +105,62 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
      */
     setDropdownItems(bookmarks: Bookmark[]) {
         const newDropdownItems: DropdownItem[] = [];
-        for (const bookmark of bookmarks) {
-            newDropdownItems.push(this.createDaemonNameHeaderRow(bookmark));
-            for (const favoritePath of bookmark.favoritePaths) {
-                newDropdownItems.push(this.createFavoritePathSubRow(bookmark, favoritePath));
+        const localDaemons = bookmarks.filter((bookmark) => bookmark.name === DEFAULT_BOOKMARK_NAME);
+        const remoteDaemons = bookmarks.filter((bookmark) => bookmark.name !== DEFAULT_BOOKMARK_NAME);
+
+        if (localDaemons.length) {
+            newDropdownItems.push(this.createLabelRow('this-computer-label', 'This computer'));
+            for (const bookmark of localDaemons) {
+                this.pushDaemonRows(newDropdownItems, bookmark);
             }
-            newDropdownItems.push(this.createAddFavoritePathSubRow(bookmark));
         }
-        newDropdownItems.push(this.createAddDaemonHeaderRow(), this.createAddDaemonSubRow());
+
+        // Always show the "Remote daemons" group so the "Add Remote Daemon…" action reads
+        // as part of it, even before any remote daemon has been added.
+        newDropdownItems.push(this.createLabelRow('remote-daemons-label', 'Remote daemons'));
+        for (const bookmark of remoteDaemons) {
+            this.pushDaemonRows(newDropdownItems, bookmark);
+        }
+        newDropdownItems.push(this.createAddDaemonRow());
+
         this.dropdownItems = newDropdownItems;
+    }
+
+    /**
+     * Pushes a daemon's rows — its name/header row plus its favorite paths and the
+     * "Add Favorite Path…" action — onto the given list.
+     *
+     * A remote daemon's favorites (and its "Add Favorite Path…" action) are shown ONLY when
+     * that daemon is the one you're actually connected to. With several remote daemons each
+     * holding a handful of favorites, expanding them all at once floods the dropdown; a user
+     * can't navigate a favorite on a daemon they aren't connected to anyway. The local file
+     * system always expands (it's always reachable).
+     * @private
+     */
+    private pushDaemonRows(items: DropdownItem[], bookmark: Bookmark) {
+        items.push(this.createDaemonNameHeaderRow(bookmark));
+        const isLocal = bookmark.name === DEFAULT_BOOKMARK_NAME;
+        const isConnectedActive = this.currentBookmark?.name === bookmark.name
+            && this.connectionState === ConnectionState.CONNECTED;
+        if (!isLocal && !isConnectedActive) {
+            return;
+        }
+        for (const favoritePath of bookmark.favoritePaths) {
+            items.push(this.createFavoritePathSubRow(bookmark, favoritePath));
+        }
+        items.push(this.createAddFavoritePathSubRow(bookmark));
+    }
+
+    /**
+     * Creates a non-interactive group-label row (e.g. "This computer", "Remote daemons").
+     * @private
+     */
+    private createLabelRow(id: string, text: string): DropdownItem {
+        return {
+            id: id,
+            type: 'label',
+            text: text,
+        };
     }
 
     /**
@@ -189,7 +235,11 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
         const isLocalDaemon = bookmark.name === DEFAULT_BOOKMARK_NAME;
         return {
             id: `daemon-name-header-row-${bookmark.name}`,
-            type: 'section-header',
+            // A daemon row is the click target to switch/connect to that daemon, so it must
+            // read as a normal clickable row (white text) — NOT a muted bold "section-header",
+            // which looked non-interactive and heavier than the mockup. Grouping is handled by
+            // the "This computer" / "Remote daemons" labels above.
+            type: 'section-item',
             text: bookmark.name,
             // Distinguish a remote daemon from the local file system at a glance, and
             // surface where a remote one points on hover.
@@ -245,7 +295,7 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
             id: `add-favorite-path-sub-row-${bookmark.name}`,
             type: 'section-item',
             text: 'Add Favorite Path...',
-            leadingIcon: ADD_ICON,
+            leadingIcon: {...ADD_ICON, iconColor: 'blue'},
             itemClickHandler: () => {
                 this.addFavoritePath(bookmark);
             },
@@ -253,27 +303,20 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
     }
 
     /**
-     * Creates the DropdownItem row for Add Remote Daemon section title in the dropdown
+     * Creates the single "Add Remote Daemon" action row. Rendered like the other add actions
+     * (e.g. "Add Favorite Path...") — a section-item with a leading "+" so its icon aligns
+     * with them and with the daemon type icons, and there is ONE row rather than a title +
+     * action that read as a confusing duplicate.
      * @private
      */
-    private createAddDaemonHeaderRow(): DropdownItem {
+    private createAddDaemonRow(): DropdownItem {
         return {
-            id: 'add-daemon-header-row',
-            type: 'section-header',
-            text: 'Add Remote Daemon',
-        };
-    }
-
-    /**
-     * Creates the DropdownItem row for the add remote daemon option in the dropdown
-     * @private
-     */
-    private createAddDaemonSubRow(): DropdownItem {
-        return {
-            id: 'add-daemon-sub-row',
+            id: 'add-daemon-row',
             type: 'section-item',
-            leadingIcon: ADD_CIRCLE_ICON,
             text: 'Add Remote Daemon...',
+            leadingIcon: {...ADD_ICON, iconColor: 'blue'},
+            textColor: 'blue',
+            dividerAbove: true,
             itemClickHandler: () => {
                 this.addRemoteDaemon();
             },

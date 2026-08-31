@@ -5,8 +5,6 @@
         <nav class="settings-nav">
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'transfers'"
                     (click)="selectSection('transfers')">Transfers</button>
-            <button type="button" class="settings-nav-item" [class.active]="activeSection === 'hotfolders'"
-                    (click)="selectSection('hotfolders')">Hot Folders</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'reports'"
                     (click)="selectSection('reports')">Bucket Reports</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'logging'"
@@ -44,6 +42,14 @@
                             }
                         </mat-select>
                     </mat-form-field>
+                </div>
+                <div class="section-heading">File browser</div>
+                <div class="form-field">
+                    <mat-slide-toggle color="accent" [checked]="showHiddenFiles"
+                                      (change)="showHiddenFilesChanged($event)">
+                        Show hidden files
+                    </mat-slide-toggle>
+                    <p class="set-note">Off by default. When off, files and folders whose names start with a dot (for example <code>.DS_Store</code>) are hidden in the Local and S3 file browsers.</p>
                 </div>
             </div>
 
@@ -131,11 +137,6 @@
                 </div>
             </div>
 
-            <!-- HOT FOLDERS -->
-            <div class="tab-body" [hidden]="activeSection !== 'hotfolders'">
-                <fme-hot-folder-form [hotFolders]="hotFolders" (hotFoldersEdited)="updateHotFolderForm($event)"></fme-hot-folder-form>
-            </div>
-
             <!-- BUCKET REPORTS -->
             <div class="tab-body" formGroupName="reports" [hidden]="activeSection !== 'reports'">
                 <mat-form-field color="accent">
@@ -197,6 +198,6 @@
 <div class="settings-buttons">
     <fme-button type="stroked" text="Cancel" [onClick]="onCancel()"></fme-button>
     <fme-button type="filled" text="Save" [onClick]="onSubmit()"
-                [disabled]="configForm.invalid || hotFolderForm?.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED">
+                [disabled]="configForm.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED">
     </fme-button>
 </div>

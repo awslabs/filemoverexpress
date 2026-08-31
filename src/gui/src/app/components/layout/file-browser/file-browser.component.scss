@@ -17,6 +17,13 @@ $row-icon-weight: 600;
 .file-browser-container {
     @extend .table-container;
 
+    // Inset the vertical scrollbar so it starts BELOW the sticky header row
+    // (NAME / SIZE / DATE MODIFIED, ~32px + 1px border) instead of running up alongside
+    // it, which looked odd. Applies to both the Local and S3 panels (same component).
+    &::-webkit-scrollbar-track:vertical {
+        margin-top: 33px;
+    }
+
     // The parent panel is now the single card frame (see daemon-/bucket-browser).
     // Drop this list's own border/radius and let the card surface show through so
     // the header + rows read as one flush surface, matching the redesign mockup.
@@ -257,6 +264,17 @@ $row-icon-weight: 600;
         display: inline-block;
         top: 50%;
         transform: translate(0, -50%);
+    }
+
+    // File rows use the mockup's thin lucide-style document glyph (inline SVG) rather than
+    // a Material font glyph, so it matches the redesign exactly. Muted grey like the mockup.
+    .file-glyph {
+        height: $row-icon-size;
+        width: $row-icon-size;
+        position: absolute;
+        top: 50%;
+        transform: translate(0, -50%);
+        color: variables.$grey-550;
     }
 }
 
