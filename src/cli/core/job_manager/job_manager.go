@@ -159,6 +159,31 @@ func (jm *JobManager) AddTasksForTransfer(tasks []*jobmanagertypes.Task, job *jo
 	return errors
 }
 
+// AddSkippedTasks records tasks that a filter excluded (status Skipped) on the
+// job so they appear in ListTasksForJob — and therefore in the GUI's total file
+// count and Skipped tab — WITHOUT queueing them for transfer. Callers pass the
+// full discovered-task slice; only tasks currently marked Skipped are recorded.
+// It deliberately does NOT push to the priority queue, does NOT WaitGroup.Add,
+// and does NOT touch job.TotalBytes / BytesUploaded, so skipped files never
+// affect the transfer total or the progress denominator. Idempotent (keyed by
+// taskId), so it is safe to call from multiple filter stages.
+func (jm *JobManager) AddSkippedTasks(tasks []*jobmanagertypes.Task, job *jobmanagertypes.Job) {
+	jm.tasksLock.Lock()
+	defer jm.tasksLock.Unlock()
+	jobId := job.JobId()
+	for _, task := range tasks {
+		if task.Status() != jobmanagertypes.TaskStatusSkipped {
+			continue
+		}
+		if _, exists := jm.Tasks[jobId]; !exists {
+			jm.Tasks[jobId] = make(map[string]*jobmanagertypes.Task)
+		}
+		if _, exists := jm.Tasks[jobId][task.TaskId()]; !exists {
+			jm.Tasks[jobId][task.TaskId()] = task
+		}
+	}
+}
+
 // AddJob adds a job object to the Jobs map.
 func (jm *JobManager) AddJob(job *jobmanagertypes.Job) error {
 	jm.jobsLock.Lock()
@@ -284,6 +309,10 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 		TotalBytes:       totalJobBytes,
 	})
 
+	// Register filtered-out (Skipped) files on the job so they appear in the GUI's
+	// file list, total count, and Skipped tab. Does not queue them or add bytes.
+	jm.AddSkippedTasks(discoveredTasks, job)
+
 	if len(filteredTasks) == 0 {
 		job.SetStatus(jobmanagertypes.JobStatusCompleted)
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
@@ -383,6 +412,10 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		filteredTasks = filterTasks(filterList, filteredTasks)
 	}
 
+	// Register pre-checksum filtered-out (Skipped) files so an all-skipped job
+	// still shows them in the GUI. Idempotent with the post-checksum call below.
+	jm.AddSkippedTasks(discoveredTasks, job)
+
 	if len(filteredTasks) == 0 {
 		job.SetStatus(jobmanagertypes.JobStatusCompleted)
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
@@ -466,6 +499,11 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		BytesTransferred: 0,
 		TotalBytes:       totalJobBytes,
 	})
+
+	// Register filtered-out (Skipped) files — including the object-already-exists
+	// skips from the post-checksum filter — so they appear in the GUI's file list,
+	// total count, and Skipped tab. Does not queue them or add bytes to the total.
+	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
 		job.SetStatus(jobmanagertypes.JobStatusCompleted)

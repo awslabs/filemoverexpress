@@ -34,7 +34,8 @@ export interface TaskElement {
     progress: number;
     type: ObjectType;
     status: TaskStatus;
-    // Full size of the source file in bytes — shown/sortable in the Size column.
+    // Full size of the source file in bytes — shown/sortable in the Size column,
+    // and summed into the job progress bar's committed (completed-file) floor.
     // Optional so other TaskElement producers don't have to supply it.
     sizeBytes?: number;
     // Last-modified time of the source (local file for uploads, S3 object for downloads).
