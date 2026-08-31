@@ -547,10 +547,6 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 // endregion
 
 // region per-file task table (kept)
-.table-group-wrapper {
-    min-height: 0;
-}
-
 .jd-file-view {
     display: flex;
     flex-direction: column;
