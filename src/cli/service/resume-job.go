@@ -36,6 +36,11 @@ func (*FileMoverServer) ResumeJob(
 	// SetStatus(InProgress) re-stamps TimestampTransferring to time.Now(); preserve
 	// the original transfer-start time across resume so the elapsed-time clock (and
 	// any throughput/ETA derived from it) doesn't reset on every pause-resume cycle.
+	// Note: SetStatus also fires SendJobStatusChange asynchronously with the just-set
+	// now(), so a consumer reading TimestampTransferring in the brief window before the
+	// restore below could observe the reset value. This is cosmetic — elapsed/ETA are
+	// read on a much slower cadence — so we accept the write-then-restore here rather
+	// than add a status-set variant that bypasses the shared broadcast path.
 	startedAt := job.GetTimestampTransferring()
 	job.SetStatus(jobmanagertypes.JobStatusInProgress)
 	if !startedAt.IsZero() {

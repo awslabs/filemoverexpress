@@ -188,6 +188,10 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 				Level: eventtypes.Warning,
 			})
 		}
+		// Stop the sampling goroutine BEFORE rolling back: rollbackPausedTaskProgress
+		// reads task.BytesTransferred, and a late progress sample landing between that
+		// read and the reset would leave the job counter permanently skewed. This
+		// ordering is intentional — do not move the rollback above this send.
 		cancelProgressChan <- true
 		if errors.Is(err, fterrors.ErrJobPaused) {
 			rollbackPausedTaskProgress(&job.BytesDownloaded, task)
@@ -235,6 +239,10 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			Threads:           transferProfile.Threads,
 		})
 
+		// Stop the sampling goroutine BEFORE rolling back: rollbackPausedTaskProgress
+		// reads task.BytesTransferred, and a late progress sample landing between that
+		// read and the reset would leave the job counter permanently skewed. This
+		// ordering is intentional — do not move the rollback above this send.
 		cancelProgressChan <- true
 		if errors.Is(err, fterrors.ErrJobPaused) {
 			rollbackPausedTaskProgress(&job.BytesUploaded, task)

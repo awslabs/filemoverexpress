@@ -443,6 +443,11 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
      * mid-object resume, so in-flight bytes are discarded on pause — the committed
      * floor is what actually survives. Splitting them lets the solid fill hold
      * steady on pause instead of lurching backward.
+     *
+     * Contract: the committed floor sums `sizeBytes` over Completed tasks, so every
+     * producer of a Completed TaskElement MUST set `sizeBytes` (see loadTasks/processTask,
+     * which does). A Completed element built without it contributes 0 and the solid bar
+     * under-reads — if more producers appear, make `sizeBytes` a required field instead.
      */
     private get committedFloorBytes(): number {
         return Math.min(this.committedBytes, this.jobDetails.bytesTransferred);
