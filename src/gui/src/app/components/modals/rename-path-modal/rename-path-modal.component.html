@@ -20,10 +20,10 @@
                 </div>
                 <div class="warning-message-text">
                     @if (data.pathType === PathType.S3_PREFIX) {
-                        This action will copy all objects inside the old S3 prefix to the new S3 prefix you provide and delete the original objects in the old S3 prefix. This can take a long time if there are a lot of objects or the objects are very large.
+                        Renaming copies every object to the new prefix, then deletes the originals. This can take a while for large prefixes.
                         <a (click)="toggleHint($event, 'rename-s3-prefix')">Info</a>
                     } @else {
-                        This action will copy the S3 object from the old S3 path to the new S3 path you provide and delete the object at the original S3 path. This can take a long time if the object is very large.
+                        Renaming copies the object to the new name, then deletes the original. This can take a while for large objects.
                         <a (click)="toggleHint($event, 'rename-s3-object')">Info</a>
                     }
                 </div>

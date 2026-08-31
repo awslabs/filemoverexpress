@@ -137,6 +137,7 @@ export class JobsTableComponent implements AfterViewInit {
         'duration',
         'progress',
         'status',
+        'actions',
     ];
     dataSource: MatTableDataSource<Job>;
     uploadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};

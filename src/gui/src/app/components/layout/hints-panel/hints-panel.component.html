@@ -453,30 +453,14 @@
         <section>
             <h2>Renaming S3 Prefix</h2>
             <p>
-                Renaming an S3 prefix can take a long time since a rename can only be achieved by copying all child
-                objects
-                to the new prefix, then deleting all objects in the original prefix. While renaming is in progress, file
-                browsers cannot be reloaded until the rename is complete to prevent new transfers from starting while a
-                rename is in progress.
+                S3 has no native rename, so a prefix rename copies every object to the new prefix and then deletes the
+                originals. Large prefixes can take a while, and file browsers stay locked until it finishes to keep new
+                transfers from starting mid-rename.
             </p>
             <p>
-                After an S3 prefix rename is requested, the rename goes through two stages.
-            </p>
-            <p>
-                First, all child objects in the prefix are discovered. During this stage, if any new objects are
-                added to the prefix through transfers or external tools, they will be added to the list of objects
-                discovered for renaming.
-            </p>
-            <p>
-                Next, for each discovered object, the latest version is first copied to the new name. If this is
-                successfully,
-                then all versions of the original object with the original name are discovered and permanently deleted.
-                If the copy fails, then the deletion step doesn't happen, and the error is logged. If a new object is
-                added
-                to the original S3 prefix with the same name as an object to be copied, this new object will be the
-                version
-                of the object copied over to the new prefix. If a new object is added to the new S3 prefix with the same
-                name as an object to be deleted before deletion is complete, it will be deleted.
+                Objects added to the prefix while the rename runs are included. For each object the latest version is
+                copied first; only if that succeeds are the original's versions deleted. If a copy fails, the original
+                is kept and the error is logged.
             </p>
         </section>
     </div>
@@ -486,17 +470,12 @@
         <section>
             <h2>Renaming S3 Object</h2>
             <p>
-                Renaming an S3 object can take a long time since a rename can only be achieved by copying the object
-                to the new prefix, then deleting the object in the original prefix. While renaming is in progress, file
-                browsers cannot be reloaded until the rename is complete to prevent new transfers from starting while a
-                rename is in progress.
+                S3 has no native rename, so an object rename copies it to the new name and then deletes the original.
+                File browsers stay locked until it finishes to keep new transfers from starting mid-rename.
             </p>
             <p>
-                After an S3 object rename is requested, the latest version of the object is first copied to the new
-                name.
-                If this is successfully, then all versions of the original object with the original name are discovered
-                and
-                permanently deleted. If the copy fails, then the deletion step doesn't happen, and the error is logged.
+                The latest version is copied first; only if that succeeds are all versions of the original deleted. If
+                the copy fails, the original is kept and the error is logged.
             </p>
         </section>
     </div>
