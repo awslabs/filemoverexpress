@@ -25,6 +25,9 @@ message Job {
     google.protobuf.Timestamp transferring = 16;
     google.protobuf.Timestamp completed = 17;
     string bucket = 18;
+    // Whether the job was submitted with "overwrite existing files" on (the old
+    // "force" flag): existing destination objects are re-uploaded instead of skipped.
+    bool force = 19;
 }
 
 message Task {
@@ -172,6 +175,8 @@ message JobCreateEvent {
     string destination = 5;
     string direction = 6;
     string status = 7;
+    // Whether the job overwrites existing destination files (old "force" flag).
+    bool force = 8;
 }
 
 message JobStatusChangeEvent {

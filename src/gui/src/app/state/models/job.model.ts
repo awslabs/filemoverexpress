@@ -47,6 +47,9 @@ export interface Job {
     timestampTransferring: Date | null;
     timestampCompleted: Date | null;
     checksumProgress: JobChecksumProgressEvent | null;
+    // Whether the job overwrites existing destination files (old "force" flag).
+    // Optional: not every code path that builds a partial Job needs to supply it.
+    force?: boolean;
 }
 
 export const PROGRESS_STATES: JobStatus[] = [

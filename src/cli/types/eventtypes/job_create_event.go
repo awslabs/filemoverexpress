@@ -19,6 +19,7 @@ type JobCreateEvent struct {
 	Destination         string
 	Direction           transfertypes.Direction
 	Status              string
+	Force               bool
 }
 
 func (jce *JobCreateEvent) String() string {
@@ -49,6 +50,7 @@ func (jce *JobCreateEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) {
 		Destination:     jce.Destination,
 		Direction:       direction,
 		Status:          jce.Status,
+		Force:           jce.Force,
 	}
 	msgEvent := fmev1.ListEventsResponse_JobCreateEvent{JobCreateEvent: pbEvent}
 	return &msgEvent, fmev1.EventType_EVENT_TYPE_JOB_CREATE_EVENT_TYPE

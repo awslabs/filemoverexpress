@@ -21,6 +21,7 @@ export class Job {
         public timestampTransferring: Date | null,
         public timestampCompleted: Date | null,
         public bucket: string,
+        public force: boolean,
     ) {
     }
 
@@ -44,6 +45,7 @@ export class Job {
             job.transferring ? timestampDate(job.transferring) : null,
             job.completed ? timestampDate(job.completed) : null,
             job.bucket,
+            job.force,
         );
     }
 }

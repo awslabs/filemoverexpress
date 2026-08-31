@@ -73,6 +73,7 @@
                         <div class="jd-row"><span class="rk">S3 Bucket</span><span class="rv">{{ s3BucketUri }}</span></div>
                     }
                     <div class="jd-row"><span class="rk">Destination</span><span class="rv">{{ jobDetails.destination }}</span></div>
+                    <div class="jd-row"><span class="rk">Overwrite existing</span><span class="rv">{{ overwriteExistingLabel }}</span></div>
                     @if (storageClassLabel) {
                         <div class="jd-row"><span class="rk">Storage class</span><span class="rv">{{ storageClassLabel }}</span></div>
                     }

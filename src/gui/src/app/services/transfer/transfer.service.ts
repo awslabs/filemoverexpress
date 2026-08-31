@@ -101,6 +101,7 @@ export class TransferService {
             timestampTransferring: null,
             timestampCompleted: null,
             checksumProgress: null,
+            force: evt.force,
         };
 
         this.store.dispatch(JobActions.create({job}));

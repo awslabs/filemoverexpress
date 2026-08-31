@@ -64,12 +64,12 @@
 
         <div>
             <mat-slide-toggle [formControl]="forceTransfers">
-                Force transfers
+                Overwrite existing files
             </mat-slide-toggle>
 
             <mat-hint>
-                By default, File Mover Express will skip previously transferred files if they meet certain conditions. To
-                overwrite these files, enable 'Force Transfers'.
+                By default, File Mover Express skips files that already exist at the destination. Turn this on to
+                re-upload and overwrite any file with the same name and path.
             </mat-hint>
         </div>
     </div>

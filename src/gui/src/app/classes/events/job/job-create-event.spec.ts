@@ -16,6 +16,7 @@ const data = {
     destination: '/path/to/dest',
     direction: TransferDirection.Upload,
     status: JobStatus.Created,
+    force: false,
 };
 
 describe('JobCreateEvent', () => {
@@ -28,6 +29,7 @@ describe('JobCreateEvent', () => {
             data.destination,
             data.direction,
             data.status,
+            data.force,
         )).toBeTruthy();
     });
 

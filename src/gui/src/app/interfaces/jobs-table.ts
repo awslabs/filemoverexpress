@@ -27,6 +27,9 @@ export interface JobDetailsData {
     timestampTransferring: Date | null;
     hasTaskErrors: boolean;
     hasSuccessfulTasks: boolean;
+    // Whether the job was submitted to overwrite existing destination files
+    // (the "Overwrite existing files" toggle in the transfer dialog).
+    force: boolean;
 }
 
 export interface TaskElement {
