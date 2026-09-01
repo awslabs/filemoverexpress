@@ -104,6 +104,27 @@ export class TransferProfileService implements OnDestroy {
     }
 
     /**
+     * Sets the current profile to a just-saved (edited or added) profile without the
+     * existence guard `select()` applies — an added profile isn't in the cached list until
+     * the daemon's metadata refresh lands, and we want to switch to it immediately so the
+     * bucket browser connects to the config the user just entered and surfaces ITS state
+     * (sign-in prompt or error), instead of leaving them on the previously-selected one.
+     * The subsequent metadata refresh includes the name and keeps the selection.
+     * @private
+     */
+    private selectSavedProfile(transferProfile: string) {
+        this._transferProfileState.currentTransferProfile = transferProfile;
+        if (this._transferProfileState.transferProfileList
+            && !this._transferProfileState.transferProfileList.includes(transferProfile)) {
+            this._transferProfileState.transferProfileList =
+                [...this._transferProfileState.transferProfileList, transferProfile]
+                    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        }
+        this.transferProfileState$.next(this._transferProfileState);
+        this.transferProfileStateSig.set({...this._transferProfileState});
+    }
+
+    /**
      * Deletes the inputted transfer profile from the configuration file if the user clicks confirm in popup modal.
      * If the currently selected transfer profile is the one being deleted, sets the current selection to null.
      * @param transferProfile Name of the transfer profile to delete
@@ -188,6 +209,7 @@ export class TransferProfileService implements OnDestroy {
                     config.protocols.s3.transferProfiles[result.name] = result;
                     this.fmeClientService.setConfiguration(config).subscribe({
                         next: () => {
+                            this.selectSavedProfile(result.name);
                             this.transferProfileEdited$.next(transferProfile);
                             this.notifications.success(`Successfully edited remote configuration ${transferProfile}.`);
                         },
@@ -220,6 +242,7 @@ export class TransferProfileService implements OnDestroy {
                     config.protocols.s3.transferProfiles[result.name] = result;
                     this.fmeClientService.setConfiguration(config).subscribe({
                         next: () => {
+                            this.selectSavedProfile(result.name);
                             this.notifications.success(`Successfully added remote configuration ${result.name}.`);
                         },
                         error: (error) => {

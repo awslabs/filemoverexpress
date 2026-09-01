@@ -880,12 +880,20 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
      * @private
      */
     private applyHiddenFilter(list: FileBrowserObject[]): FileBrowserObject[] {
-        if (this.showHiddenFiles) {
-            return list;
-        }
         return list.filter((obj) => {
-            const basename = obj.name.split('/').filter(Boolean).pop() ?? obj.name;
-            return !basename.startsWith('.');
+            const basename = obj.name.split('/').filter(Boolean).pop() ?? '';
+            // Drop degenerate entries with no display name — e.g. an S3 object/prefix
+            // literally keyed "/". These can't be shown or navigated and otherwise render
+            // as an invisible blank row, which also makes an otherwise-empty bucket fail to
+            // show the empty-directory drop zone. Always filtered (not gated on hidden files).
+            if (!basename) {
+                return false;
+            }
+            // Dotfiles are hidden unless the user enabled "Show hidden files".
+            if (!this.showHiddenFiles && basename.startsWith('.')) {
+                return false;
+            }
+            return true;
         });
     }
 

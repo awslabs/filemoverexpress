@@ -128,7 +128,7 @@
                     }
                 </div>
             } @else {
-                @if (!renderedDataSource.length && !filter.name) {
+                @if (!datasource.data.length && !filter.name) {
                     <div class="drop-zone-empty"
                          (click)="clickEmptySpace()"
                          (dragover)="onDragOverTable($event)"
@@ -137,7 +137,7 @@
                     >
                         <mat-icon class="drop-zone-icon" fontSet="material-icons">cloud</mat-icon>
                         <div class="drop-zone-text">Drop files to transfer</div>
-                        <div class="drop-zone-subtext">Drag items from the other panel, or browse and select</div>
+                        <div class="drop-zone-subtext">Drag items here from the other panel</div>
                     </div>
                 } @else {
                     <div class="remaining-table-space"

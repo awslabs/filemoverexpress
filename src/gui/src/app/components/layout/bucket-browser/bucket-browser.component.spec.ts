@@ -53,6 +53,6 @@ describe('BucketBrowserComponent', () => {
         component.onOidcAuthChange(false);
         expect(component.fileBrowserData.state).toBe(FileBrowserState.ERROR);
         expect(component.fileBrowserData.list).toEqual([]);
-        expect(component.fileBrowserData.error?.title).toBe('Sign In Required');
+        expect(component.fileBrowserData.error?.title).toBe('Sign in to continue');
     });
 });

@@ -73,6 +73,7 @@ import { NavigateOptions, WailsFileList } from './bucket-browser.interfaces';
 import { Store } from '@ngrx/store';
 import { AppState } from '@app/state';
 import * as UiContextActions from '@state/ui-context/actions/ui-context.actions';
+import { addLog } from '@state/logs/actions/logs.actions';
 import { WailsService } from '@services/wails/wails.service';
 import { Events } from '@wailsio/runtime';
 
@@ -155,6 +156,9 @@ export class BucketBrowserComponent implements OnDestroy {
     transferProfileList: string[] | null = null;
     currentProfileIsOIDC = false;
     oidcAuthenticated = false;
+    // Last profile passed to resolveProfileAndLoad. Auth is per-profile, so when this
+    // changes we forget the previous profile's authenticated flag (see resolveProfileAndLoad).
+    private lastResolvedProfile: string | null = null;
     allowUiConfiguration = false;
     allowRemoteRenameDelete = false;
     connectionState: ConnectionState = ConnectionState.DISCONNECTED;
@@ -450,8 +454,22 @@ export class BucketBrowserComponent implements OnDestroy {
                 const isUnauthenticated =
                     (error instanceof ConnectError && error.code === Code.Unauthenticated) ||
                     (errorMessage !== null && /not authenticated|unauthenticated|sign in required/i.test(errorMessage));
-                if (this.currentProfileIsOIDC && isUnauthenticated) {
+                // For an OIDC profile we have NOT confirmed a session for (first sign-in, or
+                // just switched to it), a listing failure is expected — you can't list before
+                // signing in — so show the calm "Sign In Required" prompt rather than the
+                // alarming listing error. Once authenticated, a later failure surfaces the
+                // real error (which still carries a Sign in fallback).
+                if (this.currentProfileIsOIDC && (!this.oidcAuthenticated || isUnauthenticated)) {
                     this.oidcAuthenticated = false;
+                    this.store.dispatch(addLog({
+                        log: {
+                            level: 'warn',
+                            message: `Not signed in to OIDC remote configuration "${transferProfile}"`
+                                + (errorMessage ? ` (${errorMessage})` : '') + ' \u2014 sign-in required.',
+                            timestamp: new Date(),
+                            jobId: null,
+                        },
+                    }));
                     this.setFileBrowserError(this.getErrorSignInRequired());
                     return;
                 }
@@ -464,6 +482,17 @@ export class BucketBrowserComponent implements OnDestroy {
                     if (s3BrowserError) {
                         s3Error = s3BrowserError;
                     }
+                    // Record the real failure detail in the Logs table — the panel only shows a
+                    // generic "something went wrong" summary, which previously left auth/listing
+                    // errors invisible in Logs.
+                    this.store.dispatch(addLog({
+                        log: {
+                            level: 'error',
+                            message: `Failed to list bucket for remote configuration "${transferProfile}": ${errorMessage}`,
+                            timestamp: new Date(),
+                            jobId: null,
+                        },
+                    }));
                     s3Error.errorMessage = 'Something went wrong while trying to list bucket content. Click on Logs tab for further detail.';
                     s3Error.fixableByConfiguration = true;
                 }
@@ -1334,9 +1363,13 @@ export class BucketBrowserComponent implements OnDestroy {
             next: (config) => {
                 const tp = config.protocols.s3.transferProfiles[profileName];
                 this.currentProfileIsOIDC = tp?.authMethod === 'oidc';
-                if (!this.currentProfileIsOIDC) {
+                // Auth is per-profile: forget the prior profile's authenticated flag when the
+                // profile actually changes, so a fresh (never-signed-in) OIDC config is treated
+                // as "sign in required" instead of inheriting the previous profile's session.
+                if (!this.currentProfileIsOIDC || profileName !== this.lastResolvedProfile) {
                     this.oidcAuthenticated = false;
                 }
+                this.lastResolvedProfile = profileName;
                 // Attempt the listing directly and let its RESULT be the single source of
                 // truth. A successful list on an OIDC profile means we're authenticated
                 // (navigateToPath sets oidcAuthenticated and shows the sign-out control); an
