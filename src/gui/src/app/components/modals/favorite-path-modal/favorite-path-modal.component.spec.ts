@@ -7,6 +7,11 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
+import { of } from 'rxjs';
+import { WailsService } from '@services/wails/wails.service';
+import { BookmarksService } from '@services/bookmarks/bookmarks.service';
+import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { ConnectionState } from '@state/models/connection-state-model';
 
 describe('FavoritePathModalComponent', () => {
     let component: FavoritePathModalComponent;
@@ -32,6 +37,9 @@ describe('FavoritePathModalComponent', () => {
                     provide: MatDialogRef,
                     useValue: {},
                 },
+                {provide: WailsService, useValue: {openDirectory: () => of(''), openFile: () => of('')}},
+                {provide: BookmarksService, useValue: {current: of(null)}},
+                {provide: FmeClientService, useValue: {connectionState: of(ConnectionState.DISCONNECTED)}},
             ],
         });
         fixture = TestBed.createComponent(FavoritePathModalComponent);

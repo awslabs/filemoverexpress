@@ -1,9 +1,10 @@
 import { Component, EventEmitter, inject, Output, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatError, MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
 import { FavoritePathModalData } from '@app/components/modals/favorite-path-modal/favorite-path-modal.interfaces';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { BrowseButtonComponent } from '@primitives/forms/browse-button/browse-button.component';
 import { Bookmark } from '@services/bookmarks/bookmarks.classes';
 import { favoritePathExistsValidator } from '@app/classes/form-validators';
 import { favoritePathFormMessages } from '@app/constants/common.constants';
@@ -22,8 +23,10 @@ import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
         MatLabel,
         MatInput,
         MatError,
+        MatSuffix,
         MatDialogActions,
         ButtonComponent,
+        BrowseButtonComponent,
         EnterSubmitDirective,
     ],
 })

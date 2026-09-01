@@ -11,6 +11,11 @@
                     Favorite Path
                 </mat-label>
                 <input matInput type="text" formControlName="favoritePath">
+                <fme-browse-button matSuffix dialogTitle="Choose favorite folder"
+                                   [startPath]="favoritePathForm.get('favoritePath')?.value"
+                                   (pathPicked)="favoritePathForm.get('favoritePath')?.setValue($event);
+                                                 favoritePathForm.get('favoritePath')?.markAsDirty()">
+                </fme-browse-button>
                 @if (favoritePathForm.get('favoritePath')?.hasError('required')) {
                     <mat-error>
                         {{ favoritePathFormMessages.required }}
