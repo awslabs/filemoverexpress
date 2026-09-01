@@ -1,0 +1,15 @@
+// Sized to sit unobtrusively as a matSuffix inside a mat-form-field. The Material
+// icon button default (40px) is too tall for a form-field suffix row, so shrink it.
+.fme-browse-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 32px;
+
+    mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+    }
+}

@@ -7,6 +7,8 @@ import {
     GenerateCsvReport,
     GenerateExcelReport,
     GenerateJsonReport,
+    OpenDirectory,
+    OpenFile,
     SaveFile,
     StartDaemon,
     SystemOpen,
@@ -83,6 +85,35 @@ export class WailsService {
             // unavailable). A rejected promise from SaveFile surfaces as an Observable error
             // to the subscriber, not as an exception here.
             return from(SaveFile(defaultFilename, base64Data));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
+    }
+
+    /**
+     * Opens a native OS "Open" dialog to choose a single directory, seeded at startPath
+     * (may be empty). Emits the chosen absolute path, or an empty string if the user
+     * cancelled. Only meaningful for a local daemon — the dialog browses the GUI host's
+     * filesystem, which is the daemon's filesystem only when the daemon is local.
+     */
+    openDirectory(title: string, startPath: string): Observable<string> {
+        try {
+            return from(OpenDirectory(title, startPath));
+        } catch (error) {
+            console.debug(`Failed to call wails: ${error}`);
+            return EMPTY;
+        }
+    }
+
+    /**
+     * Opens a native OS "Open" dialog to choose a single file, seeded at startPath (may be
+     * empty). When filterPattern is non-empty (e.g. "*.pem"), the dialog constrains the
+     * visible file types. Emits the chosen absolute path, or an empty string if cancelled.
+     */
+    openFile(title: string, startPath: string, filterName = '', filterPattern = ''): Observable<string> {
+        try {
+            return from(OpenFile(title, startPath, filterName, filterPattern));
         } catch (error) {
             console.debug(`Failed to call wails: ${error}`);
             return EMPTY;

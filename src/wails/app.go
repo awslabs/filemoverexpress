@@ -119,6 +119,44 @@ func (a *FMEApp) SaveFile(defaultFilename string, base64Data string) (string, er
 	return path, nil
 }
 
+// OpenDirectory prompts the user with a native "Open" dialog restricted to
+// choosing a single directory, seeded at defaultPath (may be empty). It returns
+// the chosen absolute path, or an empty string if the user cancelled.
+//
+// This is only meaningful when the daemon runs on the same machine as the GUI:
+// the dialog browses the GUI host's filesystem, which is the daemon's filesystem
+// only for a local daemon. Callers gate the affordance on a local connection
+// (remote daemons need in-app RPC browsing instead — see GitHub issue #123).
+func (a *FMEApp) OpenDirectory(title string, defaultPath string) (string, error) {
+	return a.app.Dialog.OpenFile().
+		CanChooseFiles(false).
+		CanChooseDirectories(true).
+		CanCreateDirectories(true).
+		SetTitle(title).
+		SetDirectory(defaultPath).
+		PromptForSingleSelection()
+}
+
+// OpenFile prompts the user with a native "Open" dialog restricted to choosing a
+// single file, seeded at defaultPath (may be empty). When filterPattern is
+// non-empty (e.g. "*.pem"), the dialog constrains the visible file types via a
+// named filter. It returns the chosen absolute path, or an empty string if the
+// user cancelled.
+//
+// Like OpenDirectory, this browses the GUI host's filesystem and is only correct
+// for a local daemon; callers gate it on a local connection.
+func (a *FMEApp) OpenFile(title string, defaultPath string, filterName string, filterPattern string) (string, error) {
+	dialog := a.app.Dialog.OpenFile().
+		CanChooseFiles(true).
+		CanChooseDirectories(false).
+		SetTitle(title).
+		SetDirectory(defaultPath)
+	if filterPattern != "" {
+		dialog = dialog.AddFilter(filterName, filterPattern)
+	}
+	return dialog.PromptForSingleSelection()
+}
+
 // ExternalLink opens the given URL in the system's default web browser.
 func (a *FMEApp) ExternalLink(url string) error {
 	return browser.OpenURL(url)

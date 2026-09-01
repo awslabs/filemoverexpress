@@ -1,0 +1,6 @@
+@if (isLocal()) {
+    <button type="button" mat-icon-button class="fme-browse-btn"
+            [attr.aria-label]="tooltip()" [matTooltip]="tooltip()" (click)="browse()">
+        <mat-icon>folder_open</mat-icon>
+    </button>
+}

@@ -2,13 +2,14 @@ import { TitleCasePipe } from '@angular/common';
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
-import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
 import { isAbsolutePathValidator } from '@app/classes';
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import {
     StartingPathType,
 } from '@app/components/modals/starting-path-editor-modal/starting-path-editor-modal.interfaces';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { BrowseButtonComponent } from '@primitives/forms/browse-button/browse-button.component';
 import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 
 @Component({
@@ -26,8 +27,10 @@ import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
         ReactiveFormsModule,
         MatHint,
         MatError,
+        MatSuffix,
         MatDialogActions,
         ButtonComponent,
+        BrowseButtonComponent,
         EnterSubmitDirective,
     ],
 })

@@ -22,6 +22,12 @@
                 {{ this.configFieldName }}
             </mat-label>
             <input matInput type="text" [formControl]="startingPath">
+            @if (data.type === StartingPathType.Local) {
+                <fme-browse-button matSuffix dialogTitle="Choose local starting directory"
+                                   [startPath]="startingPath.value"
+                                   (pathPicked)="startingPath.setValue($event); startingPath.markAsDirty()">
+                </fme-browse-button>
+            }
             @if (!startingPath.value) {
                 <mat-hint>
                     If left empty, browsing will start from the root.

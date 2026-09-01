@@ -117,6 +117,11 @@
                                 <mat-form-field color="accent">
                                     <mat-label>Local directory</mat-label>
                                     <input matInput type="text" formControlName="local" placeholder="/path/to/start">
+                                    <fme-browse-button matSuffix dialogTitle="Choose local start directory"
+                                                       [startPath]="transferProfileForm.get('paths.local')?.value"
+                                                       (pathPicked)="transferProfileForm.get('paths.local')?.setValue($event);
+                                                                     transferProfileForm.get('paths.local')?.markAsDirty()">
+                                    </fme-browse-button>
                                     <mat-hint>Optional start directory for the Local file browser.</mat-hint>
                                 </mat-form-field>
                                 <mat-form-field color="accent">
@@ -235,6 +240,12 @@
                                         <mat-label>Custom CA bundle</mat-label>
                                         <input matInput type="text" formControlName="oidcCustomCaBundle"
                                                placeholder="/path/to/ca-bundle.pem">
+                                        <fme-browse-button matSuffix mode="file" dialogTitle="Choose CA bundle"
+                                                           fileFilterName="PEM certificate" fileFilterPattern="*.pem"
+                                                           [startPath]="transferProfileForm.get('oidcCustomCaBundle')?.value"
+                                                           (pathPicked)="transferProfileForm.get('oidcCustomCaBundle')?.setValue($event);
+                                                                         transferProfileForm.get('oidcCustomCaBundle')?.markAsDirty()">
+                                        </fme-browse-button>
                                         <mat-hint>Optional PEM path for internal CAs.</mat-hint>
                                     </mat-form-field>
                                 </div>

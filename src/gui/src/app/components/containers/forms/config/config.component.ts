@@ -2,8 +2,9 @@ import { AsyncPipe } from '@angular/common';
 import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
 import { MatOption, MatSelect, MatSelectChange } from '@angular/material/select';
+import { BrowseButtonComponent } from '@primitives/forms/browse-button/browse-button.component';
 import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { discardUnsavedChangesDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
@@ -46,10 +47,12 @@ import {
         MatInput,
         MatError,
         MatHint,
+        MatSuffix,
         MatSlideToggle,
         MatSelect,
         MatOption,
         ButtonComponent,
+        BrowseButtonComponent,
         AsyncPipe,
 
     ],
