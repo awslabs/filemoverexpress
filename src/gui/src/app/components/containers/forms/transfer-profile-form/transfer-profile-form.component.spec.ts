@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TransferProfileFormComponent } from './transfer-profile-form.component';
 import { AppState } from '@app/state';
@@ -142,5 +142,60 @@ describe('TransferProfileFormComponent', () => {
 
         const hint = fixture.nativeElement.querySelector('.redirect-uri-hint');
         expect(hint).toBeNull();
+    });
+
+    describe('getOriginalHint', () => {
+        it('strips the appended extended-hint span', () => {
+            const withExtended = 'Base hint.<span class="extended-hint"> extra</span>';
+            expect(component.getOriginalHint(withExtended)).toBe('Base hint.');
+        });
+
+        it('returns the message unchanged when there is no extended hint', () => {
+            expect(component.getOriginalHint('Just the base hint.')).toBe('Just the base hint.');
+        });
+    });
+
+    describe('getBucketError', () => {
+        it('returns empty when the bucket control has no errors', () => {
+            component.transferProfileForm.controls['bucket'].setValue('valid-bucket');
+            expect(component.getBucketError()).toBe('');
+        });
+
+        it('maps a bucketURI error to the leading-s3 message', () => {
+            component.transferProfileForm.controls['bucket'].setErrors({bucketURI: true});
+            expect(component.getBucketError()).toContain('s3://');
+        });
+
+        it('maps an invalidPrefix error to the prefix message', () => {
+            component.transferProfileForm.controls['bucket'].setErrors({invalidPrefix: 'xn--'});
+            expect(component.getBucketError()).toContain('xn--');
+        });
+    });
+
+    describe('file-order chips', () => {
+        it('adds a chip and clears the input', () => {
+            component.transferProfileForm.controls['fileOrder'].setValue([]);
+            const clear = vi.fn();
+            component.addFileOrderChip({value: '.mov', chipInput: {clear}} as never);
+            expect(component.transferProfileForm.controls['fileOrder'].value).toEqual(['.mov']);
+            expect(clear).toHaveBeenCalled();
+        });
+
+        it('ignores an empty chip value', () => {
+            component.transferProfileForm.controls['fileOrder'].setValue(['.mov']);
+            component.addFileOrderChip({value: ''} as never);
+            expect(component.transferProfileForm.controls['fileOrder'].value).toEqual(['.mov']);
+        });
+
+        it('removes a chip by extension', () => {
+            component.transferProfileForm.controls['fileOrder'].setValue(['.mov', '.mxf']);
+            component.removeFileOrderChip('.mov');
+            expect(component.transferProfileForm.controls['fileOrder'].value).toEqual(['.mxf']);
+        });
+
+        it('reports invalid extensions in the file-order error string', () => {
+            component.transferProfileForm.controls['fileOrder'].setValue(['not a valid ext!']);
+            expect(component.getFileOrderErrors()).toContain('Invalid extensions');
+        });
     });
 });
