@@ -6,6 +6,8 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { WailsService } from '@services/wails/wails.service';
 import { of, Subject, throwError } from 'rxjs';
 import { OidcSignInModalData } from './oidc-sign-in-modal.interfaces';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialTestState } from '@state/test.state';
 
 describe('OidcSignInModalComponent', () => {
     let component: OidcSignInModalComponent;
@@ -42,6 +44,7 @@ describe('OidcSignInModalComponent', () => {
                 { provide: MatDialogRef, useValue: mockDialogRef },
                 { provide: FmeClientService, useValue: mockFmeClient },
                 { provide: WailsService, useValue: mockWails },
+                provideMockStore({ initialState: initialTestState }),
             ],
         }).compileComponents();
 
@@ -93,7 +96,7 @@ describe('OidcSignInModalComponent', () => {
         it('should set a generic error message when the error has no message', () => {
             mockFmeClient.initiateOIDCLogin.mockReturnValue(throwError(() => ({})));
             fixture.detectChanges();
-            expect(component.error).toContain('Could not start sign-in');
+            expect(component.error).toContain('Please try again');
         });
     });
 

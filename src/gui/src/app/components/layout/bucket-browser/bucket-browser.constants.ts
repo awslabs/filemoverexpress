@@ -44,8 +44,9 @@ export const fileBrowserErrors: Record<string, FileBrowserError> = {
         message: 'Select a Remote Configuration from the Remote Configurations dropdown.',
     },
     SIGN_IN_REQUIRED: {
-        title: 'Sign In Required',
-        message: 'Sign in to browse this bucket.',
+        title: 'Sign in to continue',
+        message: 'Sign in to your identity provider to browse this bucket.',
+        severity: 'info',
     },
     LOADING_TRANSFER_PROFILE_LIST: {
         title: 'Loading',

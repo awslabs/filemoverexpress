@@ -167,13 +167,14 @@ $row-icon-weight: 600;
 
     // remaining table space when no error
     .remaining-table-space {
-        flex: 1 100%;
+        flex: 1;
     }
 
     // empty-directory drop zone (matches the redesign mockup): dashed rounded target
     // shown when a loaded directory has no items, inviting a drag-to-transfer.
     .drop-zone-empty {
-        flex: 1 100%;
+        flex: 1;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: center;

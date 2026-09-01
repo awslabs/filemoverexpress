@@ -173,21 +173,28 @@ func TestOIDCProvider_GetStatus_NoSession(t *testing.T) {
 	assert.Empty(t, status.LastError)
 }
 
-func TestOIDCProvider_InitiateLogin_RejectedWhenPending(t *testing.T) {
+func TestOIDCProvider_InitiateLogin_SupersedesPending(t *testing.T) {
 	sts := &mockSTSClient{}
 	p := newTestProvider(t, sts)
 
-	// Manually set a session to pending state
+	// A prior attempt left the session Pending with a live cancel handle.
+	cancelled := false
 	p.mu.Lock()
 	p.sessions["profile1"] = &OIDCSession{
-		State: SessionStatePending,
+		State:  SessionStatePending,
+		cancel: func() { cancelled = true },
 	}
 	p.mu.Unlock()
 
 	cfg := validTestConfig()
+	// A retry must NOT be rejected as "login already in progress": it supersedes the
+	// stale pending attempt and starts a fresh flow (which here only fails because the
+	// test issuer is unreachable). Previously this left the user unable to retry.
 	_, err := p.InitiateLogin(context.Background(), "profile1", cfg)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "login already in progress")
+	if err != nil {
+		assert.NotContains(t, err.Error(), "login already in progress")
+	}
+	assert.True(t, cancelled, "prior pending flow should have been cancelled/superseded")
 }
 
 func TestOIDCProvider_InitiateLogin_RejectedWhenAuthenticated(t *testing.T) {

@@ -11,6 +11,8 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { ButtonComponent } from '@app/components/primitives/buttons/button/button.component';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { WailsService } from '@services/wails/wails.service';
+import { Store } from '@ngrx/store';
+import { addLog } from '@state/logs/actions/logs.actions';
 import { Subject, Subscription, timer } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { OidcSignInModalData, OidcSignInModalResult } from './oidc-sign-in-modal.interfaces';
@@ -40,6 +42,7 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
     private dialogRef = inject<MatDialogRef<OidcSignInModalComponent, OidcSignInModalResult>>(MatDialogRef);
     private fmeClient = inject(FmeClientService);
     private wails = inject(WailsService);
+    private store = inject(Store);
 
     pending = false;
     error = '';
@@ -78,7 +81,7 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
             },
             error: (err) => {
                 this.pending = false;
-                this.error = err?.message || 'Could not start sign-in. Please try again.';
+                this.error = this.friendlyError(err?.message);
             },
         });
     }
@@ -88,6 +91,33 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
             this.stopPolling();
             this.dialogRef.close(null);
         };
+    }
+
+    /**
+     * Turns a raw sign-in error into something a user can act on. Transport-level
+     * artifacts (a dropped connection surfaces as "missing trailer"; an unclassified
+     * ConnectError is prefixed "[unknown]") are meaningless to the user, so map them to
+     * plain language and strip any leading "[code]" prefix from the rest.
+     */
+    private friendlyError(raw: string | undefined): string {
+        const msg = (raw ?? '').trim();
+        // Record the technical detail in the Logs table — the modal only shows a friendly
+        // summary, and OIDC/SSO sign-in failures were previously absent from Logs entirely.
+        this.store.dispatch(addLog({
+            log: {
+                level: 'error',
+                message: `OIDC sign-in failed for "${this.data.profileName}": ${msg || 'no detail provided'}`,
+                timestamp: new Date(),
+                jobId: null,
+            },
+        }));
+        if (!msg) {
+            return 'Sign-in didn\u2019t complete. Please try again.';
+        }
+        if (/missing trailer|\[unknown\]|failed to fetch|econn|network error/i.test(msg)) {
+            return 'Sign-in didn\u2019t complete \u2014 the connection dropped before it finished. Please try again.';
+        }
+        return msg.replace(/^\[[^\]]+\]\s*/, '');
     }
 
     tryAgain() {
@@ -135,7 +165,7 @@ export class OidcSignInModalComponent implements OnInit, OnDestroy {
                 next: (res) => {
                     if (res.error) {
                         this.pending = false;
-                        this.error = res.error;
+                        this.error = this.friendlyError(res.error);
                         return;
                     }
                     if (res.authenticated) {
