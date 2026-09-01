@@ -64,6 +64,10 @@ type (
 		oauth2Token  *oauth2.Token
 		oauth2Config *oauth2.Config
 		discovery    *DiscoveryDocument
+		// In-flight login flow handles, set while State is Pending, so a superseding
+		// login (retry) can tear the previous attempt down and reuse the callback port.
+		cbServer *CallbackServer
+		cancel   context.CancelFunc
 	}
 
 	// STSClient is an interface for calling AssumeRoleWithWebIdentity, allowing test mocking.
@@ -135,25 +139,37 @@ func (p *OIDCProvider) InitiateLogin(
 	}
 
 	p.mu.Lock()
-	session := p.sessions[profileName]
-	if session != nil {
-		if session.State == SessionStatePending {
-			p.mu.Unlock()
-			return "", fmt.Errorf("login already in progress for profile %q", profileName)
-		}
-		if session.State == SessionStateAuthenticated {
-			p.mu.Unlock()
-			return "", fmt.Errorf("already authenticated — call LogoutOIDC first")
-		}
+	prev := p.sessions[profileName]
+	if prev != nil && prev.State == SessionStateAuthenticated {
+		p.mu.Unlock()
+		return "", fmt.Errorf("already authenticated — call LogoutOIDC first")
 	}
-
-	session = &OIDCSession{Config: cfg, State: SessionStatePending}
+	// Supersede any prior in-flight or errored attempt. A failed/abandoned sign-in
+	// otherwise leaves the session Pending and blocks every retry with "login already
+	// in progress" until its 5-minute callback wait expires — which is exactly why
+	// "Try again" appeared to do nothing and a corrected config still couldn't sign in.
+	// Capture the old flow's handles and tear it down (below, off-lock) so this fresh
+	// attempt can reuse the loopback callback port.
+	var prevCancel context.CancelFunc
+	var prevServer *CallbackServer
+	if prev != nil {
+		prevCancel = prev.cancel
+		prevServer = prev.cbServer
+	}
+	session := &OIDCSession{Config: cfg, State: SessionStatePending}
 	p.sessions[profileName] = session
 	p.mu.Unlock()
 
+	if prevCancel != nil {
+		prevCancel()
+	}
+	if prevServer != nil {
+		_ = prevServer.Shutdown()
+	}
+
 	authURL, err := p.buildAuthFlow(ctx, profileName, session)
 	if err != nil {
-		p.setSessionError(profileName, err.Error())
+		p.setSessionError(profileName, session, err.Error())
 		return "", err
 	}
 
@@ -409,6 +425,15 @@ func (p *OIDCProvider) buildAuthFlow(
 	}
 	slog.Info("Started callback server")
 
+	// The callback wait must outlive this RPC's ctx (which is cancelled when InitiateLogin
+	// returns), so run it on an independent, cancellable context. Store the server + cancel
+	// on the session so a superseding retry can tear this attempt down (see InitiateLogin).
+	flowCtx, cancel := context.WithCancel(context.Background())
+	p.mu.Lock()
+	session.cbServer = cbServer
+	session.cancel = cancel
+	p.mu.Unlock()
+
 	oauth2Cfg := buildOAuth2Config(session.Config, discovery, cbServer.RedirectURI())
 	session.oauth2Config = oauth2Cfg
 
@@ -418,7 +443,7 @@ func (p *OIDCProvider) buildAuthFlow(
 	)
 
 	// Start background goroutine to complete the flow
-	go p.awaitCallback(ctx, awaitCallbackParams{
+	go p.awaitCallback(flowCtx, awaitCallbackParams{
 		profileName: profileName,
 		session:     session,
 		cbServer:    cbServer,
@@ -428,20 +453,20 @@ func (p *OIDCProvider) buildAuthFlow(
 	return authURL, nil
 }
 
-func (p *OIDCProvider) awaitCallback(_ context.Context, params awaitCallbackParams) {
-	callbackCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+func (p *OIDCProvider) awaitCallback(ctx context.Context, params awaitCallbackParams) {
+	callbackCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	defer func() { _ = params.cbServer.Shutdown() }()
 
 	result, err := params.cbServer.WaitForCallback(callbackCtx)
 	if err != nil {
-		p.setSessionError(params.profileName, err.Error())
+		p.setSessionError(params.profileName, params.session, err.Error())
 		return
 	}
 
 	if result.Error != "" {
 		msg := fmt.Sprintf("Authentication denied: %s", result.ErrorDescription)
-		p.setSessionError(params.profileName, msg)
+		p.setSessionError(params.profileName, params.session, msg)
 		return
 	}
 
@@ -451,7 +476,7 @@ func (p *OIDCProvider) awaitCallback(_ context.Context, params awaitCallbackPara
 		code:        result.Code,
 		verifier:    params.verifier,
 	}); err != nil {
-		p.setSessionError(params.profileName, err.Error())
+		p.setSessionError(params.profileName, params.session, err.Error())
 	}
 }
 
@@ -495,7 +520,7 @@ func (p *OIDCProvider) exchangeAndAssumeRole(ctx context.Context, params exchang
 func (p *OIDCProvider) refreshCredentials(profileName string, session *OIDCSession) error {
 	ctx := context.Background()
 	if err := p.refreshAndAssumeRole(ctx, profileName, session); err != nil {
-		p.setSessionError(profileName, "Session expired — please sign in again")
+		p.setSessionError(profileName, session, "Session expired — please sign in again")
 		return err
 	}
 	return nil
@@ -673,15 +698,18 @@ func (p *OIDCProvider) persistIfEnabled(profileName string, session *OIDCSession
 	_ = p.tokenCache.Save(profileName, tokens)
 }
 
-func (p *OIDCProvider) setSessionError(profileName string, errMsg string) {
+func (p *OIDCProvider) setSessionError(profileName string, session *OIDCSession, errMsg string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	session := p.sessions[profileName]
-	if session != nil {
-		session.State = SessionStateUnauthenticated
-		session.LastError = errMsg
+	// Ignore if this session has been superseded by a newer login attempt for the same
+	// profile: a stale in-flight goroutine (e.g. an abandoned attempt torn down by a
+	// retry) must not clobber the current session's state.
+	if session == nil || p.sessions[profileName] != session {
+		return
 	}
+	session.State = SessionStateUnauthenticated
+	session.LastError = errMsg
 }
 
 func buildOAuth2Config(cfg OIDCConfig, doc *DiscoveryDocument, redirectURI string) *oauth2.Config {

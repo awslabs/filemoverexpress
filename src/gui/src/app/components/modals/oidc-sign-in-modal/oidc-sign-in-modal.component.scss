@@ -4,6 +4,13 @@
     margin: 0 0 14px;
 }
 
+// The footer holds custom fme-buttons, which don't carry Material's inter-button
+// margin — space them so Edit configuration / Try again don't touch.
+mat-dialog-actions {
+    gap: 8px;
+    padding-top: 8px;
+}
+
 .waiting {
     display: flex;
     align-items: center;
