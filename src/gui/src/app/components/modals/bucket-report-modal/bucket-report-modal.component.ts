@@ -75,7 +75,17 @@ export class BucketReportModalComponent implements OnDestroy {
             next: (transferProfileState: TransferProfileState) => {
                 if (transferProfileState.transferProfileList) {
                     this.transferProfiles = transferProfileState.transferProfileList;
-                    this.exportForm.controls.remoteConfiguration.setValue(this.transferProfiles[0]);
+                    // Default to the configuration the user is actually connected to, not
+                    // the first in the list — otherwise the report silently targets an
+                    // unrelated profile (e.g. an unauthenticated OIDC one) and fails. Only
+                    // seed the default while the field is untouched, so a manual pick sticks.
+                    if (!this.exportForm.controls.remoteConfiguration.dirty) {
+                        const current = transferProfileState.currentTransferProfile;
+                        const defaultProfile = current && this.transferProfiles.includes(current)
+                            ? current
+                            : (this.transferProfiles[0] ?? '');
+                        this.exportForm.controls.remoteConfiguration.setValue(defaultProfile);
+                    }
                 }
             },
         }));
@@ -109,7 +119,14 @@ export class BucketReportModalComponent implements OnDestroy {
                     if (!data.success) {
                         this.notifications.error(data.message || 'Failed to start bucket report generation.');
                     } else {
-                        this.notifications.success('Bucket report started — it will appear in the Bucket Reports tab when ready.');
+                        // The daemon only ACCEPTED the request here — generation runs
+                        // asynchronously and may still fail (e.g. auth). Don't claim success;
+                        // point the user at the Bucket Reports tab, where the real final
+                        // status (including Error) appears.
+                        this.notifications.info(
+                            `Bucket report requested for "${this.exportForm.controls.remoteConfiguration.value}". ` +
+                            'Watch the Bucket Reports tab for its status.',
+                        );
                         // Open the tray on the Bucket Reports tab so the new report row is
                         // visible immediately, rather than relying on the user knowing the tab exists.
                         this.tray.showReports();
