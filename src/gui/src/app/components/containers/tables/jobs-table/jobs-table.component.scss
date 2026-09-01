@@ -100,6 +100,29 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         width: 130px;
     }
 
+    // Per-row actions (⋯) column: compact, muted by default, brighter on row hover.
+    .mat-column-actions {
+        width: 48px;
+        text-align: center;
+        padding-right: 4px;
+    }
+
+    // Keep the default mat-icon-button box (so the hover state-layer/ripple stays
+    // centered on the icon); only recolour it and shrink the glyph.
+    .job-row-menu-btn {
+        color: variables.$grey-500;
+
+        mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+    }
+
+    tr.mat-mdc-row:hover .job-row-menu-btn {
+        color: variables.$grey-100;
+    }
+
     // Size + duration meta columns (DIT feedback): muted, compact
     .mat-column-size,
     .mat-column-duration {

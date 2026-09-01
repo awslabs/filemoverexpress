@@ -83,14 +83,24 @@
                     </td>
                 </ng-container>
 
+                <!-- Per-row actions: a ⋯ menu with the same items as right-click, so the
+                     actions are discoverable without knowing about the context menu. -->
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let job; dataSource: dataSource" class="job-actions">
+                        <button mat-icon-button class="job-row-menu-btn" aria-label="Job actions"
+                                matTooltip="Actions" [matTooltipShowDelay]="500"
+                                (click)="rightClickJobRow($event, job)">
+                            <mat-icon>more_vert</mat-icon>
+                        </button>
+                    </td>
+                </ng-container>
+
                 <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                 <tr mat-row
                     *matRowDef="let row; columns: displayedColumns;"
                     (contextmenu)="rightClickJobRow($event, row)"
                     (dblclick)="jobDetails(row)"
-                    [matTooltipShowDelay]="500"
-                    matTooltip="Double-click for details · right-click for actions"
-                    matTooltipPosition="above"
                 >
                 </tr>
             </table>
