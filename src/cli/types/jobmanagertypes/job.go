@@ -375,5 +375,6 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 		Transferring:        timestamppb.New(j.TimestampTransferring),
 		Completed:           timestamppb.New(j.TimestampCompleted),
 		Bucket:              j.transferProfile.Bucket,
+		Force:               j.force,
 	}
 }

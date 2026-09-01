@@ -237,6 +237,7 @@ export class JobsTableComponent implements AfterViewInit {
                             timestampTransferring: j.timestampTransferring,
                             timestampCompleted: j.timestampCompleted,
                             checksumProgress: null,
+                            force: j.force,
                         });
                     }
 
@@ -394,6 +395,7 @@ export class JobsTableComponent implements AfterViewInit {
                     timestampTransferring: job.timestampTransferring,
                     hasTaskErrors: job.hasTaskErrors,
                     hasSuccessfulTasks: job.hasSuccessfulTasks,
+                    force: job.force ?? false,
                 },
             },
         );

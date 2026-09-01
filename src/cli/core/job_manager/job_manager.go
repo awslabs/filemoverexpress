@@ -202,6 +202,7 @@ func (jm *JobManager) AddJob(job *jobmanagertypes.Job) error {
 		Direction:           job.Direction(),
 		Status:              string(job.Status()),
 		Created:             job.TimestampCreated,
+		Force:               job.Force(),
 	}
 	events.Events.Send(createEvt)
 	return nil

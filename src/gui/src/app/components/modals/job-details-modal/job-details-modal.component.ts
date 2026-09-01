@@ -152,6 +152,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
         timestampTransferring: null,
         hasTaskErrors: false,
         hasSuccessfulTasks: false,
+        force: false,
     };
     counts: TaskCounts = {
         total: 0,
@@ -206,6 +207,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                     timestampTransferring: job.timestampTransferring,
                     hasTaskErrors: job.hasTaskErrors,
                     hasSuccessfulTasks: job.hasSuccessfulTasks,
+                    force: job.force ?? this.jobDetails.force,
                 };
             }
         }));
@@ -422,6 +424,13 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
     get directionLabel(): string {
         return this.isUpload ? 'Upload — local → S3' : 'Download — S3 → local';
+    }
+
+    /** Advanced-details value for the per-job overwrite/skip-existing choice. */
+    get overwriteExistingLabel(): string {
+        return this.jobDetails.force
+            ? 'Yes — existing files were re-uploaded'
+            : 'No — files already at the destination were skipped';
     }
 
     get statusLabel(): string {

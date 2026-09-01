@@ -17,6 +17,7 @@ export class JobCreateEvent implements BaseEvent {
         public destination: string,
         public direction: TransferDirection,
         public status: JobStatus,
+        public force: boolean,
     ) {
     }
 
@@ -35,6 +36,7 @@ export class JobCreateEvent implements BaseEvent {
             evt.destination,
             evt.direction == 'upload' ? TransferDirection.Upload : TransferDirection.Download,
             stringToJobStatus(evt.status),
+            evt.force,
         );
     }
 }
