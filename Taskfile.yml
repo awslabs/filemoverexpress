@@ -121,8 +121,10 @@ tasks:
   clean:
     desc: Remove build artifacts and generated code
     cmds:
-      - rm -rf {{.OUTPUT_DIR}}
-      - rm -f src/cli/types/pbtypes/fme/v1/*.pb.go
-      - rm -rf src/cli/types/pbtypes/fme/v1/fmev1connect/
-      - rm -f src/cli/types/pbtypes/s3_shared/v1/*.pb.go
-      - rm -rf src/gui/src/gen/
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue 'dist', 'src/cli/types/pbtypes/fme/v1/fmev1connect', 'src/gui/src/gen'; Remove-Item -Force -ErrorAction SilentlyContinue 'src/cli/types/pbtypes/fme/v1/*.pb.go', 'src/cli/types/pbtypes/s3_shared/v1/*.pb.go'"
+        {{else}}
+        rm -rf dist src/cli/types/pbtypes/fme/v1/fmev1connect/ src/gui/src/gen/
+        rm -f src/cli/types/pbtypes/fme/v1/*.pb.go src/cli/types/pbtypes/s3_shared/v1/*.pb.go
+        {{end}}
