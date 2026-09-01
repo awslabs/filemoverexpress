@@ -29,6 +29,17 @@ mat-expansion-panel.hf-card {
     min-width: 0;
 }
 
+// The card sets overflow:hidden for its rounded corners, which clips the enable
+// toggle when the header collapses to its default height. Give the header explicit
+// vertical room and center its contents so the toggle sits fully inside it.
+.hf-card-head.mat-expansion-panel-header {
+    height: auto;
+    min-height: 56px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    align-items: center;
+}
+
 .hf-flame {
     color: variables.$badge-hot-color;
     font-size: 18px;
