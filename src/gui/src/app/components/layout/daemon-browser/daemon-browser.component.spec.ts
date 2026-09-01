@@ -224,7 +224,14 @@ describe('DaemonBrowserComponent', () => {
     });
 
     describe('getStartingDirectory', () => {
-        it('prefers the bookmark on-connect starting path', () => {
+        it('prefers the configured local starting directory over the remembered on-connect path', () => {
+            bookmarkCurrent$.next({name: 'Local File System', onConnectStartingPath: '/where/i/was'});
+            component.selectedTransferProfile = PROFILE;
+            metadata.transferProfiles[PROFILE] = {remote: '', local: '/home/dit'};
+            expect(component.getStartingDirectory()).toBe('/home/dit');
+        });
+
+        it('uses the on-connect starting path when no local starting directory is configured', () => {
             bookmarkCurrent$.next({name: 'Local File System', onConnectStartingPath: '/fav'});
             expect(component.getStartingDirectory()).toBe('/fav');
         });

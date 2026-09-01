@@ -294,22 +294,26 @@ export class DaemonBrowserComponent implements OnDestroy {
      * Get the starting directory to navigate to
      */
     getStartingDirectory() {
-        // try getting favorite path first
-        const bookmarkStartingPath = this.selectedBookmark?.onConnectStartingPath;
-        if (bookmarkStartingPath) {
-            return bookmarkStartingPath;
-        }
-        // try getting local starting path from metadata next
+        // A configured local starting directory is an explicit "home" for this remote
+        // configuration, and the Set Local Starting Directory dialog promises "each time you
+        // connect, browsing starts here". Honor it FIRST — ahead of the passively-remembered
+        // last position (onConnectStartingPath) — so a daemon restart or reconnect returns to
+        // that home instead of wherever the user happened to be browsing. Users who have NOT
+        // configured a starting directory fall through to the remembered path (set by a
+        // favorite click or prior browsing) and then root, exactly as before.
         try {
             if (this.selectedTransferProfile) {
-                const paths = this.metadata.transferProfiles[this.selectedTransferProfile];
-                const localPath = paths.local;
+                const localPath = this.metadata.transferProfiles[this.selectedTransferProfile]?.local;
                 if (localPath) {
                     return displayPathToGrpcPath(localPath, this.fileBrowserType);
                 }
             }
         } catch {
-            return '/';
+            // Metadata not loaded (no active session) — fall through to the remembered path / root.
+        }
+        const bookmarkStartingPath = this.selectedBookmark?.onConnectStartingPath;
+        if (bookmarkStartingPath) {
+            return bookmarkStartingPath;
         }
         // return root if no starting path found
         return '/';
