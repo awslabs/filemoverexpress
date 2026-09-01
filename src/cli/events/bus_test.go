@@ -238,3 +238,41 @@ func TestEventBus_Panic(t *testing.T) {
 		t.Errorf("TestEventBus_Panic failed, channel timed out before receiving message")
 	}
 }
+
+// TestEventBus_SendAfterCloseDoesNotPanic guards the daemon's most frequent
+// historical crash: sending on a listener channel that Close() already closed.
+// Uses a local bus so it doesn't tear down the shared global Events used by the
+// other tests.
+func TestEventBus_SendAfterCloseDoesNotPanic(t *testing.T) {
+	eb := &EventBus{listeners: map[string]EventListener{}, lock: sync.RWMutex{}}
+	c := make(chan eventtypes.Event, 1)
+	if err := eb.RegisterListener("closed-listener", c, eventtypes.AllEvents); err != nil {
+		t.Fatalf("register failed: %s", err)
+	}
+
+	eb.Close()
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Send after Close panicked: %v", r)
+		}
+	}()
+	eb.Info("after close") // must be a no-op, not a panic
+}
+
+// TestEventBus_DoSendToClosedChannelRecovers verifies the delivery goroutine
+// recovers when it races Close() and the channel is already closed — the exact
+// "send on closed channel" panic that crashed the daemon on disconnect.
+func TestEventBus_DoSendToClosedChannelRecovers(t *testing.T) {
+	eb := &EventBus{listeners: map[string]EventListener{}, lock: sync.RWMutex{}}
+	c := make(chan eventtypes.Event, 1)
+	close(c)
+	listener := EventListener{channel: c, filters: []eventtypes.MessageFlags{eventtypes.AllEvents}}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("doSend to a closed channel should recover, but panicked: %v", r)
+		}
+	}()
+	eb.doSend(listener, &eventtypes.MessageEvent{Msg: "x"})
+}
