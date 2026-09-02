@@ -37,6 +37,11 @@ export class TransferProfileService implements OnDestroy {
         currentTransferProfile: null,
         currentProfileIsOIDC: false,
     };
+    // The profile the user last explicitly selected. Kept SEPARATE from _transferProfileState
+    // so it survives resetTransferProfileState() (which fires when the daemon goes away). On
+    // reconnect the default logic restores this instead of snapping back to the first profile
+    // in the alphabetical list (which may be an unauthenticated OIDC config).
+    private lastSelectedProfile: string | null = null;
 
     init() {
         this._subscriptions.push(this.metadata.onUpdateTransferProfileNames.subscribe({
@@ -47,7 +52,16 @@ export class TransferProfileService implements OnDestroy {
                         return a.toLowerCase().localeCompare(b.toLowerCase());
                     });
                     if (!currentTransferProfile || !transferProfiles.includes(currentTransferProfile)) {
-                        this._transferProfileState.currentTransferProfile = transferProfiles.length ? transferProfiles[0] : null;
+                        // A daemon restart clears the live selection (resetTransferProfileState),
+                        // so restore the profile the user last explicitly chose. Only fall back
+                        // to the first profile when there's no valid remembered selection —
+                        // otherwise every reconnect snaps back to the alphabetically-first
+                        // profile, which may be an unauthenticated OIDC config.
+                        if (this.lastSelectedProfile && transferProfiles.includes(this.lastSelectedProfile)) {
+                            this._transferProfileState.currentTransferProfile = this.lastSelectedProfile;
+                        } else {
+                            this._transferProfileState.currentTransferProfile = transferProfiles.length ? transferProfiles[0] : null;
+                        }
                     }
                     this._transferProfileState.transferProfileList = transferProfiles;
                     this.transferProfileState$.next(this._transferProfileState);
@@ -99,6 +113,7 @@ export class TransferProfileService implements OnDestroy {
             return;
         }
         this._transferProfileState.currentTransferProfile = transferProfile;
+        this.lastSelectedProfile = transferProfile;
         this.transferProfileState$.next(this._transferProfileState);
         this.transferProfileStateSig.set({...this._transferProfileState});
     }
@@ -114,6 +129,7 @@ export class TransferProfileService implements OnDestroy {
      */
     private selectSavedProfile(transferProfile: string) {
         this._transferProfileState.currentTransferProfile = transferProfile;
+        this.lastSelectedProfile = transferProfile;
         if (this._transferProfileState.transferProfileList
             && !this._transferProfileState.transferProfileList.includes(transferProfile)) {
             this._transferProfileState.transferProfileList =

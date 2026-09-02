@@ -94,6 +94,36 @@ describe('TransferProfileService', () => {
         expect(state.currentTransferProfile).toBe('beta');
     });
 
+    it('restores the last user-selected profile after a daemon restart instead of snapping to the first', async () => {
+        service.init();
+        onUpdateNames$.next(true);          // initial refresh selects 'Alpha' (first)
+        service.select('beta');             // user explicitly picks 'beta'
+
+        const metadata = TestBed.inject(MetadataService);
+        // Daemon goes away: metadata throws -> resetTransferProfileState() clears the live
+        // selection (currentTransferProfile -> null).
+        Object.defineProperty(metadata, 'transferProfiles', {
+            get() {
+                throw new Error('metadata not loaded');
+            },
+            configurable: true,
+        });
+        onUpdateNames$.next(true);
+        expect((await firstValueFrom(service.transferProfileState)).currentTransferProfile).toBeNull();
+
+        // Daemon comes back: without the fix this would snap to 'Alpha' (first in the list);
+        // with it, the remembered 'beta' is restored.
+        Object.defineProperty(metadata, 'transferProfiles', {
+            get() {
+                return {beta: {}, Alpha: {}} as never;
+            },
+            configurable: true,
+        });
+        onUpdateNames$.next(true);
+        const state = await firstValueFrom(service.transferProfileState);
+        expect(state.currentTransferProfile).toBe('beta');
+    });
+
     it('select() warns and no-ops for an unknown profile', async () => {
         service.init();
         onUpdateNames$.next(true);
