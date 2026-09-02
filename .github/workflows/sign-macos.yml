@@ -43,6 +43,16 @@ on:
         description: 'Target architecture label used in output filenames (x64 | arm64)'
         required: true
         type: string
+      display-name:
+        description: 'Human-facing name for the .app bundle placed in the .dmg (e.g. "File Mover Express"). Defaults to app-name. The executable and bundle id are unchanged, so signing is unaffected.'
+        required: false
+        type: string
+        default: ''
+      dmg-basename:
+        description: 'Base name for the produced .dmg without arch/extension (e.g. filemoverexpress). Defaults to app-name.'
+        required: false
+        type: string
+        default: ''
     secrets:
       # Declared explicitly (instead of `secrets: inherit` in the caller) so this
       # workflow only ever receives the secrets it actually uses.
@@ -91,6 +101,8 @@ jobs:
       # inline in shell) to prevent script injection (Req 8.3).
       ARTIFACT_NAME: ${{ inputs.artifact-name }}
       APP_NAME: ${{ inputs.app-name }}
+      DISPLAY_NAME: ${{ inputs.display-name }}
+      DMG_BASENAME: ${{ inputs.dmg-basename }}
       ARCH: ${{ inputs.arch }}
       # CD Signer config via vars/secrets — no plaintext literals (Req 8.2).
       AWS_REGION: ${{ vars.CD_SIGNER_REGION }}
@@ -454,15 +466,24 @@ jobs:
         id: build-dmg
         run: |
           set -euo pipefail
-          DMG_NAME="${APP_NAME}-${ARCH}"
+          # Display name shown in Finder/Applications (defaults to APP_NAME). Renaming the
+          # SIGNED bundle's folder does NOT invalidate its code signature (the signature is
+          # keyed to the bundle id + contents via CodeResources, not the folder name), and
+          # the executable inside stays "${APP_NAME}". dmg-basename controls the published
+          # asset filename (defaults to APP_NAME).
+          DISPLAY_NAME="${DISPLAY_NAME:-$APP_NAME}"
+          DMG_BASENAME="${DMG_BASENAME:-$APP_NAME}"
+          DMG_NAME="${DMG_BASENAME}-${ARCH}"
           rm -rf dist/dmg-staging "dist/${DMG_NAME}.dmg"
           mkdir -p dist/dmg-staging
-          cp -R "dist/${APP_NAME}.app" dist/dmg-staging/
+          # ditto (not cp -R) preserves the code signature and extended attributes while
+          # renaming the bundle to the human-facing name.
+          ditto "dist/${APP_NAME}.app" "dist/dmg-staging/${DISPLAY_NAME}.app"
           ln -s /Applications dist/dmg-staging/Applications
-          hdiutil create -volname "${APP_NAME}" -srcfolder dist/dmg-staging -ov -format UDZO "dist/${DMG_NAME}.dmg"
+          hdiutil create -volname "${DISPLAY_NAME}" -srcfolder dist/dmg-staging -ov -format UDZO "dist/${DMG_NAME}.dmg"
           rm -rf dist/dmg-staging
           echo "dmg-filename=${DMG_NAME}.dmg" >> "$GITHUB_OUTPUT"
-          echo "Built dist/${DMG_NAME}.dmg"
+          echo "Built dist/${DMG_NAME}.dmg (app bundle: ${DISPLAY_NAME}.app)"
 
       - name: Upload signed artifact (.dmg containing the signed .app)
         uses: actions/upload-artifact@v4

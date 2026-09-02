@@ -2,9 +2,9 @@ version: '3'
 
 info:
   companyName: "Amazon Web Services"
-  productName: "File Mover Express for AWS"
+  productName: "File Mover Express"
   productIdentifier: "com.amazon.filemoverexpress"
-  description: "File Mover Express for AWS"
+  description: "File Mover Express"
   copyright: "Amazon Web Services, 2026"
   version: "1.0.0"
 

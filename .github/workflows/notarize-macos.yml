@@ -23,7 +23,7 @@ on:
         required: true
         type: string
       dmg-filename:
-        description: 'Filename of the signed .dmg (e.g. FileMoverExpressUI-arm64.dmg)'
+        description: 'Filename of the signed .dmg (e.g. filemoverexpress-arm64.dmg)'
         required: true
         type: string
     secrets:
