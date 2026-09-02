@@ -6,6 +6,7 @@ import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autoc
 import { MatChipGrid, MatChipInput, MatChipInputEvent, MatChipRow } from '@angular/material/chips';
 import { MatIcon } from '@angular/material/icon';
 import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
+import { BrowseButtonComponent } from '@primitives/forms/browse-button/browse-button.component';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import {
@@ -45,6 +46,7 @@ import { WailsService } from '@services/wails/wails.service';
         MatError,
         MatInput,
         MatSuffix,
+        BrowseButtonComponent,
         MatSelect,
         MatOption,
         MatAutocompleteTrigger,

@@ -142,6 +142,11 @@
                 <mat-form-field color="accent">
                     <mat-label>Bucket Reports Directory</mat-label>
                     <input matInput type="text" formControlName="directory">
+                    <fme-browse-button matSuffix dialogTitle="Choose bucket reports directory"
+                                       [startPath]="configForm.controls.reports.controls.directory.value"
+                                       (pathPicked)="configForm.controls.reports.controls.directory.setValue($event);
+                                                     configForm.controls.reports.controls.directory.markAsDirty()">
+                    </fme-browse-button>
                     <mat-hint class="info-hint">By default, bucket reports are saved inside your configuration folder — the default location for Bucket and Job reports is: ~/.filemoverexpress/reports.</mat-hint>
                 </mat-form-field>
             </div>
@@ -167,6 +172,11 @@
                 <mat-form-field color="accent">
                     <mat-label>Directory</mat-label>
                     <input matInput type="text" formControlName="directory">
+                    <fme-browse-button matSuffix dialogTitle="Choose logs directory"
+                                       [startPath]="configForm.controls.logging.controls.directory.value"
+                                       (pathPicked)="configForm.controls.logging.controls.directory.setValue($event);
+                                                     configForm.controls.logging.controls.directory.markAsDirty()">
+                    </fme-browse-button>
                     <mat-hint class="info-hint">By default, logs are saved inside your configuration folder — the default location is ~/.filemoverexpress/logs. Leave blank to use that default.</mat-hint>
                 </mat-form-field>
 

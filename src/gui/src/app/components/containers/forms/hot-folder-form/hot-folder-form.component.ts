@@ -9,7 +9,7 @@ import {
     MatExpansionPanelTitle,
 } from '@angular/material/expansion';
 import { MatIcon } from '@angular/material/icon';
-import { MatError, MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatHint, MatInput, MatLabel, MatSuffix } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -21,6 +21,7 @@ import {
     HotFolderRemoteConfigFormGroup,
 } from '@containers/forms/hot-folder-form/hot-folder-form.interfaces';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { BrowseButtonComponent } from '@primitives/forms/browse-button/browse-button.component';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
@@ -66,7 +67,9 @@ export class HotFolderErrorStateMatcher implements ErrorStateMatcher {
         MatSelect,
         MatOption,
         MatHint,
+        MatSuffix,
         ButtonComponent,
+        BrowseButtonComponent,
         PanelComponent,
     ],
 })
