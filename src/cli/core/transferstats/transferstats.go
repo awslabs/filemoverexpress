@@ -97,19 +97,39 @@ func eventHandler() {
 		case progressEvt := <-ProgressChannel:
 			handleProgress(&progressEvt)
 		case rawEvt := <-eventsChannel:
-			switch rawEvt.Type() {
-			case eventtypes.JobCreateEventType:
-				handleCreate(rawEvt.(*eventtypes.JobCreateEvent))
-			case eventtypes.JobStatusChangeEventType:
-				handleStatusChange(rawEvt.(*eventtypes.JobStatusChangeEvent))
-			case eventtypes.JobCompleteEventType:
-				handleCompletion(rawEvt.(*eventtypes.JobCompleteEvent).Id)
-			case eventtypes.JobErrorEventType:
-				handleCompletion(rawEvt.(*eventtypes.JobErrorEvent).Id)
-			default:
-				logger.Debug("Received an unexpected event type: %d", rawEvt.Type())
-			}
+			dispatchEvent(rawEvt)
 		}
+	}
+}
+
+// dispatchEvent routes a bus event to the right handler. Each branch uses a
+// checked type assertion and rejects a nil concrete pointer: the bus can deliver
+// a typed-but-nil event (its Type() returns a constant without dereferencing), and
+// the previous unchecked `rawEvt.(*T).Id` then nil-dereferenced and crashed the
+// daemon. A nil or unexpected event is now dropped instead of panicking.
+func dispatchEvent(rawEvt eventtypes.Event) {
+	if rawEvt == nil {
+		return
+	}
+	switch rawEvt.Type() {
+	case eventtypes.JobCreateEventType:
+		if evt, ok := rawEvt.(*eventtypes.JobCreateEvent); ok && evt != nil {
+			handleCreate(evt)
+		}
+	case eventtypes.JobStatusChangeEventType:
+		if evt, ok := rawEvt.(*eventtypes.JobStatusChangeEvent); ok && evt != nil {
+			handleStatusChange(evt)
+		}
+	case eventtypes.JobCompleteEventType:
+		if evt, ok := rawEvt.(*eventtypes.JobCompleteEvent); ok && evt != nil {
+			handleCompletion(evt.Id)
+		}
+	case eventtypes.JobErrorEventType:
+		if evt, ok := rawEvt.(*eventtypes.JobErrorEvent); ok && evt != nil {
+			handleCompletion(evt.Id)
+		}
+	default:
+		logger.Debug("Received an unexpected event type: %d", rawEvt.Type())
 	}
 }
 

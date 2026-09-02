@@ -24,6 +24,7 @@ type (
 	EventBus struct {
 		listeners map[string]EventListener
 		lock      sync.RWMutex
+		closed    bool
 	}
 	SendQueueEvent struct {
 		Id                  string
@@ -135,6 +136,13 @@ func (eb *EventBus) Send(event eventtypes.Event) {
 	eb.lock.RLock()
 	defer eb.lock.RUnlock()
 
+	// Once the bus is closed (client disconnect / daemon shutdown) the listener
+	// channels are closed; skip delivery rather than spawn goroutines that would
+	// send on a closed channel.
+	if eb.closed {
+		return
+	}
+
 	if len(eb.listeners) == 0 || event.Priority() == logger.FatalLevel {
 		logger.SendLog(event.Priority(), event.String())
 	} else {
@@ -159,12 +167,29 @@ func (*EventBus) Shutdown(discoType eventtypes.DisconnectType) {
 //revive:enable:cognitive-complexity,cyclomatic
 
 func (eb *EventBus) Close() {
+	eb.lock.Lock()
+	defer eb.lock.Unlock()
+
+	if eb.closed {
+		return
+	}
+	eb.closed = true
 	for _, listener := range eb.listeners {
 		close(listener.channel)
 	}
 }
 
 func (*EventBus) doSend(listener EventListener, event eventtypes.Event) {
+	// Deliveries run on their own goroutines, so a listener channel can be closed
+	// (Close: client disconnect / daemon shutdown) between Send spawning us and this
+	// send executing. Sending on a closed channel panics and would crash the daemon,
+	// so recover — a dropped event during teardown is harmless. This was historically
+	// the daemon's single most frequent crash.
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Debug("event bus: dropped delivery to closed listener channel: %v", r)
+		}
+	}()
 	listener.channel <- event
 }
 
