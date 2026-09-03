@@ -481,7 +481,7 @@ jobs:
             local src="release-assets/${dir}/fme-mcp${ext}"
             # The signed macOS artifact carries the binary as a file named
             # "signed-fme-mcp" (the upload path in sign-mcp-macos), so match that name
-            # too — otherwise the signed macOS MCP binary is silently dropped from the
+            # too - otherwise the signed macOS MCP binary is silently dropped from the
             # release. Also handle it being nested in a subdirectory.
             if [ ! -f "$src" ]; then
               src=$(find "release-assets/${dir}" -type f \
@@ -492,8 +492,14 @@ jobs:
               echo "Renamed: fme-mcp-${platform}-${arch}${ext}"
             fi
           }
-          rename_mcp "mcp-mac-x64"     "macos"   "amd64"
-          rename_mcp "mcp-mac-arm64"   "macos"   "arm64"
+          # The macOS platform token is intentionally "darwin", not "macos": it matches
+          # Go's GOOS value and the output of `uname` on macOS ("Darwin"), which is the
+          # conventional token for CLI/server binaries and lets OS-detecting install
+          # scripts resolve the right asset. The release-body MCP table uses the same
+          # token. (The end-user-facing GUI .app/.dmg uses "File Mover Express" /
+          # filemoverexpress and is a separate concern.)
+          rename_mcp "mcp-mac-x64"     "darwin"  "amd64"
+          rename_mcp "mcp-mac-arm64"   "darwin"  "arm64"
           rename_mcp "mcp-win-x64"     "windows" "amd64" ".exe"
           rename_mcp "mcp-linux-x64"   "linux"   "amd64"
           rename_mcp "mcp-linux-arm64" "linux"   "arm64"
