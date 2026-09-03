@@ -33,7 +33,7 @@ func main() {
 
 	app := application.New(application.Options{
 		Name:        ProductName,
-		Description: "File Mover Express for AWS",
+		Description: "File Mover Express",
 		Services: []application.Service{
 			application.NewService(fmeApp),
 		},
@@ -54,10 +54,10 @@ func main() {
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name: "main",
-		// Empty so the native OS title bar (which carries the min/max/close controls)
-		// shows no redundant product name — the app's own top bar now displays the
-		// logo + "File Mover Express". App identity is still set via application Name.
-		Title:              "",
+		// Set to the product name so Windows uses it for the taskbar entry and the
+		// window's right-click menu (the frameless window has no visible OS title bar,
+		// so this is not shown as redundant chrome next to the app's own top bar).
+		Title:              ProductName,
 		Width:              DefaultWindowWidth,
 		Height:             DefaultWindowHeight,
 		MinWidth:           MinWindowWidth,
