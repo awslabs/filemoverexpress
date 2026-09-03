@@ -6,14 +6,17 @@ Download the latest installer for your platform from the [Releases page](https:/
 
 | Platform | File |
 |----------|------|
-| macOS (Apple Silicon) | `File Mover Express-darwin-arm64.dmg` |
-| macOS (Intel) | `File Mover Express-darwin-amd64.dmg` |
-| Windows | `File Mover Express-win32-x64-setup.exe` |
-| Linux | `File Mover Express-linux-x64.AppImage` |
+| macOS (Apple Silicon) | `filemoverexpress-arm64.dmg` |
+| macOS (Intel) | `filemoverexpress-x64.dmg` |
+| Windows (x64) | `filemoverexpress-amd64-installer.exe` |
+| Windows (arm64) | `filemoverexpress-arm64-installer.exe` |
+| Linux (headless daemon) | `filemoverexpress-linux-amd64` / `filemoverexpress-linux-arm64` |
 
-> **Headless / server deployments:** If you need to run File Mover Express on a Linux server
-> without a desktop environment (render farms, cloud instances, remote daemon), see the
-> [Headless Linux Installation](Headless-Linux-Installation.md) guide instead.
+> **Linux is headless-only.** There is no Linux desktop GUI download - Linux ships the
+> CLI daemon, which you run on a server, render farm, or cloud instance and drive from a
+> GUI on another machine over a remote-daemon connection. Follow the
+> [Headless Linux Installation](Headless-Linux-Installation.md) guide instead of the
+> desktop steps below.
 
 > **Note on code signing:** macOS `.dmg` releases are signed with an **Apple Developer ID
 > Application** certificate belonging to Amazon's Apple Developer team (**AMZN Mobile LLC**, Apple
@@ -52,11 +55,8 @@ Run the installer and follow the prompts. The installer is Authenticode-signed; 
 still shows a warning (the certificate reputation builds over time), click "More info" then
 "Run anyway".
 
-**Linux** — make the AppImage executable and run it:
-```bash
-chmod +x "File Mover Express-linux-x64.AppImage"
-./"File Mover Express-linux-x64.AppImage"
-```
+**Linux** - Linux is headless-only; there is no desktop AppImage. Install the CLI daemon by
+following the [Headless Linux Installation](Headless-Linux-Installation.md) guide.
 
 ---
 
@@ -129,7 +129,7 @@ Stop-Process -Name filemoverexpress -ErrorAction SilentlyContinue
 
 - **macOS**: Delete from Applications
 - **Windows**: Use Add/Remove Programs, or delete the installation folder
-- **Linux**: Delete the AppImage file
+- **Linux**: Remove the CLI daemon binary (e.g. `sudo rm /usr/local/bin/filemoverexpress`)
 
 **3. Remove configuration and logs** (optional — skip this if you want to keep your transfer profiles):
 
