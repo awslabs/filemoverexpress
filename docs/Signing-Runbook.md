@@ -204,12 +204,12 @@ For a Windows installer `.exe`:
 
 ```powershell
 # Windows
-Get-AuthenticodeSignature .\FileMoverExpressUI-amd64-installer.exe | Format-List
+Get-AuthenticodeSignature .\filemoverexpress-amd64-installer.exe | Format-List
 ```
 
 ```bash
 # any platform with osslsigncode
-osslsigncode verify -in FileMoverExpressUI-amd64-installer.exe
+osslsigncode verify -in filemoverexpress-amd64-installer.exe
 ```
 
 A **test**-profile signature will show a valid signature but an untrusted chain; a production
