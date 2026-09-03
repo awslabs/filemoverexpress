@@ -14,6 +14,8 @@ tasks:
       BUILD_VERSION: '{{.BUILD_VERSION | default "0.0.0-local-dev"}}'
     cmds:
       - task: generate:syso
+        vars:
+          BUILD_VERSION: '{{.BUILD_VERSION}}'
       - 'go build -tags devtools -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui -X main.version=v{{.BUILD_VERSION}}" -o "{{.BIN_DIR}}/{{.APP_NAME}}.exe"'
       - powershell Remove-item *.syso
     env:
@@ -53,10 +55,32 @@ tasks:
       - task: create:nsis:installer
 
   generate:syso:
-    summary: Generates Windows .syso file
+    summary: Generates the Windows .syso version resource
+    # Uses the local gen-syso helper instead of `wails3 generate syso`. On the pinned
+    # tc-hib/winres v0.3.1, a VERSIONINFO built only via version.Info.UnmarshalJSON (what
+    # `wails3 generate syso` does) serializes a string table the Win32 version API reads
+    # back empty, so the taskbar/Properties show no ProductName. The helper re-applies the
+    # strings under en-US and calls SetFileVersion/SetProductVersion, which winres requires
+    # for the resource to be readable. See build/windows/gen-syso/main.go.
     dir: build
+    vars:
+      # Strip the ldflags-style 'v' prefix and any pre-release suffix so the version
+      # resource carries a clean dotted version (e.g. 1.2.3). Falls back to info.json
+      # when unset. This is a POSIX-shell expansion, matched by the bash cmds below.
+      SYSO_VERSION: '{{.BUILD_VERSION | default ""}}'
     cmds:
-      - 'wails3 generate syso -arch {{.ARCH | default ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../wails_windows_{{.ARCH | default ARCH}}.syso'
+      - |
+        set -euo pipefail
+        RAW="{{.SYSO_VERSION}}"
+        CLEAN="${RAW#v}"        # drop a leading 'v'
+        CLEAN="${CLEAN%%-*}"    # drop a -local-dev / -rc.N suffix
+        go run ./windows/gen-syso \
+          -arch "{{.ARCH | default ARCH}}" \
+          -icon windows/icon.ico \
+          -manifest windows/wails.exe.manifest \
+          -info windows/info.json \
+          -version "${CLEAN}" \
+          -out "../wails_windows_{{.ARCH | default ARCH}}.syso"
 
   create:nsis:installer:
     summary: Creates an NSIS installer bundling the GUI, launcher, and CLI daemon

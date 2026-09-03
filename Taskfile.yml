@@ -52,7 +52,7 @@ tasks:
     desc: Build CLI, GUI, and Wails app
     cmds:
       - task: build:cli
-      - task: build:gui
+      # build:wails builds the GUI as part of packaging the desktop app.
       - task: build:wails
 
   build:cli:
