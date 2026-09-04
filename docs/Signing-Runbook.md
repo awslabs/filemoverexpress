@@ -194,22 +194,22 @@ see why a submission was rejected.
 For a `.dmg` you downloaded from a release:
 
 ```bash
-xcrun stapler validate "File Mover Express.dmg"
-spctl --assess --type install --verbose "File Mover Express.dmg"
+xcrun stapler validate "filemoverexpress-macos-arm64.dmg"
+spctl --assess --type install --verbose "filemoverexpress-macos-arm64.dmg"
 # After mounting, for the .app:
-codesign --verify --deep --strict --verbose=2 "/Volumes/.../FileMoverExpressUI.app"
+codesign --verify --deep --strict --verbose=2 "/Volumes/.../File Mover Express.app"
 ```
 
 For a Windows installer `.exe`:
 
 ```powershell
 # Windows
-Get-AuthenticodeSignature .\filemoverexpress-amd64-installer.exe | Format-List
+Get-AuthenticodeSignature .\filemoverexpress-windows-amd64-installer.exe | Format-List
 ```
 
 ```bash
 # any platform with osslsigncode
-osslsigncode verify -in filemoverexpress-amd64-installer.exe
+osslsigncode verify -in filemoverexpress-windows-amd64-installer.exe
 ```
 
 A **test**-profile signature will show a valid signature but an untrusted chain; a production
