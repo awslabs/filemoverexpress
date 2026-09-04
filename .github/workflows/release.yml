@@ -121,6 +121,53 @@ jobs:
           retention-days: 30
 
   # ---------------------------------------------------------------------------
+  # Headless CLI daemon build (filemoverexpress)
+  #
+  # Builds the standalone CLI daemon binary for Linux only. Linux is not shipped
+  # as a desktop GUI (native WebKitGTK dependencies, no signing); Linux users run
+  # the headless daemon on servers, render farms, and cloud instances, and drive
+  # it from a GUI on another machine over the remote-daemon connection. The macOS
+  # and Windows desktop installers already bundle this same daemon, so it is only
+  # published standalone for Linux. The binary is pure Go (CGO_ENABLED=0) and
+  # cross-compiles cleanly, exactly like fme-mcp above. Linux artifacts are
+  # unsigned, so each leg builds straight to its final release asset name and
+  # create-release publishes it as-is (no rename/sign step). The asset names match
+  # what docs/Headless-Linux-Installation.md tells users to download.
+  # ---------------------------------------------------------------------------
+  build-cli:
+    needs: [generate-protobuf]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: amd64
+            runner: ubuntu-latest
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/download-protobuf
+      - name: Build filemoverexpress CLI daemon
+        shell: bash
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.architecture }}
+          BUILD_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          cd src/cli
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X \"main.Version=v${BUILD_VERSION}\"" \
+            -o "../../dist/filemoverexpress-linux-${{ matrix.architecture }}" \
+            main.go
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-linux-${{ matrix.architecture }}
+          path: dist/filemoverexpress-linux-*
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
   # macOS code signing (CD Signer) + notarization (Apple notary)
   #
   # Gated behind the `MACOS_SIGNING_ENABLED` repository variable so releases keep
@@ -324,6 +371,7 @@ jobs:
     needs:
       - generate-installer
       - build-mcp
+      - build-cli
       - notarize-macos
       - sign-macos
       - sign-windows
@@ -474,6 +522,23 @@ jobs:
           name: mcp-linux-arm64
           path: release-assets/mcp-linux-arm64
 
+      # ----- Headless CLI daemon: Linux (unsigned, published as-is) -----
+      # These artifacts are already named filemoverexpress-linux-<arch> by build-cli,
+      # so they are downloaded straight into release-assets with no rename step.
+      - name: Download CLI daemon Linux amd64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-linux-amd64
+          path: release-assets
+
+      - name: Download CLI daemon Linux arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-linux-arm64
+          path: release-assets
+
       # ----- Rename MCP binaries for clarity -----
       - name: Rename MCP binaries with platform/arch suffix
         run: |
@@ -560,6 +625,18 @@ jobs:
             | Windows | x64 | `filemoverexpress-amd64-installer.exe` |
             | Windows | arm64 | `filemoverexpress-arm64-installer.exe` |
 
+            ### Headless CLI daemon (Linux)
+
+            Linux ships as a headless daemon, not a desktop app. Run it on a server,
+            render farm, or cloud instance and drive it from a GUI on another machine
+            over a remote-daemon connection. See the
+            [Headless Linux Installation guide](docs/Headless-Linux-Installation.md).
+
+            | Architecture | Asset |
+            |-------------|-------|
+            | x86_64 (Intel/AMD) | `filemoverexpress-linux-amd64` |
+            | ARM64 (Graviton, etc.) | `filemoverexpress-linux-arm64` |
+
             ### MCP Server Binaries
 
             | Platform | Architecture | Asset |
@@ -570,6 +647,7 @@ jobs:
             | Linux | x64 | `fme-mcp-linux-amd64` |
             | Linux | arm64 | `fme-mcp-linux-arm64` |
 
-            > **Linux desktop app** is not distributed as a pre-built binary due to
-            > native dependencies. See the [Installation guide](docs/Installation.md)
-            > for build-from-source instructions.
+            > **Linux desktop app** is not distributed: Linux is supported as a headless
+            > CLI daemon only (see the table above). Control it from a GUI on another machine
+            > over a remote-daemon connection. Building the desktop GUI from source is still
+            > possible - see the [Installation guide](docs/Installation.md).
