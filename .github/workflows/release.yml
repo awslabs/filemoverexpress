@@ -196,7 +196,11 @@ jobs:
       artifact-name: installer-mac-${{ matrix.architecture }}
       app-name: FileMoverExpressUI
       display-name: File Mover Express
-      dmg-basename: filemoverexpress
+      # dmg-basename controls the published asset filename. The "macos" token is
+      # human-facing (these installers are downloaded by people, not OS-detecting
+      # scripts); the script-fetched MCP/CLI binaries keep Go GOOS tokens (darwin,
+      # linux) - see the rename step in create-release.
+      dmg-basename: filemoverexpress-macos
       arch: ${{ matrix.architecture }}
     # Pass only the secrets sign-macos.yml declares (not `secrets: inherit`, which would
     # forward every repo/env secret to the reusable workflow).
@@ -217,7 +221,7 @@ jobs:
     uses: ./.github/workflows/notarize-macos.yml
     with:
       signed-artifact-name: signed-installer-mac-${{ matrix.architecture }}
-      dmg-filename: filemoverexpress-${{ matrix.architecture }}.dmg
+      dmg-filename: filemoverexpress-macos-${{ matrix.architecture }}.dmg
     # Pass only the secrets notarize-macos.yml declares (not `secrets: inherit`).
     secrets:
       APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -324,7 +328,7 @@ jobs:
     uses: ./.github/workflows/sign-windows.yml
     with:
       artifact-name: installer-win-${{ matrix.architecture }}
-      exe-filename: filemoverexpress-${{ matrix.nsis-arch }}-installer.exe
+      exe-filename: filemoverexpress-windows-${{ matrix.nsis-arch }}-installer.exe
     # Pass only the secret sign-windows.yml declares (not `secrets: inherit`).
     secrets:
       AWS_SIGNING_ROLE_ARN: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
@@ -620,10 +624,10 @@ jobs:
 
             | Platform | Architecture | Asset |
             |----------|-------------|-------|
-            | macOS | Apple Silicon (arm64) | `filemoverexpress-arm64.dmg` |
-            | macOS | Intel (x64) | `filemoverexpress-x64.dmg` |
-            | Windows | x64 | `filemoverexpress-amd64-installer.exe` |
-            | Windows | arm64 | `filemoverexpress-arm64-installer.exe` |
+            | macOS | Apple Silicon (arm64) | `filemoverexpress-macos-arm64.dmg` |
+            | macOS | Intel (x64) | `filemoverexpress-macos-x64.dmg` |
+            | Windows | x64 | `filemoverexpress-windows-amd64-installer.exe` |
+            | Windows | arm64 | `filemoverexpress-windows-arm64-installer.exe` |
 
             ### Headless CLI daemon (Linux)
 

@@ -6,10 +6,10 @@ Download the latest installer for your platform from the [Releases page](https:/
 
 | Platform | File |
 |----------|------|
-| macOS (Apple Silicon) | `filemoverexpress-arm64.dmg` |
-| macOS (Intel) | `filemoverexpress-x64.dmg` |
-| Windows (x64) | `filemoverexpress-amd64-installer.exe` |
-| Windows (arm64) | `filemoverexpress-arm64-installer.exe` |
+| macOS (Apple Silicon) | `filemoverexpress-macos-arm64.dmg` |
+| macOS (Intel) | `filemoverexpress-macos-x64.dmg` |
+| Windows (x64) | `filemoverexpress-windows-amd64-installer.exe` |
+| Windows (arm64) | `filemoverexpress-windows-arm64-installer.exe` |
 | Linux (headless daemon) | `filemoverexpress-linux-amd64` / `filemoverexpress-linux-arm64` |
 
 > **Linux is headless-only.** There is no Linux desktop GUI download - Linux ships the
@@ -71,11 +71,10 @@ downloaded):
 
 ```bash
 # 1. Gatekeeper / notarization: expect "accepted" and "source=Notarized Developer ID"
-spctl --assess --type install --verbose=2 "File Mover Express-darwin-arm64.dmg"
+spctl --assess --type install --verbose=2 "filemoverexpress-macos-arm64.dmg"
 
-# 2. Signing identity of the installed app (the on-disk bundle is FileMoverExpressUI.app;
-#    Finder displays it as "File Mover Express")
-codesign -dv --verbose=4 "/Applications/FileMoverExpressUI.app" 2>&1 \
+# 2. Signing identity of the installed app
+codesign -dv --verbose=4 "/Applications/File Mover Express.app" 2>&1 \
   | grep -E "^Identifier=|^TeamIdentifier=|^Authority="
 ```
 
@@ -92,7 +91,7 @@ The **Team ID `94KV3E626L`** is the decisive check — it identifies Amazon's Ap
 **Windows** — check the Authenticode signer (PowerShell):
 
 ```powershell
-$sig = Get-AuthenticodeSignature ".\File Mover Express-win32-x64-setup.exe"
+$sig = Get-AuthenticodeSignature ".\filemoverexpress-windows-amd64-installer.exe"
 $sig.Status                         # expect: Valid
 $sig.SignerCertificate.Subject      # expect organization O="Amazon Web Services, Inc."
 ```

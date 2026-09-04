@@ -122,9 +122,9 @@ tasks:
         # placeholders ("{{.Info.ProductVersion}}" etc.) in this build flow, which makes
         # VIFileVersion invalid. Pass concrete values (from build/config.yml + info.json)
         # so the !ifndef defaults are never used. INFO_PROJECTNAME drives the OutFile name
-        # (-> "filemoverexpress-${ARCH}-installer.exe", matched by the mv below); it is the
-        # published ASSET name and is intentionally decoupled from the executable, which is
-        # set explicitly to "{{.APP_NAME}}.exe" via PRODUCT_EXECUTABLE below.
+        # (-> "filemoverexpress-${ARCH}-installer.exe", matched and renamed to the published
+        # asset name by the mv below); it is intentionally decoupled from the executable,
+        # which is set explicitly to "{{.APP_NAME}}.exe" via PRODUCT_EXECUTABLE below.
         makensis \
           "-DINFO_PROJECTNAME=filemoverexpress" \
           "-DINFO_COMPANYNAME=Amazon Web Services" \
@@ -140,9 +140,13 @@ tasks:
         # globs dist/*.exe) and drop the intermediate binaries so the published artifact
         # contains ONLY the installer.
         rm -f "{{.APP_NAME}}.exe" filemoverexpress-launcher.exe filemoverexpress.exe
-        mv "../../bin/filemoverexpress-${GOARCH_TARGET}-installer.exe" "${DIST_REL}/"
+        # Rename to the published asset name while moving: the "windows" token makes the
+        # asset self-describing next to the .dmg files in the release list. Done here (not
+        # via INFO_PROJECTNAME) so NSIS-internal names (registry keys, install dir) keep
+        # the plain project name.
+        mv "../../bin/filemoverexpress-${GOARCH_TARGET}-installer.exe" "${DIST_REL}/filemoverexpress-windows-${GOARCH_TARGET}-installer.exe"
         rm -f "${DIST_REL}/{{.APP_NAME}}.exe" "${DIST_REL}/filemoverexpress-launcher.exe" "${DIST_REL}/filemoverexpress.exe"
-        echo "Installer -> dist/filemoverexpress-${GOARCH_TARGET}-installer.exe"
+        echo "Installer -> dist/filemoverexpress-windows-${GOARCH_TARGET}-installer.exe"
 
   run:
     cmds:
