@@ -578,20 +578,43 @@ jobs:
           rm -rf release-assets/mcp-*
 
       # ----- List final assets -----
-      - name: List release assets
+      - name: Verify all expected release assets are present
+        # Hard gate: fail the entire run if ANY expected binary is missing, instead
+        # of publishing an incomplete release that looks green. The per-artifact
+        # download steps above keep continue-on-error because of the fallback
+        # chains (notarized > signed > unsigned); this step is the single strict
+        # check after all fallbacks have had their chance. A wrong filename counts
+        # as missing - that is exactly how the macOS MCP binary silently vanished
+        # from releases before (see the sign-mcp-macos filename mismatch fix).
         run: |
+          set -euo pipefail
           echo "=== Release assets ==="
           find release-assets -type f | sort
-          ASSET_COUNT=$(find release-assets -type f | wc -l)
-          echo "Total: ${ASSET_COUNT} files"
-          if [ "$ASSET_COUNT" -eq 0 ]; then
-            echo "ERROR: no release assets found — all upstream jobs may have failed" >&2
+          EXPECTED=(
+            filemoverexpress-macos-x64.dmg
+            filemoverexpress-macos-arm64.dmg
+            filemoverexpress-windows-amd64-installer.exe
+            filemoverexpress-windows-arm64-installer.exe
+            filemoverexpress-linux-amd64
+            filemoverexpress-linux-arm64
+            fme-mcp-darwin-amd64
+            fme-mcp-darwin-arm64
+            fme-mcp-windows-amd64.exe
+            fme-mcp-linux-amd64
+            fme-mcp-linux-arm64
+          )
+          MISSING=0
+          for f in "${EXPECTED[@]}"; do
+            if [ ! -f "release-assets/${f}" ]; then
+              echo "::error::Missing expected release asset: ${f}"
+              MISSING=1
+            fi
+          done
+          if [ "${MISSING}" -ne 0 ]; then
+            echo "ERROR: refusing to publish an incomplete release - fix the failed upstream job(s) or the asset naming and re-run" >&2
             exit 1
           fi
-          MCP_COUNT=$(find release-assets -type f -name "fme-mcp*" | wc -l)
-          if [ "$MCP_COUNT" -eq 0 ]; then
-            echo "::warning::No MCP server binaries in release assets. If build-mcp failed, this release will ship without the MCP server."
-          fi
+          echo "All ${#EXPECTED[@]} expected assets present."
 
       # ----- Create GitHub Release -----
       - name: Determine if prerelease
