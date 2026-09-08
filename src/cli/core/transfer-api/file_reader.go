@@ -1,11 +1,10 @@
 package transfer_api
 
 import (
+	"context"
 	"os"
 	"sync/atomic"
 	"time"
-
-	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 // FileReader is a wrapper struct around file read operations, allowing us to track rudimentary read speeds from disk
@@ -15,17 +14,22 @@ type FileReader struct {
 	File  *os.File
 	Size  int64
 	Start time.Time
-	read  int64
+	// Ctx carries the owning transfer's cancellation so a rate-limit wait
+	// unblocks immediately when the job is paused or cancelled. May be nil.
+	Ctx  context.Context
+	read int64
 }
 
 func (r *FileReader) Read(p []byte) (int, error) {
+	if err := throttle(r.Ctx, len(p)); err != nil {
+		return 0, err
+	}
 	return r.File.Read(p)
 }
 
 func (r *FileReader) ReadAt(p []byte, offset int64) (int, error) {
-	if IsThrottled() {
-		sleepTime := GetSleepTime(transfertypes.Upload)
-		time.Sleep(sleepTime)
+	if err := throttle(r.Ctx, len(p)); err != nil {
+		return 0, err
 	}
 
 	n, err := r.File.ReadAt(p, offset)
