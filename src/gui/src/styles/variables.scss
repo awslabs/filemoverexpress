@@ -192,7 +192,7 @@ $theme-bg-alpha-12: rgba($grey-750, 0.12);
 // endregion
 
 // region Progress Bar Colors
-$pg-blue: #0096FF;
+$pg-blue: $blue-500;  // unify in-progress bar with the interactive blue token
 $pg-green: #29ad32;
 $pg-yellow: $yellow-600;
 $pg-orange: #ff9900;

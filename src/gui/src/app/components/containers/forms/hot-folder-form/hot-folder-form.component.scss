@@ -11,7 +11,7 @@
 mat-expansion-panel.hf-card {
     background: transparent !important;
     border: 1px solid variables.$grey-600 !important;
-    border-radius: 12px !important;
+    border-radius: var(--fme-radius-card) !important;
     box-shadow: none !important;
     margin-bottom: 12px;
     overflow: hidden;

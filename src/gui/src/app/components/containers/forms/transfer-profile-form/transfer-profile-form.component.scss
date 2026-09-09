@@ -116,7 +116,7 @@ a {
     // panelClass so this is the single visible card — no box-in-a-box.
     background: variables.$background-browser-panel;   // #161d26
     border: 1px solid variables.$grey-600;             // #424650
-    border-radius: 12px;
+    border-radius: var(--fme-radius-card);
     overflow: hidden;
     margin-top: 4px;
     // Fixed height so switching tabs (Connection / Authentication / Performance)
