@@ -182,6 +182,9 @@
     }
 
     // Lift the always-floated label out of the box to sit statically above it.
+    // Refreshed Cloudscape makes form-field labels more prominent to aid scanning:
+    // heavier weight (400 -> 600) and higher-contrast color (grey-450 -> grey-200)
+    // so the label reads as a clear heading above its value, not muted hint text.
     .mdc-floating-label,
     .mat-mdc-floating-label {
         position: absolute;
@@ -191,8 +194,8 @@
         max-width: none !important;
         font-family: fonts.$font-family !important;
         font-size: 12px !important;
-        font-weight: 400 !important;
-        color: variables.$grey-450 !important;
+        font-weight: 600 !important;
+        color: variables.$grey-200 !important;
     }
 
     .mat-mdc-form-field-required-marker {
