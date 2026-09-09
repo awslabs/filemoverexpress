@@ -73,11 +73,11 @@
     font-weight: 600;
     cursor: pointer;
     background: transparent;
-    border: 1px solid variables.$grey-600;
-    color: variables.$grey-450;
+    border: 1px solid variables.$blue-500;
+    color: variables.$blue-500;
 
     &:hover {
-        border-color: variables.$grey-450;
-        color: variables.$grey-300;
+        border-color: variables.$blue-400;
+        color: variables.$blue-400;
     }
 }

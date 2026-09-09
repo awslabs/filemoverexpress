@@ -535,8 +535,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         }
 
         &.ghost {
-            border-color: variables.$grey-600;
-            color: variables.$grey-450;
+            // Blue secondary (was grey, which read as disabled) - matches the base
+            // jd-btn and the new interactive-blue language.
+            border-color: variables.$blue-500;
+            color: variables.$blue-500;
         }
 
         &.push {
