@@ -9,7 +9,10 @@
 // (and the seam for future custom themes). Seeded at the current values so this
 // centralization changes nothing visually; edit here to reshape globally.
 :root {
-    --fme-radius-button: 20px;   // fme-button pill
+    // Modern Cloudscape buttons are a modest rounded rectangle, not a full pill.
+    // Dropped from the old 20px pill to 8px (matching the 8px input/tile radius of
+    // the refreshed system) so buttons read as current instead of "circle" buttons.
+    --fme-radius-button: 8px;    // fme-button rounded rectangle
     --fme-radius-card: 16px;     // dialog / card surfaces
     --fme-radius-input: 8px;     // form fields
     --fme-radius-menu: 8px;      // menus / context menus
