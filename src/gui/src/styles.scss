@@ -41,6 +41,36 @@ body {
     background-repeat: no-repeat, repeat;
 }
 
+// region Cursors
+// The WebView doesn't imply cursor affordances for our custom controls the way a plain
+// browser page would, so declare them explicitly: interactive controls get the pointer,
+// text inputs get the I-beam, and disabled controls fall back to the default arrow.
+button,
+[role="button"],
+a,
+summary,
+select,
+mat-select,
+.mat-mdc-select,
+.mat-mdc-option,
+mat-slide-toggle,
+mat-checkbox,
+mat-radio-button {
+    cursor: pointer;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([disabled]):not([readonly]),
+textarea {
+    cursor: text;
+}
+
+button:disabled,
+[disabled],
+.disabled {
+    cursor: default;
+}
+// endregion
+
 // add this class when you want to use a monospace font
 .monospace {
     font-family: fonts.$monospace-font-family;
