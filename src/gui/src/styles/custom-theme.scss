@@ -12,12 +12,12 @@ $fontConfig: (
         display-3: mat.m2-define-typography-level(56px, 56px, 400, fonts.$font-family, -0.0089em),
         display-2: mat.m2-define-typography-level(45px, 48px, 400, fonts.$font-family, 0.0000em),
         display-1: mat.m2-define-typography-level(34px, 40px, 400, fonts.$font-family, 0.0074em),
-        headline: mat.m2-define-typography-level(24px, 30px, 900, fonts.$font-family-heavy, 0.0000em),
-        // Zero letter-spacing on the text levels to match the refreshed Cloudscape
-        // typography (clean, tight tracking); the old positive values were Material
-        // defaults. Sizes/weights unchanged (headings stay Amazon Ember Heavy).
-        title: mat.m2-define-typography-level(20px, 24px, 900, fonts.$font-family-heavy, 0.0000em),
-        subheading-2: mat.m2-define-typography-level(18px, 22px, 900, fonts.$font-family-heavy, 0.0000em),
+        // Headings use Amazon Ember Bold (700) to match Cloudscape's heading weight
+        // (was Heavy 900, which read heavier than the refreshed look), with zero
+        // letter-spacing for Cloudscape's clean, tight tracking.
+        headline: mat.m2-define-typography-level(24px, 30px, 700, fonts.$font-family-bold, 0.0000em),
+        title: mat.m2-define-typography-level(20px, 24px, 700, fonts.$font-family-bold, 0.0000em),
+        subheading-2: mat.m2-define-typography-level(18px, 22px, 700, fonts.$font-family-bold, 0.0000em),
         subheading-1: mat.m2-define-typography-level(16px, 20px, 500, fonts.$font-family, 0.0000em),
         body-2: mat.m2-define-typography-level(14px, 24px, 500, fonts.$font-family, 0.0000em),
         body-1: mat.m2-define-typography-level(14px, 20px, 400, fonts.$font-family, 0.0000em),

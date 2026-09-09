@@ -8,9 +8,17 @@
     src: url(../assets/fonts/amazon-ember/AmazonEmber_He.ttf);
 }
 
+@font-face {
+    font-family: 'Amazon Ember Bold';
+    font-weight: 700;
+    src: url(../assets/fonts/amazon-ember/AmazonEmber_Bd.ttf);
+}
+
 $font-family: 'Amazon Ember', Helvetica, Arial, sans-serif;
 
 $font-family-heavy: 'Amazon Ember Heavy', Helvetica, Arial, sans-serif;
+
+$font-family-bold: 'Amazon Ember Bold', Helvetica, Arial, sans-serif;
 
 $monospace-font-family: Monaco, Menlo, Consolas, 'Courier Prime', Courier, 'Courier New', monospace;
 
