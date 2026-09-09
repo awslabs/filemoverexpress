@@ -112,9 +112,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     padding: 22px 22px 18px;
     display: flex;
     flex-direction: column;
-    // Allow the whole body to scroll as a fallback so the lower content (nav + Logs)
-    // stays reachable when the summary + expanded Advanced block is taller than the modal.
-    overflow-y: auto;
+    // The body does NOT scroll as a whole - the summary (progress + tiles + advanced)
+    // sits fixed at the top and the .jd-main pane below flexes to fill all remaining
+    // height, so the file table (not the modal) is the single scrolling region.
+    overflow: hidden;
 }
 
 .jd-progress-track {
@@ -281,6 +282,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     column-gap: 24px;
     padding: 12px 14px;
     border-top: 1px solid variables.$grey-700;
+    // Cap the expanded details so a long config list scrolls within itself rather than
+    // pushing the file pane out of view (the body itself no longer scrolls).
+    max-height: 34vh;
+    overflow-y: auto;
 
     .jd-row {
         display: flex;
@@ -340,9 +345,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     border-radius: 12px;
     overflow: hidden;
     margin-top: 16px;
-    // Floor so an expanded Advanced block can't squeeze the pane to nothing;
-    // combined with .jd-body overflow-y:auto, tall content scrolls instead of clipping.
-    min-height: 240px;
+    // Floor so an expanded Advanced block can't squeeze the pane to nothing; the pane
+    // otherwise flexes to fill all remaining body height (the body no longer scrolls, so
+    // the file table is the region that grows and scrolls).
+    min-height: 180px;
     flex: 1;
 }
 
