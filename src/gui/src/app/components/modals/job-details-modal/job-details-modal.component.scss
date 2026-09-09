@@ -516,7 +516,7 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
     .jd-btn {
         padding: 6px 16px;
-        border-radius: 18px;
+        border-radius: var(--fme-radius-button);
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
