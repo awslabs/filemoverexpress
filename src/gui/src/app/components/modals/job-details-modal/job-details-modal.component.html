@@ -155,13 +155,13 @@
     <!-- Footer actions (mockup .jd-foot) -->
     <div class="jd-foot" mat-dialog-actions>
         @if (canReveal) {
-            <button class="jd-btn ghost" (click)="reveal()">{{ revealLabel }}</button>
+            <button class="jd-btn" (click)="reveal()">{{ revealLabel }}</button>
         }
         @if (canCopyS3Uri) {
-            <button class="jd-btn ghost" (click)="copyS3Uri()">Copy S3 URI</button>
+            <button class="jd-btn" (click)="copyS3Uri()">Copy S3 URI</button>
         }
         @if (isError) {
-            <button class="jd-btn ghost" (click)="copyError()">Copy error</button>
+            <button class="jd-btn" (click)="copyError()">Copy error</button>
         }
         @if (canPauseOrCancel) {
             <button class="jd-btn push" (click)="pauseOrResume()">{{ isPaused ? 'Resume' : 'Pause' }}</button>
@@ -169,7 +169,7 @@
         } @else if (canRetry) {
             <button class="jd-btn primary push" (click)="retry()">{{ isError ? 'Retry' : 'Resubmit' }}</button>
         }
-        <button class="jd-btn ghost" [class.push]="!canPauseOrCancel && !canRetry" mat-dialog-close>Close</button>
+        <button class="jd-btn" [class.push]="!canPauseOrCancel && !canRetry" mat-dialog-close>Close</button>
     </div>
 </div>
 

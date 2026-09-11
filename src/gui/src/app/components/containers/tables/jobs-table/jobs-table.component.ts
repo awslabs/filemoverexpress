@@ -377,7 +377,7 @@ export class JobsTableComponent implements AfterViewInit {
                 minWidth: '820px',
                 width: '60%',
                 maxWidth: '1100px',
-                height: '70%',
+                height: '85%',
                 maxHeight: '1000px',
                 autoFocus: false,
                 data: {

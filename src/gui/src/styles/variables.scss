@@ -32,7 +32,11 @@ $green-500: #29ad32;
 $blue-900: #00142b;
 $blue-800: #033160;
 $blue-600: #0972d3;
-$blue-500: #539fe5;
+// Interactive blue. Bumped from the classic #539fe5 to the brighter, more vibrant
+// blue of the refreshed Cloudscape dark-mode ramp (visual refresh). Drives links,
+// active/selected states, tabs, focus rings, filled + stroked buttons, and the accent
+// palette, so this single value carries most of the "more vibrant color" change.
+$blue-500: #42b4ff;
 $blue-400: #89bdee;
 // endregion
 
@@ -188,7 +192,7 @@ $theme-bg-alpha-12: rgba($grey-750, 0.12);
 // endregion
 
 // region Progress Bar Colors
-$pg-blue: #0096FF;
+$pg-blue: $blue-500;  // unify in-progress bar with the interactive blue token
 $pg-green: #29ad32;
 $pg-yellow: $yellow-600;
 $pg-orange: #ff9900;

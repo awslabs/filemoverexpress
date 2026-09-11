@@ -25,7 +25,7 @@ h1 {
     grid-template-columns: 180px 1fr;
     background: variables.$background-browser-panel;   // #161d26
     border: 1px solid variables.$grey-600;             // #424650
-    border-radius: 12px;
+    border-radius: var(--fme-radius-card);
     overflow: hidden;
     // Fixed height so switching tabs doesn't resize the dialog (short tabs like
     // Bucket Reports vs the taller Transfers tab). Content scrolls within.

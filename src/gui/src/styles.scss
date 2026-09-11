@@ -9,7 +9,10 @@
 // (and the seam for future custom themes). Seeded at the current values so this
 // centralization changes nothing visually; edit here to reshape globally.
 :root {
-    --fme-radius-button: 20px;   // fme-button pill
+    // Modern Cloudscape buttons are a modest rounded rectangle, not a full pill.
+    // Dropped from the old 20px pill to 8px (matching the 8px input/tile radius of
+    // the refreshed system) so buttons read as current instead of "circle" buttons.
+    --fme-radius-button: 8px;    // fme-button rounded rectangle
     --fme-radius-card: 16px;     // dialog / card surfaces
     --fme-radius-input: 8px;     // form fields
     --fme-radius-menu: 8px;      // menus / context menus
@@ -38,6 +41,36 @@ body {
     background-repeat: no-repeat, repeat;
 }
 
+// region Cursors
+// The WebView doesn't imply cursor affordances for our custom controls the way a plain
+// browser page would, so declare them explicitly: interactive controls get the pointer,
+// text inputs get the I-beam, and disabled controls fall back to the default arrow.
+button,
+[role="button"],
+a,
+summary,
+select,
+mat-select,
+.mat-mdc-select,
+.mat-mdc-option,
+mat-slide-toggle,
+mat-checkbox,
+mat-radio-button {
+    cursor: pointer;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([disabled]):not([readonly]),
+textarea {
+    cursor: text;
+}
+
+button:disabled,
+[disabled],
+.disabled {
+    cursor: default;
+}
+// endregion
+
 // add this class when you want to use a monospace font
 .monospace {
     font-family: fonts.$monospace-font-family;
@@ -47,48 +80,48 @@ body {
 // region Typography
 
 h1 {
-    font-family: fonts.$font-family-heavy;
-    font-weight: 900 !important;
+    font-family: fonts.$font-family-bold;
+    font-weight: 700 !important;
     font-size: 24px !important;
     line-height: 30px !important;
     color: variables.$text-heading-element;
 }
 
 h2 {
-    font-family: fonts.$font-family-heavy;
-    font-weight: 900 !important;
+    font-family: fonts.$font-family-bold;
+    font-weight: 700 !important;
     font-size: 20px !important;
     line-height: 24px !important;
     color: variables.$text-heading-element;
 }
 
 h3 {
-    font-family: fonts.$font-family-heavy;
-    font-weight: 900 !important;
+    font-family: fonts.$font-family-bold;
+    font-weight: 700 !important;
     font-size: 18px !important;
     line-height: 22px !important;
     color: variables.$text-heading-element;
 }
 
 h4 {
-    font-family: fonts.$font-family-heavy;
-    font-weight: 900 !important;
+    font-family: fonts.$font-family-bold;
+    font-weight: 700 !important;
     font-size: 16px !important;
     line-height: 20px !important;
     color: variables.$text-heading-element;
 }
 
 h5 {
-    font-family: fonts.$font-family-heavy;
-    font-weight: 900 !important;
+    font-family: fonts.$font-family-bold;
+    font-weight: 700 !important;
     font-size: 14px !important;
     line-height: 18px !important;
     color: variables.$text-heading-element;
 }
 
 h6 {
-    font-family: fonts.$font-family-heavy;
-    font-weight: 900 !important;
+    font-family: fonts.$font-family-bold;
+    font-weight: 700 !important;
     font-size: 12px !important;
     line-height: 16px !important;
     color: variables.$text-heading-element;
