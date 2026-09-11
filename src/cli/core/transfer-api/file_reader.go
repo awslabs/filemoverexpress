@@ -21,6 +21,12 @@ type FileReader struct {
 }
 
 func (r *FileReader) Read(p []byte) (int, error) {
+	// Charge the limiter for the requested size (len(p)) before the read, not
+	// the number of bytes actually returned. A short read or EOF tail debits a
+	// few unused tokens, which makes Target Bandwidth a conservative ceiling
+	// (it can sit a hair under target) rather than risking an overshoot. This
+	// is a deliberate trade: charging after the read would let the first read
+	// of each part through unthrottled.
 	if err := throttle(r.Ctx, len(p)); err != nil {
 		return 0, err
 	}

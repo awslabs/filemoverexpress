@@ -12,11 +12,15 @@ import (
 )
 
 // Transfer throttling is implemented with a token-bucket rate limiter
-// (golang.org/x/time/rate). A single limiter meters every byte read from disk
-// for uploads and every byte written to disk for downloads, so the configured
-// Target Bandwidth is an aggregate cap on how fast FME moves data regardless of
-// how many transfer workers are running or whether uploads and downloads happen
-// at the same time. A target of 0 disables throttling entirely.
+// (golang.org/x/time/rate). A single limiter meters the bytes each transfer
+// worker requests to read (uploads) or write (downloads), charged up front per
+// operation, so the configured Target Bandwidth is an aggregate cap on how fast
+// FME moves data regardless of how many transfer workers are running or whether
+// uploads and downloads happen at the same time. Because a read can return
+// fewer bytes than requested (short reads, EOF tail), the limiter may debit
+// slightly more than is actually moved; the cap therefore behaves as a
+// conservative ceiling that can sit a hair under target rather than overshoot
+// it. A target of 0 disables throttling entirely.
 var (
 	// throttleMu guards limiter. rate.Limiter is itself safe for concurrent
 	// use; the lock only protects swapping the limiter out (on/off) and
@@ -49,7 +53,12 @@ func SetTargetBPS(bps int64) {
 
 	// Burst is one second of tokens. It also bounds the largest single WaitN
 	// request; throttle() splits anything larger so WaitN never rejects an
-	// oversized read (WaitN fails when n exceeds the bucket depth).
+	// oversized read (WaitN fails when n exceeds the bucket depth). The useful
+	// burst floor is effectively one part size: if a part read exceeds one
+	// second of tokens (e.g. a 16 MiB part under a 10 MiB/s cap) it is split
+	// across multiple WaitN calls and no single part clears in one wait. That
+	// is the intended cap behavior, but a future tuner should keep burst and
+	// part size related.
 	burst := int(bps)
 	if limiter == nil {
 		limiter = rate.NewLimiter(rate.Limit(bps), burst)
@@ -86,8 +95,13 @@ func throttle(ctx context.Context, n int) error {
 		ctx = context.Background()
 	}
 
-	burst := l.Burst()
 	for n > 0 {
+		// Re-read burst every iteration. SetTargetBPS can shrink it at runtime
+		// on a live Target Bandwidth decrease, and WaitN rejects any chunk that
+		// exceeds the limiter's current burst. Reading it once up front would
+		// let a mid-transfer cap decrease size a chunk against a stale (larger)
+		// burst and surface as a spurious "exceeds burst" transfer error.
+		burst := l.Burst()
 		chunk := n
 		if burst > 0 && chunk > burst {
 			chunk = burst

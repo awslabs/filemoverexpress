@@ -103,3 +103,31 @@ func TestThrottle_ContextCancelUnblocks(t *testing.T) {
 		t.Fatalf("cancelled context should unblock quickly, took %v", elapsed)
 	}
 }
+
+func TestThrottle_LiveReTargetToSmallerCap(t *testing.T) {
+	resetThrottle()
+	defer resetThrottle()
+
+	const mib = 1024 * 1024
+
+	// Create a live limiter with a large cap (100 MiB/s => 100 MiB burst), then
+	// re-target it DOWN on the same limiter. This exercises the SetTargetBPS
+	// re-target branch (limiter != nil -> SetLimit/SetBurst), the runtime
+	// config-update path.
+	SetTargetBPS(100 * mib)
+	SetTargetBPS(1 * mib) // burst is now 1 MiB
+
+	if !IsThrottled() {
+		t.Fatal("throttling should remain enabled after a live re-target")
+	}
+
+	// Drive a request larger than the NEW (smaller) burst. throttle() must
+	// clamp each chunk to the current burst and split; if it sized a chunk
+	// against a stale larger burst, WaitN would reject with an
+	// "exceeds limiter's burst" error instead of throttling.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := throttle(ctx, 2*mib); err != nil {
+		t.Fatalf("throttle after a live cap decrease should split against the new burst, got error: %v", err)
+	}
+}
