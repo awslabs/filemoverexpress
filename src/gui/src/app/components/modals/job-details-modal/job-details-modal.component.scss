@@ -530,21 +530,33 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         background: transparent;
         color: variables.$blue-500;
 
+        // Hover is the primary interactive affordance in the WebView (the OS cursor
+        // is unreliable on the macOS frameless window), so give every variant one.
+        &:hover {
+            border-color: variables.$blue-400;
+            color: variables.$blue-400;
+        }
+
         &.primary {
             background: variables.$blue-500;
             color: variables.$grey-900;
+
+            &:hover {
+                background: variables.$blue-400;
+                border-color: variables.$blue-400;
+                color: variables.$grey-900;
+            }
         }
 
         &.danger {
             border-color: variables.$red-500;
             color: variables.$red-500;
-        }
 
-        &.ghost {
-            // Blue secondary (was grey, which read as disabled) - matches the base
-            // jd-btn and the new interactive-blue language.
-            border-color: variables.$blue-500;
-            color: variables.$blue-500;
+            &:hover {
+                background: rgba(235, 111, 111, 0.10);
+                border-color: variables.$red-500;
+                color: variables.$red-500;
+            }
         }
 
         &.push {

@@ -12,7 +12,7 @@
 
     button {
         mat-icon {
-            color: variables.$pg-blue;
+            color: variables.$blue-500;
         }
     }
 }
@@ -50,7 +50,7 @@
         color: variables.$white;
 
         a {
-            color: variables.$pg-blue;
+            color: variables.$blue-500;
             text-decoration: none;
 
             &:hover {
