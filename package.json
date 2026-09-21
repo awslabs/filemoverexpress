@@ -42,7 +42,7 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "hono": "4.13.3"
+        "hono": "4.13.7"
     },
     "overrides": {
         "tar": "^7.5.7",
