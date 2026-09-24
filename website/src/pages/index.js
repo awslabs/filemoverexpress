@@ -51,12 +51,12 @@ const Icon = {
 };
 
 const FEATURES = [
-  {icon: Icon.zap, title: 'Auto-tuned throughput', body: 'Parallel transfers and multipart optimization tune themselves to your pipe, with pause and resume across multi-file batches.'},
-  {icon: Icon.pointer, title: 'GUI + CLI', body: 'A drag-and-drop desktop app for creatives, plus a scriptable CLI daemon for headless, remote, and multi-user setups.'},
-  {icon: Icon.bot, title: 'MCP for AI assistants', body: 'Control transfers in natural language from Claude Desktop, Kiro, Cursor, and any MCP-compatible client.'},
-  {icon: Icon.lock, title: 'OIDC / SSO sign-in', body: 'Authenticate with Okta, Microsoft Entra ID, Auth0, or Ping for temporary AWS credentials instead of long-lived keys.'},
-  {icon: Icon.folder, title: 'Hot-folder monitoring', body: 'Designate local folders and FME automatically uploads new content to Amazon S3 as it lands.'},
-  {icon: Icon.check, title: 'Checksum verification', body: 'Verify integrity end-to-end with MD5, XXHash, XXHash64, or XXH3, plus Media Hash List (MHL) support.'},
+  {icon: Icon.zap, title: 'Auto-tuned throughput', to: '/docs/Best-Practices', body: 'Parallel transfers and multipart optimization tune themselves to your pipe, with pause and resume across multi-file batches.'},
+  {icon: Icon.pointer, title: 'GUI + CLI', to: '/docs/Using-the-GUI', body: 'A drag-and-drop desktop app for creatives, plus a scriptable CLI daemon for headless, remote, and multi-user setups.'},
+  {icon: Icon.bot, title: 'MCP for AI assistants', to: '/docs/MCP-Server', body: 'Control transfers in natural language from Claude Desktop, Kiro, Cursor, and any MCP-compatible client.'},
+  {icon: Icon.lock, title: 'OIDC / SSO sign-in', to: '/docs/OIDC-Authentication', body: 'Authenticate with Okta, Microsoft Entra ID, Auth0, or Ping for temporary AWS credentials instead of long-lived keys.'},
+  {icon: Icon.folder, title: 'Hot-folder monitoring', to: '/docs/Hot-Folders', body: 'Designate local folders and FME automatically uploads new content to Amazon S3 as it lands.'},
+  {icon: Icon.check, title: 'Checksum verification', to: '/docs/Checksums', body: 'Verify integrity end-to-end with MD5, XXHash, XXHash64, or XXH3, plus Media Hash List (MHL) support.'},
 ];
 
 function Hero() {
@@ -91,11 +91,12 @@ function Features() {
       <h2 className={styles.sectionTitle}>Built for post-production workflows</h2>
       <div className={styles.cards}>
         {FEATURES.map((f, i) => (
-          <div className={styles.card} key={i}>
+          <Link className={styles.card} to={f.to} key={i}>
             <div className={styles.cardIcon}>{f.icon}</div>
             <h3>{f.title}</h3>
             <p>{f.body}</p>
-          </div>
+            <span className={styles.cardMore}>Learn more &rarr;</span>
+          </Link>
         ))}
       </div>
     </section>
