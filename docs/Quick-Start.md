@@ -1,8 +1,4 @@
----
-id: Quick-Start
-title: "Quick Start"
-sidebar_label: "Quick Start"
----
+# Quick Start
 
 Get File Mover Express up and running quickly. This guide is designed for artists and creative professionals who need to transfer files to the cloud with minimal setup complexity.
 
@@ -142,13 +138,13 @@ Now you're ready to transfer files!
 
 ## Need Help?
 - **Ask your IT team** - they know your studio's specific setup
-- **Check the [Troubleshooting Guide](./Troubleshooting.md)** for common issues
+- **Check the [Troubleshooting Guide](Troubleshooting)** for common issues
 - **Generate a support file** from Settings menu to share with IT
 
 ### Learn More
-- **[Using the GUI](./Using-the-GUI.md)** - Detailed interface guide
-- **[Hot Folders](./Hot-Folders.md)** - Automatic upload setup
-- **[Best Practices](./Best-Practices.md)** - Tips for optimal performance
+- **[Using the GUI](Using-the-GUI)** - Detailed interface guide
+- **[Hot Folders](Hot-Folders)** - Automatic upload setup
+- **[Best Practices](Best-Practices)** - Tips for optimal performance
 
 ---
 
@@ -265,7 +261,7 @@ Before distributing, update these required fields:
 5. **Include instructions** for replacing the configuration file in the user's `.filemoverexpress` folder
 
 ### Bulk AWS Setup
-Use the [Setup Guide](./Setup.md) to create:
+Use the [Setup Guide](Setup) to create:
 - S3 buckets with proper permissions
 - IAM policies for user access
 - AWS CLI profiles for easy distribution

@@ -1,8 +1,4 @@
----
-id: Installation
-title: "Installation"
-sidebar_label: "Installation"
----
+# Installation
 
 ## Download
 
@@ -19,7 +15,7 @@ Download the latest installer for your platform from the [Releases page](https:/
 > **Linux is headless-only.** There is no Linux desktop GUI download - Linux ships the
 > CLI daemon, which you run on a server, render farm, or cloud instance and drive from a
 > GUI on another machine over a remote-daemon connection. Follow the
-> [Headless Linux Installation](./Headless-Linux-Installation.md) guide instead of the
+> [Headless Linux Installation](Headless-Linux-Installation.md) guide instead of the
 > desktop steps below.
 
 > **Note on code signing:** macOS `.dmg` releases are signed with an **Apple Developer ID
@@ -32,7 +28,7 @@ Download the latest installer for your platform from the [Releases page](https:/
 >
 > Because anyone could build and self-sign an app named "File Mover Express", confirm the
 > signature is Amazon's before trusting a download — see [Verifying the signature](#verifying-the-signature).
-> For how signing works in the release pipeline, see the [Code Signing Runbook](./Signing-Runbook.md).
+> For how signing works in the release pipeline, see the [Code Signing Runbook](Signing-Runbook.md).
 
 ---
 
@@ -60,7 +56,7 @@ still shows a warning (the certificate reputation builds over time), click "More
 "Run anyway".
 
 **Linux** - Linux is headless-only; there is no desktop AppImage. Install the CLI daemon by
-following the [Headless Linux Installation](./Headless-Linux-Installation.md) guide.
+following the [Headless Linux Installation](Headless-Linux-Installation.md) guide.
 
 ---
 
@@ -112,7 +108,7 @@ by Amazon.
 
 ## Build from source
 
-If you prefer to build from source, see the [Development guide](./Development.md).
+If you prefer to build from source, see the [Development guide](Development.md).
 
 ---
 
@@ -148,6 +144,6 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.filemoverexpress"
 
 ## Next Steps
 
-1. [Set up AWS credentials and IAM permissions](./Security.md#required-iam-permissions)
-2. [Configure File Mover Express](./Configuration.md) — add your S3 bucket as a Remote Configuration
-3. [Getting Started](./Getting-Started.md) — your first transfer
+1. [Set up AWS credentials and IAM permissions](Security.md#required-iam-permissions)
+2. [Configure File Mover Express](Configuration.md) — add your S3 bucket as a Remote Configuration
+3. [Getting Started](Getting-Started.md) — your first transfer

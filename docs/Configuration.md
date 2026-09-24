@@ -1,8 +1,4 @@
----
-id: Configuration
-title: "Configuration"
-sidebar_label: "Configuration"
----
+# Configuration
 
 File Mover Express can be configured using either the graphical user interface (GUI) or by editing the configuration file directly. This guide covers both methods.
 
@@ -136,7 +132,7 @@ hotFolders:
         s3DestinationFolder: my/s3/prefix
 ```
 
-The optional `forceInitialUpload` key (default `false`) controls the initial/reload sweep: by default it skips files already in S3, so restarting the daemon doesn't re-upload a folder that's already synced. Set it to `true` to re-upload the whole folder on every start/config change. See [Hot Folders](./Hot-Folders.md) for details.
+The optional `forceInitialUpload` key (default `false`) controls the initial/reload sweep: by default it skips files already in S3, so restarting the daemon doesn't re-upload a folder that's already synced. Set it to `true` to re-upload the whole folder on every start/config change. See [Hot Folders](Hot-Folders) for details.
 
 ### Remote Daemon Configuration
 
@@ -190,7 +186,7 @@ filemoverexpress daemon --remote
 
 **Step 4 — Set up TLS certificates**
 
-TLS certificates encrypt the connection between machines. Remote access requires TLS to be enabled. See the [Security guide](./Security.md) for instructions on setting up certificates.
+TLS certificates encrypt the connection between machines. Remote access requires TLS to be enabled. See the [Security guide](Security.md) for instructions on setting up certificates.
 
 #### Configuration reference
 
@@ -312,6 +308,6 @@ You can override the default location using the `filemoverexpress_CONFIG_DIR` en
 ## Next Steps
 
 After configuration:
-- [Getting Started](./Getting-Started.md) - Learn basic usage
-- [Using the GUI](./Using-the-GUI.md) - Explore the graphical interface
-- [Using the CLI](./Using-the-CLI.md) - Learn command-line operations
+- [Getting Started](Getting-Started) - Learn basic usage
+- [Using the GUI](Using-the-GUI) - Explore the graphical interface
+- [Using the CLI](Using-the-CLI) - Learn command-line operations

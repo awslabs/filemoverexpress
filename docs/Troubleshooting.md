@@ -1,8 +1,4 @@
----
-id: Troubleshooting
-title: "Troubleshooting"
-sidebar_label: "Troubleshooting"
----
+# Troubleshooting
 
 This guide helps you resolve common issues with File Mover Express. We recommend enabling logging for better diagnostics.
 
@@ -436,6 +432,6 @@ When seeking help, collect:
 
 ## Next Steps
 
-- **Performance Optimization** - Tune for better performance
-- **[Best Practices](./Best-Practices.md)** - Prevent common issues
-- **[Security](./Security.md)** - Secure your File Mover Express deployment
+- **[Performance Optimization](Performance-Optimization)** - Tune for better performance
+- **[Best Practices](Best-Practices)** - Prevent common issues
+- **[Security](Security)** - Secure your File Mover Express deployment

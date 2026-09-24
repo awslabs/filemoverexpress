@@ -1,8 +1,4 @@
----
-id: Key-Concepts
-title: "Key Concepts and Terminology"
-sidebar_label: "Key Concepts"
----
+# Key Concepts and Terminology
 
 Understanding these key concepts will help you effectively use File Mover Express.
 
@@ -38,7 +34,7 @@ Understanding these key concepts will help you effectively use File Mover Expres
 
 ## File Integrity
 
-**[Checksum](./Checksums.md)** – Validates that the file is still unmodified at a future date and ensures file integrity during transfer.
+**[Checksum](Checksums)** – Validates that the file is still unmodified at a future date and ensures file integrity during transfer.
 
 ## AWS Services
 
@@ -56,6 +52,6 @@ Understanding these key concepts will help you effectively use File Mover Expres
 
 ## Next Steps
 
-- Learn about [Setting Up File Mover Express](./Setup.md)
-- Understand [Configuration Options](./Configuration.md)
-- Explore [Best Practices](./Best-Practices.md)
+- Learn about [Setting Up File Mover Express](Setup)
+- Understand [Configuration Options](Configuration)
+- Explore [Best Practices](Best-Practices)

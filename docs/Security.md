@@ -1,8 +1,4 @@
----
-id: Security
-title: "Security"
-sidebar_label: "Security"
----
+# Security
 
 Security is a top priority for File Mover Express. This document outlines security considerations, best practices, and how to report security vulnerabilities.
 

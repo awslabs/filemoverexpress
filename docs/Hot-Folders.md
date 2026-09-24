@@ -1,8 +1,4 @@
----
-id: Hot-Folders
-title: "Hot Folders"
-sidebar_label: "Hot Folders"
----
+# Hot Folders
 
 Hot Folders enable automatic monitoring of local directories and upload new or modified files to Amazon S3. This feature is ideal for automated workflows where files are continuously added to specific directories.
 
@@ -439,7 +435,7 @@ touch /path/to/hotfolder/test-file.txt
 
 ## Next Steps
 
-- **[Using the GUI](./Using-the-GUI.md)** - Manage hot folders through the interface
-- **[Using the CLI](./Using-the-CLI.md)** - Configure hot folders via command line
-- **Performance Optimization** - Optimize hot folder performance
-- **[Best Practices](./Best-Practices.md)** - Implement hot folder best practices
+- **[Using the GUI](Using-the-GUI)** - Manage hot folders through the interface
+- **[Using the CLI](Using-the-CLI)** - Configure hot folders via command line
+- **[Performance Optimization](Performance-Optimization)** - Optimize hot folder performance
+- **[Best Practices](Best-Practices)** - Implement hot folder best practices

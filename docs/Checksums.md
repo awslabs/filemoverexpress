@@ -1,8 +1,4 @@
----
-id: Checksums
-title: "Checksums"
-sidebar_label: "Checksums"
----
+# Checksums
 
 File Mover Express performs checksums to verify file integrity during transfers. This ensures that files are not corrupted during upload or download operations.
 
@@ -271,7 +267,7 @@ protocols:
 
 ## Next Steps
 
-- **Performance Optimization** - Tune checksum performance
-- **[Best Practices](./Best-Practices.md)** - Implement checksum best practices
-- **[Using the CLI](./Using-the-CLI.md)** - Configure checksums via command line
-- **[Configuration](./Configuration.md)** - Set up checksum algorithms
+- **[Performance Optimization](Performance-Optimization)** - Tune checksum performance
+- **[Best Practices](Best-Practices)** - Implement checksum best practices
+- **[Using the CLI](Using-the-CLI)** - Configure checksums via command line
+- **[Configuration](Configuration)** - Set up checksum algorithms

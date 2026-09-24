@@ -1,8 +1,4 @@
----
-id: Development
-title: "Development"
-sidebar_label: "Development"
----
+# Development
 
 This guide covers setting up a development environment, building from source, and contributing to File Mover Express.
 
@@ -211,7 +207,7 @@ running separately (`filemoverexpress daemon`) for the GUI to connect to.
 > **Note:** When serving in a browser, you may need to add `http://localhost:4200` to the
 > `allowed_origins` list in your configuration file for CORS to work during development. The
 > packaged Wails app uses its own webview origin and does not need this. See
-> [Configuration](./Configuration.md) for details.
+> [Configuration](Configuration.md) for details.
 
 ---
 
@@ -220,7 +216,7 @@ running separately (`filemoverexpress daemon`) for the GUI to connect to.
 1. Fork the repository
 2. Create a feature branch: `feat/my-feature` or `fix/my-fix`
 3. Make changes and ensure all tests pass
-4. Follow the guidelines in CONTRIBUTING.md
+4. Follow the guidelines in [CONTRIBUTING.md](../CONTRIBUTING.md)
 5. Submit a pull request with a clear description of changes
 
 ---
@@ -248,4 +244,4 @@ The `golang-go` apt package is often behind. Install Go directly from [go.dev/dl
 chmod +x ./dist/filemoverexpress-*
 ```
 
-For more help, see the [Troubleshooting](./Troubleshooting.md) guide or open an issue on [GitHub](https://github.com/awslabs/filemoverexpress/issues).
+For more help, see the [Troubleshooting](Troubleshooting.md) guide or open an issue on [GitHub](https://github.com/awslabs/filemoverexpress/issues).

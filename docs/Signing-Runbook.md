@@ -1,8 +1,4 @@
----
-id: Signing-Runbook
-title: "Code Signing Runbook"
-sidebar_label: "Code Signing"
----
+# Code Signing Runbook
 
 How File Mover Express signs and notarizes its desktop release artifacts in CI, how to
 operate the pipeline, and how to troubleshoot it.

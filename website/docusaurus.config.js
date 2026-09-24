@@ -44,13 +44,29 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
+          // Single source of truth: generate the docs site straight from the
+          // repo's existing docs/ folder (kept GitHub-native, no frontmatter).
+          path: '../docs',
+          routeBasePath: 'docs',
           sidebarPath: './sidebars.js',
-          editUrl: 'https://github.com/awslabs/filemoverexpress/edit/main/website/',
+          // Skip non-guide files that live under docs/.
+          exclude: [
+            'README.md',
+            'LINK_UPDATES.md',
+            'user-guide-raw.md',
+            'feedback/**',
+            'mockups/**',
+            'screenshots/**',
+          ],
+          editUrl: ({docPath}) =>
+            `https://github.com/awslabs/filemoverexpress/edit/main/docs/${docPath}`,
         },
         blog: {
+          routeBasePath: 'updates',
           showReadingTime: true,
-          blogTitle: 'FME Blog',
-          blogDescription: 'Release notes, deep dives, and updates for File Mover Express',
+          blogTitle: 'Updates',
+          blogDescription: 'Release notes, benchmarks, and updates for File Mover Express',
+          blogSidebarTitle: 'Recent updates',
           postsPerPage: 10,
           feedOptions: {
             type: ['rss', 'atom'],
@@ -90,7 +106,7 @@ const config = {
             position: 'left',
             label: 'Docs',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
+          {to: '/updates', label: 'Updates', position: 'left'},
           {to: '/feedback', label: 'Feedback', position: 'left'},
           {
             href: 'https://github.com/awslabs/filemoverexpress',
@@ -122,7 +138,7 @@ const config = {
           {
             title: 'More',
             items: [
-              {label: 'Blog', to: '/blog'},
+              {label: 'Updates', to: '/updates'},
               {label: 'Amazon S3', href: 'https://aws.amazon.com/s3/'},
             ],
           },

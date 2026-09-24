@@ -1,8 +1,4 @@
----
-id: Getting-Started
-title: "Getting Started"
-sidebar_label: "Getting Started"
----
+# Getting Started
 
 This guide will help you get up and running with File Mover Express quickly.
 
@@ -10,11 +6,11 @@ This guide will help you get up and running with File Mover Express quickly.
 
 Before starting, ensure you have completed:
 
-1. **[Installation](./Installation.md)** — Download and install File Mover Express
-2. **[IAM Permissions](./Security.md#required-iam-permissions)** — AWS credentials and S3 access
-3. **[Configuration](./Configuration.md)** — Add a Remote Configuration for your S3 bucket
+1. **[Installation](Installation.md)** — Download and install File Mover Express
+2. **[IAM Permissions](Security.md#required-iam-permissions)** — AWS credentials and S3 access
+3. **[Configuration](Configuration.md)** — Add a Remote Configuration for your S3 bucket
 
-> **Using single sign-on?** Instead of an AWS named profile or access keys, you can authenticate a Remote Configuration with your organization's identity provider. See [OIDC / SSO Authentication](./OIDC-Authentication.md) to set it up.
+> **Using single sign-on?** Instead of an AWS named profile or access keys, you can authenticate a Remote Configuration with your organization's identity provider. See [OIDC / SSO Authentication](OIDC-Authentication.md) to set it up.
 
 ## Quick Start Guide
 
@@ -30,7 +26,7 @@ If you built from source, you can also launch it from the `dist/` folder or run 
 filemoverexpress daemon
 ```
 
-The GUI will be accessible at `http://localhost:4200` when running `ng serve` from the `src/gui` folder. See [Development](./Development.md) for details.
+The GUI will be accessible at `http://localhost:4200` when running `ng serve` from the `src/gui` folder. See [Development](Development.md) for details.
 
 **CLI Mode:**
 ```bash
@@ -187,18 +183,18 @@ In the Jobs tab, you can:
 
 Now that you're familiar with the basics:
 
-- **[Using the GUI](./Using-the-GUI.md)** - Detailed GUI features and workflows
-- **[Using the CLI](./Using-the-CLI.md)** - Advanced CLI usage and scripting
-- **[Hot Folders](./Hot-Folders.md)** - Set up automated monitoring and uploads
-- **Remote Daemon** - Configure multi-user or high-performance setups
-- **[Best Practices](./Best-Practices.md)** - Optimize performance and security
-- **[Checksums](./Checksums.md)** - Understand file integrity verification
+- **[Using the GUI](Using-the-GUI)** - Detailed GUI features and workflows
+- **[Using the CLI](Using-the-CLI)** - Advanced CLI usage and scripting
+- **[Hot Folders](Hot-Folders)** - Set up automated monitoring and uploads
+- **[Remote Daemon](Remote-Daemon)** - Configure multi-user or high-performance setups
+- **[Best Practices](Best-Practices)** - Optimize performance and security
+- **[Checksums](Checksums)** - Understand file integrity verification
 
 ## Getting Help
 
 If you need assistance:
 
-1. Check the **[Troubleshooting](./Troubleshooting.md)** guide
+1. Check the **[Troubleshooting](Troubleshooting)** guide
 2. Review logs in the GUI Logs tab or CLI output
 3. Generate a support file: GUI Settings → Support, or `filemoverexpress support-file`
 4. Open an issue on [GitHub](https://github.com/awslabs/filemoverexpress) with:

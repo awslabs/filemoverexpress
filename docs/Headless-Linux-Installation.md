@@ -1,8 +1,4 @@
----
-id: Headless-Linux-Installation
-title: "Headless Linux Installation"
-sidebar_label: "Headless Linux"
----
+# Headless Linux Installation
 
 This guide covers installing File Mover Express as a headless CLI daemon on Linux — no desktop environment required. This is the recommended setup for remote servers, render farms, and cloud instances where you want to run transfers unattended or control them remotely from a GUI on another machine.
 
@@ -68,7 +64,7 @@ transferProfiles:
         s3DestinationFolder: incoming/rushes
 ```
 
-See [Configuration](./Configuration.md) for all available options including checksums, bandwidth throttling, and hot folders.
+See [Configuration](Configuration.md) for all available options including checksums, bandwidth throttling, and hot folders.
 
 ## Run the daemon
 
@@ -99,7 +95,7 @@ export FME_PSK_SECRET="your-secret-passphrase"
 filemoverexpress daemon --remote
 ```
 
-See [Remote Daemon Configuration](./Configuration.md#remote-daemon-configuration) for full details on TLS and security setup.
+See [Remote Daemon Configuration](Configuration.md#remote-daemon-configuration) for full details on TLS and security setup.
 
 ## Run as a systemd service
 
@@ -196,7 +192,7 @@ sudo firewall-cmd --reload
 
 ## Next steps
 
-- [Configuration](./Configuration.md) — transfer profiles, hot folders, checksums, throttling
-- [Using the CLI](./Using-the-CLI.md) — full CLI command reference
-- [Security](./Security.md) — IAM permissions, TLS, and network security
-- [Troubleshooting](./Troubleshooting.md) — common issues and solutions
+- [Configuration](Configuration.md) — transfer profiles, hot folders, checksums, throttling
+- [Using the CLI](Using-the-CLI.md) — full CLI command reference
+- [Security](Security.md) — IAM permissions, TLS, and network security
+- [Troubleshooting](Troubleshooting.md) — common issues and solutions

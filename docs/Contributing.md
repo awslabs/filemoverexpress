@@ -1,8 +1,4 @@
----
-id: Contributing
-title: "Contributing to File Mover Express"
-sidebar_label: "Contributing to File Mover Express"
----
+# Contributing to File Mover Express
 
 We welcome contributions to File Mover Express! This document provides guidelines for contributing to the project.
 
@@ -14,7 +10,7 @@ We welcome contributions to File Mover Express! This document provides guideline
    git clone https://github.com/YOUR-USERNAME/filemoverexpress.git
    cd filemoverexpress
    ```
-3. **Set up the development environment** following the [Installation](./Installation.md) guide
+3. **Set up the development environment** following the [Installation](Installation) guide
 4. **Create a feature branch** following our branch naming conventions
 
 ## Branch Naming Convention
@@ -69,7 +65,7 @@ git checkout -b performance/transfer-speed-optimization
 
 ### 1. Setting Up Your Environment
 
-Follow the [Installation](./Installation.md) guide to set up your development environment with:
+Follow the [Installation](Installation) guide to set up your development environment with:
 - Go ≥ 1.25
 - Node.js ≥ 22 and npm
 - Angular CLI
@@ -216,7 +212,7 @@ Ensure you have the required tools installed:
 - **Wails CLI** (`wails3`): For building the desktop app (`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`)
 - **Git**: Latest version
 
-See the [Development guide](./Development.md) for full setup instructions and platform-specific
+See the [Development guide](Development.md) for full setup instructions and platform-specific
 install commands.
 
 ### Building the Project
@@ -261,10 +257,10 @@ task lint                   # run all linters
 ### Getting Help
 
 If you need help:
-1. Check existing [documentation](./intro.md)
+1. Check existing [documentation](Home)
 2. Search [existing issues](https://github.com/awslabs/filemoverexpress/issues)
 3. Ask questions in [GitHub Discussions](https://github.com/awslabs/filemoverexpress/discussions)
-4. Review the [Troubleshooting](./Troubleshooting.md) guide
+4. Review the [Troubleshooting](Troubleshooting) guide
 
 ## Recognition
 

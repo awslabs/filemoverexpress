@@ -1,8 +1,4 @@
----
-id: Using-the-CLI
-title: "Using the CLI"
-sidebar_label: "Using the CLI"
----
+# Using the CLI
 
 The File Mover Express command-line interface provides powerful scripting capabilities and advanced control over file transfers.
 
@@ -360,7 +356,7 @@ ENTRYPOINT ["filemoverexpress"]
 
 ## Next Steps
 
-- **[Hot Folders](./Hot-Folders.md)** - Automated file monitoring and uploads
-- **Remote Daemon** - Multi-user and high-performance setups
-- **Performance Optimization** - Tune for your workload
-- **[Troubleshooting](./Troubleshooting.md)** - Resolve common issues
+- **[Hot Folders](Hot-Folders)** - Automated file monitoring and uploads
+- **[Remote Daemon](Remote-Daemon)** - Multi-user and high-performance setups
+- **[Performance Optimization](Performance-Optimization)** - Tune for your workload
+- **[Troubleshooting](Troubleshooting)** - Resolve common issues

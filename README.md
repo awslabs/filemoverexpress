@@ -47,11 +47,11 @@ File Mover Express is a high-performance file transfer application designed to a
 > LLC) and notarized, so they open without a Gatekeeper workaround. Windows installers are
 > Authenticode-signed as "Amazon Web Services, Inc."; SmartScreen may still warn until the
 > certificate builds reputation — click "More info" then "Run anyway" if so. Since anyone could
-> self-sign an app by this name, see [Verifying the signature](https://awslabs.github.io/filemoverexpress/docs/Installation#verifying-the-signature)
+> self-sign an app by this name, see [Verifying the signature](docs/Installation.md#verifying-the-signature)
 > to confirm a download is really Amazon's (and how to clear the quarantine flag on older unsigned
 > or self-built apps).
 
-Prefer to build from source? See [Building from Source](https://awslabs.github.io/filemoverexpress/docs/Installation).
+Prefer to build from source? See [Building from Source](docs/Installation.md).
 
 ---
 
@@ -60,7 +60,7 @@ Prefer to build from source? See [Building from Source](https://awslabs.github.i
 Before you can transfer files, you need an S3 bucket and AWS credentials.
 
 1. **Create an S3 bucket** if you don't have one — see the [Amazon S3 User Guide](https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html)
-2. **Set up IAM permissions** — see the [required IAM permissions](https://awslabs.github.io/filemoverexpress/docs/Security#required-iam-permissions) for the minimum policy
+2. **Set up IAM permissions** — see the [required IAM permissions](docs/Security.md#required-iam-permissions) for the minimum policy
 3. **Configure your credentials** by opening Terminal (macOS/Linux) or CMD (Windows):
 
 ```bash
@@ -75,36 +75,36 @@ You'll be prompted for your AWS Access Key ID, Secret Access Key, and default re
 
 ### Step 3 — Configure File Mover Express
 
-Launch File Mover Express and add a Remote Configuration pointing to your S3 bucket. See the [Configuration Guide](https://awslabs.github.io/filemoverexpress/docs/Configuration) for full details.
+Launch File Mover Express and add a Remote Configuration pointing to your S3 bucket. See the [Configuration Guide](docs/Configuration.md) for full details.
 
 ---
 
 ### Step 4 — Start transferring
 
-- Using the GUI? See the [GUI Guide](https://awslabs.github.io/filemoverexpress/docs/Using-the-GUI)
-- Prefer the CLI? See the [CLI Guide](https://awslabs.github.io/filemoverexpress/docs/Using-the-CLI)
-- New to the app? See [Getting Started](https://awslabs.github.io/filemoverexpress/docs/Getting-Started) for your first transfer
+- Using the GUI? See the [GUI Guide](docs/Using-the-GUI.md)
+- Prefer the CLI? See the [CLI Guide](docs/Using-the-CLI.md)
+- New to the app? See [Getting Started](docs/Getting-Started.md) for your first transfer
 
 ## Documentation
 
-- [Getting Started](https://awslabs.github.io/filemoverexpress/docs/Getting-Started) — Quick start guide and basic usage
-- [Configuration](https://awslabs.github.io/filemoverexpress/docs/Configuration) — Setup and configuration options
-- [Using the GUI](https://awslabs.github.io/filemoverexpress/docs/Using-the-GUI) — Graphical interface guide
-- [Using the CLI](https://awslabs.github.io/filemoverexpress/docs/Using-the-CLI) — Command-line usage and scripting
-- [MCP Server](https://awslabs.github.io/filemoverexpress/docs/MCP-Server) — AI assistant integration (Claude Desktop, Kiro, Cursor)
-- [Best Practices](https://awslabs.github.io/filemoverexpress/docs/Best-Practices) — Performance optimization and security
-- [Troubleshooting](https://awslabs.github.io/filemoverexpress/docs/Troubleshooting) — Common issues and solutions
-- [Development](https://awslabs.github.io/filemoverexpress/docs/Development) — Building from source, architecture, and contributing
+- [Getting Started](docs/Getting-Started.md) — Quick start guide and basic usage
+- [Configuration](docs/Configuration.md) — Setup and configuration options
+- [Using the GUI](docs/Using-the-GUI.md) — Graphical interface guide
+- [Using the CLI](docs/Using-the-CLI.md) — Command-line usage and scripting
+- [MCP Server](docs/MCP-Server.md) — AI assistant integration (Claude Desktop, Kiro, Cursor)
+- [Best Practices](docs/Best-Practices.md) — Performance optimization and security
+- [Troubleshooting](docs/Troubleshooting.md) — Common issues and solutions
+- [Development](docs/Development.md) — Building from source, architecture, and contributing
 
 ## Security
 
 Please review the [Security Policy](SECURITY.md) for vulnerability reporting and security best practices.
 
-For the IAM permissions required by File Mover Express, see the [Security guide](https://awslabs.github.io/filemoverexpress/docs/Security).
+For the IAM permissions required by File Mover Express, see the [Security guide](docs/Security.md).
 
 ## Contributing
 
-We welcome contributions. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and see [Development](https://awslabs.github.io/filemoverexpress/docs/Development) for setting up your environment.
+We welcome contributions. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and see [Development](docs/Development.md) for setting up your environment.
 
 ## License
 

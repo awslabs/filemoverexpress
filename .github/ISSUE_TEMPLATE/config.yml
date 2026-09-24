@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: 📖 Documentation
-    url: https://awslabs.github.io/filemoverexpress/docs/
+    url: https://github.com/awslabs/filemoverexpress/tree/main/docs
     about: Check the docs before opening an issue — your question may already be answered.
   - name: 🔧 Troubleshooting Guide
-    url: https://awslabs.github.io/filemoverexpress/docs/Troubleshooting
+    url: https://github.com/awslabs/filemoverexpress/blob/main/docs/Troubleshooting.md
     about: Common issues and solutions.
   - name: 🔒 Security Issue
     url: https://github.com/awslabs/filemoverexpress/blob/main/SECURITY.md

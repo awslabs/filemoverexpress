@@ -1,8 +1,4 @@
----
-id: Setup
-title: "Setting up File Mover Express"
-sidebar_label: "Setting up File Mover Express"
----
+# Setting up File Mover Express
 
 Before you use File Mover Express for the first time, complete the following tasks.
 
@@ -207,5 +203,5 @@ If you are using AWS IAM Identity Center to authenticate identities from another
 ## Next Steps
 
 After completing the setup, proceed to:
-- [Installation](./Installation.md) - Install File Mover Express
-- [Configuration](./Configuration.md) - Configure File Mover Express for your environment
+- [Installation](Installation) - Install File Mover Express
+- [Configuration](Configuration) - Configure File Mover Express for your environment

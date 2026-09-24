@@ -1,8 +1,4 @@
----
-id: MCP-Server
-title: "MCP Server"
-sidebar_label: "MCP Server"
----
+# MCP Server
 
 File Mover Express includes a standalone [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that lets AI assistants manage file transfers through natural language. Connect it to any MCP-compatible client (Claude Desktop, Kiro, Cursor, etc.) and control uploads, downloads, and job monitoring conversationally.
 

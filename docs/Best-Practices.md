@@ -1,8 +1,4 @@
----
-id: Best-Practices
-title: "Best Practices"
-sidebar_label: "Best Practices"
----
+# Best Practices
 
 To maximize benefits from File Mover Express, follow these recommended practices for optimal performance, security, and reliability.
 
@@ -287,7 +283,7 @@ logging:
 
 ## Next Steps
 
-- **Performance Optimization** - Detailed performance tuning
-- **[Security](./Security.md)** - Comprehensive security guidelines
-- **Monitoring** - Set up monitoring and alerting
-- **[Troubleshooting](./Troubleshooting.md)** - Resolve common issues
+- **[Performance Optimization](Performance-Optimization)** - Detailed performance tuning
+- **[Security](Security)** - Comprehensive security guidelines
+- **[Monitoring](Monitoring)** - Set up monitoring and alerting
+- **[Troubleshooting](Troubleshooting)** - Resolve common issues

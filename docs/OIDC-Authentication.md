@@ -1,8 +1,4 @@
----
-id: OIDC-Authentication
-title: "OIDC / SSO Authentication"
-sidebar_label: "OIDC / SSO"
----
+# OIDC / SSO Authentication
 
 File Mover Express can authenticate to AWS using your organization's **single
 sign-on (SSO)** identity provider instead of long-lived AWS access keys or a
@@ -278,6 +274,6 @@ assume the shared IAM role automatically after signing in.
 
 ## Related
 
-- [Configuration](./Configuration.md) — full configuration reference
-- [Security](./Security.md) — security model and best practices
-- [Using the GUI](./Using-the-GUI.md) — the desktop app walkthrough
+- [Configuration](Configuration.md) — full configuration reference
+- [Security](Security.md) — security model and best practices
+- [Using the GUI](Using-the-GUI.md) — the desktop app walkthrough

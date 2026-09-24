@@ -132,7 +132,7 @@ jobs:
   # cross-compiles cleanly, exactly like fme-mcp above. Linux artifacts are
   # unsigned, so each leg builds straight to its final release asset name and
   # create-release publishes it as-is (no rename/sign step). The asset names match
-  # what https://awslabs.github.io/filemoverexpress/docs/Headless-Linux-Installation tells users to download.
+  # what docs/Headless-Linux-Installation.md tells users to download.
   # ---------------------------------------------------------------------------
   build-cli:
     needs: [generate-protobuf]
@@ -657,7 +657,7 @@ jobs:
             Linux ships as a headless daemon, not a desktop app. Run it on a server,
             render farm, or cloud instance and drive it from a GUI on another machine
             over a remote-daemon connection. See the
-            [Headless Linux Installation guide](https://awslabs.github.io/filemoverexpress/docs/Headless-Linux-Installation).
+            [Headless Linux Installation guide](docs/Headless-Linux-Installation.md).
 
             | Architecture | Asset |
             |-------------|-------|
@@ -677,4 +677,4 @@ jobs:
             > **Linux desktop app** is not distributed: Linux is supported as a headless
             > CLI daemon only (see the table above). Control it from a GUI on another machine
             > over a remote-daemon connection. Building the desktop GUI from source is still
-            > possible - see the [Installation guide](https://awslabs.github.io/filemoverexpress/docs/Installation).
+            > possible - see the [Installation guide](docs/Installation.md).

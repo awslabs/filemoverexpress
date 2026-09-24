@@ -1,8 +1,4 @@
----
-id: Using-the-GUI
-title: "Using the GUI"
-sidebar_label: "Using the GUI"
----
+# Using the GUI
 
 The File Mover Express graphical user interface provides an intuitive drag-and-drop experience for transferring files between your local system and Amazon S3.
 
@@ -36,7 +32,7 @@ The GUI consists of three main areas:
 - The **Connected** indicator reflects whether the selected Remote Configuration can actually reach S3. If you edit a configuration so it can no longer list the bucket (wrong bucket, region, or credentials), the indicator turns to **Disconnected** and the panel shows the listing error. While a listing is in progress it shows **Connecting…**
 
 **Authentication:**
-- A Remote Configuration authenticates with either an AWS named profile / access keys or your organization's single sign-on. To use SSO, set the **Authentication method** to **OIDC / SSO** on the configuration's Authentication tab. See [OIDC / SSO Authentication](./OIDC-Authentication.md) for setup.
+- A Remote Configuration authenticates with either an AWS named profile / access keys or your organization's single sign-on. To use SSO, set the **Authentication method** to **OIDC / SSO** on the configuration's Authentication tab. See [OIDC / SSO Authentication](OIDC-Authentication) for setup.
 
 **Navigation:**
 - Browse S3 objects and prefixes like folders
@@ -289,7 +285,7 @@ Connect to File Mover Express running on other machines:
 
 ## Next Steps
 
-- **[Using the CLI](./Using-the-CLI.md)** - Learn command-line operations
-- **[Hot Folders](./Hot-Folders.md)** - Detailed hot folder configuration
-- **Remote Daemon** - Set up multi-user environments
-- **Performance Optimization** - Tune for your workload
+- **[Using the CLI](Using-the-CLI)** - Learn command-line operations
+- **[Hot Folders](Hot-Folders)** - Detailed hot folder configuration
+- **[Remote Daemon](Remote-Daemon)** - Set up multi-user environments
+- **[Performance Optimization](Performance-Optimization)** - Tune for your workload

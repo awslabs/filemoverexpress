@@ -59,12 +59,6 @@ const FEATURES = [
   {icon: Icon.check, title: 'Checksum verification', body: 'Verify integrity end-to-end with MD5, XXHash, XXHash64, or XXH3, plus Media Hash List (MHL) support.'},
 ];
 
-const STATS = [
-  {n: '32.7', unit: 'Gbps', label: 'Many-file upload (LA \u2192 Oregon, m6in.16xlarge)'},
-  {n: '4', unit: 'checksums', label: 'MD5 / XXHash / XXHash64 / XXH3 + MHL'},
-  {n: '3', unit: 'platforms', label: 'macOS, Windows, and Linux'},
-];
-
 function Hero() {
   return (
     <header className={styles.hero}>
@@ -85,16 +79,6 @@ function Hero() {
           <Link className="button button--secondary button--lg" href="https://github.com/awslabs/filemoverexpress">
             View on GitHub
           </Link>
-        </div>
-        <div className={styles.stats}>
-          {STATS.map((s, i) => (
-            <div className={styles.stat} key={i}>
-              <div className={styles.statN}>
-                <span>{s.n}</span> {s.unit}
-              </div>
-              <div className={styles.statL}>{s.label}</div>
-            </div>
-          ))}
         </div>
       </div>
     </header>
@@ -124,12 +108,6 @@ function Preview() {
     <section className={styles.previewWrap}>
       <h2 className={styles.sectionTitle}>See it in action</h2>
       <div className={styles.browser}>
-        <div className={styles.browserBar}>
-          <span className={styles.dot} style={{background: '#ff5f56'}} />
-          <span className={styles.dot} style={{background: '#ffbd2e'}} />
-          <span className={styles.dot} style={{background: '#27c93f'}} />
-          <span className={styles.url}>File Mover Express &mdash; Active transfer</span>
-        </div>
         <img src={shot} alt="File Mover Express GUI showing an active transfer" className={styles.shot} />
       </div>
     </section>
