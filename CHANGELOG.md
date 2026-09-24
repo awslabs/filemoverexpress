@@ -7,7 +7,7 @@ Adds single sign-on authentication and a refreshed GUI, along with a batch of us
 
 ### Added
 
-* **OIDC / SSO Authentication**: A Remote Configuration can now authenticate with your organization's identity provider (Okta, Microsoft Entra ID, Auth0, Ping, Dex, and other OIDC providers) to obtain temporary AWS credentials, instead of a long-lived access key or a local AWS named profile. Includes an in-app sign-in flow, optional persisted sessions, and an async validator for the OIDC Issuer URL. See the [OIDC / SSO Authentication guide](docs/OIDC-Authentication.md).
+* **OIDC / SSO Authentication**: A Remote Configuration can now authenticate with your organization's identity provider (Okta, Microsoft Entra ID, Auth0, Ping, Dex, and other OIDC providers) to obtain temporary AWS credentials, instead of a long-lived access key or a local AWS named profile. Includes an in-app sign-in flow, optional persisted sessions, and an async validator for the OIDC Issuer URL. See the [OIDC / SSO Authentication guide](https://awslabs.github.io/filemoverexpress/docs/OIDC-Authentication).
 * **Multi-select delete**: Selecting multiple files or objects and deleting now removes the entire selection. The confirmation dialog lists every item and reports the folder/file counts. Available on both the Local and S3 Bucket browsers.
 * **Drag files from Finder / File Explorer into S3**: Drag items straight from the OS file manager onto the S3 panel to upload. Dropping onto a folder uploads into that folder; the S3 panel highlights as a drop zone during the drag (macOS).
 * **Enter-to-submit in dialogs**: Pressing Enter/Return in any modal activates its primary action when the form is valid (Escape still cancels).

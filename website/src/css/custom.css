@@ -1,0 +1,76 @@
+/**
+ * File Mover Express docs theme.
+ * Maps the existing FME palette (GitHub-dark inspired) onto Docusaurus/Infima.
+ *   bg #0d1117 / surface #161b22 / border #30363d / accent #58a6ff / logo #FF9900
+ */
+
+:root {
+  /* Blue accent as the primary action color. */
+  --ifm-color-primary: #58a6ff;
+  --ifm-color-primary-dark: #3b96ff;
+  --ifm-color-primary-darker: #2d8fff;
+  --ifm-color-primary-darkest: #0a6bff;
+  --ifm-color-primary-light: #75b3ff;
+  --ifm-color-primary-lighter: #83bbff;
+  --ifm-color-primary-lightest: #aad0ff;
+
+  --ifm-code-font-size: 90%;
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, sans-serif;
+  --docusaurus-highlighted-code-line-bg: rgba(88, 166, 255, 0.12);
+
+  /* FME brand tokens reused by the landing page. */
+  --fme-orange: #ff9900;
+  --fme-bg: #0d1117;
+  --fme-surface: #161b22;
+  --fme-surface-2: #1c2129;
+  --fme-border: #30363d;
+  --fme-text: #e6edf3;
+  --fme-muted: #8b949e;
+  --fme-accent: #58a6ff;
+  --fme-accent-hover: #79c0ff;
+  --fme-success: #3fb950;
+}
+
+/* Dark mode is the default and the intended look. */
+[data-theme='dark'] {
+  --ifm-color-primary: #58a6ff;
+  --ifm-color-primary-dark: #3b96ff;
+  --ifm-color-primary-darker: #2d8fff;
+  --ifm-color-primary-darkest: #0a6bff;
+  --ifm-color-primary-light: #75b3ff;
+  --ifm-color-primary-lighter: #83bbff;
+  --ifm-color-primary-lightest: #aad0ff;
+
+  --ifm-background-color: #0d1117;
+  --ifm-background-surface-color: #161b22;
+  --ifm-navbar-background-color: rgba(13, 17, 23, 0.85);
+  --ifm-footer-background-color: #010409;
+  --ifm-color-content: #e6edf3;
+  --ifm-color-content-secondary: #8b949e;
+  --ifm-toc-border-color: #30363d;
+  --ifm-hr-border-color: #30363d;
+  --ifm-menu-color-background-active: rgba(88, 166, 255, 0.12);
+  --docusaurus-highlighted-code-line-bg: rgba(88, 166, 255, 0.15);
+}
+
+/* Frosted, bordered navbar to match the mockup. */
+.navbar {
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--fme-border);
+}
+
+/* GitHub icon in the navbar. */
+.navbar__item[href*='github.com'] {
+  display: flex;
+  align-items: center;
+}
+.navbar__item[href*='github.com']::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  margin-right: 0.4rem;
+  background-color: var(--fme-text);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .3a12 12 0 00-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1 .9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0012 .3'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .3a12 12 0 00-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1 .9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0012 .3'/%3E%3C/svg%3E") center/contain no-repeat;
+}

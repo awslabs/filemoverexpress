@@ -1,0 +1,116 @@
+.wrap {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem 4rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 640px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.header p {
+  color: var(--fme-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.notice {
+  background: var(--fme-surface);
+  border: 1px solid var(--fme-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--fme-muted);
+}
+
+.notice strong {
+  color: var(--fme-text);
+}
+
+.form {
+  background: var(--fme-surface);
+  border: 1px solid var(--fme-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.group {
+  margin-bottom: 1.25rem;
+}
+
+.group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+}
+
+.optional {
+  color: var(--fme-muted);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.group input,
+.group select,
+.group textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--fme-bg);
+  border: 1px solid var(--fme-border);
+  border-radius: 8px;
+  color: var(--fme-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.group input:focus,
+.group select:focus,
+.group textarea:focus {
+  outline: none;
+  border-color: var(--fme-accent);
+}
+
+.group textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.submit {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--fme-accent);
+  color: #08111f;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit:hover {
+  background: var(--fme-accent-hover);
+}
+
+.submitNote {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--fme-muted);
+  text-align: center;
+}
