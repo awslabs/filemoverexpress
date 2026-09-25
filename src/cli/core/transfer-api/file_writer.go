@@ -1,29 +1,33 @@
 package transfer_api
 
 import (
+	"context"
 	"os"
 	"sync/atomic"
 	"time"
-
-	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
 
 // FileWriter is a wrapper struct around file write operations, allowing us to track rudimentary write speeds from disk
 type FileWriter struct {
-	File    *os.File
-	Size    int64
-	Start   time.Time
+	File  *os.File
+	Size  int64
+	Start time.Time
+	// Ctx carries the owning transfer's cancellation so a rate-limit wait
+	// unblocks immediately when the job is paused or cancelled. May be nil.
+	Ctx     context.Context
 	written int64
 }
 
 func (w *FileWriter) Write(p []byte) (int, error) {
+	if err := throttle(w.Ctx, len(p)); err != nil {
+		return 0, err
+	}
 	return w.File.Write(p)
 }
 
 func (w *FileWriter) WriteAt(p []byte, offset int64) (int, error) {
-	if IsThrottled() {
-		sleepTime := GetSleepTime(transfertypes.Download)
-		time.Sleep(sleepTime)
+	if err := throttle(w.Ctx, len(p)); err != nil {
+		return 0, err
 	}
 
 	n, err := w.File.WriteAt(p, offset)

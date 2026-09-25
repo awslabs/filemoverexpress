@@ -29,13 +29,12 @@
             </p>
         </section>
         <section>
-            <h2> Target Bandwidth (MB) </h2>
+            <h2> Target Bandwidth (MB/sec) </h2>
             <p>
-                The target network bandwidth (in MB) that File Transfer will use when transferring files. File Transfer
-                attempts to slow down transfers so that the <b>average</b> speed will approach the target bandwidth, so
-                speeds may still go above or below the target bandwidth. A default value of 0 means that File Transfer
-                will
-                not throttle transfers.
+                The target transfer speed, in megabytes per second, that File Mover Express will aim for when uploading
+                or downloading (for example, enter 50 for 50 MB/sec). FME slows transfers so the <b>average</b> speed
+                approaches this target, so the instantaneous speed may still go above or below it. Enter 0 (the default)
+                for unlimited, meaning FME will not throttle transfers.
             </p>
         </section>
     </div>

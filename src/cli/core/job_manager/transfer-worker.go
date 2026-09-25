@@ -168,6 +168,7 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			File:  outputFile,
 			Size:  task.S3Object().Size,
 			Start: time.Now(),
+			Ctx:   job.CancelCtx,
 		}
 		cancelProgressChan := make(chan bool)
 		go updateDownloadJobProgress(task, job, cancelProgressChan, &writer)
@@ -221,6 +222,7 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			File:  file,
 			Size:  fileInfo.Size(),
 			Start: time.Now(),
+			Ctx:   job.CancelCtx,
 		}
 		cancelProgressChan := make(chan bool)
 		go updateUploadJobProgress(task, job, cancelProgressChan, &reader)

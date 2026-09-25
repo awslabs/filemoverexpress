@@ -114,8 +114,9 @@
                         }
                     </mat-form-field>
                     <mat-form-field color="accent">
-                        <mat-label>Target Bandwidth (in MB)</mat-label>
-                        <input matInput type="number" formControlName="targetBandwidth" step="1">
+                        <mat-label>Target Bandwidth (in MB/sec)</mat-label>
+                        <input matInput type="number" formControlName="targetBandwidth" step="1"
+                               placeholder="0 (unlimited)">
                         @if (configForm.controls.general.controls.targetBandwidth.hasError('required')) {
                             <mat-error>{{ formErrorMessages.targetBandwidth.required }}</mat-error>
                         }
@@ -125,6 +126,7 @@
                         @if (configForm.controls.general.controls.targetBandwidth.hasError('max')) {
                             <mat-error class="text-error">{{ formErrorMessages.targetBandwidth.maxValue }}</mat-error>
                         }
+                        <mat-hint class="info-hint">Caps total upload/download speed in megabytes per second (for example, enter 50 for 50 MB/sec). Enter 0 for unlimited (no cap).</mat-hint>
                     </mat-form-field>
                 </div>
                 <p class="set-note">Per-transfer tuning (auto-tune threads &amp; chunk size, storage class, checksum verification, S3 Transfer Acceleration, file ordering) is set on each Remote Configuration's Performance tab.</p>
