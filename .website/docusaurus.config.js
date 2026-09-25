@@ -49,7 +49,11 @@ const config = {
           path: '../docs',
           routeBasePath: 'docs',
           sidebarPath: './sidebars.js',
-          // Skip non-guide files that live under docs/.
+          // Skip non-guide files that live under docs/. NOTE: this is an
+          // exact-name/glob denylist, not an allowlist. Any NEW top-level
+          // .md added to docs/ is published automatically; if it is a guide,
+          // add it to sidebars.js too (or it becomes an unsidebarred page),
+          // and if it is not a guide, add it to this exclude list.
           exclude: [
             'README.md',
             'LINK_UPDATES.md',
@@ -72,7 +76,8 @@ const config = {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          editUrl: 'https://github.com/awslabs/filemoverexpress/edit/main/.website/',
+          editUrl: ({blogDirPath, blogPath}) =>
+            `https://github.com/awslabs/filemoverexpress/edit/main/.website/${blogDirPath}/${blogPath}`,
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
           onUntruncatedBlogPosts: 'warn',
