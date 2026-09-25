@@ -72,7 +72,7 @@ const config = {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          editUrl: 'https://github.com/awslabs/filemoverexpress/edit/main/website/',
+          editUrl: 'https://github.com/awslabs/filemoverexpress/edit/main/.website/',
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
           onUntruncatedBlogPosts: 'warn',
