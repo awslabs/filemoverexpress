@@ -176,6 +176,7 @@ function Hero({os, version}) {
     <header className={styles.hero}>
       <div className={styles.heroInner}>
         <Logo size={72} className={styles.heroLogo} />
+        <div className={styles.heroWordmark}>File Mover Express</div>
         <h1 className={styles.heroTitle}>
           Move media to S3 at <span className={styles.grad}>wire speed</span>
         </h1>

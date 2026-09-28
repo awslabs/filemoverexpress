@@ -14,7 +14,16 @@
 }
 
 .heroLogo {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.heroWordmark {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--fme-muted);
+  text-transform: uppercase;
+  margin-bottom: 1.1rem;
 }
 
 .heroTitle {

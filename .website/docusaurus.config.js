@@ -99,7 +99,6 @@ const config = {
         respectPrefersColorScheme: false,
       },
       navbar: {
-        title: 'File Mover Express',
         logo: {
           alt: 'File Mover Express',
           src: 'img/fme-logo.svg',
