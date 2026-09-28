@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -6,6 +6,12 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
 import Logo from '@site/src/components/Logo';
 import styles from './index.module.css';
+
+const REPO = 'awslabs/filemoverexpress';
+// GitHub "latest" permalink: always redirects to the newest release's asset,
+// so these links never go stale when a new version is published.
+const DL = `https://github.com/${REPO}/releases/latest/download`;
+const RELEASES_URL = `https://github.com/${REPO}/releases`;
 
 // Lucide-style inline icons (stroked), no emoji.
 const Icon = {
@@ -48,6 +54,33 @@ const Icon = {
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   ),
+  download: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  ),
+};
+
+// Platform glyphs for the download cards.
+const OsGlyph = {
+  mac: (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.365 12.78c.02 2.19 1.92 2.92 1.94 2.93-.016.05-.303 1.04-1 2.06-.603.89-1.23 1.77-2.22 1.79-.97.02-1.28-.57-2.39-.57-1.11 0-1.46.55-2.38.59-.95.04-1.68-.96-2.29-1.84-1.25-1.81-2.2-5.11-.92-7.34.64-1.11 1.78-1.81 3.02-1.83.94-.02 1.83.63 2.4.63.57 0 1.65-.78 2.78-.67.47.02 1.8.19 2.65 1.43-.07.04-1.58.92-1.56 2.75zM14.56 7.4c.5-.61.84-1.46.75-2.31-.72.03-1.6.48-2.12 1.09-.47.54-.88 1.4-.77 2.23.8.06 1.63-.41 2.14-1.01z" />
+    </svg>
+  ),
+  win: (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M3 5.4 10.4 4.4v6.9H3zM11.3 4.28 21 3v8.3h-9.7zM3 12.2h7.4v6.9L3 18.1zM11.3 12.2H21V21l-9.7-1.3z" />
+    </svg>
+  ),
+  linux: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 17l6-6-6-6" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
+  ),
 };
 
 const FEATURES = [
@@ -59,7 +92,86 @@ const FEATURES = [
   {icon: Icon.check, title: 'Checksum verification', to: '/docs/Checksums', body: 'Verify integrity end-to-end with MD5, XXHash, XXHash64, or XXH3, plus Media Hash List (MHL) support.'},
 ];
 
-function Hero() {
+const PLATFORMS = [
+  {
+    id: 'mac',
+    name: 'macOS',
+    glyph: OsGlyph.mac,
+    kind: 'Desktop app (.dmg)',
+    builds: [
+      {label: 'Apple Silicon', href: `${DL}/filemoverexpress-macos-arm64.dmg`},
+      {label: 'Intel', href: `${DL}/filemoverexpress-macos-x64.dmg`},
+    ],
+  },
+  {
+    id: 'win',
+    name: 'Windows',
+    glyph: OsGlyph.win,
+    kind: 'Desktop app (installer)',
+    builds: [
+      {label: 'x64', href: `${DL}/filemoverexpress-windows-amd64-installer.exe`},
+      {label: 'ARM64', href: `${DL}/filemoverexpress-windows-arm64-installer.exe`},
+    ],
+  },
+  {
+    id: 'linux',
+    name: 'Linux',
+    glyph: OsGlyph.linux,
+    kind: 'Headless CLI daemon (no GUI)',
+    builds: [
+      {label: 'x86_64', href: `${DL}/filemoverexpress-linux-amd64`},
+      {label: 'ARM64', href: `${DL}/filemoverexpress-linux-arm64`},
+    ],
+  },
+  {
+    id: 'mcp',
+    name: 'MCP server',
+    glyph: Icon.bot,
+    kind: 'For AI assistants (Claude, Kiro, Cursor)',
+    builds: [{label: 'All MCP binaries', href: `${RELEASES_URL}/latest`}],
+  },
+];
+
+// The visitor's platform, and the hero button target. Detection runs only in
+// the browser (SSR-safe): server render assumes "other" and the effect
+// upgrades it after mount.
+const PRIMARY = {
+  mac: {label: 'Download for macOS', href: `${DL}/filemoverexpress-macos-arm64.dmg`},
+  win: {label: 'Download for Windows', href: `${DL}/filemoverexpress-windows-amd64-installer.exe`},
+  linux: {label: 'Download for Linux', href: `${DL}/filemoverexpress-linux-amd64`},
+  other: {label: 'Download', href: '#downloads'},
+};
+
+function detectOs() {
+  if (typeof navigator === 'undefined') return 'other';
+  const s = `${navigator.platform || ''} ${navigator.userAgent || ''}`;
+  if (/Mac/i.test(s)) return 'mac';
+  if (/Win/i.test(s)) return 'win';
+  if (/Linux|Android/i.test(s)) return 'linux';
+  return 'other';
+}
+
+function useReleaseInfo() {
+  const [os, setOs] = useState('other');
+  const [version, setVersion] = useState(null);
+  useEffect(() => {
+    setOs(detectOs());
+    let alive = true;
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && d.tag_name) setVersion(d.tag_name);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return {os, version};
+}
+
+function Hero({os, version}) {
+  const primary = PRIMARY[os] || PRIMARY.other;
   return (
     <header className={styles.hero}>
       <div className={styles.heroInner}>
@@ -73,15 +185,65 @@ function Hero() {
           scriptable CLI, and an MCP server for AI assistants.
         </p>
         <div className={styles.cta}>
-          <Link className={clsx('button button--primary button--lg', styles.ctaPrimary)} to="/docs/Getting-Started">
-            Get Started
+          <Link className={clsx('button button--primary button--lg', styles.ctaPrimary)} href={primary.href}>
+            <span className={styles.dlBtnInner}>
+              <span className={styles.dlIcon}>{Icon.download}</span>
+              {primary.label}
+            </span>
           </Link>
           <Link className="button button--secondary button--lg" href="https://github.com/awslabs/filemoverexpress">
             View on GitHub
           </Link>
         </div>
+        <div className={styles.heroDlMeta}>
+          {version ? (
+            <>
+              Latest release <span className={styles.verBadge}>{version}</span>
+            </>
+          ) : (
+            'Free and open source'
+          )}
+          {' \u00b7 '}
+          <a href="#downloads">All platforms</a>
+        </div>
       </div>
     </header>
+  );
+}
+
+function Downloads({os}) {
+  return (
+    <section className={styles.dlSection} id="downloads">
+      <h2 className={styles.sectionTitle}>Download File Mover Express</h2>
+      <p className={styles.dlLede}>Free and open source. Pick your platform below.</p>
+      <div className={styles.dlGrid}>
+        {PLATFORMS.map((p) => {
+          const isYou = p.id === os;
+          return (
+            <div className={clsx(styles.dlCard, isYou && styles.dlCardYou)} key={p.id}>
+              <div className={styles.dlOs}>
+                <span className={styles.dlOsGlyph}>{p.glyph}</span>
+                {p.name}
+                {isYou && <span className={styles.dlYouTag}>Your system</span>}
+              </div>
+              <div className={styles.dlKind}>{p.kind}</div>
+              <div className={styles.dlBuilds}>
+                {p.builds.map((b) => (
+                  <a className={styles.dlBuildBtn} href={b.href} key={b.label}>
+                    {b.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className={styles.dlNote}>
+        Looking for older versions or checksums? See{' '}
+        <a href={RELEASES_URL}>all releases on GitHub</a>. Building from source? See the{' '}
+        <Link to="/docs/Installation">Installation guide</Link>.
+      </p>
+    </section>
   );
 }
 
@@ -117,12 +279,14 @@ function Preview() {
 
 export default function Home() {
   const {siteConfig} = useDocusaurusContext();
+  const {os, version} = useReleaseInfo();
   return (
     <Layout
       title={`${siteConfig.title} \u2014 ${siteConfig.tagline}`}
       description="High-performance open-source file transfer between local storage and Amazon S3, with a GUI, CLI, and MCP server.">
-      <Hero />
+      <Hero os={os} version={version} />
       <main>
+        <Downloads os={os} />
         <Features />
         <Preview />
       </main>
