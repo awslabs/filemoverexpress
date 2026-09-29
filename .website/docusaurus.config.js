@@ -92,13 +92,14 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'img/fme-social-card.jpg',
       colorMode: {
         defaultMode: 'dark',
         disableSwitch: true,
         respectPrefersColorScheme: false,
       },
       navbar: {
+        title: 'File Mover Express',
         logo: {
           alt: 'File Mover Express',
           src: 'img/fme-logo.svg',

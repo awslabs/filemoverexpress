@@ -157,10 +157,41 @@ function useReleaseInfo() {
   useEffect(() => {
     setOs(detectOs());
     let alive = true;
+
+    // Cache the version tag in localStorage for 90 minutes. This serves the
+    // badge instantly on a hard refresh and avoids hammering GitHub's
+    // unauthenticated API (60 req/hr per IP), which can 429 behind shared
+    // corporate NATs. A stale cache still renders; only the network refresh
+    // is skipped while the cache is fresh.
+    const CACHE_KEY = 'fme_latest_release';
+    const TTL_MS = 90 * 60 * 1000;
+
+    let cached = null;
+    try {
+      cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    } catch {
+      cached = null;
+    }
+    if (cached && cached.tag) {
+      setVersion(cached.tag);
+      if (Date.now() - (cached.ts || 0) < TTL_MS) {
+        return () => {
+          alive = false;
+        };
+      }
+    }
+
     fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (alive && d && d.tag_name) setVersion(d.tag_name);
+        if (alive && d && d.tag_name) {
+          setVersion(d.tag_name);
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({tag: d.tag_name, ts: Date.now()}));
+          } catch {
+            /* localStorage unavailable (private mode); badge still works */
+          }
+        }
       })
       .catch(() => {});
     return () => {
@@ -192,8 +223,8 @@ function Hero({os, version}) {
               {primary.label}
             </span>
           </Link>
-          <Link className="button button--secondary button--lg" href="https://github.com/awslabs/filemoverexpress">
-            View on GitHub
+          <Link className="button button--secondary button--lg" to="/docs/Getting-Started">
+            Get Started
           </Link>
         </div>
         <div className={styles.heroDlMeta}>
@@ -281,6 +312,13 @@ function Preview() {
 export default function Home() {
   const {siteConfig} = useDocusaurusContext();
   const {os, version} = useReleaseInfo();
+  // The landing page carries the product name in the hero wordmark, so hide
+  // the navbar title here to avoid showing it twice. It still shows on
+  // docs/updates pages, which have no hero.
+  useEffect(() => {
+    document.body.classList.add('landing-page');
+    return () => document.body.classList.remove('landing-page');
+  }, []);
   return (
     <Layout
       title={`${siteConfig.title} \u2014 ${siteConfig.tagline}`}
