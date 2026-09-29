@@ -60,6 +60,12 @@
   border-bottom: 1px solid var(--fme-border);
 }
 
+/* On the landing page the product name lives in the hero wordmark, so hide
+   the navbar title there. It still shows on docs/updates pages. */
+body.landing-page .navbar__title {
+  display: none;
+}
+
 /* GitHub icon in the navbar. */
 .navbar__item[href*='github.com'] {
   display: flex;
