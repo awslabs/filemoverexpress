@@ -24,6 +24,10 @@ describe('TransferProfileService', () => {
     let afterClosed$: Subject<unknown>;
 
     beforeEach(() => {
+        // The service now persists the selected profile to window.localStorage, which jsdom
+        // keeps for the whole file run. Clear it so one test's selection can't leak into the
+        // next test's init() and change which profile is restored.
+        window.localStorage.clear();
         onUpdateNames$ = new Subject<boolean>();
         transferProfiles = {beta: {}, Alpha: {}};
         afterClosed$ = new Subject<unknown>();
@@ -122,6 +126,24 @@ describe('TransferProfileService', () => {
         onUpdateNames$.next(true);
         const state = await firstValueFrom(service.transferProfileState);
         expect(state.currentTransferProfile).toBe('beta');
+    });
+
+    it('seeds the selection from storage on init so a relaunch restores the last profile', async () => {
+        // Simulate a prior session having persisted 'beta' (same shape LocalStorageService writes).
+        window.localStorage.setItem('currentTransferProfile_v1', JSON.stringify({type: 'string', value: 'beta'}));
+        // Fresh service (as on relaunch): init() must read the stored name so the first metadata
+        // refresh restores 'beta' instead of snapping to the alphabetically-first 'Alpha'.
+        service.init();
+        onUpdateNames$.next(true);
+        const state = await firstValueFrom(service.transferProfileState);
+        expect(state.currentTransferProfile).toBe('beta');
+    });
+
+    it('persists the selected profile to storage so it survives a restart', () => {
+        service.init();
+        onUpdateNames$.next(true);
+        service.select('beta');
+        expect(window.localStorage.getItem('currentTransferProfile_v1')).toContain('beta');
     });
 
     it('select() warns and no-ops for an unknown profile', async () => {
