@@ -236,8 +236,14 @@ export function trimPrefixSuffix(fullString: string, prefix: string, suffix: str
  * Suppressing error on using type "any" since the purpose of this function is to check the error type
 **/
 export function getErrorMessage(error: any): string | null {
-    if (error instanceof ConnectError) {
-        return error.rawMessage;
+    // Detect a ConnectError by its `rawMessage` field rather than `instanceof`. Under
+    // @connectrpc/connect 2.2.0 a ConnectError's `.message` is code-prefixed (e.g.
+    // "[unknown] <msg>") while `.rawMessage` holds the plain text. An `instanceof` check
+    // is also unreliable across module realms (the Vitest suite mocks @connectrpc/connect,
+    // which can leave two distinct ConnectError classes), so duck-type the field instead -
+    // the same approach connect itself uses to recognize its errors.
+    if (error && typeof (error as ConnectError).rawMessage === 'string') {
+        return (error as ConnectError).rawMessage;
     }
     if (error instanceof Error) {
         return error.message;
