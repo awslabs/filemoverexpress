@@ -68,7 +68,8 @@
                 } @else {
                 <div [ngClass]="dropdownItem.itemClickHandler ? 'clickable-dropdown-row' : 'dropdown-row'"
                      [class.section-header]="dropdownItem.type === 'section-header'"
-                     [class.item]="dropdownItem.type !== 'section-header'">
+                     [class.item]="dropdownItem.type !== 'section-header'"
+                     [class.two-line-row]="dropdownItem.subtitleHead || dropdownItem.subtitleTail">
                     <div class="row-text-wrapper"
                          (click)="handleRowClick($event, dropdownItem)"
                          (keydown.enter)="handleRowClick($event, dropdownItem)"
@@ -103,9 +104,21 @@
                                 </mat-icon>
                             </div>
                         }
-                        <div class="row-text" [ngClass]="dropdownItem.textColor ? 'text-color-' + dropdownItem.textColor : ''">
-                            {{ dropdownItem.text }}
-                        </div>
+                        <!-- Two-line favorite row: bold leaf headline + dim, middle-truncated
+                             parent path. Falls back to a normal single line when no subtitle. -->
+                        @if (dropdownItem.subtitleHead || dropdownItem.subtitleTail) {
+                            <div class="row-text-stack" [ngClass]="dropdownItem.textColor ? 'text-color-' + dropdownItem.textColor : ''">
+                                <div class="row-text-leaf">{{ dropdownItem.text }}</div>
+                                <div class="row-text-parent">
+                                    <span class="row-text-parent-head">{{ dropdownItem.subtitleHead }}</span>
+                                    <span class="row-text-parent-tail">{{ dropdownItem.subtitleTail }}</span>
+                                </div>
+                            </div>
+                        } @else {
+                            <div class="row-text" [ngClass]="dropdownItem.textColor ? 'text-color-' + dropdownItem.textColor : ''">
+                                {{ dropdownItem.text }}
+                            </div>
+                        }
                     </div>
                     @if (dropdownItem.actionIcons?.length) {
                         <div class="row-action-icon-wrapper">

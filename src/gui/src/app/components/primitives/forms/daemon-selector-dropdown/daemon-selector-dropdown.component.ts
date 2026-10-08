@@ -6,7 +6,7 @@ import { ConfirmationModalComponent } from '@app/components/modals/confirmation-
 import { DaemonEditorModalComponent } from '@app/components/modals/daemon-editor-modal/daemon-editor-modal.component';
 import { FavoritePathModalComponent } from '@app/components/modals/favorite-path-modal/favorite-path-modal.component';
 import { NotificationMessages } from '@app/constants/common.constants';
-import { displayPathToGrpcPath, grpcPathToDisplayPath } from '@app/utils/path-utils';
+import { displayPathToGrpcPath, grpcPathToDisplayPath, splitFavoritePathForDisplay } from '@app/utils/path-utils';
 import { SelectMenuDropdownComponent } from '@primitives/forms/select-menu-dropdown/select-menu-dropdown.component';
 import {
     ADD_ICON,
@@ -263,10 +263,18 @@ export class DaemonSelectorDropdownComponent implements OnDestroy {
      * @private
      */
     private createFavoritePathSubRow(bookmark: Bookmark, favoritePath: string): DropdownItem {
+        // Two-line display: the leaf folder is the headline (never clipped) and the parent
+        // path is a dim, middle-truncated second line. The hover tooltip still shows the
+        // full path. A favorite with no parent (e.g. a bare root) yields empty parent pieces,
+        // so the row falls back to a normal single line showing the whole path.
+        const parts = splitFavoritePathForDisplay(favoritePath);
+        const hasParent = !!(parts.parentHead || parts.parentTail);
         return {
             id: `favorite-path-sub-row-${bookmark.name}-${favoritePath}`,
             type: 'section-item',
-            text: favoritePath,
+            text: hasParent ? parts.leaf : favoritePath,
+            subtitleHead: parts.parentHead,
+            subtitleTail: parts.parentTail,
             tooltipText: favoritePath,
             leadingIcon: STAR_ICON,
             itemClickHandler: () => {
