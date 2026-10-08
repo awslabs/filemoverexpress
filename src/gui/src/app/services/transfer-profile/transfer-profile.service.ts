@@ -6,7 +6,13 @@ import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { LocalStorageService } from '../local-storage/local-storage.service';
 import { TransferProfileState } from './transfer-profile.interfaces';
+
+// Persists the name of the profile the user last explicitly selected so the choice
+// survives an app restart. Without this the selection lives only in memory and every
+// relaunch snaps back to the alphabetically-first profile.
+export const CURRENT_TRANSFER_PROFILE_STORAGE_KEY = 'currentTransferProfile_v1';
 
 @Injectable({
     providedIn: 'root',
@@ -16,6 +22,7 @@ export class TransferProfileService implements OnDestroy {
     private fmeClientService = inject(FmeClientService);
     private notifications = inject(NotificationsService);
     private dialog = inject(MatDialog);
+    private readonly storage = inject(LocalStorageService);
 
     private readonly transferProfileState$: BehaviorSubject<TransferProfileState> = new BehaviorSubject<TransferProfileState>({
         transferProfileList: null,
@@ -44,6 +51,17 @@ export class TransferProfileService implements OnDestroy {
     private lastSelectedProfile: string | null = null;
 
     init() {
+        // Restore the profile the user last explicitly selected (persisted across restarts).
+        // The onUpdateTransferProfileNames handler below uses lastSelectedProfile as its
+        // preferred default, so seeding it here is what makes the selection stick after a
+        // relaunch instead of snapping back to the alphabetically-first profile.
+        try {
+            const remembered = this.storage.getString(CURRENT_TRANSFER_PROFILE_STORAGE_KEY, '');
+            this.lastSelectedProfile = remembered || null;
+        } catch {
+            this.lastSelectedProfile = null;
+        }
+
         this._subscriptions.push(this.metadata.onUpdateTransferProfileNames.subscribe({
             next: () => {
                 try {
@@ -114,6 +132,7 @@ export class TransferProfileService implements OnDestroy {
         }
         this._transferProfileState.currentTransferProfile = transferProfile;
         this.lastSelectedProfile = transferProfile;
+        this.persistLastSelectedProfile(transferProfile);
         this.transferProfileState$.next(this._transferProfileState);
         this.transferProfileStateSig.set({...this._transferProfileState});
     }
@@ -130,6 +149,7 @@ export class TransferProfileService implements OnDestroy {
     private selectSavedProfile(transferProfile: string) {
         this._transferProfileState.currentTransferProfile = transferProfile;
         this.lastSelectedProfile = transferProfile;
+        this.persistLastSelectedProfile(transferProfile);
         if (this._transferProfileState.transferProfileList
             && !this._transferProfileState.transferProfileList.includes(transferProfile)) {
             this._transferProfileState.transferProfileList =
@@ -273,6 +293,22 @@ export class TransferProfileService implements OnDestroy {
         });
     }
 
+
+    /**
+     * Persists the name of the last explicitly selected transfer profile to local storage so
+     * the selection survives an app restart. Storage failures are non-fatal - a lost write just
+     * means the next launch falls back to the first profile, so we log and move on rather than
+     * interrupting the user.
+     * @param transferProfile Name of the transfer profile to remember
+     * @private
+     */
+    private persistLastSelectedProfile(transferProfile: string) {
+        try {
+            this.storage.set(CURRENT_TRANSFER_PROFILE_STORAGE_KEY, transferProfile);
+        } catch (e) {
+            console.debug(`Couldn't persist selected transfer profile: ${e instanceof Error ? e.message : e}`);
+        }
+    }
 
     /**
      * Checks if the given transfer profile name exists in the list of transfer profiles.
