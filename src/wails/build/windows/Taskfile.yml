@@ -131,6 +131,7 @@ tasks:
           "-DINFO_PRODUCTNAME=File Mover Express" \
           "-DINFO_PRODUCTVERSION=1.0.0" \
           "-DINFO_COPYRIGHT=Amazon Web Services, 2026" \
+          "-DPRODUCT_EXECUTABLE={{.APP_NAME}}.exe" \
           "-D${BIN_DEFINE}={{.APP_NAME}}.exe" \
           "-DARG_FME_LAUNCHER_BINARY=filemoverexpress-launcher.exe" \
           "-DARG_FME_CLI_BINARY=filemoverexpress.exe" \
