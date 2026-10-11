@@ -44,6 +44,13 @@ export interface DropdownItem {
     id: string,
     type: DropdownItemType,
     text: string,
+    // Optional dim second line that turns the row into a two-line entry: `text` becomes the
+    // bold headline and this parent path is shown beneath it, middle-truncated. Used for
+    // favorite paths so the leaf folder (headline) is never clipped. The parent is split so
+    // its start ellipsizes (subtitleHead) while its own last folder stays visible
+    // (subtitleTail). When both are empty the row renders as a normal single line.
+    subtitleHead?: string,
+    subtitleTail?: string,
     tooltipText?: string,
     // Optional per-row status indicator rendered in the leading status slot (before
     // leadingIcon). When set, it replaces the default "selected row gets a check"

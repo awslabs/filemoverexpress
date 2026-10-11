@@ -129,6 +129,60 @@
     white-space: nowrap;
 }
 
+// Two-line favorite row. The fixed 36px/line-height:36px row above is sized for a single
+// line; a favorite needs two, so grow the row to fit and reset the inherited line-height.
+// Line-heights are kept tight so the leaf and its parent read as one grouped entry rather
+// than two loosely-spaced lines.
+.clickable-dropdown-row.two-line-row,
+.dropdown-row.two-line-row {
+    height: auto;
+    min-height: 40px;
+    line-height: normal;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+// Stack the leaf headline over the dim parent line; min-width:0 lets the children ellipsize
+// instead of forcing the row wider.
+.row-text-stack {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+// Leaf folder - the headline. Kept on one line; inherits the row text color so hover/active
+// states still apply.
+.row-text-leaf {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// Parent path - dim second line, middle-truncated: the head ellipsizes while the tail (the
+// immediate parent folder) is pinned visible via flex: none. Sits snug under the leaf.
+.row-text-parent {
+    display: flex;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.2;
+    color: variables.$grey-450;
+}
+
+.row-text-parent-head {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.row-text-parent-tail {
+    flex: none;
+    white-space: nowrap;
+}
+
 // endregion
 
 

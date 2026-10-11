@@ -143,3 +143,75 @@ export function getBasename(filePath: string): string {
     const normalizedPath = filePath.replace(/\\/g, '/');
     return normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1);
 }
+
+/**
+ * The pieces needed to render a favorite path on two lines: the leaf folder as a bold
+ * headline, and the parent path as a dim second line that is middle-truncated so both its
+ * start and its own last folder stay readable.
+ */
+export interface FavoritePathDisplayParts {
+    // Last path segment - the folder the favorite points at (e.g. "CameraRAW"). This is the
+    // part that end-truncation used to clip off, so it becomes the row's headline.
+    leaf: string,
+    // The parent path up to and including the separator before parentTail. Rendered with an
+    // end-ellipsis so a very long parent collapses in its middle rather than at its end.
+    parentHead: string,
+    // The immediate parent folder name (e.g. "01_elements"), kept fully visible as the tail
+    // of the middle-truncated parent line.
+    parentTail: string,
+}
+
+/**
+ * Splits a favorite path into a leaf headline plus a middle-truncatable parent line.
+ *
+ * The dropdown used to show the full path clipped at the END, which hid the leaf folder -
+ * the one part that identifies the favorite. This splits off the leaf so it can be shown in
+ * full, and splits the parent into a head (ellipsized) and tail (always visible) so a long
+ * parent reads as "/Volumes/production/jobs/projecta_2222/ ... 01_elements" rather than
+ * losing its own last folder too.
+ *
+ * Handles both POSIX ("/a/b/c") and Windows display paths ("C:\\a\\b\\c") by splitting on
+ * whichever separator the path actually uses. Paths with no parent (a bare root such as "/"
+ * or "C:\\", or a single segment) return empty parent pieces, so the caller falls back to a
+ * normal single-line row.
+ *
+ * @param {string} path - Favorite path in display form (POSIX or Windows)
+ * @returns {FavoritePathDisplayParts} Leaf plus the two parent pieces
+ */
+export function splitFavoritePathForDisplay(path: string): FavoritePathDisplayParts {
+    const empty: FavoritePathDisplayParts = {leaf: '', parentHead: '', parentTail: ''};
+    if (!path) {
+        return empty;
+    }
+    // Pick the separator the path actually uses so Windows display paths and POSIX paths
+    // both split correctly.
+    const sep = path.includes('\\') ? '\\' : '/';
+    // Drop a single trailing separator so ".../b/" still yields leaf "b".
+    const trimmed = path.length > 1 && path.endsWith(sep) ? path.slice(0, -1) : path;
+    const lastSep = trimmed.lastIndexOf(sep);
+    if (lastSep < 0) {
+        // No separator at all - the whole thing is the leaf (nothing to truncate).
+        return {leaf: trimmed, parentHead: '', parentTail: ''};
+    }
+    const leaf = trimmed.slice(lastSep + 1);
+    if (leaf === '') {
+        // Path was just a root (e.g. "/"); show it as the leaf with no parent line.
+        return {leaf: trimmed, parentHead: '', parentTail: ''};
+    }
+    const parent = trimmed.slice(0, lastSep);
+    if (parent === '') {
+        // Leaf sits directly under root, e.g. "/Volumes" - keep the leading separator.
+        return {leaf, parentHead: sep, parentTail: ''};
+    }
+    const parentLastSep = parent.lastIndexOf(sep);
+    if (parentLastSep < 0) {
+        // Parent has no separator of its own (e.g. a bare "C:" drive or a lone segment).
+        return {leaf, parentHead: '', parentTail: parent};
+    }
+    return {
+        leaf,
+        // Keep the trailing separator on the head so "<head>/<tail>" reads naturally.
+        parentHead: parent.slice(0, parentLastSep + 1),
+        parentTail: parent.slice(parentLastSep + 1),
+    };
+}
