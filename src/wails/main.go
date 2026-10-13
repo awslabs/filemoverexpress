@@ -69,6 +69,9 @@ func main() {
 		UseApplicationMenu: true,
 	})
 
+	// Hand the window to the app so the close/quit seam can flush its geometry.
+	fmeApp.window = window
+
 	// Register window close hook to allow frontend graceful shutdown.
 	window.RegisterHook(events.Common.WindowClosing, fmeApp.HandleBeforeClose)
 
@@ -87,12 +90,13 @@ func main() {
 		app.Event.Emit("file-dragging-exited", nil)
 	})
 
-	// On first show, clamp the window to the display's work area and center it so it never
-	// opens larger than the screen — otherwise a window taller/wider than the display pushes
-	// the title bar off-screen or behind the taskbar on low-resolution / multi-monitor setups.
-	// Native window methods are no-ops until the window is realized in Run(), so this runs on
-	// the WindowShow event; sync.Once limits it to the initial show (restoring from minimize
-	// won't re-center a window the user has moved).
+	// On first show, clamp the window to the display's work area, then restore the
+	// saved size/position (or center if there is no valid saved state). Clamping
+	// first means a restored size can never exceed the current screen (e.g. after a
+	// resolution downgrade since the last save). Native window methods are no-ops
+	// until the window is realized in Run(), so this runs on the WindowShow event;
+	// sync.Once limits it to the initial show (restoring from minimize won't
+	// re-run restore on a window the user has moved).
 	var fitWindowOnce sync.Once
 	window.OnWindowEvent(events.Common.WindowShow, func(_ *application.WindowEvent) {
 		fitWindowOnce.Do(func() {
@@ -110,8 +114,24 @@ func main() {
 				}
 				window.SetSize(w, h)
 			}
-			window.Center()
+			// Restore saved geometry if it is valid and still on-screen; otherwise
+			// center as before.
+			if !fmeApp.windowState.Restore(window) {
+				window.Center()
+			}
 		})
+	})
+
+	// Persist geometry on move/resize (debounced). WindowDidMove and
+	// WindowDidResize are the only common window events confirmed to map to native
+	// events on Windows, macOS, and Linux. The maximized flag is captured here when
+	// present, and authoritatively on close (see FMEApp.saveWindowState), which is
+	// the only path that observes it on Linux/GTK.
+	window.OnWindowEvent(events.Common.WindowDidMove, func(_ *application.WindowEvent) {
+		fmeApp.windowState.ScheduleSave(window)
+	})
+	window.OnWindowEvent(events.Common.WindowDidResize, func(_ *application.WindowEvent) {
+		fmeApp.windowState.ScheduleSave(window)
 	})
 
 	// Listen for the 'closed' event from frontend to quit the app.

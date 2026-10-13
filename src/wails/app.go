@@ -20,6 +20,8 @@ type FMEApp struct {
 	app           *application.App
 	daemonManager *DaemonManager
 	firstLaunch   *FirstLaunchDetector
+	windowState   *WindowState
+	window        application.Window
 	version       string
 	devMode       bool
 	closeEventSet *time.Time
@@ -42,6 +44,7 @@ func NewFMEApp(version string) *FMEApp {
 	return &FMEApp{
 		daemonManager: NewDaemonManager(getBinaryPath()),
 		firstLaunch:   NewFirstLaunchDetector(filepath.Join(homeDir, ConfigDirName)),
+		windowState:   NewWindowState(NewGUIConfig(filepath.Join(homeDir, ConfigDirName))),
 		version:       version,
 		devMode:       devMode,
 	}
@@ -184,6 +187,7 @@ func (a *FMEApp) FirstLaunchComplete() bool {
 // It emits an app-close event to the frontend and cancels the close to allow
 // the frontend to handle graceful shutdown.
 func (a *FMEApp) HandleBeforeClose(e *application.WindowEvent) {
+	a.saveWindowState()
 	if a.shouldAllowClose() {
 		// Allow close — don't cancel
 		return
@@ -199,11 +203,25 @@ func (a *FMEApp) HandleBeforeClose(e *application.WindowEvent) {
 // triggers app.Quit() — at that point shouldAllowClose() returns true and
 // the quit proceeds.
 func (a *FMEApp) ShouldQuit() bool {
+	a.saveWindowState()
 	if a.shouldAllowClose() {
 		return true
 	}
 	a.emitAppClose()
 	return false
+}
+
+// saveWindowState flushes the current window geometry authoritatively on the
+// close/quit path. This is the one point guaranteed to capture the maximized
+// flag on Linux/GTK, which does not emit common maximise/restore events, so the
+// debounced move/resize saves cannot observe it there. It is a no-op until the
+// window handle has been wired in main.go, and when no window-state manager
+// exists.
+func (a *FMEApp) saveWindowState() {
+	if a.windowState == nil || a.window == nil {
+		return
+	}
+	a.windowState.SaveNow(a.window)
 }
 
 // shouldAllowClose returns true if a close/quit event was already emitted
