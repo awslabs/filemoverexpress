@@ -1,4 +1,5 @@
 import * as proto from '@gen/es/fme/v1/config_pb';
+import { NotificationSettings } from '@gen/es/fme/v1/notifications_pb';
 
 export type FmeConfigSection =
     proto.GeneralSettings
@@ -14,6 +15,10 @@ export interface FmeConfig {
     reports: ConfigReports;
     protocols: ConfigProtocols;
     uploadHotFolders: ConfigHotFolders[];
+    // Webhook notification settings are managed by their own RPCs (not this form), but
+    // the whole-config save must carry them through unchanged. Held as the raw protobuf
+    // message since the form never edits it.
+    notifications?: NotificationSettings;
 }
 
 export interface ConfigGeneral {

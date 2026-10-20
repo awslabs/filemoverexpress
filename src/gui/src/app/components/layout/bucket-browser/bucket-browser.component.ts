@@ -625,6 +625,7 @@ export class BucketBrowserComponent implements OnDestroy {
                         prefixes,
                         dropResult.destination,
                         result.jobName,
+                        result.notifyDestination,
                     );
                 } else {
                     this.notifications.info('Upload cancelled');
@@ -645,12 +646,12 @@ export class BucketBrowserComponent implements OnDestroy {
      * @param {string} destination - Destination path to upload to
      * @param {string} jobName - Name generated for the upload job
      */
-    uploadPrefixes(transferProfile: string, force: boolean, sources: string[], destination: string, jobName: string) {
+    uploadPrefixes(transferProfile: string, force: boolean, sources: string[], destination: string, jobName: string, notifyDestination?: string) {
         // gets the base name and sources list into the format required by the daemon uploader
         const basePath = toGrpcPath(sources.length === 1 ? dirname(sources[0]) : commonPath(sources));
         sources = sources.map((source) => basename(source));
         // send upload request
-        this.fmeClientService.uploadPrefixes(transferProfile, force, basePath, sources, destination, jobName).subscribe({
+        this.fmeClientService.uploadPrefixes(transferProfile, force, basePath, sources, destination, jobName, notifyDestination ?? '').subscribe({
             next: () => {
                 this.notifications.success('Started upload.');
             },

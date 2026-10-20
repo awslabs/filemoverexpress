@@ -195,6 +195,15 @@ export class FmeClientService {
         return this.metadata$.pipe(distinctUntilChanged()) as Observable<MetadataEvent>;
     }
 
+    /**
+     * The live ConnectRPC callback client, exposed so sibling services (for example
+     * WebhookNotificationsService) can issue their own RPCs over the SAME transport
+     * instead of building a duplicate one. Null until a connection is established.
+     */
+    get callbackClient(): CallbackClient<typeof FmeService> | null {
+        return this.connectClient;
+    }
+
     // endregion
 
     // region Configuration
@@ -344,6 +353,7 @@ export class FmeClientService {
         prefixes: string[],
         destination: string,
         jobName: string,
+        notifyDestination = '',
     ): Observable<UploadPrefixResponse> {
         const sub = new Subject<UploadPrefixResponse>();
         const req = create(UploadPrefixRequestSchema);
@@ -353,6 +363,7 @@ export class FmeClientService {
         req.prefixes = prefixes;
         req.destination = destination;
         req.jobName = jobName;
+        req.notifyDestination = notifyDestination;
 
         if (!this.connectClient) {
             sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));

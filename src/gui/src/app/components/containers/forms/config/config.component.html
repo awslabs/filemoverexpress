@@ -7,6 +7,8 @@
                     (click)="selectSection('transfers')">Transfers</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'reports'"
                     (click)="selectSection('reports')">Bucket Reports</button>
+            <button type="button" class="settings-nav-item" [class.active]="activeSection === 'notifications'"
+                    (click)="selectSection('notifications')">Notifications</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'logging'"
                     (click)="selectSection('logging')">Logging</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'uiprefs'"
@@ -149,6 +151,114 @@
                     </fme-browse-button>
                     <mat-hint class="info-hint">By default, bucket reports are saved inside your configuration folder — the default location for Bucket and Job reports is: ~/.filemoverexpress/reports.</mat-hint>
                 </mat-form-field>
+            </div>
+
+            <!-- NOTIFICATIONS (webhook destinations) -->
+            <div class="tab-body" [hidden]="activeSection !== 'notifications'">
+                <div class="set-section-label">Webhook destinations</div>
+                <p class="set-note">
+                    Get a message in Slack, Teams, Discord or Google Chat when a transfer finishes or fails.
+                    Paste the webhook URL from your chat tool, give it a name, and send a test message to confirm it works.
+                    The URL is stored encrypted on the daemon and is never shown again.
+                </p>
+
+                @if (notificationDestinations.length) {
+                    <div class="notif-list">
+                        @for (dest of notificationDestinations; track dest.name) {
+                            <div class="notif-row">
+                                <div class="notif-row-main">
+                                    <div class="notif-row-title">
+                                        <span class="notif-name">{{ dest.name }}</span>
+                                        <span class="notif-preset">{{ presetLabel(dest.preset) }}</span>
+                                        @if (dest.isDefault) {
+                                            <span class="notif-badge notif-badge-default">Default</span>
+                                        }
+                                        @if (dest.notifyOnFinish) {
+                                            <span class="notif-badge">On finish</span>
+                                        }
+                                        @if (dest.notifyOnFailure) {
+                                            <span class="notif-badge">On failure</span>
+                                        }
+                                    </div>
+                                    @if (dest.urlHint) {
+                                        <div class="notif-url-hint">Webhook URL on file: {{ dest.urlHint }}</div>
+                                    }
+                                </div>
+                                <div class="notif-row-actions">
+                                    <button type="button" class="notif-link" (click)="sendTestNotification(dest)">Send test message</button>
+                                    <button type="button" class="notif-link" (click)="editNotificationDestination(dest)">Edit</button>
+                                    <button type="button" class="notif-link notif-link-danger" (click)="deleteNotificationDestination(dest)">Delete</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                } @else {
+                    <p class="set-note">No notification destinations yet.</p>
+                }
+
+                @if (editingDestinationName === null) {
+                    <div class="notif-add">
+                        <button type="button" class="notif-link" (click)="addNotificationDestination()">+ Add a destination</button>
+                    </div>
+                } @else {
+                    <div class="notif-editor" [formGroup]="notificationForm">
+                        <div class="section-heading">
+                            {{ editingDestinationName ? 'Edit destination' : 'Add a destination' }}
+                        </div>
+                        <mat-form-field color="accent">
+                            <mat-label>Type</mat-label>
+                            <mat-select formControlName="preset">
+                                @for (preset of notificationPresets; track preset.value) {
+                                    <mat-option [value]="preset.value">{{ preset.label }}</mat-option>
+                                }
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field color="accent">
+                            <mat-label>Name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. Team channel">
+                            @if (notificationForm.controls.name.hasError('required')) {
+                                <mat-error>Name is required.</mat-error>
+                            }
+                        </mat-form-field>
+
+                        <mat-form-field color="accent">
+                            <mat-label>Webhook URL</mat-label>
+                            <input matInput type="text" formControlName="url"
+                                   [placeholder]="editingDestinationName ? 'Leave blank to keep current URL' : 'https://...'">
+                            @if (editingDestinationName) {
+                                <mat-hint class="info-hint">
+                                    Leave blank to keep the current URL{{ editingUrlHint ? ' (' + editingUrlHint + ')' : '' }}.
+                                </mat-hint>
+                            }
+                            @if (notificationForm.controls.url.hasError('required')) {
+                                <mat-error>Webhook URL is required.</mat-error>
+                            }
+                        </mat-form-field>
+
+                        <div class="form-field">
+                            <mat-slide-toggle color="accent" formControlName="notifyOnFinish">
+                                Notify when a transfer finishes
+                            </mat-slide-toggle>
+                        </div>
+                        <div class="form-field">
+                            <mat-slide-toggle color="accent" formControlName="notifyOnFailure">
+                                Notify when a transfer fails
+                            </mat-slide-toggle>
+                        </div>
+                        <div class="form-field">
+                            <mat-slide-toggle color="accent" formControlName="isDefault">
+                                Use as the default destination
+                            </mat-slide-toggle>
+                        </div>
+
+                        <div class="notif-editor-actions">
+                            <button type="button" class="notif-link" (click)="cancelNotificationForm()">Cancel</button>
+                            <button type="button" class="notif-link notif-link-primary"
+                                    (click)="saveNotificationDestination()">Save destination</button>
+                        </div>
+                    </div>
+                }
             </div>
 
             <!-- LOGGING -->

@@ -18,6 +18,9 @@ export interface TransferSettingsModalResult {
     performTransfer: boolean;
     forceTransfers: boolean;
     jobName: string;
+    // Name of the webhook destination to notify when the transfer finishes/fails.
+    // Undefined when the "Notify me" toggle is off.
+    notifyDestination?: string;
 }
 
 export interface ObjectTypeCount {
