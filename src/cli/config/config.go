@@ -92,6 +92,9 @@ func buildDefaultsMap() map[string]interface{} {
 
 		// UploadHotFolders
 		configkeys.UploadHotFolders: []interface{}{},
+
+		// Notifications
+		configkeys.NotificationDestinations: []interface{}{},
 	}
 }
 

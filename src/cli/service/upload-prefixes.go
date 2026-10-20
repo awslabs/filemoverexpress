@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/notifications"
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
@@ -75,6 +76,7 @@ func (*FileMoverServer) UploadPrefixes(
 	}
 
 	go upload.Uploader(job)
+	notifications.Shared().RegisterJob(job.JobId(), req.Msg.GetNotifyDestination(), transferProfile.Bucket, destination)
 	return connect.NewResponse(&s3_sharedv1.UploadPrefixResponse{
 		Success:  true,
 		Response: "",

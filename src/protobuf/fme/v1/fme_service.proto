@@ -7,6 +7,7 @@ import "fme/v1/events.proto";
 import "fme/v1/inventory.proto";
 import "fme/v1/job.proto";
 import "fme/v1/metadata.proto";
+import "fme/v1/notifications.proto";
 import "fme/v1/remote_daemon.proto";
 import "fme/v1/shared.proto";
 import "fme/v1/supportfile.proto";
@@ -19,6 +20,9 @@ service FmeService {
     rpc Shutdown (fme.v1.ShutdownRequest) returns (fme.v1.ShutdownResponse) {}
     rpc GetConfiguration (fme.v1.GetConfigurationRequest) returns (fme.v1.GRPCFmeConfig) {}
     rpc SetConfiguration (fme.v1.GRPCFmeConfig) returns (fme.v1.SetConfigurationResponse) {}
+    rpc SetNotificationDestination (fme.v1.SetNotificationDestinationRequest) returns (fme.v1.SetNotificationDestinationResponse) {}
+    rpc DeleteNotificationDestination (fme.v1.DeleteNotificationDestinationRequest) returns (fme.v1.DeleteNotificationDestinationResponse) {}
+    rpc SendTestNotification (fme.v1.SendTestNotificationRequest) returns (fme.v1.SendTestNotificationResponse) {}
     rpc GenerateInventoryReport (fme.v1.InventoryReportRequest) returns (fme.v1.InventoryReportResponse) {}
     rpc GenerateSupportFile (fme.v1.CreateSupportFileRequest) returns (fme.v1.CreateSupportFileResponse) {}
     rpc ListFolder (fme.v1.ListFolderRequest) returns (fme.v1.FsFolder) {}

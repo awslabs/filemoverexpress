@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/notifications"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/service/types"
@@ -78,6 +79,8 @@ func NewService(grpcHost string, grpcWebPortList []uint, remote bool) *FileMover
 		PreSharedKey: psk,
 	})
 	svcRunning = true
+
+	notifications.Shared().Start()
 
 	return fmeServer
 }

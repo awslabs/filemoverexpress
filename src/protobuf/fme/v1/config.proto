@@ -4,6 +4,8 @@ package fme.v1;
 
 option go_package = "github.com/awslabs/filemoverexpress/protobuf";
 
+import "fme/v1/notifications.proto";
+
 enum LogFileSeverity {
     LOG_FILE_SEVERITY_UNSPECIFIED = 0;
     LOG_FILE_SEVERITY_DEBUG = 1;
@@ -28,6 +30,7 @@ message FmeConfig {
     Protocols protocols = 5;
     ApiServerRemoteSettings api_server_remote = 6;
     repeated UploadHotFolderSettings upload_hot_folders = 7;
+    NotificationSettings notifications = 8;
 }
 
 message GeneralSettings {
@@ -174,6 +177,7 @@ message GRPCFmeConfig {
     ReportsSettings reports = 3;
     Protocols protocols = 4;
     repeated UploadHotFolderSettings upload_hot_folders = 5;
+    NotificationSettings notifications = 6;
 }
 
 
