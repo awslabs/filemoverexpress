@@ -108,13 +108,13 @@ describe('SetupWizardModalComponent', () => {
         it('reports a completed valid setup', () => {
             component.wizardStepStates.transferProfile.skipped = false;
             component.wizardStepStates.transferProfile.validSetup = true;
-            expect(component.doneText()).toContain('set up a Remote Configuration');
+            expect(component.doneText()).toContain('set up a Transfer Profile');
         });
 
         it('reports completion without a valid configuration', () => {
             component.wizardStepStates.transferProfile.skipped = false;
             component.wizardStepStates.transferProfile.validSetup = false;
-            expect(component.doneText()).toContain('valid Remote Configuration');
+            expect(component.doneText()).toContain('valid Transfer Profile');
         });
     });
 

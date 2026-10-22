@@ -244,7 +244,7 @@ export class BucketBrowserComponent implements OnDestroy {
             },
         ));
 
-        // When the currently-selected Remote Configuration is edited + saved, re-list it so
+        // When the currently-selected Transfer Profile is edited + saved, re-list it so
         // a config that now fails actually attempts a connection (its ERROR result then
         // flips the header pill to Disconnected instead of leaving a stale "Connected").
         this.subscriptions.push(this.transferProfileService.transferProfileEdited.subscribe(
@@ -258,7 +258,7 @@ export class BucketBrowserComponent implements OnDestroy {
 
     /**
      * Connection state shown in the header pill. Reflects S3/profile REACHABILITY (the
-     * result of listing the selected Remote Configuration), not the daemon event stream —
+     * result of listing the selected Transfer Profile), not the daemon event stream —
      * so a config edited to fail flips the pill to Disconnected. The daemon `connectionState`
      * is still used to gate controls and the "no active session" state.
      */
@@ -464,7 +464,7 @@ export class BucketBrowserComponent implements OnDestroy {
                     this.store.dispatch(addLog({
                         log: {
                             level: 'warn',
-                            message: `Not signed in to OIDC remote configuration "${transferProfile}"`
+                            message: `Not signed in to OIDC transfer profile "${transferProfile}"`
                                 + (errorMessage ? ` (${errorMessage})` : '') + ' \u2014 sign-in required.',
                             timestamp: new Date(),
                             jobId: null,
@@ -488,7 +488,7 @@ export class BucketBrowserComponent implements OnDestroy {
                     this.store.dispatch(addLog({
                         log: {
                             level: 'error',
-                            message: `Failed to list bucket for remote configuration "${transferProfile}": ${errorMessage}`,
+                            message: `Failed to list bucket for transfer profile "${transferProfile}": ${errorMessage}`,
                             timestamp: new Date(),
                             jobId: null,
                         },
@@ -707,7 +707,7 @@ export class BucketBrowserComponent implements OnDestroy {
      */
     private openCreateS3PrefixModal(parent: string) {
         if (!this.selectedTransferProfile) {
-            this.notifications.error('Unable to create directory, no active remote configuration');
+            this.notifications.error('Unable to create directory, no active transfer profile');
             return;
         }
 
@@ -727,7 +727,7 @@ export class BucketBrowserComponent implements OnDestroy {
             (modalResult) => {
                 if (modalResult) {
                     if (!this.selectedTransferProfile) {
-                        this.notifications.error('Unable to create directory, no active remote configuration');
+                        this.notifications.error('Unable to create directory, no active transfer profile');
                         return;
                     }
 
@@ -785,7 +785,7 @@ export class BucketBrowserComponent implements OnDestroy {
                 ...fileBrowserErrors['EMPTY_TRANSFER_PROFILE_LIST'],
                 actionButtons: [
                     {
-                        buttonText: 'Create a Remote Configuration',
+                        buttonText: 'Create a Transfer Profile',
                         buttonClickHandler: () => {
                             this.createTransferProfile();
                         },
@@ -809,7 +809,7 @@ export class BucketBrowserComponent implements OnDestroy {
             ...fileBrowserErrors['LOADING_TRANSFER_PROFILE_LIST'],
             actionButtons: [
                 {
-                    buttonText: 'Get Remote Configurations',
+                    buttonText: 'Get Transfer Profiles',
                     buttonClickHandler: () => {
                         this.getTransferProfileList(true);
                     },
@@ -822,7 +822,7 @@ export class BucketBrowserComponent implements OnDestroy {
      * Constructs the file browser error for when unable to list the folder
      *
      * @param {(string | null)} error - The specific error reason to display to the user
-     * @param {boolean} showEditButton - True if "Edit Remote Configuration" is a solution to the error
+     * @param {boolean} showEditButton - True if "Edit Transfer Profile" is a solution to the error
      * @param {string} transferProfile - Name of the transfer profile that the list error occurred for
      * @private
      */
@@ -848,7 +848,7 @@ export class BucketBrowserComponent implements OnDestroy {
         }
         if (showEditButton && transferProfile && this.allowUiConfiguration) {
             actionButtons.push({
-                buttonText: 'Edit Remote Configuration',
+                buttonText: 'Edit Transfer Profile',
                 buttonClickHandler: () => {
                     this.editTransferProfile(transferProfile);
                 },
@@ -901,7 +901,7 @@ export class BucketBrowserComponent implements OnDestroy {
     private getTransferProfileList(retry = false) {
         if (this.transferProfileList === null) {
             if (retry) {
-                this.notifications.warning('Still loading Remote Configuration list.');
+                this.notifications.warning('Still loading Transfer Profile list.');
             }
             this.setFileBrowserError(this.getErrorLoadingTransferProfileList());
             return;
@@ -1004,7 +1004,7 @@ export class BucketBrowserComponent implements OnDestroy {
                 action: this.clearS3StartingPrefix(),
             },
             {
-                label: 'Edit Remote Configuration',
+                label: 'Edit Transfer Profile',
                 icon: 'settings',
                 iconColor: 'inherit',
                 sectionHeader: 'Configuration',
@@ -1014,7 +1014,7 @@ export class BucketBrowserComponent implements OnDestroy {
                 action: this.editRemoteConfiguration(),
             },
             {
-                label: 'New Remote Configuration',
+                label: 'New Transfer Profile',
                 icon: 'add',
                 iconColor: 'inherit',
                 sectionHeader: 'Configuration',
@@ -1100,7 +1100,7 @@ export class BucketBrowserComponent implements OnDestroy {
                 const paths = this.metadata.transferProfiles[currentTransferProfile];
                 originalS3StartingPath = paths.remote;
             } catch {
-                console.error(`Couldn't get remote configuration data for ${this.selectedTransferProfile}`);
+                console.error(`Couldn't get transfer profile data for ${this.selectedTransferProfile}`);
             }
 
             this.openS3BucketPrefixModal(currentTransferProfile, newS3StartingPrefix, originalS3StartingPath);
@@ -1141,20 +1141,20 @@ export class BucketBrowserComponent implements OnDestroy {
             next: (config) => {
                 const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
                 if (!transferProfileData) {
-                    this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file. Unable to update S3 Bucket Prefix.`);
+                    this.notifications.warning(`Transfer profile ${transferProfile} does not exist in configuration file. Unable to update S3 Bucket Prefix.`);
                     return;
                 }
                 config.protocols.s3.transferProfiles[transferProfile].paths.remote = newS3StartingPrefix;
                 this.fmeClientService.setConfiguration(config).subscribe({
                     next: () => {
                         const message = newS3StartingPrefix
-                            ? `Successfully updated S3 Bucket Prefix for remote configuration ${transferProfile}.`
-                            : `Cleared S3 Bucket Starting Directory for remote configuration ${transferProfile}.`;
+                            ? `Successfully updated S3 Bucket Prefix for transfer profile ${transferProfile}.`
+                            : `Cleared S3 Bucket Starting Directory for transfer profile ${transferProfile}.`;
                         this.notifications.success(message);
                         this.refreshFileBrowser(true);
                     },
                     error: (error) => {
-                        this.notifications.warning(`Error occurred when updating S3 Bucket Prefix for remote configuration ${transferProfile}: ${error}`);
+                        this.notifications.warning(`Error occurred when updating S3 Bucket Prefix for transfer profile ${transferProfile}: ${error}`);
                     },
                 });
             },
@@ -1230,7 +1230,7 @@ export class BucketBrowserComponent implements OnDestroy {
     private openRenameS3PathModal(pathToRename: string, type: FileBrowserObjectType) {
         const transferProfile = this.selectedTransferProfile;
         if (!transferProfile) {
-            this.notifications.error(`No remote configuration selected, cannot rename ${type === FileBrowserObjectType.FOLDER ? 'S3 prefix' : 'S3 object'}`);
+            this.notifications.error(`No transfer profile selected, cannot rename ${type === FileBrowserObjectType.FOLDER ? 'S3 prefix' : 'S3 object'}`);
             return;
         }
 
@@ -1285,7 +1285,7 @@ export class BucketBrowserComponent implements OnDestroy {
     private openDeleteS3PathModal(targets: FileBrowserObject[]) {
         const transferProfile = this.selectedTransferProfile;
         if (!transferProfile) {
-            this.notifications.error('No remote configuration selected, cannot delete');
+            this.notifications.error('No transfer profile selected, cannot delete');
             return;
         }
         if (!targets.length) {

@@ -2,8 +2,9 @@ package service
 
 import (
 	"fmt"
+	"net"
 	"net/http"
-	"strings"
+	"net/netip"
 
 	"connectrpc.com/connect"
 
@@ -76,6 +77,28 @@ func destroyListener(listenerId string) {
 	}
 }
 
+// isLocalClient reports whether an RPC arrived from the loopback interface. It is the primary
+// authorization for credential-writing RPCs (Create/Update/Delete/TestStaticCredentials) and for
+// SetConfiguration when AllowUIConfiguration is false.
+//
+// Trust boundary: a loopback peer is treated as fully trusted. This is sound because the daemon
+// binds loopback-only by default (service.GrpcDefaultHost = 127.0.0.1); the only non-loopback bind
+// is --remote mode, which is fatal without both TLS and a pre-shared key, and even then remote
+// credential edits require the owner to opt in via AllowUIConfiguration. Caveat worth noting: on a
+// shared multi-user host, any local process (or a loopback-terminating proxy such as a userland
+// port-forward) that reaches the listener is within this boundary, so the credential store assumes
+// a single-user host or a trusted set of local users.
+//
+// The address is parsed as an IP and tested with netip's IsLoopback rather than matched by string
+// prefix, so spoofable prefixes like "127.evil" cannot pass and IPv6 loopback is handled correctly.
 func isLocalClient(peer connect.Peer) bool {
-	return strings.HasPrefix(peer.Addr, "127.") || strings.HasPrefix(peer.Addr, "[::1]")
+	host := peer.Addr
+	if h, _, err := net.SplitHostPort(peer.Addr); err == nil {
+		host = h
+	}
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return false
+	}
+	return addr.IsLoopback()
 }

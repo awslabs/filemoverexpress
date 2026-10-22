@@ -106,7 +106,7 @@ export class BucketReportModalComponent implements OnDestroy {
         return () => {
             if (!this.exportForm.valid) {
                 this.exportForm.markAllAsTouched();
-                this.notifications.warning('Choose a remote configuration and format before generating a report.');
+                this.notifications.warning('Choose a transfer profile and format before generating a report.');
                 return;
             }
             this.fmeClientService.generateInventoryReport(

@@ -1,6 +1,6 @@
 export const notificationMessages = {
     EXTERNAL_DOWNLOAD_ERROR: 'Unable to drop file. Externally dragged files can only be dropped into your S3 bucket.',
-    NO_TRANSFER_PROFILE_SELECTED_ERROR: 'Can\'t download because there is no Remote Configuration selected',
+    NO_TRANSFER_PROFILE_SELECTED_ERROR: 'Can\'t download because there is no Transfer Profile selected',
     GRPC_DOWNLOAD_ERROR: 'Failed to start download: ',
 } as const;
 

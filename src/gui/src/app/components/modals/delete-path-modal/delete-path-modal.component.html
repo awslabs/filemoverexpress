@@ -3,7 +3,7 @@
     <div class="modal-text">
         <div>
             @if (multiSummary) {{{ multiSummary }} to delete} @else if (isMulti) {{{ displayPaths.length }} {{ data.pathType.toString() | titlecase }}s to delete} @else {{{ data.pathType.toString() | titlecase }} to delete}@if (data.transferProfile) {
-            for remote configuration <i>{{ data.transferProfile }}</i>
+            for transfer profile <i>{{ data.transferProfile }}</i>
         }
         </div>
         @if (isMulti) {

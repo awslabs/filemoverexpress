@@ -95,12 +95,18 @@ import {
     InventoryReportStartedEvent,
 } from '@events/inventory';
 import {
+    CreateStaticCredentialsRequestSchema,
+    DeleteStaticCredentialsRequestSchema,
     OIDCLoginRequestSchema,
     OIDCLoginResponse,
     OIDCLogoutRequestSchema,
     OIDCLogoutResponse,
     OIDCStatusRequestSchema,
     OIDCStatusResponse,
+    StaticCredentialsResponse,
+    TestStaticCredentialsRequestSchema,
+    TestStaticCredentialsResponse,
+    UpdateStaticCredentialsRequestSchema,
 } from '@gen/es/fme/v1/fme_service_pb';
 import {
     JobChecksumProgressEvent,
@@ -586,7 +592,7 @@ export class FmeClientService {
     }
 
     /**
-     * Creates a new, empty prefix with the given key, for the currently active remote configuration
+     * Creates a new, empty prefix with the given key, for the currently active transfer profile
      *
      * @param prefixKey {string} Key of the prefix to create in the S3 bucket
      * @param transferProfile {string} Name of the transfer profile to create the prefix in
@@ -1266,6 +1272,132 @@ export class FmeClientService {
         );
         return sub.asObservable();
     }
+
+    // region Static access-key credentials
+    createStaticCredentials(input: {
+        transferProfile: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+        bucket: string;
+        region: string;
+        endpoint: string;
+        sessionToken?: string;
+    }): Observable<StaticCredentialsResponse> {
+        const sub = new Subject<StaticCredentialsResponse>();
+        const req = create(CreateStaticCredentialsRequestSchema);
+        req.transferProfile = input.transferProfile;
+        req.accessKeyId = input.accessKeyId;
+        req.secretAccessKey = input.secretAccessKey;
+        req.bucket = input.bucket;
+        req.region = input.region;
+        req.endpoint = input.endpoint;
+        req.sessionToken = input.sessionToken ?? '';
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.createStaticCredentials(
+            req,
+            (err: ConnectError | undefined, res: StaticCredentialsResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    updateStaticCredentials(input: {
+        transferProfile: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+        sessionToken?: string;
+    }): Observable<StaticCredentialsResponse> {
+        const sub = new Subject<StaticCredentialsResponse>();
+        const req = create(UpdateStaticCredentialsRequestSchema);
+        req.transferProfile = input.transferProfile;
+        req.accessKeyId = input.accessKeyId;
+        req.secretAccessKey = input.secretAccessKey;
+        req.sessionToken = input.sessionToken ?? '';
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.updateStaticCredentials(
+            req,
+            (err: ConnectError | undefined, res: StaticCredentialsResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    deleteStaticCredentials(transferProfile: string): Observable<StaticCredentialsResponse> {
+        const sub = new Subject<StaticCredentialsResponse>();
+        const req = create(DeleteStaticCredentialsRequestSchema);
+        req.transferProfile = transferProfile;
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.deleteStaticCredentials(
+            req,
+            (err: ConnectError | undefined, res: StaticCredentialsResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+
+    testStaticCredentials(input: {
+        accessKeyId: string;
+        secretAccessKey: string;
+        bucket: string;
+        region: string;
+        endpoint: string;
+        transferProfile?: string;
+        sessionToken?: string;
+    }): Observable<TestStaticCredentialsResponse> {
+        const sub = new Subject<TestStaticCredentialsResponse>();
+        const req = create(TestStaticCredentialsRequestSchema);
+        req.accessKeyId = input.accessKeyId;
+        req.secretAccessKey = input.secretAccessKey;
+        req.bucket = input.bucket;
+        req.region = input.region;
+        req.endpoint = input.endpoint;
+        req.transferProfile = input.transferProfile ?? '';
+        req.sessionToken = input.sessionToken ?? '';
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+        this.connectClient.testStaticCredentials(
+            req,
+            (err: ConnectError | undefined, res: TestStaticCredentialsResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+                sub.next(res);
+                sub.complete();
+            },
+        );
+        return sub.asObservable();
+    }
+    // endregion
 }
 
 function createAuthInterceptor(psk: string): Interceptor {

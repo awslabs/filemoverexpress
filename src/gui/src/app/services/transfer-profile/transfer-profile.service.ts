@@ -34,7 +34,7 @@ export class TransferProfileService implements OnDestroy {
     );
     private readonly transferProfileEdited$: Subject<string> = new Subject<string>();
 
-    /** Emits the profile name whenever an existing Remote Configuration is edited and saved. */
+    /** Emits the profile name whenever an existing Transfer Profile is edited and saved. */
     get transferProfileEdited(): Observable<string> {
         return this.transferProfileEdited$.asObservable();
     }
@@ -171,9 +171,9 @@ export class TransferProfileService implements OnDestroy {
         }
         let confirmationMessage = `Are you sure you want to delete <b>${transferProfile}</b>?`;
         if (this._transferProfileState.transferProfileList?.length === 1) {
-            confirmationMessage += ' You must have at least one remote configuration in order to perform transfers.';
+            confirmationMessage += ' You must have at least one transfer profile in order to perform transfers.';
         } else if (this._transferProfileState.currentTransferProfile === transferProfile) {
-            confirmationMessage += ' You are currently using this remote configuration.';
+            confirmationMessage += ' You are currently using this transfer profile.';
         }
         const dialogRef = this.dialog.open(
             ConfirmationModalComponent,
@@ -184,7 +184,7 @@ export class TransferProfileService implements OnDestroy {
                     confirmText: 'Delete',
                     confirmClass: 'warn',
                     message: confirmationMessage,
-                    title: 'Delete Remote Configuration',
+                    title: 'Delete Transfer Profile',
                 },
             },
         );
@@ -199,15 +199,15 @@ export class TransferProfileService implements OnDestroy {
                                 if (this._transferProfileState.currentTransferProfile === transferProfile) {
                                     this._transferProfileState.currentTransferProfile = null;
                                 }
-                                this.notifications.success(`Successfully deleted remote configuration ${transferProfile}.`);
+                                this.notifications.success(`Successfully deleted transfer profile ${transferProfile}.`);
                             },
                             error: (error) => {
-                                this.notifications.warning(`Error occurred when deleting remote configuration ${transferProfile}: ${error}`);
+                                this.notifications.warning(`Error occurred when deleting transfer profile ${transferProfile}: ${error}`);
                             },
                         });
                     },
                     error: (error) => {
-                        this.notifications.warning(`Error occurred when deleting remote configuration ${transferProfile}: ${error}`);
+                        this.notifications.warning(`Error occurred when deleting transfer profile ${transferProfile}: ${error}`);
                     },
                 });
             }
@@ -228,7 +228,7 @@ export class TransferProfileService implements OnDestroy {
             next: (config) => {
                 const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
                 if (!transferProfileData) {
-                    this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file.`);
+                    this.notifications.warning(`Transfer profile ${transferProfile} does not exist in configuration file.`);
                     return;
                 }
                 const dialogRef = this.dialog.open(TransferProfileEditorModalComponent, {
@@ -242,17 +242,39 @@ export class TransferProfileService implements OnDestroy {
                     autoFocus: 'dialog',
                 });
                 dialogRef.componentInstance.transferProfileSaved.subscribe((result) => {
-                    config.protocols.s3.transferProfiles[result.name] = result;
-                    this.fmeClientService.setConfiguration(config).subscribe({
-                        next: () => {
-                            this.selectSavedProfile(result.name);
-                            this.transferProfileEdited$.next(transferProfile);
-                            this.notifications.success(`Successfully edited remote configuration ${transferProfile}.`);
-                        },
-                        error: (error) => {
-                            this.notifications.warning(`Error occurred when editing remote configuration ${transferProfile}: ${error}`);
-                        },
-                    });
+                    const profile = result.profile;
+                    const saveConfig = () => {
+                        config.protocols.s3.transferProfiles[profile.name] = profile;
+                        this.fmeClientService.setConfiguration(config).subscribe({
+                            next: () => {
+                                this.selectSavedProfile(profile.name);
+                                this.transferProfileEdited$.next(transferProfile);
+                                this.notifications.success(`Successfully edited transfer profile ${transferProfile}.`);
+                            },
+                            error: (error) => {
+                                this.notifications.warning(`Error occurred when editing transfer profile ${transferProfile}: ${error}`);
+                            },
+                        });
+                    };
+                    // Only touch the credential store when the user actually entered a new secret.
+                    // A blank secret on edit means "keep the stored one" (the dedicated store is
+                    // untouched by the config save), and switching AWAY from access-key is reclaimed
+                    // daemon-side by SetConfiguration.
+                    if (profile.authMethod === 'access-key' && result.secretAccessKey) {
+                        this.fmeClientService.updateStaticCredentials({
+                            transferProfile: profile.name,
+                            accessKeyId: profile.accessKeyId ?? '',
+                            secretAccessKey: result.secretAccessKey,
+                            sessionToken: result.sessionToken,
+                        }).subscribe({
+                            next: () => saveConfig(),
+                            error: (error) => {
+                                this.notifications.warning(`Error storing credentials for ${profile.name}: ${error}`);
+                            },
+                        });
+                    } else {
+                        saveConfig();
+                    }
                 });
             },
         });
@@ -273,21 +295,44 @@ export class TransferProfileService implements OnDestroy {
             autoFocus: 'dialog',
         });
         dialogRef.componentInstance.transferProfileSaved.subscribe((result) => {
+            const profile = result.profile;
             this.fmeClientService.getConfiguration().subscribe({
                 next: (config) => {
-                    config.protocols.s3.transferProfiles[result.name] = result;
-                    this.fmeClientService.setConfiguration(config).subscribe({
-                        next: () => {
-                            this.selectSavedProfile(result.name);
-                            this.notifications.success(`Successfully added remote configuration ${result.name}.`);
-                        },
-                        error: (error) => {
-                            this.notifications.warning(`Error occurred when adding remote configuration ${result.name}: ${error}`);
-                        },
-                    });
+                    const saveConfig = () => {
+                        config.protocols.s3.transferProfiles[profile.name] = profile;
+                        this.fmeClientService.setConfiguration(config).subscribe({
+                            next: () => {
+                                this.selectSavedProfile(profile.name);
+                                this.notifications.success(`Successfully added transfer profile ${profile.name}.`);
+                            },
+                            error: (error) => {
+                                this.notifications.warning(`Error occurred when adding transfer profile ${profile.name}: ${error}`);
+                            },
+                        });
+                    };
+                    // For access-key auth, store + validate (fail closed) the secret BEFORE persisting
+                    // the profile, so a bad key never leaves a broken profile behind.
+                    if (profile.authMethod === 'access-key' && result.secretAccessKey) {
+                        this.fmeClientService.createStaticCredentials({
+                            transferProfile: profile.name,
+                            accessKeyId: profile.accessKeyId ?? '',
+                            secretAccessKey: result.secretAccessKey,
+                            sessionToken: result.sessionToken,
+                            bucket: profile.bucket,
+                            region: profile.region,
+                            endpoint: profile.endpoint,
+                        }).subscribe({
+                            next: () => saveConfig(),
+                            error: (error) => {
+                                this.notifications.warning(`Error storing credentials for ${profile.name}: ${error}`);
+                            },
+                        });
+                    } else {
+                        saveConfig();
+                    }
                 },
                 error: (error) => {
-                    this.notifications.warning(`Error occurred when adding remote configuration ${result.name}: ${error}`);
+                    this.notifications.warning(`Error occurred when adding transfer profile ${profile.name}: ${error}`);
                 },
             });
         });
@@ -317,7 +362,7 @@ export class TransferProfileService implements OnDestroy {
      */
     private checkTransferProfileExists(transferProfile: string): boolean {
         if (!this._transferProfileState.transferProfileList?.includes(transferProfile)) {
-            this.notifications.warning(`Remote configuration ${transferProfile} doesn't exist in configuration file.`);
+            this.notifications.warning(`Transfer profile ${transferProfile} doesn't exist in configuration file.`);
             return false;
         }
         return true;
