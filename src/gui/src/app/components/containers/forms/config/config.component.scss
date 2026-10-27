@@ -316,8 +316,53 @@ mat-hint.info-hint {
 }
 
 .notif-editor-actions {
+    // Pin the add/cancel actions to the bottom of the editor card so they are
+    // always visible while entering a destination - never below the fold, which
+    // is what led users to click the dialog's own Save instead.
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
     display: flex;
     flex-direction: row;
     justify-content: flex-end;
-    gap: 16px;
+    align-items: center;
+    gap: 12px;
+    margin: 4px -14px -14px;
+    padding: 12px 14px;
+    background: variables.$background-tray;
+    border-top: 1px solid variables.$grey-600;
+    border-radius: 0 0 8px 8px;
+}
+
+.notif-btn {
+    appearance: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 9px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.notif-btn-filled {
+    background: variables.$blue-500;
+    border: 1px solid variables.$blue-500;
+    color: variables.$background-tray;
+
+    &:hover {
+        background: variables.$blue-600;
+        border-color: variables.$blue-600;
+        color: variables.$white;
+    }
+}
+
+.notif-btn-stroked {
+    background: none;
+    border: 1px solid variables.$grey-500;
+    color: variables.$text-link;
+
+    &:hover {
+        border-color: variables.$blue-500;
+    }
 }

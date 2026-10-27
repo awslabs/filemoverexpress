@@ -413,6 +413,7 @@ export class ConfigComponent implements OnInit {
     saveNotificationDestination() {
         if (this.notificationForm.invalid) {
             this.notificationForm.markAllAsTouched();
+            this.notificationService.warning('Enter a name and a webhook URL before saving.');
             return;
         }
         const value = this.notificationForm.getRawValue();

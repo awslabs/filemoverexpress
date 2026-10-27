@@ -215,8 +215,13 @@
                         </mat-form-field>
 
                         <mat-form-field color="accent">
-                            <mat-label>Name</mat-label>
-                            <input matInput type="text" formControlName="name" placeholder="e.g. Team channel">
+                            <mat-label>Display name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. My Slack DM">
+                            <mat-hint class="info-hint">
+                                Any label you choose - it only shows up inside File Mover Express so you can pick
+                                this destination by name. It does not need to match the channel; the Webhook URL
+                                below is what delivers the message.
+                            </mat-hint>
                             @if (notificationForm.controls.name.hasError('required')) {
                                 <mat-error>Name is required.</mat-error>
                             }
@@ -229,6 +234,11 @@
                             @if (editingDestinationName) {
                                 <mat-hint class="info-hint">
                                     Leave blank to keep the current URL{{ editingUrlHint ? ' (' + editingUrlHint + ')' : '' }}.
+                                </mat-hint>
+                            } @else {
+                                <mat-hint class="info-hint">
+                                    Paste the Incoming Webhook URL from Slack, Teams, Discord or Google Chat. This
+                                    is what routes the message to the right channel.
                                 </mat-hint>
                             }
                             @if (notificationForm.controls.url.hasError('required')) {
@@ -253,8 +263,8 @@
                         </div>
 
                         <div class="notif-editor-actions">
-                            <button type="button" class="notif-link" (click)="cancelNotificationForm()">Cancel</button>
-                            <button type="button" class="notif-link notif-link-primary"
+                            <button type="button" class="notif-btn notif-btn-stroked" (click)="cancelNotificationForm()">Cancel</button>
+                            <button type="button" class="notif-btn notif-btn-filled"
                                     (click)="saveNotificationDestination()">Save destination</button>
                         </div>
                     </div>
@@ -318,6 +328,7 @@
 <div class="settings-buttons">
     <fme-button type="stroked" text="Cancel" [onClick]="onCancel()"></fme-button>
     <fme-button type="filled" text="Save" [onClick]="onSubmit()"
-                [disabled]="configForm.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED">
+                [tooltip]="editingDestinationName !== null ? 'Finish or cancel the destination you are adding below first' : ''"
+                [disabled]="configForm.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED || editingDestinationName !== null">
     </fme-button>
 </div>
