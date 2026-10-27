@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/job_manager"
 	"github.com/awslabs/filemoverexpress/core/notifications"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/logger"
@@ -80,6 +81,24 @@ func NewService(grpcHost string, grpcWebPortList []uint, remote bool) *FileMover
 	})
 	svcRunning = true
 
+	notifications.Shared().SetJobInfoProvider(func(jobID string) (notifications.JobInfo, bool) {
+		stats, ok := job_manager.GetInstance().NotifyStats(jobID)
+		if !ok {
+			return notifications.JobInfo{}, false
+		}
+		return notifications.JobInfo{
+			FilesTransferred: stats.FilesTransferred,
+			FilesSkipped:     stats.FilesSkipped,
+			FilesErrored:     stats.FilesErrored,
+			BytesTransferred: stats.BytesTransferred,
+			BytesSkipped:     stats.BytesSkipped,
+			BytesErrored:     stats.BytesErrored,
+			Duration:         stats.Duration,
+			Bucket:           stats.Bucket,
+			Prefix:           stats.Prefix,
+			IsUpload:         stats.IsUpload,
+		}, true
+	})
 	notifications.Shared().Start()
 
 	return fmeServer

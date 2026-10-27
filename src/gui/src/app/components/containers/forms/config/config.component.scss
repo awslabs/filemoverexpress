@@ -301,6 +301,13 @@ mat-hint.info-hint {
     font-weight: 600;
 }
 
+.notif-global {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
 .notif-add {
     margin-top: 4px;
 }

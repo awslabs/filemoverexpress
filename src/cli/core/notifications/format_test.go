@@ -17,6 +17,7 @@ func samplePayload() Payload {
 		Bucket:     "show-dailies",
 		Prefix:     "day14/camera/",
 		Host:       "edit-bay-03",
+		IsUpload:   true,
 		FinishedAt: time.Date(2026, 10, 14, 16, 12, 4, 0, time.UTC),
 	}
 }
@@ -33,8 +34,33 @@ func TestEncodeBody_SlackUsesText(t *testing.T) {
 	if !strings.Contains(out["text"], "Day 14 camera cards - done") {
 		t.Errorf("slack body missing summary: %q", out["text"])
 	}
-	if !strings.Contains(out["text"], "show-dailies/day14/camera/") {
-		t.Errorf("slack body missing destination: %q", out["text"])
+	if !strings.Contains(out["text"], "s3://show-dailies/day14/camera/") {
+		t.Errorf("slack body missing s3 destination: %q", out["text"])
+	}
+}
+
+func TestText_IncludesStatsWhenPresent(t *testing.T) {
+	p := samplePayload()
+	p.HasStats = true
+	p.FilesTransferred = 12
+	p.BytesTransferred = 3_200_000_000
+	p.FilesSkipped = 2
+	p.BytesSkipped = 1_000_000
+	p.FilesErrored = 1
+	p.BytesErrored = 500_000
+	p.Duration = 48 * time.Second
+	text := p.text()
+	for _, want := range []string{"12 files transferred", "3.2 GB", "2 skipped", "1 errored", "Average speed:"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("stats text missing %q in %q", want, text)
+		}
+	}
+}
+
+func TestDestinationDisplay_CleanJoinNoDoubleSlash(t *testing.T) {
+	p := Payload{IsUpload: true, Bucket: "nsft2testing", Prefix: "/foldersa/"}
+	if got := p.destinationDisplay(); got != "s3://nsft2testing/foldersa/" {
+		t.Errorf("expected clean s3 uri, got %q", got)
 	}
 }
 

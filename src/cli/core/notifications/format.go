@@ -34,6 +34,18 @@ type (
 		Host       string
 		Detail     string
 		FinishedAt time.Time
+
+		// IsUpload controls how the destination renders (an s3:// URI for uploads,
+		// a local path for downloads). Stats are included only when HasStats is set.
+		IsUpload         bool
+		HasStats         bool
+		FilesTransferred int
+		FilesSkipped     int
+		FilesErrored     int
+		BytesTransferred int64
+		BytesSkipped     int64
+		BytesErrored     int64
+		Duration         time.Duration
 	}
 )
 
@@ -64,8 +76,21 @@ func (p Payload) summary() string {
 func (p Payload) text() string {
 	var b strings.Builder
 	b.WriteString(p.summary())
-	if p.Bucket != "" {
-		fmt.Fprintf(&b, "\nDestination: %s/%s", p.Bucket, p.Prefix)
+	if dest := p.destinationDisplay(); dest != "" {
+		fmt.Fprintf(&b, "\nDestination: %s", dest)
+	}
+	if p.HasStats {
+		fmt.Fprintf(&b, "\n%d %s transferred (%s)",
+			p.FilesTransferred, plural(p.FilesTransferred, "file", "files"), humanBytes(p.BytesTransferred))
+		if p.FilesSkipped > 0 {
+			fmt.Fprintf(&b, "\n%d skipped (%s)", p.FilesSkipped, humanBytes(p.BytesSkipped))
+		}
+		if p.FilesErrored > 0 {
+			fmt.Fprintf(&b, "\n%d errored (%s)", p.FilesErrored, humanBytes(p.BytesErrored))
+		}
+		if p.Duration > 0 && p.BytesTransferred > 0 {
+			fmt.Fprintf(&b, "\nAverage speed: %s", humanRate(p.BytesTransferred, p.Duration))
+		}
 	}
 	if p.Detail != "" {
 		b.WriteString("\n" + p.Detail)
@@ -76,12 +101,57 @@ func (p Payload) text() string {
 	return b.String()
 }
 
+// destinationDisplay renders a clean target: an s3:// URI for uploads (a single
+// bucket/prefix join with no doubled slashes), or the local path for downloads.
+func (p Payload) destinationDisplay() string {
+	if p.IsUpload {
+		if p.Bucket == "" {
+			return ""
+		}
+		prefix := strings.Trim(p.Prefix, "/")
+		if prefix == "" {
+			return "s3://" + p.Bucket + "/"
+		}
+		return "s3://" + p.Bucket + "/" + prefix + "/"
+	}
+	return p.Prefix
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
+}
+
+// humanBytes formats a byte count with decimal (SI) units, matching how FME
+// reports sizes elsewhere (kB, MB, GB).
+func humanBytes(n int64) string {
+	const unit = 1000
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for v := n / unit; v >= unit; v /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(n)/float64(div), "kMGTPE"[exp])
+}
+
+func humanRate(bytes int64, d time.Duration) string {
+	if d <= 0 {
+		return ""
+	}
+	return humanBytes(int64(float64(bytes)/d.Seconds())) + "/s"
+}
+
 func (p Payload) customBody() map[string]interface{} {
 	event := "transfer.finished"
 	if p.Outcome == OutcomeFailed {
 		event = "transfer.failed"
 	}
-	return map[string]interface{}{
+	body := map[string]interface{}{
 		"event":      event,
 		"job":        p.JobName,
 		"status":     p.Outcome.status(),
@@ -90,6 +160,16 @@ func (p Payload) customBody() map[string]interface{} {
 		"host":       p.Host,
 		"finishedAt": p.FinishedAt.UTC().Format(time.RFC3339),
 	}
+	if p.HasStats {
+		body["filesTransferred"] = p.FilesTransferred
+		body["filesSkipped"] = p.FilesSkipped
+		body["filesErrored"] = p.FilesErrored
+		body["bytesTransferred"] = p.BytesTransferred
+		body["bytesSkipped"] = p.BytesSkipped
+		body["bytesErrored"] = p.BytesErrored
+		body["durationSeconds"] = int64(p.Duration.Seconds())
+	}
+	return body
 }
 
 // encodeBody renders the preset-specific JSON body FME posts to the webhook.

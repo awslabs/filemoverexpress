@@ -76,7 +76,12 @@ func (*FileMoverServer) UploadPrefixes(
 	}
 
 	go upload.Uploader(job)
-	notifications.Shared().RegisterJob(job.JobId(), req.Msg.GetNotifyDestination(), transferProfile.Bucket, destination)
+	switch {
+	case req.Msg.GetNotifySuppress():
+		notifications.Shared().SuppressJob(job.JobId())
+	case req.Msg.GetNotifyDestination() != "":
+		notifications.Shared().RegisterJob(job.JobId(), req.Msg.GetNotifyDestination(), transferProfile.Bucket, destination)
+	}
 	return connect.NewResponse(&s3_sharedv1.UploadPrefixResponse{
 		Success:  true,
 		Response: "",

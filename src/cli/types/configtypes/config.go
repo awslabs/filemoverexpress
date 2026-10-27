@@ -162,6 +162,9 @@ type (
 	NotificationPreset int32
 	Notifications      struct {
 		Destinations []NotificationDestination `koanf:"destinations" yaml:"destinations"`
+		// NotifyAllTransfers, when true, notifies the default destination on every
+		// transfer (upload, hot folder, CLI) unless a job explicitly opts out.
+		NotifyAllTransfers bool `koanf:"notifyAllTransfers" yaml:"notifyAllTransfers"`
 	}
 	// NotificationDestination is a named webhook target. The webhook URL itself is
 	// NOT stored here - it lives encrypted in the notifications secret store. Only
@@ -455,7 +458,7 @@ func HotFoldersToProtobuf(hotFolders []UploadHotFolderSettings) []*fmev1.UploadH
 // HasUrl is derived from whether a display hint was recorded (a hint is written
 // only when a URL has been stored); the URL itself is never placed on the wire.
 func NotificationsToProtobuf(notifications Notifications) *fmev1.NotificationSettings {
-	out := &fmev1.NotificationSettings{}
+	out := &fmev1.NotificationSettings{NotifyAllTransfers: notifications.NotifyAllTransfers}
 	for _, dest := range notifications.Destinations {
 		out.Destinations = append(out.Destinations, dest.ToProtobuf())
 	}
@@ -481,6 +484,7 @@ func NotificationsFromProtobuf(settings *fmev1.NotificationSettings) Notificatio
 	if settings == nil {
 		return out
 	}
+	out.NotifyAllTransfers = settings.NotifyAllTransfers
 	for _, dest := range settings.Destinations {
 		out.Destinations = append(out.Destinations, NotificationDestinationFromProtobuf(dest))
 	}

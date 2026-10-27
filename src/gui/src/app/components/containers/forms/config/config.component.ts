@@ -116,6 +116,9 @@ export class ConfigComponent implements OnInit {
         notifyOnFailure: new FormControl<boolean>(true, {nonNullable: true}),
         isDefault: new FormControl<boolean>(false, {nonNullable: true}),
     });
+    // When on, every transfer (upload, hot folder, CLI) notifies the default
+    // destination unless that transfer explicitly opts out. Saved with the config.
+    notifyAllTransfers = new FormControl<boolean>(false, {nonNullable: true});
     // endregion
 
     // UI Preferences (client-side, saved on change via PreferencesService — NOT part of
@@ -250,6 +253,7 @@ export class ConfigComponent implements OnInit {
             next: (result) => {
                 this.originalConfig = result;
                 this.notificationDestinations = result.notifications?.destinations ?? [];
+                this.notifyAllTransfers.setValue(result.notifications?.notifyAllTransfers ?? false);
                 this.configForm.enable();
                 this.configForm.patchValue({
                     general: result.general,
@@ -302,8 +306,18 @@ export class ConfigComponent implements OnInit {
             // through unchanged — otherwise saving Settings would wipe them.
             settings.uploadHotFolders = this.originalConfig?.uploadHotFolders ?? [];
             // Webhook notification destinations are edited via their own RPCs, not this
-            // form. Carry them through unchanged so saving Settings does not wipe them.
-            settings.notifications = this.originalConfig?.notifications;
+            // form. Carry them through unchanged so saving Settings does not wipe them,
+            // and fold in the global "notify on every transfer" toggle.
+            const notifications = this.originalConfig?.notifications;
+            if (notifications) {
+                notifications.notifyAllTransfers = this.notifyAllTransfers.value;
+                settings.notifications = notifications;
+            } else {
+                settings.notifications = {
+                    destinations: [],
+                    notifyAllTransfers: this.notifyAllTransfers.value,
+                } as unknown as typeof settings.notifications;
+            }
             const input = FmeConfig.fromJson(settings);
 
             this.fmeClientService.setConfiguration(input).subscribe({
@@ -362,6 +376,7 @@ export class ConfigComponent implements OnInit {
             next: (result) => {
                 this.originalConfig = result;
                 this.notificationDestinations = result.notifications?.destinations ?? [];
+                this.notifyAllTransfers.setValue(result.notifications?.notifyAllTransfers ?? false);
             },
             error: (error) => {
                 this.notificationService.warning(`${NotificationMessages.GET_CONFIG_FAILURE}: ${error}`);

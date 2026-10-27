@@ -33,6 +33,10 @@ message NotificationDestination {
 
 message NotificationSettings {
     repeated NotificationDestination destinations = 1;
+    // When true, every transfer (GUI upload, hot-folder auto-upload, or CLI)
+    // notifies the default destination unless a job explicitly opts out. A
+    // per-transfer notify_destination or notify_suppress still takes precedence.
+    bool notify_all_transfers = 2;
 }
 
 // Create or update a destination. url is WRITE-ONLY: set it to store or replace

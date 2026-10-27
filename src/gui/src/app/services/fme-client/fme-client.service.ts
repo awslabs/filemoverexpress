@@ -354,6 +354,7 @@ export class FmeClientService {
         destination: string,
         jobName: string,
         notifyDestination = '',
+        notifySuppress = false,
     ): Observable<UploadPrefixResponse> {
         const sub = new Subject<UploadPrefixResponse>();
         const req = create(UploadPrefixRequestSchema);
@@ -364,6 +365,7 @@ export class FmeClientService {
         req.destination = destination;
         req.jobName = jobName;
         req.notifyDestination = notifyDestination;
+        req.notifySuppress = notifySuppress;
 
         if (!this.connectClient) {
             sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));

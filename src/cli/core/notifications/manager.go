@@ -27,10 +27,28 @@ var (
 type (
 	// pending is what a running job was asked to notify about, captured at submit
 	// time so the message can name the bucket/prefix without a later job lookup.
+	// suppressed records an explicit per-transfer opt-out that overrides the
+	// global "notify on every transfer" setting.
 	pending struct {
 		destination string
 		bucket      string
 		prefix      string
+		suppressed  bool
+	}
+
+	// JobInfo is a non-sensitive completion summary a provider supplies to enrich
+	// a notification (file counts, bytes, speed, and the resolved destination).
+	JobInfo struct {
+		FilesTransferred int
+		FilesSkipped     int
+		FilesErrored     int
+		BytesTransferred int64
+		BytesSkipped     int64
+		BytesErrored     int64
+		Duration         time.Duration
+		Bucket           string
+		Prefix           string
+		IsUpload         bool
 	}
 
 	// Manager subscribes to job completion and error events and posts a webhook to
@@ -39,8 +57,16 @@ type (
 		store   *SecretStore
 		mu      sync.Mutex
 		pending map[string]pending
+		jobInfo func(jobID string) (JobInfo, bool)
 	}
 )
+
+// SetJobInfoProvider injects a function that returns a finished job's summary.
+// It is wired at daemon start from the job manager, keeping this package free of
+// a direct dependency on it.
+func (m *Manager) SetJobInfoProvider(fn func(jobID string) (JobInfo, bool)) {
+	m.jobInfo = fn
+}
 
 // SecretDir is where encrypted webhook URLs live, under the FME config directory.
 func SecretDir() string {
@@ -89,6 +115,14 @@ func (m *Manager) RegisterJob(jobID, destination, bucket, prefix string) {
 	m.pending[jobID] = pending{destination: destination, bucket: bucket, prefix: prefix}
 }
 
+// SuppressJob records an explicit per-transfer opt-out, so this job is NOT
+// notified even when the global "notify on every transfer" setting is on.
+func (m *Manager) SuppressJob(jobID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pending[jobID] = pending{suppressed: true}
+}
+
 func (m *Manager) take(jobID string) (pending, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -113,22 +147,74 @@ func (m *Manager) handle(evt eventtypes.Event) {
 }
 
 func (m *Manager) dispatch(jobID, jobName string, outcome Outcome, detail string) {
-	p, ok := m.take(jobID)
-	if !ok {
-		return
+	cfg := config.LoadConfiguration()
+	p, hadPending := m.take(jobID)
+	if hadPending && p.suppressed {
+		return // explicit per-transfer opt-out
 	}
-	dest, found := findDestination(config.LoadConfiguration(), p.destination)
+
+	destName := p.destination
+	bucket, prefix := p.bucket, p.prefix
+	if destName == "" {
+		// No explicit per-transfer destination. Apply the global default when it
+		// is on - this is what covers hot-folder and CLI transfers, which never
+		// register a destination of their own.
+		if !cfg.Notifications.NotifyAllTransfers {
+			return
+		}
+		destName = defaultDestinationName(cfg)
+		if destName == "" {
+			logger.Warn("notifications: notify-all is on but no default destination is set")
+			return
+		}
+	}
+
+	dest, found := findDestination(cfg, destName)
 	if !found {
-		logger.Warn("notifications: destination %q is no longer configured", p.destination)
+		logger.Warn("notifications: destination %q is no longer configured", destName)
 		return
 	}
 	if !shouldSend(dest, outcome) {
 		return
 	}
-	m.send(dest, Payload{
-		JobName: jobName, Outcome: outcome, Bucket: p.bucket, Prefix: p.prefix,
-		Host: hostname(), Detail: detail, FinishedAt: time.Now(),
-	})
+
+	payload := Payload{
+		JobName: jobName, Outcome: outcome, Bucket: bucket, Prefix: prefix,
+		Host: hostname(), Detail: detail, FinishedAt: time.Now(), IsUpload: true,
+	}
+	if m.jobInfo != nil {
+		if info, ok := m.jobInfo(jobID); ok {
+			payload.HasStats = true
+			payload.IsUpload = info.IsUpload
+			payload.FilesTransferred = info.FilesTransferred
+			payload.FilesSkipped = info.FilesSkipped
+			payload.FilesErrored = info.FilesErrored
+			payload.BytesTransferred = info.BytesTransferred
+			payload.BytesSkipped = info.BytesSkipped
+			payload.BytesErrored = info.BytesErrored
+			payload.Duration = info.Duration
+			if payload.Bucket == "" {
+				payload.Bucket, payload.Prefix = info.Bucket, info.Prefix
+			}
+		}
+	}
+	m.send(dest, payload)
+}
+
+// defaultDestinationName resolves which destination the global "notify on every
+// transfer" setting should use: the one flagged default, or the sole configured
+// destination when none is explicitly flagged.
+func defaultDestinationName(cfg configtypes.FmeConfig) string {
+	dests := cfg.Notifications.Destinations
+	for _, d := range dests {
+		if d.IsDefault {
+			return d.Name
+		}
+	}
+	if len(dests) == 1 {
+		return dests[0].Name
+	}
+	return ""
 }
 
 func (m *Manager) send(dest configtypes.NotificationDestination, p Payload) {

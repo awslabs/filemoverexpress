@@ -21,6 +21,8 @@ export interface TransferSettingsModalResult {
     // Name of the webhook destination to notify when the transfer finishes/fails.
     // Undefined when the "Notify me" toggle is off.
     notifyDestination?: string;
+    // Explicit per-transfer opt-out when the global "notify every transfer" is on.
+    notifySuppress?: boolean;
 }
 
 export interface ObjectTypeCount {

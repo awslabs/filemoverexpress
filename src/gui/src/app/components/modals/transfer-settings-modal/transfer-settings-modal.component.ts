@@ -63,6 +63,9 @@ export class TransferSettingsModalComponent {
     notifyEnabled = new FormControl<boolean>(false, {nonNullable: true});
     notifyDestination = new FormControl<string>('', {nonNullable: true});
     notificationDestinations: NotificationDestination[] = [];
+    // Mirrors the daemon's global "notify on every transfer" setting, loaded with the
+    // destinations. Drives the toggle default and the per-transfer opt-out signal.
+    private notifyAllTransfers = false;
     totalObjectCounts: ObjectTypeCount = {
         numFolders: 0,
         numFiles: 0,
@@ -123,6 +126,12 @@ export class TransferSettingsModalComponent {
         this.fmeClientService.getConfiguration().subscribe({
             next: (config) => {
                 this.notificationDestinations = config.notifications?.destinations ?? [];
+                this.notifyAllTransfers = config.notifications?.notifyAllTransfers ?? false;
+                // When the daemon is set to notify on every transfer, default the toggle
+                // on so the user does not have to remember to flip it each time.
+                if (this.notifyAllTransfers) {
+                    this.notifyEnabled.setValue(true);
+                }
                 // Pre-select the default destination, if any, for convenience.
                 const defaultDest = this.notificationDestinations.find((d) => d.isDefault);
                 if (defaultDest) {
@@ -145,6 +154,14 @@ export class TransferSettingsModalComponent {
         return this.notifyDestination.value || undefined;
     }
 
+    /**
+     * True when the daemon notifies on every transfer but the user turned notify OFF for
+     * this one - an explicit opt-out the daemon must honor over the global default.
+     */
+    private resolveNotifySuppress(): boolean {
+        return this.notifyAllTransfers && !this.notifyEnabled.value;
+    }
+
     cancel() {
         return () => {
             this.transferSettingsResult.emit({
@@ -163,6 +180,7 @@ export class TransferSettingsModalComponent {
                 jobName: this.jobName.value,
                 forceTransfers: this.forceTransfers.value,
                 notifyDestination: this.resolveNotifyDestination(),
+                notifySuppress: this.resolveNotifySuppress(),
             });
             this.dialogRef.close();
         };

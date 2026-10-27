@@ -163,6 +163,19 @@
                 </p>
 
                 @if (notificationDestinations.length) {
+                    <div class="notif-global">
+                        <mat-slide-toggle color="accent" [formControl]="notifyAllTransfers"
+                                          (change)="configForm.markAsDirty()">
+                            Notify me about every transfer
+                        </mat-slide-toggle>
+                        <div class="info-hint">
+                            Applies to all transfers - uploads, hot folders and CLI - using your default
+                            destination below. You can still turn notifications off for an individual transfer.
+                        </div>
+                    </div>
+                }
+
+                @if (notificationDestinations.length) {
                     <div class="notif-list">
                         @for (dest of notificationDestinations; track dest.name) {
                             <div class="notif-row">
