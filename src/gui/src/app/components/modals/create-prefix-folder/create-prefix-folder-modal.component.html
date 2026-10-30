@@ -11,10 +11,10 @@
         @if (data.type === CreatePrefixFolderType.S3) {
             <p>
                 @if (data.parent !== '') {
-                    Creating new folder in the <b>{{ data.transferProfile }}</b> remote configuration, in the {{ data.parent }} folder.
+                    Creating new folder in the <b>{{ data.transferProfile }}</b> transfer profile, in the {{ data.parent }} folder.
                 }
                 @if (data.parent === '') {
-                    Creating new folder in the <b>{{ data.transferProfile }}</b> remote configuration, in the root of the bucket.
+                    Creating new folder in the <b>{{ data.transferProfile }}</b> transfer profile, in the root of the bucket.
                 }
             </p>
         }

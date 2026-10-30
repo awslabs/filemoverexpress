@@ -74,6 +74,10 @@ export function createTransferProfileForm(
         profile: new FormControl<string>('', {nonNullable: true}),
         // authentication method
         authMethod: new FormControl<AuthMethodType>('aws-profile', {nonNullable: true}),
+        // Access-key settings
+        accessKeyId: new FormControl<string>('', {nonNullable: true}),
+        secretAccessKey: new FormControl<string>('', {nonNullable: true}),
+        sessionToken: new FormControl<string>('', {nonNullable: true}),
         // OIDC settings
         oidcIssuerUrl: new FormControl<string>('', {nonNullable: true}),
         oidcClientId: new FormControl<string>('', {nonNullable: true}),

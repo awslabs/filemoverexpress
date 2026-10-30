@@ -14,22 +14,22 @@ const singleQuotedRegExp = new RegExp('\'([^\']+)\''); // matches text between s
 const transferProfilePlaceholder = '__TRANSFER_PROFILE__';
 const s3ErrorCodes: Record<string, string> = {
     // creds errors
-    'ExpiredToken': `The credentials for the Remote Configuration "${transferProfilePlaceholder}" are expired. Update your credentials and try again.`,
-    'NoCredentialProviders': `Missing credentials for the Remote Configuration "${transferProfilePlaceholder}". Update your credentials and try again.`,
-    'InvalidToken': `Invalid credentials or invalid Region provided for this Remote Configuration. Update your credentials or update the Region for the Remote Configuration "${transferProfilePlaceholder}".`,
+    'ExpiredToken': `The credentials for the Transfer Profile "${transferProfilePlaceholder}" are expired. Update your credentials and try again.`,
+    'NoCredentialProviders': `Missing credentials for the Transfer Profile "${transferProfilePlaceholder}". Update your credentials and try again.`,
+    'InvalidToken': `Invalid credentials or invalid Region provided for this Transfer Profile. Update your credentials or update the Region for the Transfer Profile "${transferProfilePlaceholder}".`,
     // region errors
-    'RequestError': `Unable to make request. Update the AWS Region for the Remote Configuration "${transferProfilePlaceholder}" to a valid AWS Region.`,
-    'MissingRegion': `Missing AWS Region for the Remote Configuration "${transferProfilePlaceholder}". Update the Region to the one that the S3 Bucket is in.`,
-    'IllegalLocationConstraintException': `The AWS Region set for the Remote Configuration "${transferProfilePlaceholder}" isn't enabled for the account. Update the Region to the one that the S3 Bucket is in.`,
-    'MissingEndpoint': `S3 Bucket name is missing or AWS Region is invalid. Verify that the S3 Bucket name and Region are set correctly for the Remote Configuration "${transferProfilePlaceholder}".`,
-    'SignatureDoesNotMatch': `SignatureDoesNotMatch error occurred. The request signature that the server calculated does not match the signature that you provided. Verify that the S3 Bucket name, AWS Region, and credentials are set correctly for the Remote Configuration "${transferProfilePlaceholder}".`,
+    'RequestError': `Unable to make request. Update the AWS Region for the Transfer Profile "${transferProfilePlaceholder}" to a valid AWS Region.`,
+    'MissingRegion': `Missing AWS Region for the Transfer Profile "${transferProfilePlaceholder}". Update the Region to the one that the S3 Bucket is in.`,
+    'IllegalLocationConstraintException': `The AWS Region set for the Transfer Profile "${transferProfilePlaceholder}" isn't enabled for the account. Update the Region to the one that the S3 Bucket is in.`,
+    'MissingEndpoint': `S3 Bucket name is missing or AWS Region is invalid. Verify that the S3 Bucket name and Region are set correctly for the Transfer Profile "${transferProfilePlaceholder}".`,
+    'SignatureDoesNotMatch': `SignatureDoesNotMatch error occurred. The request signature that the server calculated does not match the signature that you provided. Verify that the S3 Bucket name, AWS Region, and credentials are set correctly for the Transfer Profile "${transferProfilePlaceholder}".`,
     // bucket errors
-    'InvalidBucketName': `S3 Bucket name is invalid. Update the S3 Bucket name for the Remote Configuration "${transferProfilePlaceholder}".`,
-    'NoSuchBucket': `S3 Bucket doesn't exist. Update the S3 Bucket name for the Remote Configuration "${transferProfilePlaceholder}".`,
+    'InvalidBucketName': `S3 Bucket name is invalid. Update the S3 Bucket name for the Transfer Profile "${transferProfilePlaceholder}".`,
+    'NoSuchBucket': `S3 Bucket doesn't exist. Update the S3 Bucket name for the Transfer Profile "${transferProfilePlaceholder}".`,
 };
 const retryableS3ErrorCodes: Record<string, string> = {
     // internal error
-    'InternalError': `An internal error occurred when browsing the S3 Bucket for the Remote Configuration "${transferProfilePlaceholder}". Try again later.`,
+    'InternalError': `An internal error occurred when browsing the S3 Bucket for the Transfer Profile "${transferProfilePlaceholder}". Try again later.`,
 };
 const complexS3ErrorCodes: Record<string, (input: ProcessErrorInput) => string> = {
     // region errors
@@ -103,10 +103,10 @@ function getRegionErrorMessage(transferProfile: string, wrongRegion: RegExpMatch
             const wrongRegionStr = wrongRegionArray[0].replace(/'/gi, '');
             const correctRegionStr = correctRegionArray[0].replace(/'/gi, '');
             return `The bucket you provided isn't in the "${wrongRegionStr}" Region. The bucket you provided is in the "${correctRegionStr}" Region.
-            Update the Region for the Remote Configuration "${transferProfile}".`;
+            Update the Region for the Transfer Profile "${transferProfile}".`;
         }
     }
-    return `Bucket doesn't exist in the provided Region. Update the Region of the Remote Configuration "${transferProfile}" to the one that the bucket is in.`;
+    return `Bucket doesn't exist in the provided Region. Update the Region of the Transfer Profile "${transferProfile}" to the one that the bucket is in.`;
 }
 
 /**
@@ -130,7 +130,7 @@ export function getS3BrowserError(s3ErrorMessage: string, transferProfile: strin
     try {
         const errorCode = getS3ErrorCode(s3ErrorMessage);
         let errorMessage = `Unable to browse bucket.
-        Verify that your configuration and credentials for the Remote Configuration "${transferProfile}" are correct
+        Verify that your configuration and credentials for the Transfer Profile "${transferProfile}" are correct
         or refresh your credentials, then try again by clicking the refresh button.`;
         if (errorCode) {
             if (errorCode in s3ErrorCodes) {

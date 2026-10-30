@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -15,6 +16,7 @@ import (
 
 	fmeconfig "github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/core/auth"
+	"github.com/awslabs/filemoverexpress/core/auth/staticcreds"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 )
 
@@ -39,6 +41,17 @@ type (
 		Bucket     string
 		Region     string
 		Endpoint   string
+	}
+
+	// StaticCredentialsTestInput carries not-yet-stored credentials + connection context for a
+	// validation-only check (see TestStaticCredentials).
+	StaticCredentialsTestInput struct {
+		AccessKeyID     string
+		SecretAccessKey string
+		SessionToken    string
+		Bucket          string
+		Region          string
+		Endpoint        string
 	}
 
 	//nolint:staticcheck // Pending TransferManagerV2 migration
@@ -127,8 +140,59 @@ func GetSessionForTransferProfile(tp configtypes.TransferProfile) (*aws.Config, 
 	if tp.AuthMethod == configtypes.AuthMethodOIDC {
 		return getOIDCSession(tp)
 	}
+	if tp.AuthMethod == configtypes.AuthMethodAccessKey {
+		return getStaticSession(tp)
+	}
 	// Default path: AWS_PROFILE or UNSPECIFIED — use existing credential resolution
 	return GetSession(tp.Profile, tp.Region)
+}
+
+// getStaticSession builds an AWS config from the profile's stored static access key. It does NOT
+// use configCache (a static profile has an empty AWS profile name, which would collide on the
+// region-profile cache key), mirroring how the OIDC path builds its config directly.
+func getStaticSession(tp configtypes.TransferProfile) (*aws.Config, error) {
+	creds, err := staticcreds.NewManager().Vend(tp.Name)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := buildStaticConfig(tp.Region, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	if err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+// buildStaticConfig creates an aws.Config backed by a static credentials provider. sessionToken is
+// empty for long-lived access keys and non-empty for temporary credentials; the AWS SDK includes it
+// in signing only when set.
+func buildStaticConfig(region, accessKeyID, secretAccessKey, sessionToken string) (aws.Config, error) {
+	return config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(region),
+		config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, sessionToken),
+		),
+		config.WithAPIOptions(func() (v []func(stack *middleware.Stack) error) {
+			v = append(v, attachCustomMiddleware())
+			return v
+		}()),
+	)
+}
+
+// TestStaticCredentials validates not-yet-stored static credentials by building an ephemeral S3
+// client and performing a lightweight bucket check. It stores nothing. Powers the "Test connection"
+// button so the user gets pass/fail before the profile is persisted.
+func TestStaticCredentials(in StaticCredentialsTestInput) error {
+	cfg, err := buildStaticConfig(in.Region, in.AccessKeyID, in.SecretAccessKey, in.SessionToken)
+	if err != nil {
+		return err
+	}
+	tp := configtypes.TransferProfile{Bucket: in.Bucket, Region: in.Region, Endpoint: in.Endpoint}
+	s3m, err := buildS3Manager(&cfg, tp)
+	if err != nil {
+		return err
+	}
+	return s3m.ValidateCredentials()
 }
 
 func (o *oidcCredentialProvider) Retrieve(_ context.Context) (aws.Credentials, error) {
@@ -231,6 +295,9 @@ func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
 			opts.RetryMaxAttempts = int(retryCount)
 			opts.BaseEndpoint = aws.String(tp.Endpoint)
+			// S3-compatible stores (MinIO, etc.) addressed via a custom endpoint generally require
+			// path-style addressing; AWS S3 (no custom endpoint) keeps the default virtual-hosted style.
+			opts.UsePathStyle = true
 		})
 	} else {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {

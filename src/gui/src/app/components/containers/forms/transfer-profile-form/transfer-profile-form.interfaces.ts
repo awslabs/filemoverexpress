@@ -1,7 +1,7 @@
 import { FormControl, FormGroup } from '@angular/forms';
 
 export type EditorMode = 'add' | 'update';
-export type AuthMethodType = 'aws-profile' | 'oidc';
+export type AuthMethodType = 'aws-profile' | 'oidc' | 'access-key';
 
 export interface TransferProfileForm {
     name: FormControl<string>;
@@ -11,6 +11,16 @@ export interface TransferProfileForm {
 
     // authentication method
     authMethod: FormControl<AuthMethodType>;
+
+    // Access-key settings (visible when authMethod === 'access-key').
+    // accessKeyId is persisted (non-secret). secretAccessKey is write-only: it is sent to the
+    // daemon via a dedicated RPC, never persisted in the config, and never returned on read, so
+    // it is NOT a property of the TransferProfile class.
+    accessKeyId: FormControl<string>;
+    secretAccessKey: FormControl<string>;
+    // sessionToken is optional and write-only (same handling as the secret): set only for
+    // temporary credentials that can only be vended with a session token.
+    sessionToken: FormControl<string>;
 
     // OIDC settings (visible when authMethod === 'oidc')
     oidcIssuerUrl: FormControl<string>;

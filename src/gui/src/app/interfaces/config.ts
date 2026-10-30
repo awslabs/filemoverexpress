@@ -82,6 +82,8 @@ export interface ConfigTransferProfile {
     oidcSessionDurationSeconds?: number;
     oidcPersistSession?: boolean;
     oidcCustomCaBundle?: string;
+    accessKeyId?: string;
+    hasSecretAccessKey?: boolean;
 }
 
 export interface Paths {

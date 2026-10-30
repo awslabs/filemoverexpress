@@ -28,10 +28,10 @@ export function validateName(name: string) {
         Validators.required, noSpacesValidator,
     ]);
     if (nameControl.hasError('required')) {
-        return 'Remote Configuration name is required';
+        return 'Transfer Profile name is required';
     }
     if (nameControl.hasError('hasSpaces')) {
-        return 'Remote Configuration name cannot have spaces';
+        return 'Transfer Profile name cannot have spaces';
     }
     return '';
 }
