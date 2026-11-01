@@ -1114,7 +1114,7 @@ export class DaemonBrowserComponent implements OnDestroy {
                 const paths = this.metadata.transferProfiles[currentTransferProfile];
                 originalLocalStartingPath = paths.local;
             } catch {
-                console.error(`Couldn't get remote configuration data for ${this.selectedTransferProfile}`);
+                console.error(`Couldn't get transfer profile data for ${this.selectedTransferProfile}`);
             }
 
             this.openLocalStartingPathModal(currentTransferProfile, newLocalStartingPath, originalLocalStartingPath);
@@ -1155,24 +1155,24 @@ export class DaemonBrowserComponent implements OnDestroy {
             next: (config) => {
                 const transferProfileData = config.protocols.s3.transferProfiles[transferProfile];
                 if (!transferProfileData) {
-                    this.notifications.warning(`Remote configuration ${transferProfile} does not exist in configuration file. Unable to update Local Directory.`);
+                    this.notifications.warning(`Transfer profile ${transferProfile} does not exist in configuration file. Unable to update Local Directory.`);
                     return;
                 }
                 config.protocols.s3.transferProfiles[transferProfile].paths.local = newLocalStartingPath;
                 this.fmeClientService.setConfiguration(config).subscribe({
                     next: () => {
                         if (newLocalStartingPath) {
-                            this.notifications.success(`Successfully updated Local Starting Directory for remote configuration ${transferProfile}.`);
+                            this.notifications.success(`Successfully updated Local Starting Directory for transfer profile ${transferProfile}.`);
                             this.refreshFileBrowser(true);
                         } else {
-                            this.notifications.success(`Cleared Local Starting Directory for remote configuration ${transferProfile}.`);
+                            this.notifications.success(`Cleared Local Starting Directory for transfer profile ${transferProfile}.`);
                             // With no starting directory configured, take the user to the
                             // root of the daemon file system.
                             this.navigateToPath('/');
                         }
                     },
                     error: (error) => {
-                        this.notifications.warning(`Error occurred when updating Local Directory for remote configuration ${transferProfile}: ${error}`);
+                        this.notifications.warning(`Error occurred when updating Local Directory for transfer profile ${transferProfile}: ${error}`);
                     },
                 });
             },

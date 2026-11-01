@@ -43,7 +43,7 @@ export class TransferProfileSelectorDropdownComponent {
         return {
             id: 'transfer-profile-header-row',
             type: 'label',
-            text: 'Remote Configurations',
+            text: 'Transfer Profiles',
         };
     }
 
@@ -98,7 +98,7 @@ export class TransferProfileSelectorDropdownComponent {
                 leadingIcon: {...ADD_ICON, iconColor: 'blue'},
                 textColor: 'blue',
                 dividerAbove: true,
-                text: 'Add Remote Configuration...',
+                text: 'Add Transfer Profile...',
                 itemClickHandler: () => {
                     this.addTransferProfile();
                 },
@@ -110,9 +110,9 @@ export class TransferProfileSelectorDropdownComponent {
             leadingIcon: {...ADD_ICON, iconColor: 'blue'},
             textColor: 'blue',
             dividerAbove: true,
-            text: 'Add Remote Configuration...',
+            text: 'Add Transfer Profile...',
             tooltipText: `The configuration for this daemon doesn't allow editing it through the GUI.
-            Update the configuration file on the daemon machine to add a Remote Configuration.`,
+            Update the configuration file on the daemon machine to add a Transfer Profile.`,
         };
     }
 

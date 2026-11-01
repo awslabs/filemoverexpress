@@ -165,13 +165,13 @@ a {
 }
 
 .tab-body {
-    padding: 24px;
+    padding: 18px 24px;
     display: flex;
     flex-direction: column;
     // Match the Settings form: a 16px flex gap stacks on each field's 22px label-above
     // top margin (~38px effective), so the non-OIDC fields aren't compressed. Field
     // bottom margin is zeroed below, so this doesn't double-space.
-    gap: 16px;
+    gap: 12px;
 }
 
 // [hidden] must beat display:flex above.
@@ -199,7 +199,7 @@ a {
 .oidc-config-card {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 
     .oidc-config-title {
         display: flex;
@@ -239,4 +239,183 @@ a {
 /* The tab body owns vertical rhythm via flex gap, so drop the default field margin. */
 .tab-body mat-form-field {
     margin-bottom: 0;
+}
+
+/* ---- Authentication method (button-toggle) ---- */
+.auth-method-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-method-label {
+    font-size: 12px;
+    color: variables.$grey-450;
+}
+
+.auth-method-toggle {
+    align-self: flex-start;
+    border-radius: var(--fme-radius-btn, 8px);
+}
+
+/* Compact the stock Material button-toggle so the method selector reads as a control, not giant
+   tabs. Material's default label line-height (48px) makes each segment oversized here. */
+:host ::ng-deep .auth-method-toggle {
+    .mat-button-toggle-button {
+        height: 30px;
+    }
+
+    .mat-button-toggle-label-content {
+        line-height: 30px;
+        padding: 0 14px;
+        font-size: 12px;
+    }
+}
+
+.auth-method-hint {
+    font-size: 11px;
+    color: var(--mat-sys-on-surface-variant, #93a4bd);
+    margin-left: 2px;
+}
+
+/* ---- Access-key auth ---- */
+.secret-set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: variables.$background-tray;
+    border: 1px solid variables.$grey-600;
+    border-radius: var(--fme-radius-input, 8px);
+
+    .secret-set-label {
+        font-size: 13px;
+        color: variables.$grey-300;
+
+        strong {
+            color: variables.$grey-100;
+        }
+    }
+}
+
+/* Standalone (not nested under .secret-set-row): the Replace button lives in its own .replace-row,
+   so this rule must match it wherever it is rendered. */
+.secret-replace-button {
+    appearance: none;
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid variables.$grey-550;
+    border-radius: var(--fme-radius-btn, 8px);
+    padding: 4px 12px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: variables.$text-link;
+    cursor: pointer;
+
+    &:hover {
+        border-color: variables.$blue-500;
+        background: rgba(66, 180, 255, 0.08);
+    }
+}
+
+.access-key-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: variables.$yellow-900;
+    border: 1px solid variables.$yellow-700;
+    font-size: 12px;
+    line-height: 1.45;
+    color: variables.$grey-100;
+
+    mat-icon {
+        color: variables.$yellow-700;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+}
+
+.test-connection-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    /* Matches .secret-replace-button exactly so Test connection and Replace credentials read as
+       the same kind of action (blue outlined), rather than two different-coloured buttons. */
+    .test-connection-button {
+        appearance: none;
+        flex-shrink: 0;
+        white-space: nowrap;
+        background: none;
+        border: 1px solid variables.$grey-550;
+        border-radius: var(--fme-radius-btn, 8px);
+        padding: 6px 14px;
+        font: inherit;
+        font-weight: 600;
+        font-size: 13px;
+        color: variables.$text-link;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            border-color: variables.$blue-500;
+            background: rgba(66, 180, 255, 0.08);
+        }
+
+        &:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+    }
+
+    /* A real, always-enabled ghost button — not muted grey text. The old grey-450/no-border style
+       read as disabled, so users couldn't tell Cancel was clickable (and it sits next to a
+       sometimes-disabled Test connection, which made the whole row look dead). Neutral grey chrome
+       keeps it clearly secondary to the blue credential actions while obviously interactive. */
+    .cancel-replace-button {
+        appearance: none;
+        flex-shrink: 0;
+        background: none;
+        border: 1px solid variables.$grey-550;
+        border-radius: var(--fme-radius-btn, 8px);
+        padding: 6px 14px;
+        font: inherit;
+        font-weight: 600;
+        font-size: 13px;
+        color: variables.$grey-200;
+        cursor: pointer;
+
+        &:hover {
+            border-color: variables.$grey-450;
+            background: rgba(255, 255, 255, 0.04);
+            color: variables.$grey-100;
+        }
+    }
+
+    .test-result {
+        flex: 1 1 100%;   /* drop onto its own line under the buttons instead of pushing them */
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 12.5px;
+
+        &.ok {
+            color: variables.$green-500;
+        }
+
+        &.fail {
+            color: variables.$red-500;
+        }
+    }
+}
+
+.replace-row {
+    display: flex;
 }

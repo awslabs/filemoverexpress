@@ -12,7 +12,7 @@
     <form class="form" (submit)="generateReport()" [formGroup]="exportForm">
         <div>
             <mat-form-field color="accent">
-                <mat-label>Remote Configuration</mat-label>
+                <mat-label>Transfer Profile</mat-label>
                 <mat-select formControlName="remoteConfiguration">
                     @for (txProfile of transferProfiles; track txProfile) {
                         <mat-option [value]="txProfile">{{ txProfile }}</mat-option>
@@ -20,7 +20,7 @@
                 </mat-select>
                 @if (exportForm.controls.remoteConfiguration.hasError('required')) {
                     <mat-error>
-                        Remote Configuration must be selected
+                        Transfer Profile must be selected
                     </mat-error>
                 }
             </mat-form-field>

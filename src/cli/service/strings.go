@@ -17,7 +17,7 @@ const (
 	strDestinationMayNotBeEmpty      = "destination might not be empty"
 	strFailedToFindTransferProfile   = "failed to find transfer profile"
 	strFailedGeneratingInventory     = "failed to generate inventory report: %s"
-	strConfigurationDisabled         = "remote configuration editing is turned off"
+	strConfigurationDisabled         = "transfer profile editing is turned off"
 	strUploadMissingSources          = "no sources provided for upload"
 	strFailedToCreateJob             = "failed to create job"
 	strFailedEstablishingAwsSession  = "failed to establish a session to AWS: %s"

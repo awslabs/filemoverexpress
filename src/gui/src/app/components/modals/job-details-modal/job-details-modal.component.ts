@@ -165,7 +165,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     // progress bar). Recomputed on each task reload; never recedes on pause.
     committedBytes = 0;
 
-    // Remote Configuration details (fetched from the daemon config for this job's profile).
+    // Transfer Profile details (fetched from the daemon config for this job's profile).
     s3Bucket = '';
     storageClassLabel = '';
     checksumLabel = '';
@@ -577,7 +577,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
-     * Pull the extra Remote Configuration details (bucket, storage class, checksum, parallelism,
+     * Pull the extra Transfer Profile details (bucket, storage class, checksum, parallelism,
      * local source path) from the daemon config for this job's profile. Fails silently when the
      * config is unavailable (e.g. disconnected) — the extra rows simply stay hidden.
      */

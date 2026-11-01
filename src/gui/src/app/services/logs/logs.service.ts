@@ -123,7 +123,7 @@ export class LogsService {
             `Allow UI Config: ${evt.permissions.allowUiConfiguration ? 'yes' : 'no'}, ` +
             `Allow Local Rename and Delete: ${evt.permissions.allowLocalRenameDelete ? 'yes' : 'no'}, ` +
             `Allow Remote Rename and Delete: ${evt.permissions.allowRemoteRenameDelete ? 'yes' : 'no'}, ` +
-            `Remote Configurations: ${txpNames}, ` +
+            `Transfer Profiles: ${txpNames}, ` +
             `Daemon OS: ${evt.daemonOS}`;
 
         this.store.dispatch(addLog({

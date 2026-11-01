@@ -93,6 +93,7 @@ enum AuthMethod {
     AUTH_METHOD_UNSPECIFIED = 0;
     AUTH_METHOD_AWS_PROFILE = 1;
     AUTH_METHOD_OIDC = 2;
+    AUTH_METHOD_ACCESS_KEY = 3;
 }
 
 message OIDCConfig {
@@ -124,6 +125,13 @@ message TransferProfile {
     string endpoint = 18;
     AuthMethod auth_method = 19;
     OIDCConfig oidc_config = 20;
+    // access_key_id is a non-secret identifier (like a username) for AUTH_METHOD_ACCESS_KEY.
+    // The matching secret access key is NEVER stored here or returned on read — it lives only in
+    // the daemon's encrypted credentials store and is written via the StaticCredentials RPCs.
+    string access_key_id = 21;
+    // has_secret_access_key is a read-only hint set by the daemon: true when an encrypted secret
+    // exists for this profile. Lets the GUI render a "secret is set" state without ever receiving it.
+    bool has_secret_access_key = 22;
 }
 
 message UploadHotFolderSettings {

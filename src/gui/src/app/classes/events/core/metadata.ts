@@ -39,7 +39,7 @@ export class MetadataEvent implements BaseEvent {
             `Allow UI Config: ${this.permissions.allowUiConfiguration ? 'yes' : 'no'}, ` +
             `Allow Local Rename and Delete: ${this.permissions.allowLocalRenameDelete ? 'yes' : 'no'}, ` +
             `Allow Remote Rename and Delete: ${this.permissions.allowRemoteRenameDelete ? 'yes' : 'no'}, ` +
-            `Remote Configurations: ${txpNames}, ` +
+            `Transfer Profiles: ${txpNames}, ` +
             `Daemon OS: ${this.daemonOS}, ` +
             `AWS Profiles: ${this.awsProfiles.join(', ')}, ` +
             `Hot Folder Source Directories: ${this.hotFolderSourceDirectories.join(', ')}`;

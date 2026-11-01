@@ -44,6 +44,14 @@ service FmeService {
     rpc InitiateOIDCLogin (fme.v1.OIDCLoginRequest) returns (fme.v1.OIDCLoginResponse) {}
     rpc GetOIDCStatus (fme.v1.OIDCStatusRequest) returns (fme.v1.OIDCStatusResponse) {}
     rpc LogoutOIDC (fme.v1.OIDCLogoutRequest) returns (fme.v1.OIDCLogoutResponse) {}
+
+    // Static access-key credential management. The secret access key is write-only over the wire
+    // (set here, never returned by GetConfiguration) and is stored encrypted on the daemon host,
+    // outside configuration.yaml, by a dedicated credentials subsystem.
+    rpc CreateStaticCredentials (fme.v1.CreateStaticCredentialsRequest) returns (fme.v1.StaticCredentialsResponse) {}
+    rpc UpdateStaticCredentials (fme.v1.UpdateStaticCredentialsRequest) returns (fme.v1.StaticCredentialsResponse) {}
+    rpc DeleteStaticCredentials (fme.v1.DeleteStaticCredentialsRequest) returns (fme.v1.StaticCredentialsResponse) {}
+    rpc TestStaticCredentials (fme.v1.TestStaticCredentialsRequest) returns (fme.v1.TestStaticCredentialsResponse) {}
 }
 
 // ListEventsRequest and Response must be in the main file, as it uses values from each sub-file and would otherwise
@@ -104,3 +112,55 @@ message OIDCLogoutRequest {
 }
 
 message OIDCLogoutResponse {}
+
+// --- Static access-key credential messages ---
+// secret_access_key fields are WRITE-ONLY: the client sends them, the server stores them encrypted,
+// and no response or GetConfiguration ever returns a secret.
+
+message CreateStaticCredentialsRequest {
+    string transfer_profile = 1;     // profile name the credentials belong to (the store key)
+    string access_key_id = 2;
+    string secret_access_key = 3;    // write-only
+    // Connection context so the daemon can validate the credentials before storing (fail closed).
+    string bucket = 4;
+    string region = 5;
+    string endpoint = 6;             // optional, for S3-compatible stores
+    string session_token = 7;        // write-only, optional - set only for temporary credentials
+}
+
+message UpdateStaticCredentialsRequest {
+    string transfer_profile = 1;
+    string access_key_id = 2;
+    string secret_access_key = 3;    // write-only
+    string session_token = 4;        // write-only, optional - set only for temporary credentials
+}
+
+message DeleteStaticCredentialsRequest {
+    string transfer_profile = 1;
+}
+
+message StaticCredentialsResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// TestStaticCredentials validates credentials the user has typed but not yet saved. It builds an
+// ephemeral S3 client, performs a lightweight bucket check, and returns the result WITHOUT storing
+// anything. This powers the "Test connection" button before persisting a profile.
+message TestStaticCredentialsRequest {
+    string access_key_id = 1;
+    string secret_access_key = 2;    // write-only, used only for this call, never stored
+    string bucket = 3;
+    string region = 4;
+    string endpoint = 5;             // optional
+    // Optional: when secret_access_key is empty, the daemon vends the already-stored secret for this
+    // profile and tests with it. This powers "Test connection" on an existing profile whose secret
+    // is set but cannot be re-displayed. The secret is still never returned to the client.
+    string transfer_profile = 6;
+    string session_token = 7;        // write-only, optional - set only for temporary credentials
+}
+
+message TestStaticCredentialsResponse {
+    bool ok = 1;
+    string error = 2;
+}

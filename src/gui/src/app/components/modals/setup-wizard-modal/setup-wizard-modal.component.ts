@@ -176,9 +176,9 @@ export class SetupWizardModalComponent implements AfterViewInit {
             return 'You have skipped the setup tutorial.';
         }
         if (this.wizardStepStates.transferProfile.validSetup) {
-            return 'You have set up a Remote Configuration.';
+            return 'You have set up a Transfer Profile.';
         }
-        return 'You have completed the setup tutorial, but you will need to add a valid Remote Configuration to start any transfers.';
+        return 'You have completed the setup tutorial, but you will need to add a valid Transfer Profile to start any transfers.';
     }
 
     onWelcomeNext() {

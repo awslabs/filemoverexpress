@@ -3,9 +3,9 @@
         @if (tutorialMode()) {
             <!-- Simplified onboarding flow (unchanged) -->
             <mat-form-field color="accent">
-                <mat-label>Remote Configuration name</mat-label>
+                <mat-label>Transfer Profile name</mat-label>
                 <input matInput type="text" formControlName="name">
-                <mat-hint>A name to identify your Remote Configuration. This can't be changed later.</mat-hint>
+                <mat-hint>A name to identify your Transfer Profile. This can't be changed later.</mat-hint>
                 @if (transferProfileForm.controls['name'].hasError('required')) {
                     <mat-error>{{ errorMessages.transferProfileName.required }}</mat-error>
                 }
@@ -69,7 +69,7 @@
                     <!-- CONNECTION -->
                     <div class="tab-body" [hidden]="activeTab !== 'connection'">
                         <mat-form-field color="accent">
-                            <mat-label>Remote Configuration name</mat-label>
+                            <mat-label>Transfer Profile name</mat-label>
                             <input matInput type="text" formControlName="name">
                             @if (transferProfileForm.controls['name'].hasError('required')) {
                                 <mat-error>{{ errorMessages.transferProfileName.required }}</mat-error>
@@ -135,14 +135,16 @@
 
                     <!-- AUTHENTICATION -->
                     <div class="tab-body" [hidden]="activeTab !== 'authentication'">
-                        <mat-form-field color="accent">
-                            <mat-label>Authentication method</mat-label>
-                            <mat-select formControlName="authMethod">
-                                <mat-option value="aws-profile">AWS Named Profile</mat-option>
-                                <mat-option value="oidc">OIDC / SSO</mat-option>
-                            </mat-select>
-                            <mat-hint>How FME authenticates with AWS for this profile.</mat-hint>
-                        </mat-form-field>
+                        <div class="auth-method-field">
+                            <span class="auth-method-label">Authentication method</span>
+                            <mat-button-toggle-group formControlName="authMethod" class="auth-method-toggle"
+                                                     aria-label="Authentication method">
+                                <mat-button-toggle value="oidc">OIDC / SSO</mat-button-toggle>
+                                <mat-button-toggle value="aws-profile">AWS Named Profile</mat-button-toggle>
+                                <mat-button-toggle value="access-key">Access key</mat-button-toggle>
+                            </mat-button-toggle-group>
+                            <div class="auth-method-hint">How FME authenticates with AWS for this profile.</div>
+                        </div>
 
                         @if (transferProfileForm.controls['authMethod'].value === 'aws-profile') {
                             <mat-form-field color="accent">
@@ -268,6 +270,75 @@
                                         <code>http://127.0.0.1:9878/callback</code>
                                     </div>
                                 </div>
+                            </div>
+                        }
+
+                        @if (transferProfileForm.controls['authMethod'].value === 'access-key') {
+                            <div class="oidc-config-card">
+                                <div class="oidc-config-title">
+                                    <mat-icon>vpn_key</mat-icon> Access key
+                                </div>
+
+                                @if (hasStoredSecret) {
+                                    <div class="secret-set-row">
+                                        <span class="secret-set-label">Access key ID: <strong>{{ maskedAccessKeyId }}</strong></span>
+                                    </div>
+                                    <div class="secret-set-row">
+                                        <span class="secret-set-label">Secret access key: <strong>set</strong> &mdash; cannot be displayed</span>
+                                    </div>
+                                    <div class="replace-row">
+                                        <button type="button" class="secret-replace-button" (click)="enableSecretReplace()">Replace credentials</button>
+                                    </div>
+                                    <div class="toggle-note">For your security, FME shows only part of the access key ID and never a saved secret. An access key ID and its secret are a pair, so replacing updates both.</div>
+                                } @else {
+                                    <div class="form-grid-2">
+                                        <mat-form-field color="accent">
+                                            <mat-label>Access key ID</mat-label>
+                                            <input matInput type="text" formControlName="accessKeyId" placeholder="AKIA...">
+                                            @if (transferProfileForm.controls['accessKeyId'].hasError('required')) {
+                                                <mat-error>Access key ID is required.</mat-error>
+                                            }
+                                        </mat-form-field>
+                                        <mat-form-field color="accent">
+                                            <mat-label>Secret access key</mat-label>
+                                            <input matInput type="password" formControlName="secretAccessKey" autocomplete="off">
+                                            @if (transferProfileForm.controls['secretAccessKey'].hasError('required')) {
+                                                <mat-error>Secret access key is required.</mat-error>
+                                            }
+                                        </mat-form-field>
+                                    </div>
+                                    <mat-form-field color="accent">
+                                        <mat-label>Session token (optional)</mat-label>
+                                        <input matInput type="password" formControlName="sessionToken" autocomplete="off">
+                                    </mat-form-field>
+                                    <div class="toggle-note">{{ replacingSecret ? 'Enter the new access key ID and its secret. ' : '' }}Stored encrypted on the daemon host; never shown after you save. Add a session token only for temporary credentials - they can expire mid-transfer.</div>
+                                }
+
+                                <div class="access-key-warning">
+                                    <mat-icon>warning</mat-icon>
+                                    <div>Access keys are long-lived credentials. For Amazon S3, OIDC or an AWS named
+                                        profile is safer.</div>
+                                </div>
+
+                                <div class="test-connection-row">
+                                    <button type="button" class="test-connection-button" (click)="testConnection()"
+                                            [disabled]="testingCredentials || !!testDisabledReason">
+                                        {{ testingCredentials ? 'Testing…' : 'Test connection' }}
+                                    </button>
+                                    @if (replacingSecret) {
+                                        <button type="button" class="cancel-replace-button" (click)="cancelReplace()">Cancel</button>
+                                    }
+                                    @if (credentialTestResult) {
+                                        <span class="test-result"
+                                              [class.ok]="credentialTestResult.ok"
+                                              [class.fail]="!credentialTestResult.ok">
+                                            {{ credentialTestResult.message }}
+                                        </span>
+                                    }
+                                </div>
+                                @if (testDisabledReason && !credentialTestResult) {
+                                    <div class="toggle-note">{{ testDisabledReason }}</div>
+                                }
                             </div>
                         }
                     </div>

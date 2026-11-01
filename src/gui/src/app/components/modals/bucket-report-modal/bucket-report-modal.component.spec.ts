@@ -63,7 +63,7 @@ describe('BucketReportModalComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('defaults the remote configuration to the currently-connected profile, not the first in the list', () => {
+    it('defaults the transfer profile to the currently-connected profile, not the first in the list', () => {
         build();
         expect(component.exportForm.controls.remoteConfiguration.value).toBe('fme-test');
     });

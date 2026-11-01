@@ -30,7 +30,7 @@ export class TransferProfileEditorModalComponent implements OnDestroy {
     dialogRef = inject<MatDialogRef<TransferProfileEditorModalComponent>>(MatDialogRef);
     private txpService = inject(TransferProfileService);
 
-    @Output() transferProfileSaved = new EventEmitter<TransferProfile>();
+    @Output() transferProfileSaved = new EventEmitter<{profile: TransferProfile; secretAccessKey: string; sessionToken: string}>();
     transferProfile: TransferProfile | null;
     transferProfileForm: FormGroup = new FormGroup({});
 
@@ -72,8 +72,15 @@ export class TransferProfileEditorModalComponent implements OnDestroy {
 
     save() {
         return () => {
-            const txProfile = TransferProfile.fromJson(this.transferProfileForm.getRawValue());
-            this.transferProfileSaved.emit(txProfile);
+            const raw = this.transferProfileForm.getRawValue();
+            const txProfile = TransferProfile.fromJson(raw);
+            // The secret and session token are write-only: they ride out of band here (not on the
+            // TransferProfile), and the service stores them via a dedicated RPC. Empty on
+            // edit-without-replace.
+            const isAccessKey = raw.authMethod === 'access-key';
+            const secretAccessKey = isAccessKey ? (raw.secretAccessKey ?? '') : '';
+            const sessionToken = isAccessKey ? (raw.sessionToken ?? '') : '';
+            this.transferProfileSaved.emit({profile: txProfile, secretAccessKey, sessionToken});
             this.dialogRef.close();
         };
     }

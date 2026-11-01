@@ -11,5 +11,5 @@ const (
 	strErrorAddingHotFolder        = "Error adding hot folder %s: %s"
 	strErrorRunningHotFolder       = "error running hot folder: %s"
 	strErrorGenericUpload          = "Upload for hot folder %s failed: %s"
-	strErrorUploadWithRemoteConfig = "Upload to remote configuration %s failed for hot folder %s: %s"
+	strErrorUploadWithRemoteConfig = "Upload to transfer profile %s failed for hot folder %s: %s"
 )

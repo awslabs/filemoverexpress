@@ -67,7 +67,7 @@
                                 <div class="hf-dest-row" [formGroupName]="j">
                                     <div class="hf-dest-fields">
                                         <mat-form-field color="accent" subscriptSizing="fixed">
-                                            <mat-label>Remote Configuration</mat-label>
+                                            <mat-label>Transfer Profile</mat-label>
                                             <mat-select formControlName="remoteConfigurationName">
                                                 @for (txp of transferProfiles(); track txp) {
                                                     <mat-option [value]="txp">{{ txp }}</mat-option>

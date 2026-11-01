@@ -20,6 +20,9 @@ const (
 	AuthMethodAWSProfile AuthMethod = 1
 	// AuthMethodOIDC uses OIDC → AssumeRoleWithWebIdentity for credential acquisition.
 	AuthMethodOIDC AuthMethod = 2
+	// AuthMethodAccessKey uses a long-lived static access key id + secret. The access key id is
+	// stored here; the secret lives only in the encrypted staticcreds store, never on this struct.
+	AuthMethodAccessKey AuthMethod = 3
 )
 
 // When updating the tag values, make sure to make the corresponding updates for the constants in config/config/config-keys.go
@@ -105,6 +108,13 @@ type (
 
 		AuthMethod AuthMethod  `koanf:"authMethod" yaml:"authMethod"`
 		OIDCConfig *OIDCConfig `koanf:"oidcConfig" yaml:"oidcConfig"`
+		// AccessKeyID is a TRANSIENT, display-only field for AuthMethodAccessKey. It is deliberately
+		// NOT persisted (yaml/koanf "-"): the real access key id lives only in the encrypted
+		// staticcreds store, which is the sole owner of the value. GetConfiguration stamps a MASKED
+		// id here from that store for display; SetConfiguration ignores any inbound value. Keeping it
+		// off the yaml file (and out of String(), which reflects every field) means the full id never
+		// leaves the manager.
+		AccessKeyID string `koanf:"-" yaml:"-"`
 	}
 	ChecksumSettings struct {
 		Enabled   bool                        `koanf:"enabled" yaml:"enabled"`
@@ -281,6 +291,9 @@ func TransferProfilesFromProtobuf(profileList map[string]*fmev1.TransferProfile)
 			Threads:    int(transferProfile.Threads),
 			MaxAge:     transferProfile.MaxAge,
 			AuthMethod: AuthMethod(transferProfile.AuthMethod),
+			// Ignore any inbound access key id: the real value is owned by the staticcreds store
+			// (written via the Create/Update RPC), never persisted here.
+			AccessKeyID: "",
 		}
 
 		if transferProfile.OidcConfig != nil {
@@ -330,11 +343,12 @@ func TransferProfilesToProtobuf(transferProfiles map[string]TransferProfile) map
 				Enabled:   transferProfile.Checksums.Enabled,
 				Algorithm: string(transferProfile.Checksums.Algorithm),
 			},
-			ChunkSize:  transferProfile.ChunkSize,
-			Filter:     transferProfile.Filter,
-			Threads:    threads,
-			MaxAge:     transferProfile.MaxAge,
-			AuthMethod: fmev1.AuthMethod(transferProfile.AuthMethod),
+			ChunkSize:   transferProfile.ChunkSize,
+			Filter:      transferProfile.Filter,
+			Threads:     threads,
+			MaxAge:      transferProfile.MaxAge,
+			AuthMethod:  fmev1.AuthMethod(transferProfile.AuthMethod),
+			AccessKeyId: transferProfile.AccessKeyID,
 		}
 
 		if transferProfile.OIDCConfig != nil {

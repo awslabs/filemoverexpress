@@ -27,27 +27,27 @@
             </mat-step>
         }
         <mat-step #transferProfileStep>
-            <ng-template matStepLabel>Remote Configuration</ng-template>
+            <ng-template matStepLabel>Transfer Profile</ng-template>
             @if (wizardStepStates.transferProfile.needHelp) {
                 <div class="wizard-text">
                     <div>
-                        Your configuration didn't have any valid Remote Configurations.
-                        A Remote Configuration is a set of configurations that defines how files are transferred to and
+                        Your configuration didn't have any valid Transfer Profiles.
+                        A Transfer Profile is a set of configurations that defines how files are transferred to and
                         from a specific file directory and an AWS S3 bucket.
-                        You must have at least one Remote Configuration to use File Mover Express.
+                        You must have at least one Transfer Profile to use File Mover Express.
                     </div>
                     <div>
-                        If you skip this step, you can add a Remote Configuration later by choosing
+                        If you skip this step, you can add a Transfer Profile later by choosing
                         <b>{{ sectionTitles.CONFIGURATION }}</b> from the toolbar dropdown.
                     </div>
                 </div>
                 <div class="icon-with-content">
                     <div class="icon-column">
                         <img src="/assets/transfer-profile-icon.svg" class="side-icon"
-                             alt="Remote Configuration icon">
+                             alt="Transfer Profile icon">
                     </div>
                     <div class="content-column">
-                        <div class="small-heading">Create Remote Configuration</div>
+                        <div class="small-heading">Create Transfer Profile</div>
                         <fme-transfer-profile-form [tutorialMode]="true" mode="add"
                                                    (transferProfileEdited)="updateTransferProfileForm($event)"></fme-transfer-profile-form>
                     </div>
@@ -65,26 +65,26 @@
             } @else {
                 <div class="wizard-text">
                     <div>
-                        The following Remote Configurations were found in your configuration.
-                        A Remote Configuration is a set of configurations to transfer files to and from a specific file
+                        The following Transfer Profiles were found in your configuration.
+                        A Transfer Profile is a set of configurations to transfer files to and from a specific file
                         system directory and AWS S3 bucket.
-                        At least one Remote Configuration is required to use File Mover Express.
+                        At least one Transfer Profile is required to use File Mover Express.
                     </div>
                     <div>
                         @if (transferProfilesHaveErrors) {
-                            <span>File Mover Express detected errors in your Remote Configurations.</span>
+                            <span>File Mover Express detected errors in your Transfer Profiles.</span>
                         }
-                        If you want to add more Remote Configurations or edit existing Remote Configurations,
+                        If you want to add more Transfer Profiles or edit existing Transfer Profiles,
                         you can do so later by choosing <b>{{ sectionTitles.CONFIGURATION }}</b> in the toolbar dropdown.
                     </div>
                 </div>
                 <div class="icon-with-content">
                     <div class="icon-column">
                         <img src="/assets/transfer-profile-icon.svg" class="side-icon"
-                             alt="Remote Configuration icon">
+                             alt="Transfer Profile icon">
                     </div>
                     <div class="content-column">
-                        <div class="small-heading">Remote Configurations</div>
+                        <div class="small-heading">Transfer Profiles</div>
                         @for (txProfile of validatedTransferProfiles | keyvalue; track txProfile) {
                             <div class="transfer-profile-list">
                                 <section>
@@ -94,7 +94,7 @@
                                                 <mat-panel-title [ngClass]="{'error-color': txProfile.value.hasError}">
                                                     {{ txProfile.key }}
                                                     @if (txProfile.value.hasError) {
-                                                        <mat-icon color="warn" matTooltip="There are errors in this Remote Configuration">
+                                                        <mat-icon color="warn" matTooltip="There are errors in this Transfer Profile">
                                                             error_outline
                                                         </mat-icon>
                                                     }

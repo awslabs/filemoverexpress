@@ -343,6 +343,11 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         public oidcSessionDurationSeconds?: number,
         public oidcPersistSession?: boolean,
         public oidcCustomCaBundle?: string,
+        // Non-secret identifier for the access-key auth method. The secret is never carried here.
+        public accessKeyId?: string,
+        // Read-only hint from the daemon: a secret is stored for this access-key profile. Drives
+        // the "secret is set / Replace" edit state. Never sent back to the daemon as a secret.
+        public hasSecretAccessKey?: boolean,
     ) {
     }
 
@@ -354,6 +359,8 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         let authMethod = 'aws-profile';
         if (input.authMethod === proto.AuthMethod.OIDC) {
             authMethod = 'oidc';
+        } else if (input.authMethod === proto.AuthMethod.ACCESS_KEY) {
+            authMethod = 'access-key';
         }
 
         return new TransferProfile(
@@ -381,6 +388,8 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
             input.oidcConfig?.sessionDurationSeconds ?? 0,
             input.oidcConfig?.persistSession ?? false,
             input.oidcConfig?.customCaBundle ?? '',
+            input.accessKeyId ?? '',
+            input.hasSecretAccessKey ?? false,
         );
     }
 
@@ -410,6 +419,8 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
             input.oidcSessionDurationSeconds ?? 0,
             input.oidcPersistSession ?? false,
             input.oidcCustomCaBundle ?? '',
+            input.accessKeyId ?? '',
+            input.hasSecretAccessKey ?? false,
         );
     }
 
@@ -435,6 +446,9 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         // Map auth method
         if (input.authMethod === 'oidc') {
             transferProfile.authMethod = proto.AuthMethod.OIDC;
+        } else if (input.authMethod === 'access-key') {
+            transferProfile.authMethod = proto.AuthMethod.ACCESS_KEY;
+            transferProfile.accessKeyId = input.accessKeyId ?? '';
         } else {
             transferProfile.authMethod = proto.AuthMethod.AWS_PROFILE;
         }

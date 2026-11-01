@@ -10,7 +10,7 @@
         <div class="reports-container">
             <table mat-table matSort [dataSource]="dataSource">
                 <ng-container matColumnDef="remoteConfiguration">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Remote Configuration</th>
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Transfer Profile</th>
                     <td mat-cell *matCellDef="let report">{{ report.transferProfile }}</td>
                 </ng-container>
                 <ng-container matColumnDef="bucket">

@@ -266,7 +266,7 @@ func buildJobName(filesToUpload []string) string {
 	return jobName
 }
 
-// StartHotFolderUpload Creates a job and starts an Upload for each remote configuration in the hot folder.
+// StartHotFolderUpload Creates a job and starts an Upload for each transfer profile in the hot folder.
 // When force is true the upload ignores the already-exists filters and re-uploads every file.
 func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, force bool) {
 	for transferProfileName, destinationFolder := range hotFolder.TransferProfilesAndDestinationFolders {

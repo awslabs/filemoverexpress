@@ -234,7 +234,7 @@ export class HotFolderFormComponent implements OnDestroy {
     }
 
     /**
-     * Creates a new empty remote configuration form group
+     * Creates a new empty transfer profile form group
      */
     createRemoteConfigFormGroup() {
         return new FormGroup<HotFolderRemoteConfigFormGroup>({
