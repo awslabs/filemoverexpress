@@ -4,8 +4,6 @@ import (
 	"math/rand/v2"
 	"strings"
 	"testing"
-
-	"github.com/bytedance/mockey"
 )
 
 func TestValidatePathLength(t *testing.T) {
@@ -51,14 +49,15 @@ func TestValidatePathLength(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockey.PatchConvey("Patch supportsLongFilePaths", t, func() {
-				// Mock the "supportsLongFilePaths" function to set a fixed response for the testing
-				mockey.Mock(supportsLongFilePaths).Return(tt.longPathsSupported).Build()
+			// Swap the function-variable seam for a fixed response and restore it
+			// after the subtest, so each case runs with a known long-path setting.
+			original := supportsLongFilePaths
+			t.Cleanup(func() { supportsLongFilePaths = original })
+			supportsLongFilePaths = func() bool { return tt.longPathsSupported }
 
-				if err := ValidatePathLength(tt.args.source); (err != nil) != tt.wantErr {
-					t.Errorf("ValidatePathLength() error = %v, wantErr %v", err, tt.wantErr)
-				}
-			})
+			if err := ValidatePathLength(tt.args.source); (err != nil) != tt.wantErr {
+				t.Errorf("ValidatePathLength() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

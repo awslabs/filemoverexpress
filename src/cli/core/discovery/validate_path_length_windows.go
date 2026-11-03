@@ -15,6 +15,11 @@ const (
 	LongPathsAttr = "LongPathsEnabled"
 )
 
+// supportsLongFilePaths is a package-level function variable so tests can swap in a
+// fixed response (restored via t.Cleanup) without patching the runtime. Production
+// code uses the real registry-backed implementation below.
+var supportsLongFilePaths = supportsLongFilePathsImpl
+
 func ValidatePathLength(source string) error {
 	if len(source) <= 260 || supportsLongFilePaths() {
 		return nil
@@ -23,7 +28,7 @@ func ValidatePathLength(source string) error {
 	return NewDiscoveryError(StrPathTooLong, source)
 }
 
-func supportsLongFilePaths() bool {
+func supportsLongFilePathsImpl() bool {
 	regKey, err := registry.OpenKey(
 		registry.LOCAL_MACHINE,
 		LongPathsKey,

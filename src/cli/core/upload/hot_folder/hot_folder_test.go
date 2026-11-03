@@ -4,14 +4,33 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bytedance/mockey"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
-	"github.com/awslabs/filemoverexpress/config"
-	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
+
+// mockUploadDeps is a testify/mock fake of the uploadDeps seam. The method-name strings passed
+// to .On / AssertCalled below ("GetTransferProfile", "NewJob", "Uploader") are matched at test
+// time against these method names; keep them in sync with the uploadDeps interface.
+type mockUploadDeps struct {
+	mock.Mock
+}
+
+func (m *mockUploadDeps) GetTransferProfile(profileName string) (configtypes.TransferProfile, error) {
+	args := m.Called(profileName)
+	return args.Get(0).(configtypes.TransferProfile), args.Error(1)
+}
+
+func (m *mockUploadDeps) NewJob(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Job, error) {
+	args := m.Called(cfg)
+	return args.Get(0).(*jobmanagertypes.Job), args.Error(1)
+}
+
+func (m *mockUploadDeps) Uploader(job *jobmanagertypes.Job) {
+	m.Called(job)
+}
 
 func Test_keysForHotFolder(t *testing.T) {
 	sourceFolder := filepath.Join("tmp", "hot", "folderab")
@@ -154,34 +173,41 @@ func Test_HotFolderUploadSourceDirectory_ForcePropagation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockey.PatchConvey(tt.name, t, func() {
-				hotFolder := &HotFolder{
-					Name:                                  "hf",
-					Enabled:                               true,
-					SourceFolder:                          filepath.Join("watch", "folder"),
-					ForceInitialUpload:                    tt.forceInitialUpload,
-					TransferProfilesAndDestinationFolders: map[string]string{"profile": "dest"},
-				}
+			hotFolder := &HotFolder{
+				Name:                                  "hf",
+				Enabled:                               true,
+				SourceFolder:                          filepath.Join("watch", "folder"),
+				ForceInitialUpload:                    tt.forceInitialUpload,
+				TransferProfilesAndDestinationFolders: map[string]string{"profile": "dest"},
+			}
 
-				mockey.Mock(config.LoadConfiguration).Return(configtypes.FmeConfig{}).Build()
-				mockey.Mock((configtypes.FmeConfig).GetTransferProfile).
-					Return(configtypes.TransferProfile{Name: "profile", Bucket: "bucket"}, nil).Build()
+			// Swap the production deps seam for a fake and restore it afterward.
+			original := deps
+			t.Cleanup(func() { deps = original })
+			fake := &mockUploadDeps{}
+			deps = fake
 
-				var capturedForce bool
-				var jobCreated bool
-				mockey.Mock(jobmanagertypes.NewJob).To(func(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Job, error) {
-					capturedForce = cfg.Force
-					jobCreated = true
-					return &jobmanagertypes.Job{}, nil
-				}).Build()
-				mockey.Mock(upload.Uploader).To(func(*jobmanagertypes.Job) {}).Build()
+			fake.On("GetTransferProfile", "profile").
+				Return(configtypes.TransferProfile{Name: "profile", Bucket: "bucket"}, nil)
 
-				HotFolderUploadSourceDirectory(hotFolder)
+			// Capture the job's Force field at NewJob time; MatchedBy also asserts it
+			// equals the hot folder's ForceInitialUpload flag.
+			var capturedForce bool
+			fake.On("NewJob", mock.MatchedBy(func(cfg jobmanagertypes.JobConfig) bool {
+				capturedForce = cfg.Force
+				return cfg.Force == tt.forceInitialUpload
+			})).Return(&jobmanagertypes.Job{}, nil)
 
-				assert.True(t, jobCreated, "expected an upload job to be created")
-				assert.Equal(t, tt.forceInitialUpload, capturedForce,
-					"job Force must match the hot folder's ForceInitialUpload flag")
-			})
+			fake.On("Uploader", mock.Anything).Return()
+
+			HotFolderUploadSourceDirectory(hotFolder)
+
+			fake.AssertCalled(t, "NewJob", mock.MatchedBy(func(cfg jobmanagertypes.JobConfig) bool {
+				return cfg.Force == tt.forceInitialUpload
+			}))
+			fake.AssertCalled(t, "Uploader", mock.Anything)
+			assert.Equal(t, tt.forceInitialUpload, capturedForce,
+				"job Force must match the hot folder's ForceInitialUpload flag")
 		})
 	}
 }

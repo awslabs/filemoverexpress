@@ -1,6 +1,6 @@
 module github.com/awslabs/filemoverexpress
 
-go 1.26.0
+go 1.27.3
 
 require (
 	connectrpc.com/connect v1.21.0
@@ -14,7 +14,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.1
 	github.com/aws/smithy-go v1.28.2
 	github.com/bunjiboys/daemon v1.0.1-0.20201102214253-1961c3a85a45
-	github.com/bytedance/mockey v1.4.7
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/google/go-tpm v0.9.3
 	github.com/knadh/koanf/parsers/yaml v1.1.1
@@ -63,9 +62,7 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
-	github.com/gopherjs/gopherjs v1.21.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/knadh/koanf/maps v0.1.3 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -76,14 +73,12 @@ require (
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
-	github.com/smarty/assertions v1.16.0 // indirect
-	github.com/smartystreets/goconvey v1.8.1 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/arch v0.31.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
