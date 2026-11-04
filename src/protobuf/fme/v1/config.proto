@@ -39,6 +39,14 @@ message GeneralSettings {
     // Opt-in: when true, the daemon auto-scales max_active_transfers to the machine
     // (CPU cores bounded by the open-file limit), ignoring the explicit value above.
     bool auto_max_active_transfers = 8;
+    // Global ceiling on simultaneous S3 connections per host (0 = no limit).
+    int32 max_connections_per_host = 9;
+    // Per-socket send buffer cap in bytes / SO_SNDBUF (0 = OS default).
+    int32 send_buffer_bytes = 10;
+    // Opt-in: when true, the daemon derives per-file threads and a shared connection
+    // budget from each job's file sizes and the host kernel pool, replacing the fixed
+    // threads / auto-tuning path.
+    bool adaptive_concurrency = 11;
 }
 
 message LoggingSettings {

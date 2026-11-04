@@ -5,6 +5,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -38,6 +39,17 @@ type (
 	ReloadFn func(config configtypes.FmeConfig)
 )
 
+// defaultSendBufferBytes returns the default per-socket send-buffer cap. macOS has
+// a small, fixed kernel network-buffer pool, so it defaults to a 2 MiB cap to keep
+// high-fan-out transfers from exhausting it; other platforms default to 0 (leave the
+// OS default) so capable hosts such as Linux are not throttled.
+func defaultSendBufferBytes() int32 {
+	if runtime.GOOS == "darwin" {
+		return int32(constants.MacOSDefaultSendBufferBytes)
+	}
+	return int32(constants.DefaultSendBufferBytes)
+}
+
 func buildDefaultsMap() map[string]interface{} {
 	return map[string]interface{}{
 		// General
@@ -47,6 +59,8 @@ func buildDefaultsMap() map[string]interface{} {
 		configkeys.GeneralMaxActiveTransfers:     int32(constants.DefaultMaxActiveTransfers),
 		configkeys.GeneralAutoMaxActiveTransfers: constants.DefaultAutoMaxActiveTransfers,
 		configkeys.GeneralTargetBandwidth:        constants.DefaultTargetBandwidth,
+		configkeys.GeneralMaxConnectionsPerHost:  int32(constants.DefaultMaxConnectionsPerHost),
+		configkeys.GeneralSendBufferBytes:        defaultSendBufferBytes(),
 
 		// Logging
 		configkeys.LoggingDirectory: constants.DefaultLoggingDirectory,
@@ -287,6 +301,16 @@ func validateGeneralSettings(cfg *configtypes.FmeConfig) bool {
 
 	if cfg.General.TargetBandwidth < 0 {
 		cfg.General.TargetBandwidth = 0
+	}
+
+	if cfg.General.MaxConnectionsPerHost < 0 {
+		cfg.General.MaxConnectionsPerHost = constants.DefaultMaxConnectionsPerHost
+		changesRequired = true
+	}
+
+	if cfg.General.SendBufferBytes < 0 {
+		cfg.General.SendBufferBytes = defaultSendBufferBytes()
+		changesRequired = true
 	}
 
 	return changesRequired

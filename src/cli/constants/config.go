@@ -12,6 +12,18 @@ const (
 	DefaultAutoMaxActiveTransfers = false
 	DefaultTargetBandwidth        = 0
 
+	// Connection tuning. DefaultMaxConnectionsPerHost bounds the total simultaneous
+	// connections the S3 client opens to one host (a global connection ceiling across
+	// every active transfer and every multipart part). 0 means no limit, matching the
+	// AWS SDK default. DefaultSendBufferBytes caps each socket's send buffer (SO_SNDBUF);
+	// 0 means leave the OS default. macOS overrides the send-buffer default to
+	// MacOSDefaultSendBufferBytes because its kernel network memory pool is small and
+	// fixed, so unbounded per-socket buffers exhaust it (ENOBUFS). This is the in-app
+	// equivalent of raising net.inet.tcp.autosndbufmax, so users need no sudo sysctl.
+	DefaultMaxConnectionsPerHost = 0
+	DefaultSendBufferBytes       = 0
+	MacOSDefaultSendBufferBytes  = 2 * 1024 * 1024
+
 	// Logging
 	DefaultLoggingDirectory = "logs"
 	DefaultLoggingSeverity  = "info"

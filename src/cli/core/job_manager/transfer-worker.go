@@ -152,6 +152,8 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 //revive:enable:function-length
 
 // TransferTask calls the transfer_api Upload and Download functions, which are responsible for the actual transferring of the task.
+//
+//revive:disable:function-length
 func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manager *transferapi.S3Manager) error {
 	if job.CancelCtx.Err() != nil {
 		return context.Cause(job.CancelCtx)
@@ -160,6 +162,15 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 
 	//nolint:nestif
 	if task.TaskDirection() == jobmanagertypes.TaskDirectionDownload {
+		// Acquire the adaptive budget BEFORE creating the output file: if the job is
+		// aborted while blocked waiting for budget, we return here and never create an
+		// empty destination file.
+		acq, acqErr := transferapi.AcquireAdaptivePlan(job.CancelCtx, task.S3Object().Size, "download")
+		if acqErr != nil {
+			return acqErr
+		}
+		defer acq.Release()
+
 		outputFile, err := core.CreateOutputFileAndDestDir(task.Destination())
 		if err != nil {
 			return err
@@ -171,7 +182,7 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		cancelProgressChan := make(chan bool)
 		go updateDownloadJobProgress(task, job, cancelProgressChan, &writer)
-		_, err = s3Manager.Download(transferapi.DownloadConfig{
+		downloadCfg := transferapi.DownloadConfig{
 			AutoTune:    transferProfile.AutoTuning,
 			ChunkSize:   int64(transferProfile.ChunkSize) * constants.MiB,
 			Context:     job.CancelCtx,
@@ -180,7 +191,17 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			SourceSize:  task.S3Object().Size,
 			Threads:     transferProfile.Threads,
 			Writer:      &writer,
-		})
+		}
+		// Adaptive mode (opt-in): apply the per-file plan whose budget was acquired
+		// above. The shared limiter is the real governor for both directions, so a
+		// download can no longer overrun the pool either.
+		if acq.Engaged {
+			downloadCfg.AutoTune = false
+			downloadCfg.Threads = acq.Plan.Threads
+			downloadCfg.ChunkSize = acq.Plan.ChunkSize
+			downloadCfg.Adaptive = true
+		}
+		_, err = s3Manager.Download(downloadCfg)
 		closeErr := writer.File.Close()
 		if closeErr != nil {
 			events.Events.Send(&eventtypes.AlertEvent{
@@ -198,6 +219,12 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		return err
 	} else if task.TaskDirection() == jobmanagertypes.TaskDirectionUpload {
+		acq, acqErr := transferapi.AcquireAdaptivePlan(job.CancelCtx, task.LocalFile().Size, "upload")
+		if acqErr != nil {
+			return acqErr
+		}
+		defer acq.Release()
+
 		file, err := os.Open(task.LocalFile().Path)
 		if err != nil {
 			return err
@@ -224,7 +251,7 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		cancelProgressChan := make(chan bool)
 		go updateUploadJobProgress(task, job, cancelProgressChan, &reader)
-		_, err = s3Manager.Upload(transferapi.UploadConfig{
+		uploadCfg := transferapi.UploadConfig{
 			AutoTune:          transferProfile.AutoTuning,
 			Checksum:          task.Checksum(),
 			ChecksumAlgorithm: string(transferProfile.Checksums.Algorithm),
@@ -237,7 +264,16 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			Reader:            &reader,
 			StorageClass:      transferProfile.StorageClass,
 			Threads:           transferProfile.Threads,
-		})
+		}
+		// Adaptive mode (opt-in): apply the per-file plan whose budget was acquired
+		// above, overriding the profile's fixed threads / auto-tuning.
+		if acq.Engaged {
+			uploadCfg.AutoTune = false
+			uploadCfg.Threads = acq.Plan.Threads
+			uploadCfg.ChunkSize = acq.Plan.ChunkSize
+			uploadCfg.Adaptive = true
+		}
+		_, err = s3Manager.Upload(uploadCfg)
 
 		// Stop the sampling goroutine BEFORE rolling back: rollbackPausedTaskProgress
 		// reads task.BytesTransferred, and a late progress sample landing between that
@@ -251,6 +287,8 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 	}
 	return errors.New("unknown transfer direction")
 }
+
+//revive:enable:function-length
 
 // rollbackPausedTaskProgress reverses a paused task's contribution to the job's
 // running byte total. updateUploadJobProgress / updateDownloadJobProgress

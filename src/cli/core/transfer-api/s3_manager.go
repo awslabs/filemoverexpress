@@ -3,6 +3,7 @@ package transfer_api
 import (
 	"context"
 	"errors"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -288,13 +289,20 @@ func NewS3ManagerFromConfig(input S3ManagerConfig) (*S3Manager, error) {
 }
 
 func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager, error) {
-	retryCount := fmeconfig.LoadConfiguration().General.RetryCount
+	fmeCfg := fmeconfig.LoadConfiguration()
+	retryCount := fmeCfg.General.RetryCount
 	retryCount = max(retryCount, 0)
-	// ENOBUFS-aware retryer: on kernel buffer exhaustion (ENOBUFS / WSAENOBUFS), back
-	// off long enough for the socket pool to drain and retry under MaxAttempts instead
-	// of hard-failing on the retry token bucket. Replaces the bare RetryMaxAttempts.
-	retryer := newENOBUFSRetryer(int(retryCount))
+	// Global connection ceiling + per-socket send-buffer cap. buildTunedHTTPClient
+	// returns nil when neither is configured, leaving the SDK default client in place.
+	tunedClient := buildTunedHTTPClient(HTTPClientConfig{
+		MaxConnectionsPerHost: int(fmeCfg.General.MaxConnectionsPerHost),
+		SendBufferBytes:       int(EffectiveSendBufferBytes(fmeCfg, runtime.GOOS)),
+	})
 	var client *s3.Client
+	// ENOBUFS-aware retryer: on kernel buffer exhaustion, back off long enough for
+	// the pool to drain and retry under MaxAttempts instead of hard-failing on the
+	// retry token bucket. Replaces the bare RetryMaxAttempts setting.
+	retryer := newENOBUFSRetryer(int(retryCount))
 	if tp.Endpoint != "" {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
 			opts.Retryer = retryer
@@ -302,10 +310,16 @@ func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager
 			// S3-compatible stores (MinIO, etc.) addressed via a custom endpoint generally require
 			// path-style addressing; AWS S3 (no custom endpoint) keeps the default virtual-hosted style.
 			opts.UsePathStyle = true
+			if tunedClient != nil {
+				opts.HTTPClient = tunedClient
+			}
 		})
 	} else {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
 			opts.Retryer = retryer
+			if tunedClient != nil {
+				opts.HTTPClient = tunedClient
+			}
 		})
 	}
 	return &S3Manager{

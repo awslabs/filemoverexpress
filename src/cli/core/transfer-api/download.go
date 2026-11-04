@@ -18,6 +18,10 @@ type DownloadConfig struct {
 	SourceSize  int64
 	Threads     int
 	Writer      io.WriterAt
+	// Adaptive, when true, applies Threads/ChunkSize as explicit per-call multipart
+	// settings (the adaptive planner's per-file plan). Budget acquisition is handled
+	// by the caller via AcquireAdaptivePlan before the output file is created, not here.
+	Adaptive bool
 }
 
 //nolint:staticcheck // Pending TransferManagerV2 migration
@@ -35,16 +39,21 @@ func (s3m *S3Manager) Download(input DownloadConfig) (int64, error) {
 	s3m.Downloader = downloader
 	s3m.Lock.Unlock()
 
-	numBytesDownloaded, err := downloader.Download(input.Context, input.Writer, &s3.GetObjectInput{
-		Bucket: aws.String(s3m.Bucket),
-		Key:    aws.String(input.Key),
-	},
+	opts := []func(*manager.Downloader){
 		WithDownloadSettings(AutoTuningConfig{
 			SourceSize:  input.SourceSize,
 			AutoTuning:  input.AutoTune,
 			MemoryLimit: input.MemoryLimit,
 		}),
-	)
+	}
+	if input.Adaptive {
+		opts = append(opts, withExplicitDownloadSettings(input.Threads, input.ChunkSize))
+	}
+
+	numBytesDownloaded, err := downloader.Download(input.Context, input.Writer, &s3.GetObjectInput{
+		Bucket: aws.String(s3m.Bucket),
+		Key:    aws.String(input.Key),
+	}, opts...)
 	if input.Context.Err() != nil {
 		return numBytesDownloaded, context.Cause(input.Context)
 	}

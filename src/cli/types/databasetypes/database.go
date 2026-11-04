@@ -94,11 +94,11 @@ func (obj *DatabaseObject) BuildKey() []byte {
 
 // Initialize sets up the Database, creating it if necessary, and then opens the Database
 func (db *Database) Initialize() error {
-	usr, err := user.Current()
+	dbFile, err := dbFilePath()
 	if err != nil {
 		return err
 	}
-	database, err := openDatabase(getDbFile(usr))
+	database, err := openDatabase(dbFile)
 	if err != nil {
 		return err
 	}
@@ -125,13 +125,21 @@ func openDatabase(dbFile string) (*bbolt.DB, error) {
 	return database, err
 }
 
-func getDbFile(usr *user.User) string {
+// dbFilePath resolves the checksum-cache database path. It honors FME_CONFIG_DIR
+// first (like config.GetConfigDir), and only falls back to the user home dir when
+// the env var is unset. Resolving the env var first means the daemon still starts
+// on hosts where user.Current() cannot resolve a home (e.g. a Windows session with
+// no loaded user profile), provided FME_CONFIG_DIR is set.
+func dbFilePath() (string, error) {
 	dbDir, exists := os.LookupEnv("FME_CONFIG_DIR")
 	if !exists {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
 		dbDir = path.Join(usr.HomeDir, constants.DefaultAppDir)
 	}
-	dbFile := path.Join(dbDir, constants.DatabaseFilename)
-	return dbFile
+	return path.Join(dbDir, constants.DatabaseFilename), nil
 }
 
 func performInitTransaction(database *bbolt.DB) error {

@@ -10,6 +10,8 @@ const (
 	GeneralMaxActiveTransfers                   = General + KeySeparator + "maxActiveTransfers"
 	GeneralAutoMaxActiveTransfers               = General + KeySeparator + "autoMaxActiveTransfers"
 	GeneralTargetBandwidth                      = General + KeySeparator + "targetBandwidth"
+	GeneralMaxConnectionsPerHost                = General + KeySeparator + "maxConnectionsPerHost"
+	GeneralSendBufferBytes                      = General + KeySeparator + "sendBufferBytes"
 	Logging                                     = "logging"
 	LoggingDirectory                            = Logging + KeySeparator + "directory"
 	LoggingSeverity                             = Logging + KeySeparator + "severity"
