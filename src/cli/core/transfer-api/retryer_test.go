@@ -71,10 +71,10 @@ func TestENOBUFSBackoff(t *testing.T) {
 }
 
 func TestNewENOBUFSRetryer(t *testing.T) {
-	t.Run("enforces minimum attempts", func(t *testing.T) {
+	t.Run("honors the configured attempt count", func(t *testing.T) {
 		r := newENOBUFSRetryer(3)
-		if got := r.MaxAttempts(); got < enobufsMinAttempts {
-			t.Fatalf("MaxAttempts = %d, want >= %d", got, enobufsMinAttempts)
+		if got := r.MaxAttempts(); got != 3 {
+			t.Fatalf("MaxAttempts = %d, want 3 (configured retryCount governs all classes)", got)
 		}
 	})
 

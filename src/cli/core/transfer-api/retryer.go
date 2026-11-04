@@ -2,7 +2,7 @@ package transfer_api
 
 import (
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,14 +15,12 @@ import (
 // the only useful response is to wait for in-flight transfers to drain it before
 // retrying, not to retry immediately. These delays are deliberately longer than
 // the SDK's default connection-error backoff (base 50ms) so the pool has real
-// time to recover under a burst of simultaneous failures.
+// time to recover under a burst of simultaneous failures. The base is added on
+// top of the jittered draw, so the effective per-attempt ceiling is
+// enobufsMaxBackoff + enobufsBaseBackoff (~5.25s), not exactly 5s.
 const (
 	enobufsBaseBackoff = 250 * time.Millisecond
 	enobufsMaxBackoff  = 5 * time.Second
-	// enobufsMinAttempts is the floor on retry attempts when buffer pressure is
-	// possible. Each attempt is one backoff cycle that lets the pool drain, so a
-	// few extra attempts matter far more here than for a normal transient error.
-	enobufsMinAttempts = 10
 )
 
 // enobufsBackoff is a BackoffDelayer that applies a long, jittered delay to
@@ -48,7 +46,7 @@ func (b enobufsBackoff) BackoffDelay(attempt int, err error) (time.Duration, err
 		d = enobufsMaxBackoff
 	}
 	//nolint:gosec // jitter does not need a cryptographic RNG
-	return time.Duration(rand.Int63n(int64(d))) + enobufsBaseBackoff, nil
+	return time.Duration(rand.Int64N(int64(d))) + enobufsBaseBackoff, nil
 }
 
 // newENOBUFSRetryer returns a Retryer that treats kernel buffer exhaustion as a
@@ -58,12 +56,13 @@ func (b enobufsBackoff) BackoffDelay(attempt int, err error) (time.Duration, err
 // under MaxAttempts instead of instantly draining the shared token bucket and
 // hard-failing with "retry quota exceeded" (the failure observed at MTU 1500).
 //
-// baseAttempts is the configured retry count; the retryer uses at least
-// enobufsMinAttempts so buffer pressure gets several drain cycles.
+// baseAttempts is the configured retry count and governs MaxAttempts for every
+// error class, exactly as the SDK default retryer did; this retryer changes HOW
+// retries behave under buffer pressure (long backoff, no token-bucket hard-fail),
+// not how many attempts any class gets.
 func newENOBUFSRetryer(baseAttempts int) aws.Retryer {
-	attempts := max(baseAttempts, enobufsMinAttempts)
 	return retry.NewStandard(func(o *retry.StandardOptions) {
-		o.MaxAttempts = attempts
+		o.MaxAttempts = baseAttempts
 		// Treat ENOBUFS as retryable explicitly (the default connection-error
 		// classifier usually also catches it, but being explicit guarantees the
 		// long backoff path and documents intent).
