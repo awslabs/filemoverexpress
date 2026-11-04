@@ -23,6 +23,16 @@ var (
 	loggedPlanThreads sync.Map // thread-count -> struct{}; dedups diagnostic plan logging
 )
 
+// AdaptiveAcquisition is the result of AcquireAdaptivePlan. Release must always be
+// deferred by the caller (it is a no-op when adaptive is off or nothing was
+// acquired). Engaged is true only when adaptive mode produced a plan and its budget
+// was acquired; callers apply Plan to the transfer only when Engaged.
+type AdaptiveAcquisition struct {
+	Plan    ConcurrencyPlan
+	Release func()
+	Engaged bool
+}
+
 // ConfigureConnectionLimiter installs a global limiter of the given budget, or
 // disables limiting when budget <= 0. Called once at daemon start; replacing the
 // limiter is safe because the pointer swap is atomic.
@@ -64,16 +74,6 @@ func acquireConnections(ctx context.Context, n int) (func(), error) {
 		return func() {}, err
 	}
 	return func() { lim.Release(int64(n)) }, nil
-}
-
-// AdaptiveAcquisition is the result of AcquireAdaptivePlan. Release must always be
-// deferred by the caller (it is a no-op when adaptive is off or nothing was
-// acquired). Engaged is true only when adaptive mode produced a plan and its budget
-// was acquired; callers apply Plan to the transfer only when Engaged.
-type AdaptiveAcquisition struct {
-	Plan    ConcurrencyPlan
-	Release func()
-	Engaged bool
 }
 
 // AcquireAdaptivePlan computes the per-file concurrency plan for a transfer of the
