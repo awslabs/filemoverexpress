@@ -14,6 +14,7 @@ import (
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/events"
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 	"github.com/awslabs/filemoverexpress/types/transfertypes"
 )
@@ -27,16 +28,49 @@ var (
 	mtx                *sync.Mutex
 	fileUpdateWaitTime = 10 * time.Second
 	hotFolders         map[string]*HotFolder
+	// deps is the injectable seam for StartHotFolderUpload's collaborators. Production uses
+	// realUploadDeps; tests swap in a testify/mock fake and restore this via t.Cleanup.
+	deps uploadDeps = realUploadDeps{}
 )
 
-type HotFolder struct {
-	Name         string
-	Enabled      bool
-	SourceFolder string
-	// ForceInitialUpload re-uploads the whole source folder with Force on daemon start / reconfigure.
-	ForceInitialUpload bool
-	// key: transfer profile name, value: destination folder
-	TransferProfilesAndDestinationFolders map[string]string
+type (
+	HotFolder struct {
+		Name         string
+		Enabled      bool
+		SourceFolder string
+		// ForceInitialUpload re-uploads the whole source folder with Force on daemon start / reconfigure.
+		ForceInitialUpload bool
+		// key: transfer profile name, value: destination folder
+		TransferProfilesAndDestinationFolders map[string]string
+	}
+
+	// uploadDeps abstracts the package-level collaborators that StartHotFolderUpload calls out to,
+	// so tests can inject a fake (see hot_folder_test.go) without patching the Go runtime. The
+	// production seam is the deps package var above, which is restored by callers via t.Cleanup.
+	uploadDeps interface {
+		// GetTransferProfile resolves a transfer profile by name from the current configuration.
+		GetTransferProfile(profileName string) (configtypes.TransferProfile, error)
+		// NewJob builds an upload job from the given config.
+		NewJob(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Job, error)
+		// Uploader enqueues the job for transfer.
+		Uploader(job *jobmanagertypes.Job)
+	}
+
+	// realUploadDeps is the production uploadDeps implementation, delegating to the real
+	// config, jobmanagertypes, and upload package functions.
+	realUploadDeps struct{}
+)
+
+func (realUploadDeps) GetTransferProfile(profileName string) (configtypes.TransferProfile, error) {
+	return config.LoadConfiguration().GetTransferProfile(profileName)
+}
+
+func (realUploadDeps) NewJob(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Job, error) {
+	return jobmanagertypes.NewJob(cfg)
+}
+
+func (realUploadDeps) Uploader(job *jobmanagertypes.Job) {
+	upload.Uploader(job)
 }
 
 // Init creates a new Watcher, initializes its hotFolders map, and starts goroutines that process filesystem events
@@ -270,12 +304,12 @@ func buildJobName(filesToUpload []string) string {
 // When force is true the upload ignores the already-exists filters and re-uploads every file.
 func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, force bool) {
 	for transferProfileName, destinationFolder := range hotFolder.TransferProfilesAndDestinationFolders {
-		transferProfile, err := config.LoadConfiguration().GetTransferProfile(transferProfileName)
+		transferProfile, err := deps.GetTransferProfile(transferProfileName)
 		if err != nil {
 			events.Events.Warn(strErrorGenericUpload, hotFolder.Name, err)
 			continue
 		}
-		job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
+		job, err := deps.NewJob(jobmanagertypes.JobConfig{
 			Direction:       transfertypes.Upload,
 			Name:            jobName,
 			TransferProfile: &transferProfile,
@@ -289,7 +323,7 @@ func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, f
 				hotFolder.Name, err)
 			continue
 		}
-		upload.Uploader(job)
+		deps.Uploader(job)
 	}
 }
 

@@ -2,7 +2,7 @@
 FROM node:22-bookworm AS base
 
 # Install Go
-ARG GO_VERSION=1.25.3
+ARG GO_VERSION=1.27.3
 RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
@@ -21,7 +21,7 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest \
     && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
 
 # Install golangci-lint
-ARG GOLANGCI_LINT_VERSION=2.1.6
+ARG GOLANGCI_LINT_VERSION=2.15.0
 RUN curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin v${GOLANGCI_LINT_VERSION}
 
 # Install Chrome for Karma headless testing
