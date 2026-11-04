@@ -160,6 +160,15 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 
 	//nolint:nestif
 	if task.TaskDirection() == jobmanagertypes.TaskDirectionDownload {
+		// Acquire the adaptive budget BEFORE creating the output file: if the job is
+		// aborted while blocked waiting for budget, we return here and never create an
+		// empty destination file.
+		acq, acqErr := transferapi.AcquireAdaptivePlan(job.CancelCtx, task.S3Object().Size, "download")
+		if acqErr != nil {
+			return acqErr
+		}
+		defer acq.Release()
+
 		outputFile, err := core.CreateOutputFileAndDestDir(task.Destination())
 		if err != nil {
 			return err
@@ -181,14 +190,13 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			Threads:     transferProfile.Threads,
 			Writer:      &writer,
 		}
-		// Adaptive mode (opt-in): a positive budget means the daemon derives per-file
-		// threads/chunk from the object size and gates on the shared connection limiter,
-		// the same governor used for uploads, so downloads cannot overrun the pool either.
-		if budget := transferapi.ConfiguredBudget(); budget > 0 {
-			plan := transferapi.PlanForSize(task.S3Object().Size, budget)
+		// Adaptive mode (opt-in): apply the per-file plan whose budget was acquired
+		// above. The shared limiter is the real governor for both directions, so a
+		// download can no longer overrun the pool either.
+		if acq.Engaged {
 			downloadCfg.AutoTune = false
-			downloadCfg.Threads = plan.Threads
-			downloadCfg.ChunkSize = plan.ChunkSize
+			downloadCfg.Threads = acq.Plan.Threads
+			downloadCfg.ChunkSize = acq.Plan.ChunkSize
 			downloadCfg.Adaptive = true
 		}
 		_, err = s3Manager.Download(downloadCfg)
@@ -209,6 +217,12 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		return err
 	} else if task.TaskDirection() == jobmanagertypes.TaskDirectionUpload {
+		acq, acqErr := transferapi.AcquireAdaptivePlan(job.CancelCtx, task.LocalFile().Size, "upload")
+		if acqErr != nil {
+			return acqErr
+		}
+		defer acq.Release()
+
 		file, err := os.Open(task.LocalFile().Path)
 		if err != nil {
 			return err
@@ -249,19 +263,13 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			StorageClass:      transferProfile.StorageClass,
 			Threads:           transferProfile.Threads,
 		}
-		// Adaptive mode (opt-in): a positive configured budget means the daemon derives
-		// per-file threads/chunk from the file size and gates the sum on the shared
-		// connection limiter, overriding the profile's fixed threads / auto-tuning.
-		if budget := transferapi.ConfiguredBudget(); budget > 0 {
-			plan := transferapi.PlanForSize(task.LocalFile().Size, budget)
+		// Adaptive mode (opt-in): apply the per-file plan whose budget was acquired
+		// above, overriding the profile's fixed threads / auto-tuning.
+		if acq.Engaged {
 			uploadCfg.AutoTune = false
-			uploadCfg.Threads = plan.Threads
-			uploadCfg.ChunkSize = plan.ChunkSize
+			uploadCfg.Threads = acq.Plan.Threads
+			uploadCfg.ChunkSize = acq.Plan.ChunkSize
 			uploadCfg.Adaptive = true
-			if transferapi.ShouldLogPlan(plan.Threads) {
-				events.Events.Info("Adaptive plan: ~%d MiB file -> %d threads, %d MiB chunks (budget %d sockets)",
-					task.LocalFile().Size/constants.MiB, plan.Threads, plan.ChunkSize/constants.MiB, budget)
-			}
 		}
 		_, err = s3Manager.Upload(uploadCfg)
 

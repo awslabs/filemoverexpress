@@ -27,8 +27,8 @@ type UploadConfig struct {
 	StorageClass      string
 	Threads           int
 	// Adaptive, when true, applies Threads/ChunkSize as explicit per-call multipart
-	// settings and acquires Threads tokens from the global connection limiter for the
-	// duration of the upload.
+	// settings (the adaptive planner's per-file plan). Budget acquisition is handled
+	// by the caller via AcquireAdaptivePlan before any file I/O, not here.
 	Adaptive bool
 }
 
@@ -66,11 +66,6 @@ func (s3m *S3Manager) Upload(input UploadConfig) (*manager.UploadOutput, error) 
 	}
 	if input.Adaptive {
 		opts = append(opts, withExplicitUploadSettings(input.Threads, input.ChunkSize))
-		release, acqErr := acquireConnections(input.Context, input.Threads)
-		if acqErr != nil {
-			return nil, acqErr
-		}
-		defer release()
 	}
 
 	uploadOutput, err := uploader.Upload(input.Context, &s3.PutObjectInput{
