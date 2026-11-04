@@ -290,10 +290,14 @@ func NewS3ManagerFromConfig(input S3ManagerConfig) (*S3Manager, error) {
 func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager, error) {
 	retryCount := fmeconfig.LoadConfiguration().General.RetryCount
 	retryCount = max(retryCount, 0)
+	// ENOBUFS-aware retryer: on kernel buffer exhaustion (ENOBUFS / WSAENOBUFS), back
+	// off long enough for the socket pool to drain and retry under MaxAttempts instead
+	// of hard-failing on the retry token bucket. Replaces the bare RetryMaxAttempts.
+	retryer := newENOBUFSRetryer(int(retryCount))
 	var client *s3.Client
 	if tp.Endpoint != "" {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
-			opts.RetryMaxAttempts = int(retryCount)
+			opts.Retryer = retryer
 			opts.BaseEndpoint = aws.String(tp.Endpoint)
 			// S3-compatible stores (MinIO, etc.) addressed via a custom endpoint generally require
 			// path-style addressing; AWS S3 (no custom endpoint) keeps the default virtual-hosted style.
@@ -301,7 +305,7 @@ func buildS3Manager(cfg *aws.Config, tp configtypes.TransferProfile) (*S3Manager
 		})
 	} else {
 		client = s3.NewFromConfig(*cfg, func(opts *s3.Options) {
-			opts.RetryMaxAttempts = int(retryCount)
+			opts.Retryer = retryer
 		})
 	}
 	return &S3Manager{
