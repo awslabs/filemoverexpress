@@ -36,9 +36,17 @@ func ConfigureAdaptiveFromConfig(cfg configtypes.FmeConfig, goos string) int {
 	}
 	buf := EffectiveSendBufferBytes(cfg, goos)
 	budget := ConnectionBudget(HostPoolBytes(goos), int64(buf))
-	// An explicit maxConnectionsPerHost caps the adaptive budget too, so an operator
-	// can hold the shared socket count below the pool-derived value (e.g. to the
-	// measured Linux throughput knee) without turning adaptive off.
+	// maxConnectionsPerHost is used two distinct (non-redundant) ways:
+	//   1. Here, as a cap on the shared semaphore BUDGET. In adaptive mode the
+	//      semaphore is the real governor of concurrent sockets for both uploads and
+	//      downloads, so clamping the budget is what actually bounds the live socket
+	//      count (e.g. to hold below the measured Linux throughput knee).
+	//   2. In buildTunedHTTPClient, as the transport's raw MaxConnsPerHost ceiling,
+	//      which is only set when the user configures the knob and applies whether or
+	//      not adaptive is on. It is a hard backstop at the HTTP layer, independent of
+	//      the semaphore. When adaptive is on the semaphore already keeps the count at
+	//      or below this value, so the transport ceiling is redundant-but-harmless; it
+	//      matters when adaptive is off.
 	if capHost := int(cfg.General.MaxConnectionsPerHost); capHost > 0 && capHost < budget {
 		budget = capHost
 	}

@@ -171,7 +171,7 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		cancelProgressChan := make(chan bool)
 		go updateDownloadJobProgress(task, job, cancelProgressChan, &writer)
-		_, err = s3Manager.Download(transferapi.DownloadConfig{
+		downloadCfg := transferapi.DownloadConfig{
 			AutoTune:    transferProfile.AutoTuning,
 			ChunkSize:   int64(transferProfile.ChunkSize) * constants.MiB,
 			Context:     job.CancelCtx,
@@ -180,7 +180,18 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			SourceSize:  task.S3Object().Size,
 			Threads:     transferProfile.Threads,
 			Writer:      &writer,
-		})
+		}
+		// Adaptive mode (opt-in): a positive budget means the daemon derives per-file
+		// threads/chunk from the object size and gates on the shared connection limiter,
+		// the same governor used for uploads, so downloads cannot overrun the pool either.
+		if budget := transferapi.ConfiguredBudget(); budget > 0 {
+			plan := transferapi.PlanForSize(task.S3Object().Size, budget)
+			downloadCfg.AutoTune = false
+			downloadCfg.Threads = plan.Threads
+			downloadCfg.ChunkSize = plan.ChunkSize
+			downloadCfg.Adaptive = true
+		}
+		_, err = s3Manager.Download(downloadCfg)
 		closeErr := writer.File.Close()
 		if closeErr != nil {
 			events.Events.Send(&eventtypes.AlertEvent{

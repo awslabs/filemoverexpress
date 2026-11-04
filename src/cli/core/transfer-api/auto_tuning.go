@@ -157,3 +157,20 @@ func withExplicitUploadSettings(threads int, partSize int64) func(uploader *mana
 		}
 	}
 }
+
+// withExplicitDownloadSettings is the download counterpart of
+// withExplicitUploadSettings: it applies the adaptive planner's per-file
+// concurrency and part size to a single Download call, overriding the cached
+// downloader's defaults.
+//
+//nolint:staticcheck // Pending TransferManagerV2 migration
+func withExplicitDownloadSettings(threads int, partSize int64) func(downloader *manager.Downloader) {
+	return func(downloader *manager.Downloader) {
+		if threads > 0 {
+			downloader.Concurrency = threads
+		}
+		if partSize > 0 {
+			downloader.PartSize = partSize
+		}
+	}
+}
