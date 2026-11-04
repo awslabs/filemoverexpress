@@ -75,7 +75,7 @@ func (p Payload) summary() string {
 
 func (p Payload) text() string {
 	var b strings.Builder
-	b.WriteString(p.summary())
+	fmt.Fprint(&b, p.summary())
 	if dest := p.destinationDisplay(); dest != "" {
 		fmt.Fprintf(&b, "\nDestination: %s", dest)
 	}
@@ -93,7 +93,7 @@ func (p Payload) text() string {
 		}
 	}
 	if p.Detail != "" {
-		b.WriteString("\n" + p.Detail)
+		fmt.Fprintf(&b, "\n%s", p.Detail)
 	}
 	if p.Host != "" {
 		fmt.Fprintf(&b, "\nHost: %s", p.Host)
