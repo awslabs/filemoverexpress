@@ -78,13 +78,16 @@ $list-height: #{($max-num-rows-showing + 0.5)*$list-row-height};
 }
 
 .notify-row {
+    display: flex;
+    flex-direction: column;
+
     mat-slide-toggle {
         display: block;
+        margin-bottom: 20px;
     }
 
     mat-form-field {
         width: 100%;
-        margin-top: 12px;
     }
 }
 
