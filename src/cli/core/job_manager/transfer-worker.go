@@ -224,7 +224,7 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		cancelProgressChan := make(chan bool)
 		go updateUploadJobProgress(task, job, cancelProgressChan, &reader)
-		_, err = s3Manager.Upload(transferapi.UploadConfig{
+		uploadCfg := transferapi.UploadConfig{
 			AutoTune:          transferProfile.AutoTuning,
 			Checksum:          task.Checksum(),
 			ChecksumAlgorithm: string(transferProfile.Checksums.Algorithm),
@@ -237,7 +237,22 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 			Reader:            &reader,
 			StorageClass:      transferProfile.StorageClass,
 			Threads:           transferProfile.Threads,
-		})
+		}
+		// Adaptive mode (opt-in): a positive configured budget means the daemon derives
+		// per-file threads/chunk from the file size and gates the sum on the shared
+		// connection limiter, overriding the profile's fixed threads / auto-tuning.
+		if budget := transferapi.ConfiguredBudget(); budget > 0 {
+			plan := transferapi.PlanForSize(task.LocalFile().Size, budget)
+			uploadCfg.AutoTune = false
+			uploadCfg.Threads = plan.Threads
+			uploadCfg.ChunkSize = plan.ChunkSize
+			uploadCfg.Adaptive = true
+			if transferapi.ShouldLogPlan(plan.Threads) {
+				events.Events.Info("Adaptive plan: ~%d MiB file -> %d threads, %d MiB chunks (budget %d sockets)",
+					task.LocalFile().Size/constants.MiB, plan.Threads, plan.ChunkSize/constants.MiB, budget)
+			}
+		}
+		_, err = s3Manager.Upload(uploadCfg)
 
 		// Stop the sampling goroutine BEFORE rolling back: rollbackPausedTaskProgress
 		// reads task.BytesTransferred, and a late progress sample landing between that

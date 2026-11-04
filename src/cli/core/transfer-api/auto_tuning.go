@@ -140,3 +140,20 @@ func WithUploadSettings(input AutoTuningConfig) func(uploader *manager.Uploader)
 	}
 	return func(_ *manager.Uploader) {}
 }
+
+// withExplicitUploadSettings applies a chosen per-file concurrency and part size to
+// a single Upload call. Unlike WithUploadSettings (which only acts when AutoTuning
+// is on and reads a size bracket), this sets caller-computed values, so the
+// adaptive planner's per-file plan takes effect even though the uploader is cached.
+//
+//nolint:staticcheck // Pending TransferManagerV2 migration
+func withExplicitUploadSettings(threads int, partSize int64) func(uploader *manager.Uploader) {
+	return func(uploader *manager.Uploader) {
+		if threads > 0 {
+			uploader.Concurrency = threads
+		}
+		if partSize > 0 {
+			uploader.PartSize = partSize
+		}
+	}
+}

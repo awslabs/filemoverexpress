@@ -26,6 +26,10 @@ type UploadConfig struct {
 	Reader            io.Reader
 	StorageClass      string
 	Threads           int
+	// Adaptive, when true, applies Threads/ChunkSize as explicit per-call multipart
+	// settings and acquires Threads tokens from the global connection limiter for the
+	// duration of the upload.
+	Adaptive bool
 }
 
 //nolint:staticcheck // Pending TransferManagerV2 migration
@@ -53,19 +57,29 @@ func (s3m *S3Manager) Upload(input UploadConfig) (*manager.UploadOutput, error) 
 		metadata[input.ChecksumAlgorithm] = input.Checksum
 	}
 
+	opts := []func(*manager.Uploader){
+		WithUploadSettings(AutoTuningConfig{
+			SourceSize:  input.FileSize,
+			AutoTuning:  input.AutoTune,
+			MemoryLimit: input.MemoryLimit,
+		}),
+	}
+	if input.Adaptive {
+		opts = append(opts, withExplicitUploadSettings(input.Threads, input.ChunkSize))
+		release, acqErr := acquireConnections(input.Context, input.Threads)
+		if acqErr != nil {
+			return nil, acqErr
+		}
+		defer release()
+	}
+
 	uploadOutput, err := uploader.Upload(input.Context, &s3.PutObjectInput{
 		Bucket:       aws.String(s3m.Bucket),
 		Key:          aws.String(input.Destination),
 		Body:         input.Reader,
 		StorageClass: awsStorageClass,
 		Metadata:     metadata,
-	},
-		WithUploadSettings(AutoTuningConfig{
-			SourceSize:  input.FileSize,
-			AutoTuning:  input.AutoTune,
-			MemoryLimit: input.MemoryLimit,
-		}),
-	)
+	}, opts...)
 	if input.Context.Err() != nil {
 		return uploadOutput, context.Cause(input.Context)
 	}

@@ -2,6 +2,7 @@ package job_manager
 
 import (
 	"fmt"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -91,7 +92,20 @@ func GetInstance() *JobManager {
 			priorityQueue:  NewPriorityQueue(),
 		}
 		cfg := config.LoadConfiguration()
-		maxActiveTransfers := config.EffectiveMaxActiveTransfers(cfg)
+		var maxActiveTransfers int32
+		if budget := transferApi.ConfigureAdaptiveFromConfig(cfg, runtime.GOOS); budget > 0 {
+			// Adaptive on: size the worker pool to the connection budget so
+			// files-in-flight is never the artificial cap. The shared weighted
+			// limiter remains the real governor (large files each take many tokens
+			// so fewer run at once; sub-chunk files take one token so the whole
+			// budget can fill with them). Extra idle workers just block on token
+			// acquire, which is cheap.
+			maxActiveTransfers = int32(budget)
+			events.Events.Info("Adaptive concurrency ON (%s): connection budget %d sockets, send buffer %d bytes, worker pool %d",
+				runtime.GOOS, budget, transferApi.EffectiveSendBufferBytes(cfg, runtime.GOOS), budget)
+		} else {
+			maxActiveTransfers = config.EffectiveMaxActiveTransfers(cfg)
+		}
 		maxActiveTransfers = max(maxActiveTransfers, 1)
 
 		for i := 0; i < int(maxActiveTransfers); i++ {

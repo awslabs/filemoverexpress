@@ -46,6 +46,15 @@ type (
 		MaxActiveTransfers     int32  `koanf:"maxActiveTransfers" yaml:"maxActiveTransfers"`
 		AutoMaxActiveTransfers bool   `koanf:"autoMaxActiveTransfers" yaml:"autoMaxActiveTransfers"`
 		TargetBandwidth        int32  `koanf:"targetBandwidth" yaml:"targetBandwidth"`
+		// MaxConnectionsPerHost caps total simultaneous S3 connections per host (0 = no limit).
+		// SendBufferBytes caps each socket's send buffer / SO_SNDBUF (0 = OS default).
+		// Both guard against exhausting a small OS kernel network-buffer pool under high fan-out.
+		MaxConnectionsPerHost int32 `koanf:"maxConnectionsPerHost" yaml:"maxConnectionsPerHost"`
+		SendBufferBytes       int32 `koanf:"sendBufferBytes" yaml:"sendBufferBytes"`
+		// AdaptiveConcurrency, when true, makes the daemon derive per-file threads and a
+		// shared connection budget from each job's file sizes and the host kernel pool,
+		// instead of the profile's fixed threads / auto-tuning. Opt-in (POC).
+		AdaptiveConcurrency bool `koanf:"adaptiveConcurrency" yaml:"adaptiveConcurrency"`
 	}
 	Logging struct {
 		Directory string `koanf:"directory" yaml:"directory"`
@@ -196,6 +205,9 @@ func (fmeConfig FmeConfig) ToGRPCProtobuf() *fmev1.GRPCFmeConfig {
 			AutoMaxActiveTransfers: fmeConfig.General.AutoMaxActiveTransfers,
 			MaxActiveChecksums:     fmeConfig.General.MaxActiveChecksums,
 			TargetBandwidth:        fmeConfig.General.TargetBandwidth,
+			MaxConnectionsPerHost:  fmeConfig.General.MaxConnectionsPerHost,
+			SendBufferBytes:        fmeConfig.General.SendBufferBytes,
+			AdaptiveConcurrency:    fmeConfig.General.AdaptiveConcurrency,
 		},
 		Logging: &fmev1.LoggingSettings{
 			Directory: fmeConfig.Logging.Directory,
@@ -242,6 +254,9 @@ func FromGRPCProtobuf(newConfig *fmev1.GRPCFmeConfig, apiServerConfig APIServer)
 			MaxActiveTransfers:     newConfig.General.MaxActiveTransfers,
 			AutoMaxActiveTransfers: newConfig.General.AutoMaxActiveTransfers,
 			TargetBandwidth:        newConfig.General.TargetBandwidth,
+			MaxConnectionsPerHost:  newConfig.General.MaxConnectionsPerHost,
+			SendBufferBytes:        newConfig.General.SendBufferBytes,
+			AdaptiveConcurrency:    newConfig.General.AdaptiveConcurrency,
 		},
 		Logging: Logging{
 			Directory: newConfig.Logging.Directory,
