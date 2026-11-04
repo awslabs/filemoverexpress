@@ -146,6 +146,50 @@ func humanRate(bytes int64, d time.Duration) string {
 	return humanBytes(int64(float64(bytes)/d.Seconds())) + "/s"
 }
 
+// teamsCard builds the payload for a Microsoft Teams Workflows (Power Automate)
+// incoming webhook. Microsoft retired the classic Office 365 "Incoming Webhook"
+// connector (and its MessageCard format); the Workflows replacement expects a
+// "type":"message" envelope wrapping an Adaptive Card attachment. The summary is
+// a bold title and the remaining detail lines are a single wrapped text block.
+func (p Payload) teamsCard() map[string]interface{} {
+	body := []map[string]interface{}{
+		{
+			"type":   "TextBlock",
+			"text":   p.summary(),
+			"weight": "Bolder",
+			"size":   "Medium",
+			"wrap":   true,
+		},
+	}
+	if detail := p.teamsDetail(); detail != "" {
+		body = append(body, map[string]interface{}{
+			"type": "TextBlock",
+			"text": detail,
+			"wrap": true,
+		})
+	}
+	return map[string]interface{}{
+		"type": "message",
+		"attachments": []map[string]interface{}{
+			{
+				"contentType": "application/vnd.microsoft.card.adaptive",
+				"content": map[string]interface{}{
+					"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+					"type":    "AdaptiveCard",
+					"version": "1.4",
+					"body":    body,
+				},
+			},
+		},
+	}
+}
+
+// teamsDetail is the message body minus the leading summary line (which the card
+// renders as its bold title), so the title is not repeated in the body block.
+func (p Payload) teamsDetail() string {
+	return strings.TrimPrefix(strings.TrimPrefix(p.text(), p.summary()), "\n")
+}
+
 func (p Payload) customBody() map[string]interface{} {
 	event := "transfer.finished"
 	if p.Outcome == OutcomeFailed {
@@ -179,12 +223,7 @@ func encodeBody(preset configtypes.NotificationPreset, p Payload) ([]byte, error
 	case fmev1.NotificationPreset_NOTIFICATION_PRESET_DISCORD:
 		return json.Marshal(map[string]string{"content": text})
 	case fmev1.NotificationPreset_NOTIFICATION_PRESET_TEAMS:
-		return json.Marshal(map[string]interface{}{
-			"@type":    "MessageCard",
-			"@context": "https://schema.org/extensions",
-			"summary":  p.summary(),
-			"text":     text,
-		})
+		return json.Marshal(p.teamsCard())
 	case fmev1.NotificationPreset_NOTIFICATION_PRESET_CUSTOM_JSON:
 		return json.Marshal(p.customBody())
 	default:

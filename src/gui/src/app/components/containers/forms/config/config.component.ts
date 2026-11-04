@@ -119,6 +119,11 @@ export class ConfigComponent implements OnInit {
     // When on, every transfer (upload, hot folder, CLI) notifies the default
     // destination unless that transfer explicitly opts out. Saved with the config.
     notifyAllTransfers = new FormControl<boolean>(false, {nonNullable: true});
+    /** True when the editor's selected preset is Microsoft Teams, which needs the
+     *  Workflows-app setup path rather than a classic Incoming Webhook URL. */
+    get isTeamsPreset(): boolean {
+        return this.notificationForm.controls.preset.value === NotificationPreset.TEAMS;
+    }
     // endregion
 
     // UI Preferences (client-side, saved on change via PreferencesService — NOT part of

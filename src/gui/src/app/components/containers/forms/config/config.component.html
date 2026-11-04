@@ -248,9 +248,15 @@
                                 <mat-hint class="info-hint">
                                     Leave blank to keep the current URL{{ editingUrlHint ? ' (' + editingUrlHint + ')' : '' }}.
                                 </mat-hint>
+                            } @else if (isTeamsPreset) {
+                                <mat-hint class="info-hint">
+                                    In Microsoft Teams, open the Workflows app and create a flow from the
+                                    "Post to a channel when a webhook request is received" template, then paste
+                                    the URL it gives you. (Teams retired the old Incoming Webhook connector.)
+                                </mat-hint>
                             } @else {
                                 <mat-hint class="info-hint">
-                                    Paste the Incoming Webhook URL from Slack, Teams, Discord or Google Chat. This
+                                    Paste the Incoming Webhook URL from Slack, Discord or Google Chat. This
                                     is what routes the message to the right channel.
                                 </mat-hint>
                             }

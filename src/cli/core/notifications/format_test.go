@@ -64,6 +64,48 @@ func TestDestinationDisplay_CleanJoinNoDoubleSlash(t *testing.T) {
 	}
 }
 
+func TestEncodeBody_TeamsUsesWorkflowsAdaptiveCard(t *testing.T) {
+	body, err := encodeBody(configtypes.NotificationPreset(fmev1.NotificationPreset_NOTIFICATION_PRESET_TEAMS), samplePayload())
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	// Must be the Workflows "type":"message" envelope, NOT the retired MessageCard.
+	if strings.Contains(string(body), "MessageCard") {
+		t.Fatalf("Teams body still uses retired MessageCard format: %s", body)
+	}
+	var out struct {
+		Type        string `json:"type"`
+		Attachments []struct {
+			ContentType string `json:"contentType"`
+			Content     struct {
+				Type string `json:"type"`
+				Body []struct {
+					Text string `json:"text"`
+				} `json:"body"`
+			} `json:"content"`
+		} `json:"attachments"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if out.Type != "message" {
+		t.Errorf("expected envelope type 'message', got %q", out.Type)
+	}
+	if len(out.Attachments) != 1 {
+		t.Fatalf("expected 1 attachment, got %d", len(out.Attachments))
+	}
+	att := out.Attachments[0]
+	if att.ContentType != "application/vnd.microsoft.card.adaptive" {
+		t.Errorf("wrong attachment contentType: %q", att.ContentType)
+	}
+	if att.Content.Type != "AdaptiveCard" {
+		t.Errorf("expected AdaptiveCard content, got %q", att.Content.Type)
+	}
+	if len(att.Content.Body) == 0 || !strings.Contains(att.Content.Body[0].Text, "Day 14 camera cards - done") {
+		t.Errorf("adaptive card missing summary title: %+v", att.Content.Body)
+	}
+}
+
 func TestEncodeBody_DiscordUsesContent(t *testing.T) {
 	body, err := encodeBody(configtypes.NotificationPreset(fmev1.NotificationPreset_NOTIFICATION_PRESET_DISCORD), samplePayload())
 	if err != nil {
