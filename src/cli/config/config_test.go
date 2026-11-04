@@ -57,6 +57,22 @@ func TestString(t *testing.T) {
 
 // --- Test 1: Default values match expected constants ---
 
+func TestAdaptiveConcurrencyOptOut(t *testing.T) {
+	resetConfigState()
+	defer resetConfigState()
+
+	// A config that explicitly sets adaptiveConcurrency: false must override the
+	// default-on, so power users can opt out without any other change.
+	tmpDir := t.TempDir()
+	cfgPath := filepath.Join(tmpDir, "configuration.yaml")
+	err := os.WriteFile(cfgPath, []byte("general:\n  adaptiveConcurrency: false\n"), 0600)
+	require.NoError(t, err)
+	setupFileProvider(cfgPath)
+
+	cfg := loadConfig()
+	assert.False(t, cfg.General.AdaptiveConcurrency, "explicit adaptiveConcurrency: false must opt out of the default-on")
+}
+
 func TestDefaultValuesMatchConstants(t *testing.T) {
 	resetConfigState()
 	defer resetConfigState()
@@ -79,6 +95,8 @@ func TestDefaultValuesMatchConstants(t *testing.T) {
 	assert.Equal(t, constants.DefaultAutoMaxActiveTransfers, cfg.General.AutoMaxActiveTransfers)
 	assert.Equal(t, systeminfo.GetCoreCount(), cfg.General.MaxActiveChecksums)
 	assert.Equal(t, int32(constants.DefaultTargetBandwidth), cfg.General.TargetBandwidth)
+	assert.Equal(t, constants.DefaultAdaptiveConcurrency, cfg.General.AdaptiveConcurrency)
+	assert.True(t, cfg.General.AdaptiveConcurrency, "adaptive concurrency must default ON (opt-out) when the key is absent")
 
 	// Logging defaults
 	assert.Equal(t, constants.DefaultLoggingDirectory, cfg.Logging.Directory)
@@ -604,6 +622,7 @@ func TestBuildDefaultConfig(t *testing.T) {
 	assert.Equal(t, uint32(constants.DefaultRetryCount), cfg.General.RetryCount)
 	assert.Equal(t, int32(constants.DefaultMaxActiveTransfers), cfg.General.MaxActiveTransfers)
 	assert.Equal(t, constants.DefaultAutoMaxActiveTransfers, cfg.General.AutoMaxActiveTransfers)
+	assert.Equal(t, constants.DefaultAdaptiveConcurrency, cfg.General.AdaptiveConcurrency)
 	assert.Equal(t, constants.DefaultLoggingDirectory, cfg.Logging.Directory)
 	assert.Equal(t, constants.DefaultAPIServerEnabled, cfg.APIServer.Enabled)
 }
