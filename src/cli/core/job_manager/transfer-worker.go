@@ -152,6 +152,8 @@ func (jm *JobManager) DoSingleTransfer(task *jobmanagertypes.Task) {
 //revive:enable:function-length
 
 // TransferTask calls the transfer_api Upload and Download functions, which are responsible for the actual transferring of the task.
+//
+//revive:disable:function-length
 func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manager *transferapi.S3Manager) error {
 	if job.CancelCtx.Err() != nil {
 		return context.Cause(job.CancelCtx)
@@ -285,6 +287,8 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 	}
 	return errors.New("unknown transfer direction")
 }
+
+//revive:enable:function-length
 
 // rollbackPausedTaskProgress reverses a paused task's contribution to the job's
 // running byte total. updateUploadJobProgress / updateDownloadJobProgress
