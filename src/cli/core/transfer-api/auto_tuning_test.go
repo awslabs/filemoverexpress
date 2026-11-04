@@ -246,3 +246,61 @@ func Test_WithUploadSettings(t *testing.T) {
 		})
 	}
 }
+
+func Test_withExplicitUploadSettings(t *testing.T) {
+	tests := []struct {
+		name         string
+		threads      int
+		partSize     int64
+		startConc    int
+		startPart    int64
+		wantConc     int
+		wantPartSize int64
+	}{
+		{"sets both", 20, 32 * constants.MiB, 1, constants.MiB, 20, 32 * constants.MiB},
+		{"zero threads leaves concurrency", 0, 32 * constants.MiB, 7, constants.MiB, 7, 32 * constants.MiB},
+		{"zero partSize leaves part", 20, 0, 1, 10 * constants.MiB, 20, 10 * constants.MiB},
+		{"both zero leaves defaults", 0, 0, 5, 9 * constants.MiB, 5, 9 * constants.MiB},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := &manager.Uploader{Concurrency: tt.startConc, PartSize: tt.startPart}
+			withExplicitUploadSettings(tt.threads, tt.partSize)(u)
+			if u.Concurrency != tt.wantConc {
+				t.Errorf("Concurrency = %d, want %d", u.Concurrency, tt.wantConc)
+			}
+			if u.PartSize != tt.wantPartSize {
+				t.Errorf("PartSize = %d, want %d", u.PartSize, tt.wantPartSize)
+			}
+		})
+	}
+}
+
+func Test_withExplicitDownloadSettings(t *testing.T) {
+	tests := []struct {
+		name         string
+		threads      int
+		partSize     int64
+		startConc    int
+		startPart    int64
+		wantConc     int
+		wantPartSize int64
+	}{
+		{"sets both", 16, 25 * constants.MiB, 1, constants.MiB, 16, 25 * constants.MiB},
+		{"zero threads leaves concurrency", 0, 25 * constants.MiB, 4, constants.MiB, 4, 25 * constants.MiB},
+		{"zero partSize leaves part", 16, 0, 1, 10 * constants.MiB, 16, 10 * constants.MiB},
+		{"both zero leaves defaults", 0, 0, 3, 8 * constants.MiB, 3, 8 * constants.MiB},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &manager.Downloader{Concurrency: tt.startConc, PartSize: tt.startPart}
+			withExplicitDownloadSettings(tt.threads, tt.partSize)(d)
+			if d.Concurrency != tt.wantConc {
+				t.Errorf("Concurrency = %d, want %d", d.Concurrency, tt.wantConc)
+			}
+			if d.PartSize != tt.wantPartSize {
+				t.Errorf("PartSize = %d, want %d", d.PartSize, tt.wantPartSize)
+			}
+		})
+	}
+}
