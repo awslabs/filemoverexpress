@@ -5,6 +5,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatHint, MatInput, MatLabel } from '@angular/material/input';
+import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { FileBrowserObject, FileBrowserObjectType } from '@app/components/layout/file-browser/file-browser.interfaces';
 import {
@@ -17,6 +18,8 @@ import { BasenamePipe } from '@app/pipes/basename.pipe';
 import { FileBrowserIconPipe } from '@app/pipes/file-browser-icon.pipe';
 import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
+import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { NotificationDestination } from '@gen/es/fme/v1/notifications_pb';
 
 @Component({
     selector: 'fme-transfer-settings-modal',
@@ -40,6 +43,8 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
         ReactiveFormsModule,
         MatSlideToggle,
         MatHint,
+        MatSelect,
+        MatOption,
         MatDialogActions,
         ButtonComponent,
         EnterSubmitDirective,
@@ -48,10 +53,19 @@ import { ButtonComponent } from '@primitives/buttons/button/button.component';
 export class TransferSettingsModalComponent {
     data = inject<TransferSettingsModalData>(MAT_DIALOG_DATA);
     dialogRef = inject<MatDialogRef<TransferSettingsModalComponent>>(MatDialogRef);
+    private fmeClientService = inject(FmeClientService);
 
     @Output() transferSettingsResult = new EventEmitter<TransferSettingsModalResult>();
     forceTransfers: FormControl;
     jobName: FormControl;
+    // "Notify me when this finishes": when on, the selected destination name is threaded
+    // onto the upload request so the daemon posts a webhook when the job finishes/fails.
+    notifyEnabled = new FormControl<boolean>(false, {nonNullable: true});
+    notifyDestination = new FormControl<string>('', {nonNullable: true});
+    notificationDestinations: NotificationDestination[] = [];
+    // Mirrors the daemon's global "notify on every transfer" setting, loaded with the
+    // destinations. Drives the toggle default and the per-transfer opt-out signal.
+    private notifyAllTransfers = false;
     totalObjectCounts: ObjectTypeCount = {
         numFolders: 0,
         numFiles: 0,
@@ -100,6 +114,52 @@ export class TransferSettingsModalComponent {
 
         this.forceTransfers = new FormControl<boolean>(data.forceTransfers === null);
         this.jobName = new FormControl<string>(data.jobName || '', Validators.required);
+
+        this.loadNotificationDestinations();
+    }
+
+    /**
+     * Load the configured webhook destinations so the "Notify me" selector can offer them.
+     * Failures are non-fatal: the selector simply stays empty.
+     */
+    private loadNotificationDestinations() {
+        this.fmeClientService.getConfiguration().subscribe({
+            next: (config) => {
+                this.notificationDestinations = config.notifications?.destinations ?? [];
+                this.notifyAllTransfers = config.notifications?.notifyAllTransfers ?? false;
+                // When the daemon is set to notify on every transfer, default the toggle
+                // on so the user does not have to remember to flip it each time.
+                if (this.notifyAllTransfers) {
+                    this.notifyEnabled.setValue(true);
+                }
+                // Pre-select the default destination, if any, for convenience.
+                const defaultDest = this.notificationDestinations.find((d) => d.isDefault);
+                if (defaultDest) {
+                    this.notifyDestination.setValue(defaultDest.name);
+                } else if (this.notificationDestinations.length) {
+                    this.notifyDestination.setValue(this.notificationDestinations[0].name);
+                }
+            },
+            error: () => {
+                this.notificationDestinations = [];
+            },
+        });
+    }
+
+    /** Destination name to report, or undefined when notifications are off / none chosen. */
+    private resolveNotifyDestination(): string | undefined {
+        if (!this.notifyEnabled.value) {
+            return undefined;
+        }
+        return this.notifyDestination.value || undefined;
+    }
+
+    /**
+     * True when the daemon notifies on every transfer but the user turned notify OFF for
+     * this one - an explicit opt-out the daemon must honor over the global default.
+     */
+    private resolveNotifySuppress(): boolean {
+        return this.notifyAllTransfers && !this.notifyEnabled.value;
     }
 
     cancel() {
@@ -119,6 +179,8 @@ export class TransferSettingsModalComponent {
                 performTransfer: true,
                 jobName: this.jobName.value,
                 forceTransfers: this.forceTransfers.value,
+                notifyDestination: this.resolveNotifyDestination(),
+                notifySuppress: this.resolveNotifySuppress(),
             });
             this.dialogRef.close();
         };

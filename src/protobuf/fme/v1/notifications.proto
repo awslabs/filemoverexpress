@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package fme.v1;
+
+option go_package = "github.com/awslabs/filemoverexpress/protobuf";
+
+// Message format for a webhook destination. Slack, Teams, Discord and Google
+// Chat differ only in the JSON body FME posts. CUSTOM_JSON posts a stable,
+// documented payload for Zapier / Power Automate / a studio's own endpoint.
+enum NotificationPreset {
+    NOTIFICATION_PRESET_UNSPECIFIED = 0;
+    NOTIFICATION_PRESET_SLACK = 1;
+    NOTIFICATION_PRESET_TEAMS = 2;
+    NOTIFICATION_PRESET_DISCORD = 3;
+    NOTIFICATION_PRESET_GOOGLE_CHAT = 4;
+    NOTIFICATION_PRESET_CUSTOM_JSON = 5;
+}
+
+// A named webhook destination. The webhook URL is a secret and is NEVER carried
+// on this message. It is written only via SetNotificationDestinationRequest.url
+// (write-only) and stored encrypted on the daemon, never read back over RPC.
+// has_url reports whether a URL is on file; url_hint is a non-sensitive display
+// tail (for example "...9f2a").
+message NotificationDestination {
+    string name = 1;
+    NotificationPreset preset = 2;
+    bool notify_on_finish = 3;
+    bool notify_on_failure = 4;
+    bool is_default = 5;
+    bool has_url = 6;
+    string url_hint = 7;
+}
+
+message NotificationSettings {
+    repeated NotificationDestination destinations = 1;
+    // When true, every transfer (GUI upload, hot-folder auto-upload, or CLI)
+    // notifies the default destination unless a job explicitly opts out. A
+    // per-transfer notify_destination or notify_suppress still takes precedence.
+    bool notify_all_transfers = 2;
+}
+
+// Create or update a destination. url is WRITE-ONLY: set it to store or replace
+// the webhook URL; leave it empty on an edit to keep the stored URL unchanged.
+message SetNotificationDestinationRequest {
+    NotificationDestination destination = 1;
+    string url = 2;
+}
+
+message SetNotificationDestinationResponse {
+    bool success = 1;
+    string message = 2;
+    NotificationDestination destination = 3;
+}
+
+message DeleteNotificationDestinationRequest {
+    string name = 1;
+}
+
+message DeleteNotificationDestinationResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message SendTestNotificationRequest {
+    string name = 1;
+}
+
+message SendTestNotificationResponse {
+    bool success = 1;
+    string message = 2;
+}

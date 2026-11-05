@@ -77,6 +77,20 @@ $list-height: #{($max-num-rows-showing + 0.5)*$list-row-height};
     color: variables.$folder-icon-color;
 }
 
+.notify-row {
+    display: flex;
+    flex-direction: column;
+
+    mat-slide-toggle {
+        display: block;
+        margin-bottom: 20px;
+    }
+
+    mat-form-field {
+        width: 100%;
+    }
+}
+
 mat-hint {
     font-size: 12px;
 }

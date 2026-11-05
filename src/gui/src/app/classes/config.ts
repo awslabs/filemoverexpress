@@ -1,6 +1,7 @@
 import * as ConfigInterfaces from '../interfaces/config';
 import { FmeConfigSection } from '../interfaces/config';
 import * as proto from '@gen/es/fme/v1/config_pb';
+import { NotificationSettings } from '@gen/es/fme/v1/notifications_pb';
 import {
     DEFAULT_CHECKSUMS,
     DEFAULT_GENERAL_SETTINGS,
@@ -19,6 +20,9 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
         public reports: Reports,
         public protocols: Protocols,
         public uploadHotFolders: HotFolders[],
+        // Managed by the webhook-notification RPCs, not this form. Carried through
+        // unchanged as the raw protobuf message so a whole-config save never wipes it.
+        public notifications?: NotificationSettings,
     ) {
     }
 
@@ -33,6 +37,7 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             Reports.fromJson(input.reports),
             Protocols.fromJson(input.protocols),
             hotFolders,
+            input.notifications,
         );
     }
 
@@ -61,6 +66,7 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             input.reports ? Reports.fromProtobuf(input.reports) : Reports.fromJson(DEFAULT_REPORTS_SETTINGS),
             input.protocols ? Protocols.fromProtobuf(input.protocols) : Protocols.fromJson(DEFAULT_PROTOCOLS_SETTINGS),
             hotFolders,
+            input.notifications,
         );
     }
 
@@ -73,6 +79,7 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
         grpcConfig.uploadHotFolders = this.uploadHotFolders.map(
             (itm) => HotFolders.jsonToProtobuf(itm),
         );
+        grpcConfig.notifications = this.notifications;
         return grpcConfig;
     }
 }

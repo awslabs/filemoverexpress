@@ -38,6 +38,7 @@ type (
 		APIServer        APIServer                 `koanf:"apiServer" yaml:"apiServer"`
 		Protocols        ProtocolList              `koanf:"protocols" yaml:"protocols"`
 		UploadHotFolders []UploadHotFolderSettings `koanf:"hotFolders" yaml:"hotFolders"`
+		Notifications    Notifications             `koanf:"notifications" yaml:"notifications"`
 	}
 	General struct {
 		NoSleep                bool   `koanf:"noSleep" yaml:"noSleep"`
@@ -156,6 +157,26 @@ type (
 		CustomCABundle         string   `koanf:"customCaBundle" yaml:"customCaBundle"`
 		SessionDurationSeconds int32    `koanf:"sessionDurationSeconds" yaml:"sessionDurationSeconds"`
 	}
+	// NotificationPreset selects the webhook message format. Values mirror the
+	// fmev1.NotificationPreset enum and are cast to and from it.
+	NotificationPreset int32
+	Notifications      struct {
+		Destinations []NotificationDestination `koanf:"destinations" yaml:"destinations"`
+		// NotifyAllTransfers, when true, notifies the default destination on every
+		// transfer (upload, hot folder, CLI) unless a job explicitly opts out.
+		NotifyAllTransfers bool `koanf:"notifyAllTransfers" yaml:"notifyAllTransfers"`
+	}
+	// NotificationDestination is a named webhook target. The webhook URL itself is
+	// NOT stored here - it lives encrypted in the notifications secret store. Only
+	// non-sensitive metadata (including a display-only URLHint) is persisted.
+	NotificationDestination struct {
+		Name            string             `koanf:"name" yaml:"name"`
+		Preset          NotificationPreset `koanf:"preset" yaml:"preset"`
+		NotifyOnFinish  bool               `koanf:"notifyOnFinish" yaml:"notifyOnFinish"`
+		NotifyOnFailure bool               `koanf:"notifyOnFailure" yaml:"notifyOnFailure"`
+		IsDefault       bool               `koanf:"isDefault" yaml:"isDefault"`
+		URLHint         string             `koanf:"urlHint" yaml:"urlHint"`
+	}
 )
 
 // String returns a string format of the provided TransferProfile struct, including all of its properties
@@ -225,6 +246,7 @@ func (fmeConfig FmeConfig) ToGRPCProtobuf() *fmev1.GRPCFmeConfig {
 			},
 		},
 		UploadHotFolders: uploadHotFolders,
+		Notifications:    NotificationsToProtobuf(fmeConfig.Notifications),
 	}
 }
 
@@ -275,6 +297,7 @@ func FromGRPCProtobuf(newConfig *fmev1.GRPCFmeConfig, apiServerConfig APIServer)
 			},
 		},
 		UploadHotFolders: HotFoldersFromProtobuf(newConfig.UploadHotFolders),
+		Notifications:    NotificationsFromProtobuf(newConfig.Notifications),
 	}, nil
 }
 
@@ -429,4 +452,54 @@ func HotFoldersToProtobuf(hotFolders []UploadHotFolderSettings) []*fmev1.UploadH
 	}
 
 	return out
+}
+
+// NotificationsToProtobuf maps the stored notification metadata to the wire type.
+// HasUrl is derived from whether a display hint was recorded (a hint is written
+// only when a URL has been stored); the URL itself is never placed on the wire.
+func NotificationsToProtobuf(notifications Notifications) *fmev1.NotificationSettings {
+	out := &fmev1.NotificationSettings{NotifyAllTransfers: notifications.NotifyAllTransfers}
+	for _, dest := range notifications.Destinations {
+		out.Destinations = append(out.Destinations, dest.ToProtobuf())
+	}
+	return out
+}
+
+// ToProtobuf converts a single destination's metadata to the wire type.
+func (dest NotificationDestination) ToProtobuf() *fmev1.NotificationDestination {
+	return &fmev1.NotificationDestination{
+		Name:            dest.Name,
+		Preset:          fmev1.NotificationPreset(dest.Preset),
+		NotifyOnFinish:  dest.NotifyOnFinish,
+		NotifyOnFailure: dest.NotifyOnFailure,
+		IsDefault:       dest.IsDefault,
+		HasUrl:          dest.URLHint != "",
+		UrlHint:         dest.URLHint,
+	}
+}
+
+// NotificationsFromProtobuf maps wire notification metadata back to stored form.
+func NotificationsFromProtobuf(settings *fmev1.NotificationSettings) Notifications {
+	var out Notifications
+	if settings == nil {
+		return out
+	}
+	out.NotifyAllTransfers = settings.NotifyAllTransfers
+	for _, dest := range settings.Destinations {
+		out.Destinations = append(out.Destinations, NotificationDestinationFromProtobuf(dest))
+	}
+	return out
+}
+
+// NotificationDestinationFromProtobuf maps one wire destination to stored form.
+// The URL is intentionally absent here - it is handled only by the secret store.
+func NotificationDestinationFromProtobuf(dest *fmev1.NotificationDestination) NotificationDestination {
+	return NotificationDestination{
+		Name:            dest.Name,
+		Preset:          NotificationPreset(dest.Preset),
+		NotifyOnFinish:  dest.NotifyOnFinish,
+		NotifyOnFailure: dest.NotifyOnFailure,
+		IsDefault:       dest.IsDefault,
+		URLHint:         dest.UrlHint,
+	}
 }

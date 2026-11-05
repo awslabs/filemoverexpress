@@ -20,6 +20,13 @@ import { HistoryService } from '@services/history/history.service';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { WebhookNotificationsService } from '@services/webhook-notifications/webhook-notifications.service';
+import { create } from '@bufbuild/protobuf';
+import {
+    NotificationDestination,
+    NotificationDestinationSchema,
+    NotificationPreset,
+} from '@gen/es/fme/v1/notifications_pb';
 import { PreferencesService } from '@services/preferences/preferences.service';
 import { defaultOptions as defaultPreferences } from '@services/preferences/preferences.constants';
 import { DaemonCloseOptions, NotificationDelay, NotificationPositions } from '@app/components/modals/preferences-modal/preferences-modal.constants';
@@ -62,6 +69,7 @@ export class ConfigComponent implements OnInit {
     private metadataService = inject(MetadataService);
     private versionService = inject(VersionService);
     private notificationService = inject(NotificationsService);
+    private webhookNotifications = inject(WebhookNotificationsService);
     private historyService = inject(HistoryService);
     private hintPopover = inject(HintPopoverService);
     private prefService = inject(PreferencesService);
@@ -79,7 +87,44 @@ export class ConfigComponent implements OnInit {
     // Left-nav sections (mockup config page). Panels stay mounted; nav toggles visibility.
     // Hot Folders is intentionally NOT here — it lives in its own Configure Hot Folders
     // dialog (reachable from the Local panel overflow and right-click menus).
-    activeSection: 'transfers' | 'reports' | 'logging' | 'uiprefs' = 'transfers';
+    activeSection: 'transfers' | 'reports' | 'notifications' | 'logging' | 'uiprefs' = 'transfers';
+
+    // region Notifications (webhook destinations) — managed by their own RPCs, NOT part
+    // of the config form's save/cancel flow. The list is loaded from getConfiguration()
+    // and mutated via WebhookNotificationsService; each mutation refreshes the list.
+    notificationDestinations: NotificationDestination[] = [];
+    notificationPresets: { value: NotificationPreset; label: string }[] = [
+        {value: NotificationPreset.SLACK, label: 'Slack'},
+        {value: NotificationPreset.TEAMS, label: 'Microsoft Teams'},
+        {value: NotificationPreset.DISCORD, label: 'Discord'},
+        {value: NotificationPreset.GOOGLE_CHAT, label: 'Google Chat'},
+        {value: NotificationPreset.CUSTOM_JSON, label: 'Custom JSON'},
+    ];
+    // null while the editor is closed; otherwise '' for a new destination or the name of
+    // the destination being edited (its URL stays hidden; blank keeps the stored one).
+    editingDestinationName: string | null = null;
+    // url_hint of the destination being edited, shown so the user knows a URL is stored.
+    editingUrlHint = '';
+    notificationForm = new FormGroup({
+        preset: new FormControl<NotificationPreset>(NotificationPreset.SLACK, {
+            nonNullable: true,
+            validators: [Validators.required],
+        }),
+        name: new FormControl<string>('', {nonNullable: true, validators: [Validators.required]}),
+        url: new FormControl<string>('', {nonNullable: true}),
+        notifyOnFinish: new FormControl<boolean>(true, {nonNullable: true}),
+        notifyOnFailure: new FormControl<boolean>(true, {nonNullable: true}),
+        isDefault: new FormControl<boolean>(false, {nonNullable: true}),
+    });
+    // When on, every transfer (upload, hot folder, CLI) notifies the default
+    // destination unless that transfer explicitly opts out. Saved with the config.
+    notifyAllTransfers = new FormControl<boolean>(false, {nonNullable: true});
+    /** True when the editor's selected preset is Microsoft Teams, which needs the
+     *  Workflows-app setup path rather than a classic Incoming Webhook URL. */
+    get isTeamsPreset(): boolean {
+        return this.notificationForm.controls.preset.value === NotificationPreset.TEAMS;
+    }
+    // endregion
 
     // UI Preferences (client-side, saved on change via PreferencesService — NOT part of
     // the daemon config form's save/cancel flow). Rendered in the General tab.
@@ -212,6 +257,8 @@ export class ConfigComponent implements OnInit {
         this.fmeClientService.getConfiguration().subscribe({
             next: (result) => {
                 this.originalConfig = result;
+                this.notificationDestinations = result.notifications?.destinations ?? [];
+                this.notifyAllTransfers.setValue(result.notifications?.notifyAllTransfers ?? false);
                 this.configForm.enable();
                 this.configForm.patchValue({
                     general: result.general,
@@ -263,6 +310,19 @@ export class ConfigComponent implements OnInit {
             // The config save writes the whole config, so carry the loaded hot folders
             // through unchanged — otherwise saving Settings would wipe them.
             settings.uploadHotFolders = this.originalConfig?.uploadHotFolders ?? [];
+            // Webhook notification destinations are edited via their own RPCs, not this
+            // form. Carry them through unchanged so saving Settings does not wipe them,
+            // and fold in the global "notify on every transfer" toggle.
+            const notifications = this.originalConfig?.notifications;
+            if (notifications) {
+                notifications.notifyAllTransfers = this.notifyAllTransfers.value;
+                settings.notifications = notifications;
+            } else {
+                settings.notifications = {
+                    destinations: [],
+                    notifyAllTransfers: this.notifyAllTransfers.value,
+                } as unknown as typeof settings.notifications;
+            }
             const input = FmeConfig.fromJson(settings);
 
             this.fmeClientService.setConfiguration(input).subscribe({
@@ -305,9 +365,137 @@ export class ConfigComponent implements OnInit {
         }
     }
 
-    selectSection(section: 'transfers' | 'reports' | 'logging' | 'uiprefs') {
+    selectSection(section: 'transfers' | 'reports' | 'notifications' | 'logging' | 'uiprefs') {
         this.activeSection = section;
     }
+
+    // region Notifications (webhook destinations)
+    /** Human label for a preset enum value (used in the list + as a fallback). */
+    presetLabel(preset: NotificationPreset): string {
+        return this.notificationPresets.find((p) => p.value === preset)?.label ?? 'Webhook';
+    }
+
+    /** Reload the destination list from the daemon config. */
+    private refreshNotificationDestinations() {
+        this.fmeClientService.getConfiguration().subscribe({
+            next: (result) => {
+                this.originalConfig = result;
+                this.notificationDestinations = result.notifications?.destinations ?? [];
+                this.notifyAllTransfers.setValue(result.notifications?.notifyAllTransfers ?? false);
+            },
+            error: (error) => {
+                this.notificationService.warning(`${NotificationMessages.GET_CONFIG_FAILURE}: ${error}`);
+            },
+        });
+    }
+
+    /** Open the editor for a new destination. */
+    addNotificationDestination() {
+        this.editingDestinationName = '';
+        this.editingUrlHint = '';
+        this.notificationForm.reset({
+            preset: NotificationPreset.SLACK,
+            name: '',
+            url: '',
+            notifyOnFinish: true,
+            notifyOnFailure: true,
+            isDefault: false,
+        });
+        // A new destination must carry a URL; an edit may leave it blank to keep the stored one.
+        this.notificationForm.controls.url.setValidators([Validators.required]);
+        this.notificationForm.controls.url.updateValueAndValidity();
+    }
+
+    /** Open the editor for an existing destination. The URL is never pre-filled. */
+    editNotificationDestination(destination: NotificationDestination) {
+        this.editingDestinationName = destination.name;
+        this.editingUrlHint = destination.urlHint;
+        this.notificationForm.reset({
+            preset: destination.preset,
+            name: destination.name,
+            url: '',
+            notifyOnFinish: destination.notifyOnFinish,
+            notifyOnFailure: destination.notifyOnFailure,
+            isDefault: destination.isDefault,
+        });
+        // Editing: a blank URL keeps the stored one, so the field is optional here.
+        this.notificationForm.controls.url.clearValidators();
+        this.notificationForm.controls.url.updateValueAndValidity();
+    }
+
+    /** Close the editor without saving. */
+    cancelNotificationForm() {
+        this.editingDestinationName = null;
+        this.editingUrlHint = '';
+    }
+
+    /** Create or update the destination currently in the editor. */
+    saveNotificationDestination() {
+        if (this.notificationForm.invalid) {
+            this.notificationForm.markAllAsTouched();
+            this.notificationService.warning('Enter a name and a webhook URL before saving.');
+            return;
+        }
+        const value = this.notificationForm.getRawValue();
+        const destination = create(NotificationDestinationSchema);
+        destination.name = value.name.trim();
+        destination.preset = value.preset;
+        destination.notifyOnFinish = value.notifyOnFinish;
+        destination.notifyOnFailure = value.notifyOnFailure;
+        destination.isDefault = value.isDefault;
+
+        this.webhookNotifications.setDestination(destination, value.url).subscribe({
+            next: (res) => {
+                if (!res.success) {
+                    this.notificationService.warning(res.message || 'Failed to save notification destination.');
+                    return;
+                }
+                this.notificationService.success(`Saved notification destination "${destination.name}".`);
+                this.cancelNotificationForm();
+                this.refreshNotificationDestinations();
+            },
+            error: (error) => {
+                this.notificationService.warning(`Failed to save notification destination: ${error}`);
+            },
+        });
+    }
+
+    /** Delete a destination by name. */
+    deleteNotificationDestination(destination: NotificationDestination) {
+        this.webhookNotifications.deleteDestination(destination.name).subscribe({
+            next: (res) => {
+                if (!res.success) {
+                    this.notificationService.warning(res.message || 'Failed to delete notification destination.');
+                    return;
+                }
+                this.notificationService.success(`Deleted notification destination "${destination.name}".`);
+                if (this.editingDestinationName === destination.name) {
+                    this.cancelNotificationForm();
+                }
+                this.refreshNotificationDestinations();
+            },
+            error: (error) => {
+                this.notificationService.warning(`Failed to delete notification destination: ${error}`);
+            },
+        });
+    }
+
+    /** Ask the daemon to post a test message to the named destination. */
+    sendTestNotification(destination: NotificationDestination) {
+        this.webhookNotifications.sendTest(destination.name).subscribe({
+            next: (res) => {
+                if (!res.success) {
+                    this.notificationService.warning(res.message || 'Test message failed.');
+                    return;
+                }
+                this.notificationService.success(`Sent a test message to "${destination.name}".`);
+            },
+            error: (error) => {
+                this.notificationService.warning(`Test message failed: ${error}`);
+            },
+        });
+    }
+    // endregion
 
     // region UI Preferences (client-side, immediate save via PreferencesService)
     private loadUiPreferences() {

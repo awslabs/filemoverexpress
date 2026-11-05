@@ -56,6 +56,21 @@ type (
 		s3ManagerLock  *sync.RWMutex
 		priorityQueue  *PriorityQueue
 	}
+
+	// NotifyStats is a non-sensitive summary of a finished job, used to enrich
+	// completion notifications. Bucket and Prefix are names only - no ARNs or IDs.
+	NotifyStats struct {
+		FilesTransferred int
+		FilesSkipped     int
+		FilesErrored     int
+		BytesTransferred int64
+		BytesSkipped     int64
+		BytesErrored     int64
+		Duration         time.Duration
+		Bucket           string
+		Prefix           string
+		IsUpload         bool
+	}
 )
 
 // GetS3Manager either returns the cached s3 manager, or it creates a new S3 manager, caches it and returns it.
@@ -238,6 +253,44 @@ func (jm *JobManager) GetJob(jobId string) *jobmanagertypes.Job {
 	jm.jobsLock.Lock()
 	defer jm.jobsLock.Unlock()
 	return jm.Jobs[jobId]
+}
+
+// NotifyStats computes a completion summary for a job from its task statuses and
+// timing. ok is false when the job is no longer tracked (for example already
+// cleared), in which case the caller sends a message without the extra detail.
+func (jm *JobManager) NotifyStats(jobID string) (NotifyStats, bool) {
+	job := jm.GetJob(jobID)
+	if job == nil {
+		return NotifyStats{}, false
+	}
+	stats := NotifyStats{
+		Bucket:   job.TransferProfile().Bucket,
+		Prefix:   job.Destination(),
+		IsUpload: job.Direction() == transfertypes.Upload,
+	}
+	for _, task := range jm.GetTasks(jobID) {
+		switch task.Status() {
+		case jobmanagertypes.TaskStatusCompleted:
+			stats.FilesTransferred++
+			stats.BytesTransferred += task.GetSize()
+		case jobmanagertypes.TaskStatusSkipped:
+			stats.FilesSkipped++
+			stats.BytesSkipped += task.GetSize()
+		case jobmanagertypes.TaskStatusError:
+			stats.FilesErrored++
+			stats.BytesErrored += task.GetSize()
+		}
+	}
+	if start := job.GetTimestampTransferring(); !start.IsZero() {
+		end := job.GetTimestampCompleted()
+		if end.IsZero() {
+			end = time.Now()
+		}
+		if d := end.Sub(start); d > 0 {
+			stats.Duration = d
+		}
+	}
+	return stats, true
 }
 
 //revive:disable:function-length,flag-parameter

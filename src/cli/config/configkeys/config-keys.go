@@ -39,6 +39,8 @@ const (
 	APIServerPermissionsAllowLocalRenameDelete  = APIServerPermissions + KeySeparator + "allowLocalRenameDelete"
 	APIServerPermissionsAllowRemoteRenameDelete = APIServerPermissions + KeySeparator + "allowRemoteRenameDelete"
 	UploadHotFolders                            = "hotFolders"
+	Notifications                               = "notifications"
+	NotificationDestinations                    = Notifications + KeySeparator + "destinations"
 	TransferProfiles                            = "protocols.s3.transferProfiles"
 	TransferProfilesName                        = "name"
 	TransferProfilesBucket                      = "bucket"

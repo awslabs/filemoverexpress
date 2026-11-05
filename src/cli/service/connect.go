@@ -102,3 +102,13 @@ func isLocalClient(peer connect.Peer) bool {
 	}
 	return addr.IsLoopback()
 }
+
+// uiConfigAllowed reports whether the caller may read or write configuration. Local
+// clients always may; a remote client may only when the daemon has opted in via
+// APIServer.Permissions.AllowUIConfiguration. Mirrors the gate in GetConfiguration.
+func uiConfigAllowed(peer connect.Peer) bool {
+	if isLocalClient(peer) {
+		return true
+	}
+	return config.LoadConfiguration().APIServer.Permissions.AllowUIConfiguration
+}

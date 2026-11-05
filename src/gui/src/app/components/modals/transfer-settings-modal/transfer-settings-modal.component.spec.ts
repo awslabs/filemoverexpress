@@ -9,10 +9,20 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatSelectModule } from '@angular/material/select';
+import { of } from 'rxjs';
+import { FmeClientService } from '@services/fme-client/fme-client.service';
 
 describe('TransferSettingsModalComponent', () => {
     let component: TransferSettingsModalComponent;
     let fixture: ComponentFixture<TransferSettingsModalComponent>;
+
+    // Minimal FmeClientService stub: the modal loads notification destinations in its
+    // constructor via getConfiguration(). An empty notifications list keeps the notify
+    // row hidden without pulling in the real service's transport dependencies.
+    const fmeClientStub = {
+        getConfiguration: () => of({notifications: {destinations: []}}),
+    } as unknown as FmeClientService;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -26,6 +36,7 @@ describe('TransferSettingsModalComponent', () => {
                 MatInputModule,
                 MatTooltipModule,
                 MatBadgeModule,
+                MatSelectModule,
             ],
             providers: [
                 MatDialog,
@@ -38,6 +49,10 @@ describe('TransferSettingsModalComponent', () => {
                 {
                     provide: MatDialogRef,
                     useValue: {},
+                },
+                {
+                    provide: FmeClientService,
+                    useValue: fmeClientStub,
                 },
             ],
         });

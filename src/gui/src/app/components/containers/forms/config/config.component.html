@@ -7,6 +7,8 @@
                     (click)="selectSection('transfers')">Transfers</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'reports'"
                     (click)="selectSection('reports')">Bucket Reports</button>
+            <button type="button" class="settings-nav-item" [class.active]="activeSection === 'notifications'"
+                    (click)="selectSection('notifications')">Notifications</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'logging'"
                     (click)="selectSection('logging')">Logging</button>
             <button type="button" class="settings-nav-item" [class.active]="activeSection === 'uiprefs'"
@@ -151,6 +153,143 @@
                 </mat-form-field>
             </div>
 
+            <!-- NOTIFICATIONS (webhook destinations) -->
+            <div class="tab-body" [hidden]="activeSection !== 'notifications'">
+                <div class="set-section-label">Webhook destinations</div>
+                <p class="set-note">
+                    Get a message in Slack, Teams, Discord or Google Chat when a transfer finishes or fails.
+                    Paste the webhook URL from your chat tool, give it a name, and send a test message to confirm it works.
+                    The URL is stored encrypted on the daemon and is never shown again.
+                </p>
+
+                @if (notificationDestinations.length) {
+                    <div class="notif-global">
+                        <mat-slide-toggle color="accent" [formControl]="notifyAllTransfers"
+                                          (change)="configForm.markAsDirty()">
+                            Notify me about every transfer
+                        </mat-slide-toggle>
+                        <div class="info-hint">
+                            Applies to all transfers - uploads, hot folders and CLI - using your default
+                            destination below. You can still turn notifications off for an individual transfer.
+                        </div>
+                    </div>
+                }
+
+                @if (notificationDestinations.length) {
+                    <div class="notif-list">
+                        @for (dest of notificationDestinations; track dest.name) {
+                            <div class="notif-row">
+                                <div class="notif-row-main">
+                                    <div class="notif-row-title">
+                                        <span class="notif-name">{{ dest.name }}</span>
+                                        <span class="notif-preset">{{ presetLabel(dest.preset) }}</span>
+                                        @if (dest.isDefault) {
+                                            <span class="notif-badge notif-badge-default">Default</span>
+                                        }
+                                        @if (dest.notifyOnFinish) {
+                                            <span class="notif-badge">On finish</span>
+                                        }
+                                        @if (dest.notifyOnFailure) {
+                                            <span class="notif-badge">On failure</span>
+                                        }
+                                    </div>
+                                    @if (dest.urlHint) {
+                                        <div class="notif-url-hint">Webhook URL on file: {{ dest.urlHint }}</div>
+                                    }
+                                </div>
+                                <div class="notif-row-actions">
+                                    <button type="button" class="notif-link" (click)="sendTestNotification(dest)">Send test message</button>
+                                    <button type="button" class="notif-link" (click)="editNotificationDestination(dest)">Edit</button>
+                                    <button type="button" class="notif-link notif-link-danger" (click)="deleteNotificationDestination(dest)">Delete</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                } @else {
+                    <p class="set-note">No notification destinations yet.</p>
+                }
+
+                @if (editingDestinationName === null) {
+                    <div class="notif-add">
+                        <button type="button" class="notif-link" (click)="addNotificationDestination()">+ Add a destination</button>
+                    </div>
+                } @else {
+                    <div class="notif-editor" [formGroup]="notificationForm">
+                        <div class="section-heading">
+                            {{ editingDestinationName ? 'Edit destination' : 'Add a destination' }}
+                        </div>
+                        <mat-form-field color="accent">
+                            <mat-label>Type</mat-label>
+                            <mat-select formControlName="preset">
+                                @for (preset of notificationPresets; track preset.value) {
+                                    <mat-option [value]="preset.value">{{ preset.label }}</mat-option>
+                                }
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field color="accent">
+                            <mat-label>Display name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. My Slack DM">
+                            <mat-hint class="info-hint">
+                                Any label you choose - it only shows up inside File Mover Express so you can pick
+                                this destination by name. It does not need to match the channel; the Webhook URL
+                                below is what delivers the message.
+                            </mat-hint>
+                            @if (notificationForm.controls.name.hasError('required')) {
+                                <mat-error>Name is required.</mat-error>
+                            }
+                        </mat-form-field>
+
+                        <mat-form-field color="accent">
+                            <mat-label>Webhook URL</mat-label>
+                            <input matInput type="text" formControlName="url"
+                                   [placeholder]="editingDestinationName ? 'Leave blank to keep current URL' : 'https://...'">
+                            @if (editingDestinationName) {
+                                <mat-hint class="info-hint">
+                                    Leave blank to keep the current URL{{ editingUrlHint ? ' (' + editingUrlHint + ')' : '' }}.
+                                </mat-hint>
+                            } @else if (isTeamsPreset) {
+                                <mat-hint class="info-hint">
+                                    In Microsoft Teams, open the Workflows app and create a flow from the
+                                    "Post to a channel when a webhook request is received" template, then paste
+                                    the URL it gives you. (Teams retired the old Incoming Webhook connector.)
+                                </mat-hint>
+                            } @else {
+                                <mat-hint class="info-hint">
+                                    Paste the Incoming Webhook URL from Slack, Discord or Google Chat. This
+                                    is what routes the message to the right channel.
+                                </mat-hint>
+                            }
+                            @if (notificationForm.controls.url.hasError('required')) {
+                                <mat-error>Webhook URL is required.</mat-error>
+                            }
+                        </mat-form-field>
+
+                        <div class="form-field">
+                            <mat-slide-toggle color="accent" formControlName="notifyOnFinish">
+                                Notify when a transfer finishes
+                            </mat-slide-toggle>
+                        </div>
+                        <div class="form-field">
+                            <mat-slide-toggle color="accent" formControlName="notifyOnFailure">
+                                Notify when a transfer fails
+                            </mat-slide-toggle>
+                        </div>
+                        <div class="form-field">
+                            <mat-slide-toggle color="accent" formControlName="isDefault">
+                                Use as the default destination
+                            </mat-slide-toggle>
+                        </div>
+
+                        <div class="notif-editor-actions">
+                            <button type="button" class="notif-btn notif-btn-stroked" (click)="cancelNotificationForm()">Cancel</button>
+                            <button type="button" class="notif-btn notif-btn-filled"
+                                    (click)="saveNotificationDestination()">Save destination</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
             <!-- LOGGING -->
             <div class="tab-body" formGroupName="logging" [hidden]="activeSection !== 'logging'">
                 <mat-form-field color="accent">
@@ -208,6 +347,7 @@
 <div class="settings-buttons">
     <fme-button type="stroked" text="Cancel" [onClick]="onCancel()"></fme-button>
     <fme-button type="filled" text="Save" [onClick]="onSubmit()"
-                [disabled]="configForm.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED">
+                [tooltip]="editingDestinationName !== null ? 'Finish or cancel the destination you are adding below first' : ''"
+                [disabled]="configForm.invalid || (fmeClientService.connectionState | async) !== ConnectionState.CONNECTED || editingDestinationName !== null">
     </fme-button>
 </div>

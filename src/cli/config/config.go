@@ -93,6 +93,9 @@ func buildDefaultsMap() map[string]interface{} {
 
 		// UploadHotFolders
 		configkeys.UploadHotFolders: []interface{}{},
+
+		// Notifications
+		configkeys.NotificationDestinations: []interface{}{},
 	}
 }
 
@@ -198,8 +201,18 @@ func marshalConfigToFile(cfg configtypes.FmeConfig, filePath string) error {
 	return nil
 }
 
+// SaveConfig persists the config to disk AND updates the in-memory cache so a
+// subsequent LoadConfiguration (e.g. the GetConfiguration RPC right after a write)
+// reflects the change immediately. Without the cache write-through, LoadConfiguration
+// keeps returning the stale startup snapshot until the file watcher happens to fire,
+// and a later whole-config save would persist that stale snapshot back over this one.
 func SaveConfig(cfg *configtypes.FmeConfig) error {
-	return marshalConfigToFile(*cfg, configFile)
+	if err := marshalConfigToFile(*cfg, configFile); err != nil {
+		return err
+	}
+	cachedCfg.Store(*cfg)
+	initialized = true
+	return nil
 }
 
 func BindFlag(key string, flag *pflag.Flag) error {

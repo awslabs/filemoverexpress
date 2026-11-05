@@ -78,6 +78,12 @@ message UploadPrefixRequest {
 	repeated string prefixes = 4;
 	bool force = 5;
 	string job_name = 6;
+	// Optional name of a configured notification destination. When set, the daemon
+	// posts a webhook to that destination when this job finishes or fails.
+	string notify_destination = 7;
+	// When true, explicitly suppress notification for this job even if the global
+	// "notify on every transfer" setting is on (a per-transfer opt-out).
+	bool notify_suppress = 8;
 }
 
 message UploadPrefixResponse {
