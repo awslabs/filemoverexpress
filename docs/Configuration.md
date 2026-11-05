@@ -63,6 +63,7 @@ If you aren't using an OS with a desktop, you can configure File Mover Express u
    general:
      maxActiveChecksums: 8    # Number of checksums processed simultaneously
      maxActiveTransfers: 10   # Number of files processed simultaneously
+     adaptiveConcurrency: true  # Auto-tune parallelism (on by default; see below)
    ```
 
 3. **Define at least one remote configuration**:
@@ -98,6 +99,14 @@ If you aren't using an OS with a desktop, you can configure File Mover Express u
 - **autoTuning**: Automatically tune chunk size and threads (default: `true`)
 - **chunkSize**: Chunk size in MB (not required if autoTuning is true)
 - **threads**: Number of threads per file (not required if autoTuning is true)
+
+> **Adaptive concurrency (global):** `general.adaptiveConcurrency` is a daemon-wide
+> setting, **on by default**. When on, the daemon derives the number of parallel
+> connections and per-file threads from each job's file sizes and the host's
+> network capacity, so you get strong throughput without hand-tuning thread and
+> connection counts. To turn it off and manage concurrency yourself, set
+> `general.adaptiveConcurrency: false`. When off, the per-profile `autoTuning`,
+> `threads`, and `chunkSize` values apply as before.
 
 **File Processing:**
 - **checksums.algorithm**: Algorithm for file integrity (default: `md5-hex`)

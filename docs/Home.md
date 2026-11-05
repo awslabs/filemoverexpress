@@ -11,6 +11,7 @@ File Mover Express for AWS is a solution designed to accelerate media asset tran
 - [Using the GUI](Using-the-GUI)
 - [Using the CLI](Using-the-CLI)
 - [OIDC / SSO Authentication](OIDC-Authentication)
+- [Notifications](Notifications)
 - [MCP Server (AI Assistant Integration)](MCP-Server)
 - [Best Practices](Best-Practices)
 - [Troubleshooting](Troubleshooting)
@@ -35,6 +36,7 @@ Studios can use File Mover Express for camera to cloud, work in-progress synchro
 - **Checksum Verification** - Verifies the integrity of files transferred to Amazon S3
 - **Bucket Reports** - Export reports of files and folders in S3 buckets without needing to log into the AWS S3 console
 - **Upload Hot Folder** – Designate folders on local storage for File Mover Express to monitor and automatically upload new content to Amazon S3
+- **Transfer Notifications** – Get a message in Slack, Microsoft Teams, Discord, Google Chat, or any custom webhook when a job finishes or fails. See [Notifications](Notifications)
 - **Remote daemon** – Use a remote daemon to start transfers from a different machine for better performance or multi-user scenarios
 - **OIDC / SSO Authentication** – Sign in with your organization's identity provider (Okta, Microsoft Entra ID, Auth0, Ping, and others) to obtain temporary AWS credentials instead of managing long-lived access keys. See [OIDC / SSO Authentication](OIDC-Authentication)
 - **Multiple AWS Regions** – Works with Amazon S3 in any available region

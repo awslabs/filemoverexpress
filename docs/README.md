@@ -18,6 +18,7 @@ The documentation has been organized into the following pages:
 - **[Using the GUI](Using-the-GUI.md)** - Comprehensive GUI usage guide
 - **[Using the CLI](Using-the-CLI.md)** - Command-line interface and scripting
 - **[OIDC / SSO Authentication](OIDC-Authentication.md)** - Sign in with an identity provider for temporary AWS credentials
+- **[Notifications](Notifications.md)** - Get job-finished and job-failed alerts in Slack, Teams, Discord, or Google Chat
 - **[Hot Folders](Hot-Folders.md)** - Automated file monitoring and uploads
 - **[Checksums](Checksums.md)** - File integrity verification
 
