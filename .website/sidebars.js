@@ -34,6 +34,7 @@ const sidebars = {
         {type: 'doc', id: 'Using-the-CLI', label: 'Using the CLI'},
         {type: 'doc', id: 'Configuration', label: 'Configuration'},
         {type: 'doc', id: 'Hot-Folders', label: 'Hot Folders'},
+        {type: 'doc', id: 'Notifications', label: 'Notifications'},
         {type: 'doc', id: 'Checksums', label: 'Checksums'},
       ],
     },

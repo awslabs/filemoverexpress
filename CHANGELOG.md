@@ -1,7 +1,48 @@
 
 # File Mover Express Releases
 
-## Unreleased
+## 1.1.3
+
+Adds transfer notifications to your chat tools and turns adaptive concurrency on by default.
+
+### Added
+
+* **Transfer notifications**: File Mover Express can post to Slack, Microsoft Teams, Discord, Google Chat, or any custom JSON webhook when a job finishes or fails. The message includes the job name, destination, file count, total size, and transfer speed. A global "notify on every transfer" option also covers hot-folder and CLI-driven jobs. Webhook URLs are stored encrypted and never written to the configuration file. See the [Notifications guide](docs/Notifications.md).
+
+### Changed
+
+* **Adaptive concurrency is now on by default** (opt-out). The daemon derives parallel connections and per-file threads from each job's file sizes and the host's network capacity, so strong throughput is the out-of-the-box behavior. Set `general.adaptiveConcurrency: false` to manage concurrency yourself.
+
+## 1.1.2
+
+Adds a new way to authenticate transfer profiles, smarter and more reliable high-speed transfers, and a refreshed toolchain.
+
+### Added
+
+* **Access-key authentication for transfer profiles**: authenticate a transfer profile with an AWS access key (with optional session token) as an alternative to a named profile or OIDC. Stored credentials are encrypted at rest, and on Linux the encryption key is sealed to the machine's TPM. Access-key auth is restricted to local daemons.
+* **Adaptive concurrency (opt-in)**: automatically tunes parallel connections for the shape of a transfer. (Became the default in 1.1.3.)
+* **Window state persistence**: window size, position, and maximized state are restored across restarts.
+
+### Changed
+
+* **ENOBUFS-aware retry backoff**: very high connection-count transfers now recover cleanly when the OS temporarily runs out of network buffers, instead of failing files.
+* Upgraded to Wails 3.1.0 (first stable Wails 3) and the Go 1.27.3 toolchain.
+
+## 1.1.1
+
+Usability fixes and the public documentation site.
+
+### Added
+
+* Published documentation site generated from the `docs/` guides, with a download-forward landing page.
+
+### Fixed
+
+* The GUI executable is no longer missing from the Windows installer.
+* The selected transfer profile now persists across restarts.
+* Favorite paths display on two lines so the leaf folder is never clipped.
+
+## 1.1.0
 
 Adds single sign-on authentication and a refreshed GUI, along with a batch of usability fixes to file management, job handling, and the transfer tray.
 
