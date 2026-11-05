@@ -30,8 +30,8 @@ const (
 	// pool (macOS at MTU 1500) and fail transfers outright; adaptive bounds the socket
 	// count so transfers complete. Set adaptiveConcurrency: false in the config to
 	// opt out (e.g. a hand-tuned high-throughput Linux jumbo-frame setup).
-	DefaultAdaptiveConcurrency = true
-	MacOSDefaultSendBufferBytes  = 2 * 1024 * 1024
+	DefaultAdaptiveConcurrency  = true
+	MacOSDefaultSendBufferBytes = 2 * 1024 * 1024
 
 	// Logging
 	DefaultLoggingDirectory = "logs"
