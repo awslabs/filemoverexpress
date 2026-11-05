@@ -138,12 +138,25 @@ func (m *Manager) handle(evt eventtypes.Event) {
 	case *eventtypes.JobCompleteEvent:
 		m.dispatch(e.Id, e.Name, completionOutcome(e), "")
 	case *eventtypes.JobErrorEvent:
-		detail := ""
+		// The raw job error can carry local filesystem paths and internal detail,
+		// which must not be posted to a third-party webhook. Log the full error
+		// locally and send only a sanitized, generic reason to the channel.
 		if e.Err != nil {
-			detail = "Reason: " + e.Err.Error()
+			logger.Error("notifications: job %q (%s) failed: %v", e.Name, e.Id, e.Err)
 		}
-		m.dispatch(e.Id, e.Name, OutcomeFailed, detail)
+		m.dispatch(e.Id, e.Name, OutcomeFailed, sanitizedFailureDetail(e.Err))
 	}
+}
+
+// sanitizedFailureDetail is the webhook-safe failure reason for a job error. The
+// raw error may contain local filesystem paths or internal detail, so the
+// third-party channel gets a generic reason (the full error is logged locally by
+// the caller). Returns "" when there is no error.
+func sanitizedFailureDetail(err error) string {
+	if err == nil {
+		return ""
+	}
+	return "Reason: the transfer reported an error (see the FME daemon log for details)"
 }
 
 func (m *Manager) dispatch(jobID, jobName string, outcome Outcome, detail string) {

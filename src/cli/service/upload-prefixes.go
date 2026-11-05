@@ -75,13 +75,18 @@ func (*FileMoverServer) UploadPrefixes(
 		}), connect.NewError(connect.CodeInvalidArgument, errors.New(strFailedToCreateJob))
 	}
 
-	go upload.Uploader(job)
+	// Register (or suppress) the job's notification intent BEFORE launching the
+	// uploader: a fast or empty job can emit its JobCompleteEvent the instant the
+	// goroutine starts, and if registration has not landed yet, take(jobID) finds
+	// nothing, dropping a per-transfer notification or missing a suppress opt-out.
 	switch {
 	case req.Msg.GetNotifySuppress():
 		notifications.Shared().SuppressJob(job.JobId())
 	case req.Msg.GetNotifyDestination() != "":
 		notifications.Shared().RegisterJob(job.JobId(), req.Msg.GetNotifyDestination(), transferProfile.Bucket, destination)
 	}
+
+	go upload.Uploader(job)
 	return connect.NewResponse(&s3_sharedv1.UploadPrefixResponse{
 		Success:  true,
 		Response: "",
