@@ -1,5 +1,5 @@
 module windows-daemon-launcher
 
-go 1.21
+go 1.27.3
 
-require golang.org/x/sys v0.16.0
+require golang.org/x/sys v0.49.0
