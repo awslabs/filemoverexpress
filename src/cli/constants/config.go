@@ -22,7 +22,16 @@ const (
 	// equivalent of raising net.inet.tcp.autosndbufmax, so users need no sudo sysctl.
 	DefaultMaxConnectionsPerHost = 0
 	DefaultSendBufferBytes       = 0
-	MacOSDefaultSendBufferBytes  = 2 * 1024 * 1024
+
+	// DefaultAdaptiveConcurrency is ON by default (opt-out). When true, the daemon
+	// derives per-file threads and a shared, OS-aware connection budget from each
+	// job's file sizes instead of the fixed threads / auto-tuning path. It is the
+	// safe default because unbounded concurrency can exhaust a small kernel network
+	// pool (macOS at MTU 1500) and fail transfers outright; adaptive bounds the socket
+	// count so transfers complete. Set adaptiveConcurrency: false in the config to
+	// opt out (e.g. a hand-tuned high-throughput Linux jumbo-frame setup).
+	DefaultAdaptiveConcurrency  = true
+	MacOSDefaultSendBufferBytes = 2 * 1024 * 1024
 
 	// Logging
 	DefaultLoggingDirectory = "logs"

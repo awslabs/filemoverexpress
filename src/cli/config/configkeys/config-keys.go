@@ -12,6 +12,7 @@ const (
 	GeneralTargetBandwidth                      = General + KeySeparator + "targetBandwidth"
 	GeneralMaxConnectionsPerHost                = General + KeySeparator + "maxConnectionsPerHost"
 	GeneralSendBufferBytes                      = General + KeySeparator + "sendBufferBytes"
+	GeneralAdaptiveConcurrency                  = General + KeySeparator + "adaptiveConcurrency"
 	Logging                                     = "logging"
 	LoggingDirectory                            = Logging + KeySeparator + "directory"
 	LoggingSeverity                             = Logging + KeySeparator + "severity"

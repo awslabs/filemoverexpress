@@ -61,6 +61,7 @@ func buildDefaultsMap() map[string]interface{} {
 		configkeys.GeneralTargetBandwidth:        constants.DefaultTargetBandwidth,
 		configkeys.GeneralMaxConnectionsPerHost:  int32(constants.DefaultMaxConnectionsPerHost),
 		configkeys.GeneralSendBufferBytes:        defaultSendBufferBytes(),
+		configkeys.GeneralAdaptiveConcurrency:    constants.DefaultAdaptiveConcurrency,
 
 		// Logging
 		configkeys.LoggingDirectory: constants.DefaultLoggingDirectory,
