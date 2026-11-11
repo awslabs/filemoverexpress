@@ -27,6 +27,7 @@ import { handleStreamError } from '@app/classes/rxjs-operators';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 import { ExportJobModalComponent } from '@app/components/modals/export-job-modal/export-job-modal.component';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { cancelTransferDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { JobDetailsModalComponent } from '@app/components/modals/job-details-modal/job-details-modal.component';
 import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal/job-rename-modal.component';
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
@@ -42,7 +43,7 @@ import {
 } from '@app/pipes/jobs-table-status.pipe';
 import { PascalCaseToSpacesPipe } from '@app/pipes/pascal-case-to-spaces.pipe';
 import { buildFilterString, jobsTableFilterPredicate } from '@app/utils/transfer-utils';
-import { escapeHtml, stringToJobStatus } from '@app/utils/utils';
+import { stringToJobStatus } from '@app/utils/utils';
 import { INITIAL_TRANSFER_SUMMARY_STATS, TransferSummaryStats } from '@containers/tables/jobs-table/jobs-table.interfaces';
 import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
@@ -466,19 +467,9 @@ export class JobsTableComponent implements AfterViewInit {
             this.notifications.error('Unable to cancel job that is not in progress or paused');
             return;
         }
-        const name = job.name ? `<b>${escapeHtml(job.name)}</b>` : 'this job';
         this.dialog.open(
             ConfirmationModalComponent,
-            {
-                width: '450px',
-                data: {
-                    title: 'Cancel Transfer',
-                    message: `Are you sure you want to cancel ${name}? Any files still transferring will stop.`,
-                    cancelText: 'Keep Running',
-                    confirmText: 'Cancel Job',
-                    confirmClass: 'warn',
-                },
-            },
+            cancelTransferDialog(job.name),
         ).afterClosed().subscribe((confirmed) => {
             if (confirmed) {
                 this.performCancel(job);

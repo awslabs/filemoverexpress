@@ -24,6 +24,7 @@ import {
 import { MatTooltip } from '@angular/material/tooltip';
 import { Task } from '@app/classes/grpc/task';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { cancelTransferDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { TaskCounts } from '@app/components/modals/job-details-modal/job-details-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
@@ -37,7 +38,7 @@ import {
     storageClasses,
 } from '@containers/forms/transfer-profile-form/transfer-profile-form.constants';
 import { buildFilterString, tasksTableFilterPredicate } from '@app/utils/transfer-utils';
-import { formatBytes, escapeHtml, stringToTaskStatus } from '@app/utils/utils';
+import { formatBytes, stringToTaskStatus } from '@app/utils/utils';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { WailsService } from '@services/wails/wails.service';
@@ -733,19 +734,9 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     cancel(): void {
-        const name = this.jobDetails.jobName ? `<b>${escapeHtml(this.jobDetails.jobName)}</b>` : 'this job';
         this.dialog.open(
             ConfirmationModalComponent,
-            {
-                width: '450px',
-                data: {
-                    title: 'Cancel Transfer',
-                    message: `Are you sure you want to cancel ${name}? Any files still transferring will stop.`,
-                    cancelText: 'Keep Running',
-                    confirmText: 'Cancel Job',
-                    confirmClass: 'warn',
-                },
-            },
+            cancelTransferDialog(this.jobDetails.jobName),
         ).afterClosed().subscribe((confirmed) => {
             if (confirmed) {
                 this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
