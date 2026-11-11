@@ -117,6 +117,8 @@ function jobActionArb(): fc.Arbitrary<Action> {
         }).map(({ id, changes }) => JobActions.skip({ job: { id, changes } })),
         // clearCompleted
         fc.constant(JobActions.clearCompleted()),
+        // clearJob (remove a single job by id)
+        jobIdArb.map((jobId) => JobActions.clearJob({ jobId })),
         // clearAll
         fc.constant(JobActions.clearAll()),
         // updateJobs (set all). Job lists from the daemon always have unique ids, and

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { JobDetailsModalComponent } from './job-details-modal.component';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -56,6 +56,7 @@ describe('JobDetailsModalComponent', () => {
     };
     let wails: Record<string, ReturnType<typeof vi.fn>>;
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
+    let dialogOpen: ReturnType<typeof vi.fn>;
 
     function build(data: JobDetailsData): {
         fixture: ComponentFixture<JobDetailsModalComponent>;
@@ -75,6 +76,7 @@ describe('JobDetailsModalComponent', () => {
             setClipboardText: vi.fn(() => of(void 0)),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
+        dialogOpen = vi.fn(() => ({afterClosed: () => of(true)}));
 
         TestBed.configureTestingModule({
             imports: [
@@ -94,6 +96,7 @@ describe('JobDetailsModalComponent', () => {
             providers: [
                 {provide: MAT_DIALOG_DATA, useValue: data},
                 {provide: MatDialogRef, useValue: {}},
+                {provide: MatDialog, useValue: {open: dialogOpen}},
                 {provide: FmeClientService, useValue: fmeClient},
                 {provide: WailsService, useValue: wails},
                 {provide: NotificationsService, useValue: notifications},
@@ -226,10 +229,26 @@ describe('JobDetailsModalComponent', () => {
             expect(fmeClient.resumeJob).toHaveBeenCalledWith('job-1');
         });
 
-        it('cancels a job', () => {
+        it('cancels a job when confirmed', () => {
             const {component} = build(makeData({status: JobStatus.InProgress}));
             component.cancel();
             expect(fmeClient.cancelJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not cancel when the confirmation is dismissed', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(undefined)});
+            component.cancel();
+            expect(fmeClient.cancelJob).not.toHaveBeenCalled();
+        });
+
+        it('escapes a malicious job name in the confirmation message', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress, jobName: "<script>alert('x')</script>"}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.cancel();
+            const message = dialogOpen.mock.calls[dialogOpen.mock.calls.length - 1][1].data.message as string;
+            expect(message).not.toContain('<script>');
+            expect(message).toContain('&lt;script&gt;');
         });
 
         it('retries a job', () => {

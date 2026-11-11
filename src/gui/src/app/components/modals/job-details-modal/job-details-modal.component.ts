@@ -2,7 +2,7 @@ import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { AfterViewInit, Component, inject, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatInput } from '@angular/material/input';
 import { MatPaginator } from '@angular/material/paginator';
@@ -23,6 +23,8 @@ import {
 } from '@angular/material/table';
 import { MatTooltip } from '@angular/material/tooltip';
 import { Task } from '@app/classes/grpc/task';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { cancelTransferDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { TaskCounts } from '@app/components/modals/job-details-modal/job-details-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
@@ -103,6 +105,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     private metadata = inject(MetadataService);
     private store = inject(Store);
     private notifications = inject(NotificationsService);
+    private dialog = inject(MatDialog);
     protected readonly TransferDirection = TransferDirection;
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -731,7 +734,14 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     cancel(): void {
-        this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
+        this.dialog.open(
+            ConfirmationModalComponent,
+            cancelTransferDialog(this.jobDetails.jobName),
+        ).afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
+            }
+        });
     }
 
     retry(): void {

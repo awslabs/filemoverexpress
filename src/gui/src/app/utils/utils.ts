@@ -1,6 +1,25 @@
 import { ConnectError } from '@connectrpc/connect';
 import { JobStatus, TaskStatus } from '@state/models/job.model';
 
+/**
+ * Escape a string for safe interpolation into an HTML context (e.g. a confirmation-dialog
+ * message bound with [innerHTML]). Converts the five characters that can break out of text
+ * content (&, <, >, ", ') into their HTML entities, so user-controlled values such as a job
+ * name render as literal text and cannot inject markup. Use this for ANY user-controlled
+ * value placed into an innerHTML-bound message.
+ *
+ * @param {string} value Raw, untrusted string
+ * @returns {string} The string with HTML-significant characters escaped
+ */
+export function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 const sizes = [
     ['Bytes', 'Bytes'],
     ['KB', 'KiB'],

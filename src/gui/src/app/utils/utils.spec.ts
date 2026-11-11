@@ -215,3 +215,32 @@ describe('[utils] isPackagedApp', () => {
         expect(utils.isPackagedApp()).toBe(false);
     });
 });
+
+
+describe('[utils] escapeHtml', () => {
+    it('escapes the five HTML-significant characters', () => {
+        expect(utils.escapeHtml('&<>"\'')).toBe('&amp;&lt;&gt;&quot;&#39;');
+    });
+
+    it('neutralizes a script-tag injection in a job name', () => {
+        expect(utils.escapeHtml("<script>alert('x')</script>"))
+            .toBe('&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;');
+    });
+
+    it('escapes an img/onerror injection', () => {
+        expect(utils.escapeHtml('<img src=x onerror="steal()">'))
+            .toBe('&lt;img src=x onerror=&quot;steal()&quot;&gt;');
+    });
+
+    it('escapes ampersand first so existing entities are not double-decoded', () => {
+        expect(utils.escapeHtml('a & b &lt; c')).toBe('a &amp; b &amp;lt; c');
+    });
+
+    it('leaves a plain job name unchanged', () => {
+        expect(utils.escapeHtml('Nightly backup 2026-11-11')).toBe('Nightly backup 2026-11-11');
+    });
+
+    it('returns an empty string unchanged', () => {
+        expect(utils.escapeHtml('')).toBe('');
+    });
+});

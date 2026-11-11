@@ -1,7 +1,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { createEntityAdapter, EntityAdapter, EntityState } from '@ngrx/entity';
 import * as JobActions from '../actions/job.actions';
-import { Job, JobStatus } from '../../models/job.model';
+import { Job, JobStatus, CLEARABLE_STATES } from '../../models/job.model';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 
 export const jobFeatureKey = 'jobs';
@@ -20,11 +20,7 @@ export const adapter: EntityAdapter<Job> = createEntityAdapter<Job>({
     },
 });
 export const initialState: JobState = adapter.getInitialState();
-const clearableStates: JobStatus[] = [
-    JobStatus.Completed,
-    JobStatus.Error,
-    JobStatus.Cancelled,
-];
+const clearableStates: JobStatus[] = CLEARABLE_STATES;
 
 export const reducer = createReducer(
     initialState,
@@ -257,6 +253,14 @@ export const reducer = createReducer(
         (state) => {
             return {
                 ...adapter.removeMany((itm) => clearableStates.includes(itm.status), state),
+            };
+        },
+    ),
+
+    on(JobActions.clearJob,
+        (state, action) => {
+            return {
+                ...adapter.removeOne(action.jobId, state),
             };
         },
     ),
