@@ -15,7 +15,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { ExportService } from '@services/export/export.service';
@@ -67,6 +67,7 @@ describe('JobsTableComponent', () => {
         cancelJob: ReturnType<typeof vi.fn>;
         resubmitJob: ReturnType<typeof vi.fn>;
         clearCompletedJobs: ReturnType<typeof vi.fn>;
+        clearCompletedJob: ReturnType<typeof vi.fn>;
         renameJob: ReturnType<typeof vi.fn>;
     };
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
@@ -83,6 +84,7 @@ describe('JobsTableComponent', () => {
             cancelJob: vi.fn(() => of({success: true})),
             resubmitJob: vi.fn(() => of({success: true})),
             clearCompletedJobs: vi.fn(() => of({})),
+            clearCompletedJob: vi.fn(() => of(['job-1'])),
             renameJob: vi.fn(() => of({success: true})),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
@@ -210,10 +212,18 @@ describe('JobsTableComponent', () => {
             expect(fmeClient.cancelJob).not.toHaveBeenCalled();
         });
 
-        it('cancels and dispatches when in progress', () => {
+        it('cancels and dispatches when confirmed', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
             component.cancelJob(makeJob({status: JobStatus.InProgress}));
             expect(fmeClient.cancelJob).toHaveBeenCalledWith('job-1');
             expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({type: JobActions.cancel.type}));
+        });
+
+        it('does not cancel when the confirmation is dismissed', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(undefined)});
+            component.cancelJob(makeJob({status: JobStatus.InProgress}));
+            expect(dialogOpen).toHaveBeenCalled();
+            expect(fmeClient.cancelJob).not.toHaveBeenCalled();
         });
     });
 
@@ -235,6 +245,37 @@ describe('JobsTableComponent', () => {
             component.clearJobs();
             expect(fmeClient.clearCompletedJobs).toHaveBeenCalled();
             expect(store.dispatch).toHaveBeenCalledWith(JobActions.clearCompleted());
+        });
+    });
+
+    describe('clearJob', () => {
+        it('clears a completed job and dispatches the single-job clear action', () => {
+            component.clearJob(makeJob({status: JobStatus.Completed}));
+            expect(fmeClient.clearCompletedJob).toHaveBeenCalledWith('job-1');
+            expect(store.dispatch).toHaveBeenCalledWith(JobActions.clearJob({jobId: 'job-1'}));
+        });
+
+        it('clears a cancelled job', () => {
+            component.clearJob(makeJob({status: JobStatus.Cancelled}));
+            expect(fmeClient.clearCompletedJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('clears an errored job', () => {
+            component.clearJob(makeJob({status: JobStatus.Error}));
+            expect(fmeClient.clearCompletedJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('refuses to clear a job that is still in progress', () => {
+            component.clearJob(makeJob({status: JobStatus.InProgress}));
+            expect(fmeClient.clearCompletedJob).not.toHaveBeenCalled();
+            expect(notifications.error).toHaveBeenCalledWith('Only completed, failed, or cancelled jobs can be cleared');
+        });
+
+        it('notifies on a service error', () => {
+            fmeClient.clearCompletedJob.mockReturnValueOnce(throwError(() => 'boom'));
+            component.clearJob(makeJob({status: JobStatus.Completed}));
+            expect(notifications.error).toHaveBeenCalledWith('Unable to clear job');
+            expect(store.dispatch).not.toHaveBeenCalledWith(JobActions.clearJob({jobId: 'job-1'}));
         });
     });
 
