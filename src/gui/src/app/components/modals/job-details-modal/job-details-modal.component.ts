@@ -37,7 +37,7 @@ import {
     storageClasses,
 } from '@containers/forms/transfer-profile-form/transfer-profile-form.constants';
 import { buildFilterString, tasksTableFilterPredicate } from '@app/utils/transfer-utils';
-import { formatBytes, stringToTaskStatus } from '@app/utils/utils';
+import { formatBytes, escapeHtml, stringToTaskStatus } from '@app/utils/utils';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { MetadataService } from '@services/metadata/metadata.service';
 import { WailsService } from '@services/wails/wails.service';
@@ -733,7 +733,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     cancel(): void {
-        const name = this.jobDetails.jobName ? `<b>${this.jobDetails.jobName}</b>` : 'this job';
+        const name = this.jobDetails.jobName ? `<b>${escapeHtml(this.jobDetails.jobName)}</b>` : 'this job';
         this.dialog.open(
             ConfirmationModalComponent,
             {

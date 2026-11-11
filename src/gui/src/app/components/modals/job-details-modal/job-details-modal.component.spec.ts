@@ -242,6 +242,15 @@ describe('JobDetailsModalComponent', () => {
             expect(fmeClient.cancelJob).not.toHaveBeenCalled();
         });
 
+        it('escapes a malicious job name in the confirmation message', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress, jobName: "<script>alert('x')</script>"}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.cancel();
+            const message = dialogOpen.mock.calls[dialogOpen.mock.calls.length - 1][1].data.message as string;
+            expect(message).not.toContain('<script>');
+            expect(message).toContain('&lt;script&gt;');
+        });
+
         it('retries a job', () => {
             const {component} = build(makeData({status: JobStatus.Completed}));
             component.retry();

@@ -225,6 +225,14 @@ describe('JobsTableComponent', () => {
             expect(dialogOpen).toHaveBeenCalled();
             expect(fmeClient.cancelJob).not.toHaveBeenCalled();
         });
+
+        it('escapes a malicious job name in the confirmation message', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.cancelJob(makeJob({status: JobStatus.InProgress, name: "<script>alert('x')</script>"}));
+            const message = dialogOpen.mock.calls[0][1].data.message as string;
+            expect(message).not.toContain('<script>');
+            expect(message).toContain('&lt;script&gt;');
+        });
     });
 
     describe('resubmitJob', () => {

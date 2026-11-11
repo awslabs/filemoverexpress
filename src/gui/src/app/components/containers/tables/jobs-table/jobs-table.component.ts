@@ -42,7 +42,7 @@ import {
 } from '@app/pipes/jobs-table-status.pipe';
 import { PascalCaseToSpacesPipe } from '@app/pipes/pascal-case-to-spaces.pipe';
 import { buildFilterString, jobsTableFilterPredicate } from '@app/utils/transfer-utils';
-import { stringToJobStatus } from '@app/utils/utils';
+import { escapeHtml, stringToJobStatus } from '@app/utils/utils';
 import { INITIAL_TRANSFER_SUMMARY_STATS, TransferSummaryStats } from '@containers/tables/jobs-table/jobs-table.interfaces';
 import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
@@ -466,7 +466,7 @@ export class JobsTableComponent implements AfterViewInit {
             this.notifications.error('Unable to cancel job that is not in progress or paused');
             return;
         }
-        const name = job.name ? `<b>${job.name}</b>` : 'this job';
+        const name = job.name ? `<b>${escapeHtml(job.name)}</b>` : 'this job';
         this.dialog.open(
             ConfirmationModalComponent,
             {
