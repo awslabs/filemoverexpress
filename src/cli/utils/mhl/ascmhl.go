@@ -20,12 +20,15 @@ import (
 // document does not need to be spelled out in the struct tags (encoding/xml
 // matches on local name when the tag omits a namespace).
 
-const ascMHLNamespace = "urn:ASC:MHL"
+const (
+	ascMHLNamespace = "urn:ASC:MHL"
 
-// ascDetectionWindow is how many leading bytes of an .mhl file are inspected to
-// decide whether it is an ASC MHL v2 manifest. The root <hashlist> element and
-// its xmlns declaration appear in the first few lines, well within this window.
-const ascDetectionWindow = 1024
+	// ascDetectionWindow is how many leading bytes of an .mhl file are inspected
+	// to decide whether it is an ASC MHL v2 manifest. The root <hashlist> element
+	// and its xmlns declaration appear in the first few lines, well within this
+	// window.
+	ascDetectionWindow = 1024
+)
 
 type (
 	ascHashValue struct {

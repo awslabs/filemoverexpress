@@ -12,18 +12,21 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/fs"
 )
 
-// c4Alphabet is the base58 alphabet used by the C4 ID encoding. It is the same
-// alphabet Bitcoin uses: the digits deliberately omit 0, O, I and l to avoid
-// visual ambiguity.
-const c4Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+// C4 ID encoding constants.
+const (
+	// c4Alphabet is the base58 alphabet used by the C4 ID encoding. It is the
+	// same alphabet Bitcoin uses: the digits deliberately omit 0, O, I and l to
+	// avoid visual ambiguity.
+	c4Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
-// c4Base is the radix of the C4 encoding.
-const c4Base = 58
+	// c4Base is the radix of the C4 encoding.
+	c4Base = 58
 
-// c4BodyLength is the fixed number of base58 characters that follow the "c4"
-// prefix. A C4 ID is always 90 characters: the 2-character prefix plus 88
-// left-padded base58 digits of the SHA-512 digest.
-const c4BodyLength = 88
+	// c4BodyLength is the fixed number of base58 characters that follow the "c4"
+	// prefix. A C4 ID is always 90 characters: the 2-character prefix plus 88
+	// left-padded base58 digits of the SHA-512 digest.
+	c4BodyLength = 88
+)
 
 // C4Checksummer produces an ASC MHL "c4" content identifier: the SHA-512 digest
 // of the file encoded as a fixed-width 88-character base58 string and prefixed

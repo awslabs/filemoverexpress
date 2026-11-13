@@ -13,6 +13,17 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/mhl"
 )
 
+const (
+	strASCLoadFailed = "Failed to read ASC MHL manifest %s: %s"
+	strASCMissing    = "ASC MHL lists %s but it is missing on disk (manifest %s)"
+	strASCVerified   = "Verified %s against supplied ASC MHL (%s)"
+	strASCImported   = "Honored supplied ASC MHL hash for %s (%s); integrity confirmed on transfer"
+	strASCMismatch   = "%s does NOT match the hash in the supplied ASC MHL (%s): expected %s, computed %s"
+	strASCUnhonored  = "Could not honor the ASC MHL hash for %s: no FME-supported algorithm present (manifest has: %s)"
+	strASCReadError  = "Failed to compute %s checksum for %s while verifying against ASC MHL: %s"
+	strASCSummary    = "ASC MHL verification complete for %s: %d verified, %d honored, %d mismatched, %d missing, %d not-honored"
+)
+
 // verifyPriority is the order in which FME-supported algorithms are chosen to
 // verify a file on ingest when the manifest hash is not in the profile's own
 // algorithm. Faster hashes are preferred; C4 (SHA-512 based) is the last resort.
@@ -22,17 +33,6 @@ var verifyPriority = []constants.ChecksumAlgorithm{
 	constants.AlgorithmMD5,
 	constants.AlgorithmC4,
 }
-
-const (
-	strASCLoadFailed = "Failed to read ASC MHL manifest %s: %s"
-	strASCMissing    = "ASC MHL lists %s but it is missing on disk (manifest %s)"
-	strASCVerified   = "Verified %s against supplied ASC MHL (%s)"
-	strASCImported   = "Honored supplied ASC MHL hash for %s (%s); integrity confirmed on transfer"
-	strASCMismatch   = "%s does NOT match the hash in the supplied ASC MHL (%s): expected %s, computed %s"
-	strASCUnhonored  = "Could not honor the ASC MHL hash for %s: no FME-supported algorithm present (manifest has: %s)"
-	strASCReadError  = "Failed to compute %s checksum for %s while verifying against ASC MHL: %s"
-	strASCSummary    = "ASC MHL verification complete for %s: %d verified, %d honored-on-transfer, %d mismatched, %d missing, %d not-honored"
-)
 
 // verifyCounts tallies the outcome of verifying one manifest.
 type verifyCounts struct {
