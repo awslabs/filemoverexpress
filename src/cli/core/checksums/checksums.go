@@ -15,6 +15,8 @@ func NewChecksummer(algorithm constants.ChecksumAlgorithm) (FileMoverChecksummer
 		return &Xxhash64Checksummer{}, nil
 	case constants.AlgorithmXXH3:
 		return &Xxh3Checksummer{}, nil
+	case constants.AlgorithmC4:
+		return &C4Checksummer{}, nil
 	case constants.AlgorithmNone:
 		return &NoneChecksummer{}, nil
 	default:
