@@ -24,6 +24,12 @@ func (cm *ChecksumManager) ChecksumTasks(jobId string, tasks []*jobmanagertypes.
 		}
 	}
 
+	// Verify files listed in any supplied ASC MHL manifest on ingest, honoring
+	// whatever algorithm the manifest provides. Entries already imported above
+	// (manifest hash in the profile's own algorithm) are only logged here; their
+	// integrity is confirmed by the destination comparison during transfer.
+	mhlProcessor.VerifyASCMHL(tasks, checksumSettings.Algorithm)
+
 	taskCount := len(tasks)
 	wg := &sync.WaitGroup{}
 
