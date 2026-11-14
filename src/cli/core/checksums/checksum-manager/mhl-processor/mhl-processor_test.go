@@ -58,17 +58,18 @@ func TestLatestASCGenerations(t *testing.T) {
 	}, got)
 }
 
-func TestImportASCMHL(t *testing.T) {
-	sample := filepath.Join("..", "..", "..", "..", "testdata", "checksums", "ascmhl-sample.mhl")
-	root := ascRoot(sample)
+func TestLegacyMHLStillImportsAndASCSkipped(t *testing.T) {
+	// Legacy v1 manifest is still imported; ASC v2 manifest is skipped by
+	// ProcessMHLFiles (it is verified by VerifyASCMHL, never imported).
+	legacy := filepath.Join("..", "..", "..", "..", "testdata", "checksums", "checksums.mhl")
+	asc := filepath.Join("..", "..", "..", "..", "testdata", "checksums", "ascmhl-sample.mhl")
 
-	result := make(map[string]string)
-	require.NoError(t, importASCMHL(sample, constants.AlgorithmMD5, result))
-
-	key := entryAbsPath(root, "Clips/A002C007_141024_R2EC.mov")
-	assert.Equal(t, "d41d8cd98f00b204e9800998ecf8427e", result[key])
-	// xxh64-only entry is not imported under the md5 profile.
-	assert.NotContains(t, result, entryAbsPath(root, "Clips/A002C006_141024_R2EC.mov"))
+	ascIsASC, err := mhl.IsASCMHL(asc)
+	require.NoError(t, err)
+	assert.True(t, ascIsASC)
+	legacyIsASC, err := mhl.IsASCMHL(legacy)
+	require.NoError(t, err)
+	assert.False(t, legacyIsASC)
 }
 
 func TestVerifyManifestOutcomes(t *testing.T) {
@@ -101,8 +102,9 @@ func TestVerifyManifestOutcomes(t *testing.T) {
 	}
 
 	counts := verifyManifest(manifestPath, manifest, constants.AlgorithmMD5)
-	assert.Equal(t, 1, counts.verified, "good.mov verifies against its xxh64")
-	assert.Equal(t, 1, counts.imported, "imported.txt is honored via the profile algo")
+	// good.mov verifies via its xxh64; imported.txt verifies via md5 (the profile
+	// algo). Both are re-hashed and compared - nothing is trusted unverified.
+	assert.Equal(t, 2, counts.verified, "good.mov (xxh64) and imported.txt (md5) both verify")
 	assert.Equal(t, 1, counts.mismatched, "bad.mov does not match")
 	assert.Equal(t, 1, counts.missing, "missing.mov is absent on disk")
 	assert.Equal(t, 1, counts.unhonored, "sha-only.txt has no FME-supported hash")
@@ -127,18 +129,26 @@ func TestVerifyManifestHonorsC4(t *testing.T) {
 	assert.Equal(t, 0, counts.mismatched)
 }
 
-// Guard against an accidental regression in the priority list length/order.
-func TestPickVerifyAlgorithmPrefersFastest(t *testing.T) {
+// Guard the algorithm choice: profile algo wins when present, else fastest.
+func TestPickVerifyAlgorithm(t *testing.T) {
 	entry := mhl.ASCFileEntry{Hashes: map[constants.ChecksumAlgorithm]string{
 		constants.AlgorithmMD5:      "m",
 		constants.AlgorithmXXHash64: "x",
 	}}
-	algo, value, ok := pickVerifyAlgorithm(entry)
+
+	// Profile algo present -> preferred.
+	algo, value, ok := pickVerifyAlgorithm(entry, constants.AlgorithmMD5)
+	require.True(t, ok)
+	assert.Equal(t, constants.AlgorithmMD5, algo)
+	assert.Equal(t, "m", value)
+
+	// Profile algo absent -> fastest available from the priority list.
+	algo, value, ok = pickVerifyAlgorithm(entry, constants.AlgorithmNone)
 	require.True(t, ok)
 	assert.Equal(t, constants.AlgorithmXXHash64, algo)
 	assert.Equal(t, "x", value)
 
-	_, _, ok = pickVerifyAlgorithm(mhl.ASCFileEntry{Hashes: map[constants.ChecksumAlgorithm]string{}})
+	_, _, ok = pickVerifyAlgorithm(mhl.ASCFileEntry{Hashes: map[constants.ChecksumAlgorithm]string{}}, constants.AlgorithmXXHash64)
 	assert.False(t, ok)
 }
 

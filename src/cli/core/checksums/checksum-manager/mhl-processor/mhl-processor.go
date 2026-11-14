@@ -8,22 +8,16 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/mhl"
 )
 
-// ProcessMHLFiles scans a slice of tasks for MHL manifests (legacy
-// mediahashlist.org v1.0 and ASC MHL v2) and returns a map keyed by the absolute
-// local file path whose value is the file's checksum in the requested algorithm.
-// If the requested algorithm is not present for a file in the manifest, that file
-// is treated as if it were not listed (i.e. FME configuration wants XXHash
-// checksums but the MHL only carries MD5). Importing these values lets FME skip
-// re-hashing the source: the value flows into the destination comparison, which
-// is where source-vs-manifest integrity is actually confirmed.
-//
-// Independent on-ingest verification of ASC MHL entries whose hash is in a
-// different (but FME-supported) algorithm is handled by VerifyASCMHL.
+// ProcessMHLFiles scans a slice of tasks for LEGACY (mediahashlist.org v1.0) MHL
+// manifests and returns a map keyed by the absolute local file path whose value
+// is the file's checksum in the requested algorithm, letting FME skip re-hashing
+// the source for those files. ASC MHL v2 manifests are deliberately NOT imported
+// here: their files are verified by re-hashing in VerifyASCMHL, so FME never
+// attaches a manifest-claimed hash to an object without checking the bytes.
 func ProcessMHLFiles(tasks []*jobmanagertypes.Task, algorithm constants.ChecksumAlgorithm) (map[string]string, []error) {
 	result := make(map[string]string)
 	mhlErrors := make([]error, 0)
 
-	ascManifests := make([]string, 0)
 	for _, task := range tasks {
 		localFilePath := task.LocalFile().Path
 		if filepath.Ext(localFilePath) != ".mhl" {
@@ -36,17 +30,11 @@ func ProcessMHLFiles(tasks []*jobmanagertypes.Task, algorithm constants.Checksum
 			continue
 		}
 		if isASC {
-			ascManifests = append(ascManifests, localFilePath)
+			// ASC MHL is handled by VerifyASCMHL (re-hash + compare), not imported.
 			continue
 		}
 
 		if err := importLegacyMHL(localFilePath, algorithm, result); err != nil {
-			mhlErrors = append(mhlErrors, err)
-		}
-	}
-
-	for _, manifestPath := range latestASCGenerations(ascManifests) {
-		if err := importASCMHL(manifestPath, algorithm, result); err != nil {
 			mhlErrors = append(mhlErrors, err)
 		}
 	}
@@ -85,24 +73,6 @@ func legacyHashForAlgorithm(itm mhl.Hash, algorithm constants.ChecksumAlgorithm)
 	default:
 		return ""
 	}
-}
-
-// importASCMHL imports the requested-algorithm hashes from an ASC MHL v2 manifest
-// into result, keyed by absolute file path. ASC MHL paths are relative to the
-// parent of the ascmhl/ folder (ascRoot).
-func importASCMHL(manifestPath string, algorithm constants.ChecksumAlgorithm, result map[string]string) error {
-	manifest, err := mhl.LoadASCMHLFile(manifestPath)
-	if err != nil {
-		return err
-	}
-
-	root := ascRoot(manifestPath)
-	for _, entry := range manifest.Entries {
-		if value, ok := entry.Hashes[algorithm]; ok {
-			result[entryAbsPath(root, entry.RelativePath)] = value
-		}
-	}
-	return nil
 }
 
 // ascRoot returns the root of the hashed tree for an ASC MHL manifest: the parent

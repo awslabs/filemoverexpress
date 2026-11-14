@@ -17,16 +17,15 @@ const (
 	strASCLoadFailed = "Failed to read ASC MHL manifest %s: %s"
 	strASCMissing    = "ASC MHL lists %s but it is missing on disk (manifest %s)"
 	strASCVerified   = "Verified %s against supplied ASC MHL (%s)"
-	strASCImported   = "Honored supplied ASC MHL hash for %s (%s); integrity confirmed on transfer"
 	strASCMismatch   = "%s does NOT match the hash in the supplied ASC MHL (%s): expected %s, computed %s"
 	strASCUnhonored  = "Could not honor the ASC MHL hash for %s: no FME-supported algorithm present (manifest has: %s)"
 	strASCReadError  = "Failed to compute %s checksum for %s while verifying against ASC MHL: %s"
-	strASCSummary    = "ASC MHL verification complete for %s: %d verified, %d honored, %d mismatched, %d missing, %d not-honored"
+	strASCSummary    = "ASC MHL verification complete for %s: %d verified, %d mismatched, %d missing, %d not-honored"
 )
 
 // verifyPriority is the order in which FME-supported algorithms are chosen to
-// verify a file on ingest when the manifest hash is not in the profile's own
-// algorithm. Faster hashes are preferred; C4 (SHA-512 based) is the last resort.
+// verify a file on ingest when the profile's own algorithm is not one the
+// manifest carries. Faster hashes are preferred; C4 (SHA-512 based) is last.
 var verifyPriority = []constants.ChecksumAlgorithm{
 	constants.AlgorithmXXHash64,
 	constants.AlgorithmXXH3,
@@ -37,24 +36,22 @@ var verifyPriority = []constants.ChecksumAlgorithm{
 // verifyCounts tallies the outcome of verifying one manifest.
 type verifyCounts struct {
 	verified   int
-	imported   int
 	mismatched int
 	missing    int
 	unhonored  int
 }
 
 // VerifyASCMHL verifies every file listed in the latest-generation ASC MHL
-// manifest(s) present in the task set, honoring the manifest on ingest:
-//   - a file whose hash is in the profile's own algorithm is left to the transfer
-//     path (its destination is compared against the imported hash), and only logged;
-//   - a file whose hash is only in a different but FME-supported algorithm is
-//     hashed now and compared directly;
-//   - a file listed but missing on disk, or whose only hashes are in algorithms
-//     FME cannot compute (sha1, xxh128), is reported.
+// manifest(s) present in the task set. For each entry that exists on disk it
+// re-hashes the source in an algorithm the manifest carries (preferring the
+// profile's own algorithm) and compares it to the manifest value. Files listed
+// but missing on disk, and files whose only hashes are algorithms FME cannot
+// compute (sha1, xxh128), are reported.
 //
-// Every outcome is emitted both to the event bus (for the GUI) and to the daemon
-// log, because when a GUI client is connected the event bus does not also write
-// to the log.
+// This ALWAYS re-hashes and compares; it never trusts a manifest hash without
+// checking the bytes. Every outcome is emitted to the event bus (GUI) and to
+// the daemon log, because a connected GUI client suppresses the bus's own log
+// write.
 func VerifyASCMHL(tasks []*jobmanagertypes.Task, profileAlgorithm constants.ChecksumAlgorithm) {
 	for _, manifestPath := range latestASCGenerations(ascManifestPaths(tasks)) {
 		manifest, err := mhl.LoadASCMHLFile(manifestPath)
@@ -99,23 +96,17 @@ func verifyManifest(manifestPath string, manifest mhl.ASCManifest, profileAlgori
 			continue
 		}
 
-		if _, ok := entry.Hashes[profileAlgorithm]; ok {
-			emit(events.Events.Info, logger.Info, strASCImported, entry.RelativePath, profileAlgorithm)
-			counts.imported++
-			continue
-		}
-
-		verifyEntry(entry, absPath, &counts)
+		verifyEntry(entry, absPath, profileAlgorithm, &counts)
 	}
 
 	emit(events.Events.Info, logger.Info, strASCSummary, manifestPath,
-		counts.verified, counts.imported, counts.mismatched, counts.missing, counts.unhonored)
+		counts.verified, counts.mismatched, counts.missing, counts.unhonored)
 
 	return counts
 }
 
-func verifyEntry(entry mhl.ASCFileEntry, absPath string, counts *verifyCounts) {
-	algo, expected, ok := pickVerifyAlgorithm(entry)
+func verifyEntry(entry mhl.ASCFileEntry, absPath string, profileAlgorithm constants.ChecksumAlgorithm, counts *verifyCounts) {
+	algo, expected, ok := pickVerifyAlgorithm(entry, profileAlgorithm)
 	if !ok {
 		emit(events.Events.Warn, logger.Warn, strASCUnhonored, entry.RelativePath, strings.Join(entry.UnsupportedAlgos, ", "))
 		counts.unhonored++
@@ -146,9 +137,14 @@ func verifyEntry(entry mhl.ASCFileEntry, absPath string, counts *verifyCounts) {
 	counts.mismatched++
 }
 
-// pickVerifyAlgorithm chooses the preferred FME-supported algorithm present in
-// the entry and returns it with the manifest's expected value.
-func pickVerifyAlgorithm(entry mhl.ASCFileEntry) (constants.ChecksumAlgorithm, string, bool) {
+// pickVerifyAlgorithm chooses which algorithm to verify with. It prefers the
+// profile's own algorithm when the manifest carries it (so the verification
+// matches what the transfer attaches), otherwise the fastest available from
+// verifyPriority. Returns the chosen algorithm and the manifest's expected value.
+func pickVerifyAlgorithm(entry mhl.ASCFileEntry, profileAlgorithm constants.ChecksumAlgorithm) (constants.ChecksumAlgorithm, string, bool) {
+	if value, ok := entry.Hashes[profileAlgorithm]; ok {
+		return profileAlgorithm, value, true
+	}
 	for _, algo := range verifyPriority {
 		if value, ok := entry.Hashes[algo]; ok {
 			return algo, value, true
