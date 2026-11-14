@@ -25,3 +25,29 @@ export const discardUnsavedChangesDialog: MatDialogConfig<ConfirmationModalData>
         title: 'Discard Unsaved Changes?',
     },
 };
+
+/**
+ * Shared config for the "Resubmit this job?" prompt, used by the jobs table and the
+ * job-details modal so the wording stays consistent. Resubmitting re-runs the whole
+ * transfer from scratch, so it is a deliberate action worth confirming (especially
+ * for a job that completed with verification warnings, where the source may be the
+ * thing that needs attention first).
+ *
+ * "Cancel" is the safe default (filled) and is what Esc maps to; "Resubmit" is the
+ * action (stroked).
+ */
+export const resubmitJobDialog: MatDialogConfig<ConfirmationModalData> = {
+    width: '480px',
+    data: {
+        cancelText: 'Cancel',
+        cancelType: 'filled',
+        cancelClass: 'primary',
+        confirmText: 'Resubmit',
+        confirmType: 'stroked',
+        confirmClass: null,
+        message: 'This re-runs the entire transfer from the beginning. If the job completed '
+            + 'with warnings, check the source files named in the logs first - resubmitting '
+            + 'will not fix a corrupt or missing source.',
+        title: 'Resubmit this job?',
+    },
+};

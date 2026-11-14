@@ -97,7 +97,9 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     }
 
     .mat-column-status {
-        width: 130px;
+        // Wide enough for the longest status label ("Complete w/ Warnings",
+        // "Completed with Errors") without clipping the pill.
+        width: 190px;
     }
 
     // Per-row actions (⋯) column: compact, muted by default, brighter on row hover.

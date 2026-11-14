@@ -26,6 +26,9 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { handleStreamError } from '@app/classes/rxjs-operators';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 import { ExportJobModalComponent } from '@app/components/modals/export-job-modal/export-job-modal.component';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
+import { resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { JobDetailsModalComponent } from '@app/components/modals/job-details-modal/job-details-modal.component';
 import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal/job-rename-modal.component';
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
@@ -370,8 +373,9 @@ export class JobsTableComponent implements AfterViewInit {
      * Opens the details modal for the given job
      *
      * @param job {Job} Job to display details modal for
+     * @param openTab Which tab to open on; omitted lets the modal decide.
      */
-    jobDetails(job: Job) {
+    jobDetails(job: Job, openTab?: 'files' | 'logs') {
         this.dialog.open<JobDetailsModalComponent, JobDetailsData>(
             JobDetailsModalComponent, {
                 minWidth: '820px',
@@ -397,9 +401,21 @@ export class JobsTableComponent implements AfterViewInit {
                     hasTaskErrors: job.hasTaskErrors,
                     hasSuccessfulTasks: job.hasSuccessfulTasks,
                     force: job.force ?? false,
+                    openTab,
                 },
             },
         );
+    }
+
+    /**
+     * Opens the details modal straight to the Logs tab for the given job. A quick
+     * path for inspecting what happened (e.g. verification warnings) without first
+     * opening Job Details and switching tabs.
+     *
+     * @param job {Job} Job whose logs to show
+     */
+    viewLogs(job: Job) {
+        this.jobDetails(job, 'logs');
     }
 
     /**
@@ -496,10 +512,19 @@ export class JobsTableComponent implements AfterViewInit {
             this.notifications.error('Unable to resubmit, only failed, cancelled, and completed jobs can be resubmitted');
             return;
         }
-        this.fmeClientService.resubmitJob(job.id).subscribe((data) => {
-            if (!data.success) {
-                this.notifications.error('Unable to resubmit job');
+        const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+            ConfirmationModalComponent,
+            resubmitJobDialog,
+        );
+        dialogRef.afterClosed().subscribe((confirmed) => {
+            if (!confirmed) {
+                return;
             }
+            this.fmeClientService.resubmitJob(job.id).subscribe((data) => {
+                if (!data.success) {
+                    this.notifications.error('Unable to resubmit job');
+                }
+            });
         });
     }
 

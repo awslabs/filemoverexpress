@@ -2,7 +2,7 @@ import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { AfterViewInit, Component, inject, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatInput } from '@angular/material/input';
 import { MatPaginator } from '@angular/material/paginator';
@@ -28,6 +28,9 @@ import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
 import { JobStatusClassPipe, JobStatusPipe, TaskTableStatusClassPipe } from '@app/pipes/jobs-table-status.pipe';
 import { TaskStatusPipe } from '@app/pipes/task-status.pipe';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
+import { resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { getOSFileBrowserName } from '@app/components/layout/file-browser/file-browser.utils';
@@ -103,6 +106,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     private metadata = inject(MetadataService);
     private store = inject(Store);
     private notifications = inject(NotificationsService);
+    private dialog = inject(MatDialog);
     protected readonly TransferDirection = TransferDirection;
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -189,9 +193,10 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
         this.loadTasks();
         this.loadProfileDetails();
-        // Open on Logs for a failed OR warnings job (users look there first to see
-        // what went wrong), otherwise show the file list.
-        this.tab = (this.isError || this.isWarnings) ? 'logs' : 'files';
+        // Open on the explicitly requested tab (e.g. the "View Logs" row action);
+        // otherwise open on Logs for a failed OR warnings job (users look there
+        // first to see what went wrong), else the file list.
+        this.tab = this.jobDetails.openTab ?? ((this.isError || this.isWarnings) ? 'logs' : 'files');
         // Keep the summary live while the modal is open (progress/speed/status for active jobs).
         this.subscriptions.push(this.store.select(jobSelectAll).subscribe((jobs) => {
             const job = jobs.find((j) => j.id === this.jobDetails.jobId);
@@ -744,6 +749,14 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     retry(): void {
-        this.fmeClientService.resubmitJob(this.jobDetails.jobId).subscribe();
+        const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+            ConfirmationModalComponent,
+            resubmitJobDialog,
+        );
+        dialogRef.afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.fmeClientService.resubmitJob(this.jobDetails.jobId).subscribe();
+            }
+        });
     }
 }

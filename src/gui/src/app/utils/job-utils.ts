@@ -37,7 +37,7 @@ export function jobStatusToDisplayString(status: JobStatus): string {
         case JobStatus.Completed:
             return 'Completed';
         case JobStatus.CompletedWithWarnings:
-            return 'Completed with Warnings';
+            return 'Complete w/ Warnings';
         case JobStatus.Paused:
             return 'Paused';
         case JobStatus.Cancelled:
