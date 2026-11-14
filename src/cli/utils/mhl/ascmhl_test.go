@@ -79,3 +79,43 @@ func TestLoadASCMHLFileInvalidXML(t *testing.T) {
 	_, err := LoadASCMHLFile(path)
 	assert.Error(t, err)
 }
+
+func TestIsAcceptableAction(t *testing.T) {
+	for _, a := range []string{"", "original", "verified", "new", "VERIFIED", " original "} {
+		assert.True(t, isAcceptableAction(a), "action %q should be acceptable", a)
+	}
+	for _, a := range []string{"failed", "FAILED", "bogus"} {
+		assert.False(t, isAcceptableAction(a), "action %q should be rejected", a)
+	}
+}
+
+// A hash recorded with action="failed" must not be trusted as an expected value,
+// so the file falls through to the unsupported list (nothing honorable remains).
+func TestLoadASCMHLFileSkipsFailedAction(t *testing.T) {
+	xml := `<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0">
+  <hashes>
+    <hash>
+      <path size="5">Clips/good.mov</path>
+      <xxh64 action="original">0ea03b369a463d9d</xxh64>
+    </hash>
+    <hash>
+      <path size="5">Clips/bad.mov</path>
+      <xxh64 action="failed">0ea03b369a463d9d</xxh64>
+    </hash>
+  </hashes>
+</hashlist>`
+	path := filepath.Join(t.TempDir(), "actions.mhl")
+	require.NoError(t, os.WriteFile(path, []byte(xml), 0o600))
+
+	manifest, err := LoadASCMHLFile(path)
+	require.NoError(t, err)
+
+	byPath := make(map[string]ASCFileEntry)
+	for _, e := range manifest.Entries {
+		byPath[e.RelativePath] = e
+	}
+	assert.Equal(t, "0ea03b369a463d9d", byPath["Clips/good.mov"].Hashes[constants.AlgorithmXXHash64])
+	// The failed hash is not honored - no trusted hash remains for that file.
+	assert.Empty(t, byPath["Clips/bad.mov"].Hashes)
+}

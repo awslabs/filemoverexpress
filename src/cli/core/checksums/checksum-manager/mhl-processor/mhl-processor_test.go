@@ -1,6 +1,7 @@
 package mhl_processor
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -101,7 +102,7 @@ func TestVerifyManifestOutcomes(t *testing.T) {
 		},
 	}
 
-	counts := verifyManifest(verifyCtx{jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest)
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest, nil)
 	// good.mov verifies via its xxh64; imported.txt verifies via md5 (the profile
 	// algo). Both are re-hashed and compared - nothing is trusted unverified.
 	assert.Equal(t, 2, counts.verified, "good.mov (xxh64) and imported.txt (md5) both verify")
@@ -124,7 +125,7 @@ func TestVerifyManifestHonorsC4(t *testing.T) {
 	}
 
 	// Profile algo is xxhash64, so the only honorable hash is the C4 one.
-	counts := verifyManifest(verifyCtx{jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest)
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest, nil)
 	assert.Equal(t, 1, counts.verified)
 	assert.Equal(t, 0, counts.mismatched)
 }
@@ -134,7 +135,77 @@ func TestVerifyManifestHonorsC4(t *testing.T) {
 func TestIntegrityProblems(t *testing.T) {
 	assert.Equal(t, 0, verifyCounts{verified: 5}.integrityProblems())
 	assert.Equal(t, 0, verifyCounts{verified: 3, unhonored: 2}.integrityProblems())
-	assert.Equal(t, 3, verifyCounts{mismatched: 1, missing: 2}.integrityProblems())
+	assert.Equal(t, 0, verifyCounts{verified: 3, notListed: 2}.integrityProblems())
+	assert.Equal(t, 4, verifyCounts{mismatched: 1, missing: 1, unreadable: 1, rejected: 1}.integrityProblems())
+}
+
+// A manifest entry whose path escapes the offload tree must never be statted or
+// hashed, and must count as an integrity problem.
+func TestVerifyManifestRejectsPathTraversal(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	// A real secret file outside the offload tree the manifest tries to reach.
+	outside := filepath.Join(t.TempDir(), "secret.txt")
+	writeFile(t, outside, "secret-bytes")
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "../../" + filepath.Base(filepath.Dir(outside)) + "/secret.txt",
+			Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: "deadbeef"}},
+	}}
+
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), jobID: "j", jobName: "n", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest, nil)
+	assert.Equal(t, 1, counts.rejected)
+	assert.Equal(t, 0, counts.verified)
+	assert.Equal(t, 1, counts.integrityProblems())
+}
+
+// An unreadable listed file is an integrity problem, not a benign skip.
+func TestVerifyManifestUnreadableIsIntegrityProblem(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	// A directory where the manifest expects a file: Stat succeeds, hashing fails.
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "notafile"), 0o750))
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "notafile", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: "deadbeef"}},
+	}}
+
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), jobID: "j", jobName: "n", profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest, nil)
+	assert.Equal(t, 1, counts.unreadable)
+	assert.Equal(t, 1, counts.integrityProblems())
+}
+
+// computeOrReuse returns the precomputed checksum without re-hashing when the
+// algorithm matches the profile, and hashes otherwise.
+func TestComputeOrReuse(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "f.mov")
+	writeFile(t, path, "reuse-bytes")
+	abs, err := filepath.Abs(path)
+	require.NoError(t, err)
+
+	vctx := verifyCtx{
+		ctx:              context.Background(),
+		profileAlgorithm: constants.AlgorithmXXHash64,
+		precomputed:      map[string]string{abs: "cafef00d"},
+	}
+	// Profile algorithm -> reuse the cached value verbatim (no hashing).
+	got, err := computeOrReuse(vctx, constants.AlgorithmXXHash64, abs)
+	require.NoError(t, err)
+	assert.Equal(t, "cafef00d", got)
+
+	// A different algorithm must be computed, not the cached profile value.
+	got, err = computeOrReuse(vctx, constants.AlgorithmC4, abs)
+	require.NoError(t, err)
+	assert.Equal(t, fmeChecksum(t, path, constants.AlgorithmC4), got)
+}
+
+func TestIsUnder(t *testing.T) {
+	root := "/vol/offload"
+	assert.True(t, isUnder(root, "/vol/offload/Clips/a.mov"))
+	assert.True(t, isUnder(root, "/vol/offload"))
+	assert.False(t, isUnder(root, "/vol/other/a.mov"))
+	assert.False(t, isUnder(root, "/vol/offloadX/a.mov"))
 }
 
 // Guard the algorithm choice: profile algo wins when present, else fastest.
@@ -177,6 +248,6 @@ func TestVerifyManifestHexPadding(t *testing.T) {
 	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
 		{RelativePath: "f.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: padded}},
 	}}
-	counts := verifyManifest(verifyCtx{jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest)
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest, nil)
 	assert.Equal(t, 1, counts.verified)
 }

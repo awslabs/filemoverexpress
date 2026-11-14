@@ -41,6 +41,7 @@ var (
 	instance        *JobManager
 	clearableStates = []jobmanagertypes.JobStatus{
 		jobmanagertypes.JobStatusCompleted,
+		jobmanagertypes.JobStatusCompletedWithWarnings,
 		jobmanagertypes.JobStatusError,
 		jobmanagertypes.JobStatusCancelled,
 	}
@@ -530,7 +531,12 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		time.Sleep(100 * time.Millisecond)
 		return
 	}
-	verificationProblems := checksumManager.ChecksumTasks(job.JobId(), job.Name(), filteredTasks, transferProfile.Checksums)
+	verificationProblems := checksumManager.ChecksumTasks(
+		job.CancelCtx,
+		checksumMgr.JobRef{ID: job.JobId(), Name: job.Name()},
+		filteredTasks,
+		transferProfile.Checksums,
+	)
 	if verificationProblems > 0 {
 		// At least one file failed its supplied ASC MHL verification (hash
 		// mismatch or missing on disk). The transfer still proceeds, but the job

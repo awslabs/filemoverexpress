@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { jobStatusToString } from '@app/utils/job-utils';
+import { isCompletedStatus, jobStatusToString } from '@app/utils/job-utils';
 import { formatBytes } from '@app/utils/utils';
 import * as CoreEvents from '@events/core';
 import * as InventoryEvents from '@events/inventory';
@@ -8,7 +8,6 @@ import { DisconnectType } from '@gen/es/fme/v1/events_pb';
 import { Store } from '@ngrx/store';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { addLog } from '@state/logs/actions/logs.actions';
-import { JobStatus } from '@state/models/job.model';
 import { docsLinks } from '@app/constants/external-links';
 
 const IGNORED_EVENTS = [JobEvents.TaskCompleteEvent] as const;
@@ -284,7 +283,7 @@ export class LogsService {
         // won't be able to correct display the various completed states. This is because the GUI has states for job completion that does
         // not exist in the backend, such as an explicit `CompleteWithErrors` etc.
         // TODO: Standardize the JobStatus between GUI and CLI
-        if (evt.status === JobStatus.Completed) {
+        if (isCompletedStatus(evt.status)) {
             return;
         }
 

@@ -76,3 +76,11 @@ func JobStatusFromString(status string) JobStatus {
 func (j JobStatus) Is(other string) bool {
 	return other == string(j)
 }
+
+// IsCompleted reports whether a status is a successful terminal completion:
+// a clean COMPLETED or COMPLETED_WITH_WARNINGS (the transfer finished and the
+// bytes were written). Every place that used to test only for JobStatusCompleted
+// should use this so a new completion state is handled everywhere at once.
+func (j JobStatus) IsCompleted() bool {
+	return j == JobStatusCompleted || j == JobStatusCompletedWithWarnings
+}

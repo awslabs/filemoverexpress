@@ -25,9 +25,9 @@ const (
 
 	// ascDetectionWindow is how many leading bytes of an .mhl file are inspected
 	// to decide whether it is an ASC MHL v2 manifest. The root <hashlist> element
-	// and its xmlns declaration appear in the first few lines, well within this
-	// window.
-	ascDetectionWindow = 1024
+	// and its xmlns declaration appear near the top; the window is generous enough
+	// to clear a byte-order mark and a long XML prolog.
+	ascDetectionWindow = 8192
 )
 
 type (
@@ -130,6 +130,10 @@ func LoadASCMHLFile(path string) (ASCManifest, error) {
 }
 
 // newASCFileEntry maps the raw XML hash element onto FME's supported algorithms.
+// Only hashes recorded with an acceptable action (original/verified, or no action
+// attribute) are trusted as expected values; a hash marked e.g. action="failed"
+// is ignored so FME does not verify a file against a hash the writer itself
+// flagged as bad.
 func newASCFileEntry(relPath string, h ascHash) ASCFileEntry {
 	entry := ASCFileEntry{
 		RelativePath: relPath,
@@ -138,16 +142,16 @@ func newASCFileEntry(relPath string, h ascHash) ASCFileEntry {
 	}
 
 	supported := []struct {
-		algo  constants.ChecksumAlgorithm
-		value string
+		algo constants.ChecksumAlgorithm
+		hash ascHashValue
 	}{
-		{constants.AlgorithmMD5, h.MD5.Value},
-		{constants.AlgorithmXXHash64, h.XXH64.Value},
-		{constants.AlgorithmXXH3, h.XXH3.Value},
-		{constants.AlgorithmC4, h.C4.Value},
+		{constants.AlgorithmMD5, h.MD5},
+		{constants.AlgorithmXXHash64, h.XXH64},
+		{constants.AlgorithmXXH3, h.XXH3},
+		{constants.AlgorithmC4, h.C4},
 	}
 	for _, s := range supported {
-		if v := strings.TrimSpace(s.value); v != "" {
+		if v := strings.TrimSpace(s.hash.Value); v != "" && isAcceptableAction(s.hash.Action) {
 			entry.Hashes[s.algo] = v
 		}
 	}
@@ -162,4 +166,18 @@ func newASCFileEntry(relPath string, h ascHash) ASCFileEntry {
 	}
 
 	return entry
+}
+
+// isAcceptableAction reports whether a hash element's action attribute marks it
+// as a value FME should trust. ASC MHL records an action per hash (original,
+// verified, new, failed, ...); "original" and "verified" are good hashes, and an
+// absent action is treated as acceptable for tolerance with minimal writers. Any
+// other action (notably "failed") is not trusted.
+func isAcceptableAction(action string) bool {
+	switch strings.ToLower(strings.TrimSpace(action)) {
+	case "", "original", "verified", "new":
+		return true
+	default:
+		return false
+	}
 }

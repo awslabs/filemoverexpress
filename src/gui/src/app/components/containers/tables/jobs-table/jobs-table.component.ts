@@ -45,6 +45,7 @@ import {
 import { PascalCaseToSpacesPipe } from '@app/pipes/pascal-case-to-spaces.pipe';
 import { buildFilterString, jobsTableFilterPredicate } from '@app/utils/transfer-utils';
 import { stringToJobStatus } from '@app/utils/utils';
+import { isCompletedStatus } from '@app/utils/job-utils';
 import { INITIAL_TRANSFER_SUMMARY_STATS, TransferSummaryStats } from '@containers/tables/jobs-table/jobs-table.interfaces';
 import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
@@ -209,7 +210,7 @@ export class JobsTableComponent implements AfterViewInit {
                             transferProgress = 100;
                         }
 
-                        if (j.status === JobStatus.Completed) {
+                        if (isCompletedStatus(stringToJobStatus(j.status))) {
                             transferProgress = 100;
                             eta = 'Completed';
                         }

@@ -1,6 +1,7 @@
 package checksum_manager
 
 import (
+	"context"
 	"sync"
 
 	mhlProcessor "github.com/awslabs/filemoverexpress/core/checksums/checksum-manager/mhl-processor"
@@ -12,25 +13,50 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
+// JobRef identifies the job a checksum pass belongs to, keeping ChecksumTasks
+// within the argument-count limit.
+type JobRef struct {
+	ID   string
+	Name string
+}
+
+// ChecksumTasks computes checksums for the job's tasks (when the profile enables
+// checksums) and verifies any supplied ASC MHL manifest. ASC MHL verification
+// runs REGARDLESS of the checksum setting - a manifest shipped with the media is
+// honored even when checksums are off - and runs after the checksum pass so a
+// file verified in the profile's own algorithm reuses the hash already computed
+// instead of reading the file twice. Returns the number of ASC MHL integrity
+// problems so the caller can mark the job COMPLETED_WITH_WARNINGS.
 func (cm *ChecksumManager) ChecksumTasks(
-	jobId, jobName string,
+	ctx context.Context,
+	job JobRef,
 	tasks []*jobmanagertypes.Task,
 	checksumSettings configtypes.ChecksumSettings,
 ) int {
-	if !checksumSettings.Enabled {
-		return 0
+	if checksumSettings.Enabled {
+		cm.runChecksumPass(job.ID, tasks, checksumSettings)
 	}
 
+	return mhlProcessor.VerifyASCMHL(mhlProcessor.VerifyRequest{
+		Ctx:              ctx,
+		JobID:            job.ID,
+		JobName:          job.Name,
+		Tasks:            tasks,
+		ProfileAlgorithm: checksumSettings.Algorithm,
+	})
+}
+
+// runChecksumPass imports legacy MHL / cached checksums and computes the rest
+// through the worker pool, storing each result on its task.
+func (cm *ChecksumManager) runChecksumPass(
+	jobId string,
+	tasks []*jobmanagertypes.Task,
+	checksumSettings configtypes.ChecksumSettings,
+) {
 	mhlResults, mhlErrors := mhlProcessor.ProcessMHLFiles(tasks, checksumSettings.Algorithm)
 	for _, err := range mhlErrors {
 		events.Events.Warn("Failed processing MHL file: %s", err)
 	}
-
-	// Verify files listed in any supplied ASC MHL manifest on ingest, re-hashing
-	// every listed file (never trusting a manifest hash unverified). Returns the
-	// count of integrity problems (hash mismatches + missing files) so the caller
-	// can mark the job COMPLETED_WITH_WARNINGS.
-	verificationProblems := mhlProcessor.VerifyASCMHL(jobId, jobName, tasks, checksumSettings.Algorithm)
 
 	taskCount := len(tasks)
 	wg := &sync.WaitGroup{}
@@ -77,7 +103,7 @@ func (cm *ChecksumManager) ChecksumTasks(
 			Total:     0,
 			Completed: 0,
 		})
-		return verificationProblems
+		return
 	}
 
 	prog.wg.Add(int(prog.total))
@@ -98,6 +124,4 @@ func (cm *ChecksumManager) ChecksumTasks(
 	cm.statsLock.Lock()
 	delete(cm.stats, jobId)
 	cm.statsLock.Unlock()
-
-	return verificationProblems
 }

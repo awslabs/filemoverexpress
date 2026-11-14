@@ -81,10 +81,6 @@ func ascRoot(manifestPath string) string {
 	return filepath.Dir(filepath.Dir(manifestPath))
 }
 
-func entryAbsPath(root, relPath string) string {
-	return filepath.Clean(filepath.Join(root, relPath))
-}
-
 // latestASCGenerations groups ASC MHL manifest paths by their ascmhl/ directory
 // and returns only the latest-generation manifest in each. Generation manifests
 // are named with a leading zero-padded sequence number (0001_, 0002_, ...), so
