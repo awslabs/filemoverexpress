@@ -11,7 +11,7 @@ import {
     DEFAULT_REPORTS_SETTINGS,
     DEFAULT_S3_CONFIG,
 } from '../constants/config';
-import { create } from '@bufbuild/protobuf';
+import { clone, create } from '@bufbuild/protobuf';
 
 export class FmeConfig implements ConfigInterfaces.FmeConfig {
     constructor(
@@ -23,6 +23,12 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
         // Managed by the webhook-notification RPCs, not this form. Carried through
         // unchanged as the raw protobuf message so a whole-config save never wipes it.
         public notifications?: NotificationSettings,
+        // The message the daemon sent. toProtobuf() builds general settings and hot
+        // folders on top of it, so fields these models don't represent (for example
+        // adaptiveConcurrency, maxConnectionsPerHost, sendBufferBytes and a hot folder's
+        // forceInitialUpload, which are set in the config file) survive a save instead
+        // of being reset to zero.
+        public source?: proto.GRPCFmeConfig,
     ) {
     }
 
@@ -38,6 +44,7 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             Protocols.fromJson(input.protocols),
             hotFolders,
             input.notifications,
+            input.source,
         );
     }
 
@@ -67,17 +74,24 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             input.protocols ? Protocols.fromProtobuf(input.protocols) : Protocols.fromJson(DEFAULT_PROTOCOLS_SETTINGS),
             hotFolders,
             input.notifications,
+            input,
         );
     }
 
     public toProtobuf(): proto.GRPCFmeConfig {
         const grpcConfig = create(proto.GRPCFmeConfigSchema);
-        grpcConfig.general = General.jsonToProtobuf(this.general);
+        grpcConfig.general = General.jsonToProtobuf(this.general, this.source?.general);
         grpcConfig.logging = Logging.jsonToProtobuf(this.logging);
         grpcConfig.reports = Reports.jsonToProtobuf(this.reports);
+        // Transfer profiles are deliberately NOT built on the source message: their
+        // conversion clears auth fields when the auth method changes, and starting from
+        // the old message could keep stale credentials.
         grpcConfig.protocols = Protocols.jsonToProtobuf(this.protocols);
         grpcConfig.uploadHotFolders = this.uploadHotFolders.map(
-            (itm) => HotFolders.jsonToProtobuf(itm),
+            (itm) => HotFolders.jsonToProtobuf(
+                itm,
+                this.source?.uploadHotFolders.find((src) => src.name === itm.name),
+            ),
         );
         grpcConfig.notifications = this.notifications;
         return grpcConfig;
@@ -117,8 +131,17 @@ export class General implements ConfigInterfaces.ConfigGeneral {
         );
     }
 
-    static jsonToProtobuf(input: ConfigInterfaces.ConfigGeneral): proto.GeneralSettings {
-        const generateSettings = create(proto.GeneralSettingsSchema);
+    /**
+     * @param base the daemon's message, when available. Fields this model doesn't
+     * represent are kept from it; the fields below always come from `input`.
+     */
+    static jsonToProtobuf(
+        input: ConfigInterfaces.ConfigGeneral,
+        base?: proto.GeneralSettings,
+    ): proto.GeneralSettings {
+        const generateSettings = base
+            ? clone(proto.GeneralSettingsSchema, base)
+            : create(proto.GeneralSettingsSchema);
         generateSettings.noSleep = input.noSleep;
         generateSettings.retryCount = input.retryCount;
         generateSettings.maxActiveTransfers = input.maxActiveTransfers;
@@ -164,8 +187,17 @@ export class HotFolders implements ConfigInterfaces.ConfigHotFolders {
         );
     }
 
-    static jsonToProtobuf(input: ConfigInterfaces.ConfigHotFolders): proto.UploadHotFolderSettings {
-        const uploadHotFolderSettings = create(proto.UploadHotFolderSettingsSchema);
+    /**
+     * @param base the daemon's message for the hot folder with the same name, when
+     * available. Fields this model doesn't represent are kept from it.
+     */
+    static jsonToProtobuf(
+        input: ConfigInterfaces.ConfigHotFolders,
+        base?: proto.UploadHotFolderSettings,
+    ): proto.UploadHotFolderSettings {
+        const uploadHotFolderSettings = base
+            ? clone(proto.UploadHotFolderSettingsSchema, base)
+            : create(proto.UploadHotFolderSettingsSchema);
         uploadHotFolderSettings.name = input.name;
         uploadHotFolderSettings.enabled = input.enabled;
         uploadHotFolderSettings.localSourceFolder = input.localSourceFolder;

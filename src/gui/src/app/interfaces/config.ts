@@ -19,6 +19,8 @@ export interface FmeConfig {
     // the whole-config save must carry them through unchanged. Held as the raw protobuf
     // message since the form never edits it.
     notifications?: NotificationSettings;
+    // The message the daemon sent, so a save keeps fields the GUI doesn't model.
+    source?: proto.GRPCFmeConfig;
 }
 
 export interface ConfigGeneral {
