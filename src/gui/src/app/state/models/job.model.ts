@@ -10,6 +10,7 @@ export enum JobStatus {
     Paused = 'PAUSED',
     Cancelled = 'CANCELLED',
     Completed = 'COMPLETED',
+    CompletedWithWarnings = 'COMPLETED_WITH_WARNINGS',
     Error = 'ERROR',
     Unknown = 'UNKNOWN'
 }
@@ -59,13 +60,18 @@ export const PROGRESS_STATES: JobStatus[] = [
     JobStatus.InProgress,
 ];
 
-export const TERMINAL_STATES: JobStatus[] = [JobStatus.Completed, JobStatus.Error];
+export const TERMINAL_STATES: JobStatus[] = [
+    JobStatus.Completed,
+    JobStatus.CompletedWithWarnings,
+    JobStatus.Error,
+];
 
 // States a job can be resubmitted from. Broader than TERMINAL_STATES: a cancelled
 // job can also be re-run (the daemon accepts it), so it must be included here even
 // though it is not a "completed" terminal state used for duration calculations.
 export const RESUBMITTABLE_STATES: JobStatus[] = [
     JobStatus.Completed,
+    JobStatus.CompletedWithWarnings,
     JobStatus.Cancelled,
     JobStatus.Error,
 ];

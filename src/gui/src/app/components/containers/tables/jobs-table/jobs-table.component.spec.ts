@@ -224,8 +224,21 @@ describe('JobsTableComponent', () => {
             expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
         });
 
-        it('resubmits a completed job', () => {
+        it('resubmits a completed job after the user confirms', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
             component.resubmitJob(makeJob({status: JobStatus.Completed}));
+            expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not resubmit when the confirmation is dismissed', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(false)});
+            component.resubmitJob(makeJob({status: JobStatus.Completed}));
+            expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
+        });
+
+        it('resubmits a completed-with-warnings job after confirm', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.resubmitJob(makeJob({status: JobStatus.CompletedWithWarnings}));
             expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
         });
     });

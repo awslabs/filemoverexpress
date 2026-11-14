@@ -97,7 +97,9 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     }
 
     .mat-column-status {
-        width: 130px;
+        // Wide enough for the longest status label ("Complete w/ Warnings",
+        // "Completed with Errors") without clipping the pill.
+        width: 190px;
     }
 
     // Per-row actions (⋯) column: compact, muted by default, brighter on row hover.
@@ -208,6 +210,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         background: variables.$orange-accent;
     }
 
+    &.status-completed-with-warnings {
+        background: variables.$orange-accent;
+    }
+
     &.status-error {
         background: variables.$red-500;
     }
@@ -257,6 +263,11 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     }
 
     &.status-completed-with-errors {
+        color: variables.$orange-accent;
+        background: color.adjust(variables.$orange-accent, $alpha: -0.88);
+    }
+
+    &.status-completed-with-warnings {
         color: variables.$orange-accent;
         background: color.adjust(variables.$orange-accent, $alpha: -0.88);
     }

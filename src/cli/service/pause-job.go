@@ -26,7 +26,7 @@ func (*FileMoverServer) PauseJob(
 		}), connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(strJobDoesNotExist, jobId))
 	}
 	jobStatus := job.Status()
-	if jobStatus == jobmanagertypes.JobStatusCompleted ||
+	if jobStatus.IsCompleted() ||
 		jobStatus == jobmanagertypes.JobStatusPaused ||
 		jobStatus == jobmanagertypes.JobStatusCancelled {
 		return connect.NewResponse(&fmev1.PauseJobResponse{

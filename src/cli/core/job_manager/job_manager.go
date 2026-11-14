@@ -41,6 +41,7 @@ var (
 	instance        *JobManager
 	clearableStates = []jobmanagertypes.JobStatus{
 		jobmanagertypes.JobStatusCompleted,
+		jobmanagertypes.JobStatusCompletedWithWarnings,
 		jobmanagertypes.JobStatusError,
 		jobmanagertypes.JobStatusCancelled,
 	}
@@ -530,7 +531,20 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		time.Sleep(100 * time.Millisecond)
 		return
 	}
-	checksumManager.ChecksumTasks(job.JobId(), filteredTasks, transferProfile.Checksums)
+	verificationProblems := checksumManager.ChecksumTasks(
+		job.CancelCtx,
+		checksumMgr.JobRef{ID: job.JobId(), Name: job.Name()},
+		filteredTasks,
+		transferProfile.Checksums,
+	)
+	if verificationProblems > 0 {
+		// At least one file failed its supplied ASC MHL verification (hash
+		// mismatch or missing on disk). The transfer still proceeds, but the job
+		// completes as COMPLETED_WITH_WARNINGS so the outcome is not shown as a
+		// clean success. The per-file detail was already emitted as job-scoped
+		// error log lines.
+		job.SetHasVerificationWarnings(true)
+	}
 	//endregion
 
 	// region Post-Checksum Filter
@@ -724,7 +738,11 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	// are triggered? For now, sleep is needed to force order of events
 	time.Sleep(constants.SleepDuration)
 	if job.Status() != jobmanagertypes.JobStatusError && job.Status() != jobmanagertypes.JobStatusCancelled {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		if job.HasVerificationWarnings() {
+			job.SetStatus(jobmanagertypes.JobStatusCompletedWithWarnings)
+		} else {
+			job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		}
 		events.Events.Send(
 			&eventtypes.JobCompleteEvent{
 				Id:                 job.JobId(),
