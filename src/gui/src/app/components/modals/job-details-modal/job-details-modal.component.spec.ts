@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { JobDetailsModalComponent } from './job-details-modal.component';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -56,6 +56,7 @@ describe('JobDetailsModalComponent', () => {
     };
     let wails: Record<string, ReturnType<typeof vi.fn>>;
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
+    let dialogOpen: ReturnType<typeof vi.fn>;
 
     function build(data: JobDetailsData): {
         fixture: ComponentFixture<JobDetailsModalComponent>;
@@ -75,6 +76,9 @@ describe('JobDetailsModalComponent', () => {
             setClipboardText: vi.fn(() => of(void 0)),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
+        // Confirmation dialog: default to confirmed (afterClosed -> true). Tests that
+        // need the dismissed path override with dialogOpen.mockReturnValueOnce.
+        dialogOpen = vi.fn(() => ({afterClosed: () => of(true)}));
 
         TestBed.configureTestingModule({
             imports: [
@@ -94,6 +98,7 @@ describe('JobDetailsModalComponent', () => {
             providers: [
                 {provide: MAT_DIALOG_DATA, useValue: data},
                 {provide: MatDialogRef, useValue: {}},
+                {provide: MatDialog, useValue: {open: dialogOpen}},
                 {provide: FmeClientService, useValue: fmeClient},
                 {provide: WailsService, useValue: wails},
                 {provide: NotificationsService, useValue: notifications},
@@ -232,10 +237,17 @@ describe('JobDetailsModalComponent', () => {
             expect(fmeClient.cancelJob).toHaveBeenCalledWith('job-1');
         });
 
-        it('retries a job', () => {
+        it('retries a job after the user confirms', () => {
             const {component} = build(makeData({status: JobStatus.Completed}));
             component.retry();
             expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not retry when the confirmation is dismissed', () => {
+            const {component} = build(makeData({status: JobStatus.Completed}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(false)});
+            component.retry();
+            expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
         });
 
         it('copies the error to the clipboard and notifies', () => {
