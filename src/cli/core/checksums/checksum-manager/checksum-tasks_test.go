@@ -152,7 +152,7 @@ func TestChecksumManager_ChecksumTasks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cm, _ := GetInstance(tt.fields.maxActiveChecksums)
-			cm.ChecksumTasks(tt.args.jobId, tt.args.tasks, tt.args.checksums)
+			cm.ChecksumTasks(tt.args.jobId, "test-job", tt.args.tasks, tt.args.checksums)
 
 			for _, task := range tasks {
 				taskPath := task.LocalFile().Path

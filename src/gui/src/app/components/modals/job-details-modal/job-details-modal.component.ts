@@ -189,9 +189,9 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
         this.loadTasks();
         this.loadProfileDetails();
-        // Open on Logs for a failed job (users look there first to see why it failed),
-        // otherwise show the file list.
-        this.tab = this.isError ? 'logs' : 'files';
+        // Open on Logs for a failed OR warnings job (users look there first to see
+        // what went wrong), otherwise show the file list.
+        this.tab = (this.isError || this.isWarnings) ? 'logs' : 'files';
         // Keep the summary live while the modal is open (progress/speed/status for active jobs).
         this.subscriptions.push(this.store.select(jobSelectAll).subscribe((jobs) => {
             const job = jobs.find((j) => j.id === this.jobDetails.jobId);
@@ -416,6 +416,15 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     get isError(): boolean {
         const d = this.jobDetails;
         return d.status === JobStatus.Error || (d.status === JobStatus.Completed && d.hasTaskErrors && !d.hasSuccessfulTasks);
+    }
+
+    /**
+     * A job that finished and uploaded, but at least one file failed its supplied
+     * ASC MHL verification (hash mismatch or missing on disk). Amber, not red:
+     * the bytes transferred, but the offload cannot be trusted as delivered.
+     */
+    get isWarnings(): boolean {
+        return this.jobDetails.status === JobStatus.CompletedWithWarnings;
     }
 
     get isUpload(): boolean {

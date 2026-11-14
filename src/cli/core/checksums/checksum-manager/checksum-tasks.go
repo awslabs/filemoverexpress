@@ -12,23 +12,25 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
-func (cm *ChecksumManager) ChecksumTasks(jobId string, tasks []*jobmanagertypes.Task, checksumSettings configtypes.ChecksumSettings) {
+func (cm *ChecksumManager) ChecksumTasks(
+	jobId, jobName string,
+	tasks []*jobmanagertypes.Task,
+	checksumSettings configtypes.ChecksumSettings,
+) int {
 	if !checksumSettings.Enabled {
-		return
+		return 0
 	}
 
 	mhlResults, mhlErrors := mhlProcessor.ProcessMHLFiles(tasks, checksumSettings.Algorithm)
-	if len(mhlErrors) > 0 {
-		for _, err := range mhlErrors {
-			events.Events.Warn("Failed processing MHL file: %s", err)
-		}
+	for _, err := range mhlErrors {
+		events.Events.Warn("Failed processing MHL file: %s", err)
 	}
 
-	// Verify files listed in any supplied ASC MHL manifest on ingest, honoring
-	// whatever algorithm the manifest provides. Entries already imported above
-	// (manifest hash in the profile's own algorithm) are only logged here; their
-	// integrity is confirmed by the destination comparison during transfer.
-	mhlProcessor.VerifyASCMHL(tasks, checksumSettings.Algorithm)
+	// Verify files listed in any supplied ASC MHL manifest on ingest, re-hashing
+	// every listed file (never trusting a manifest hash unverified). Returns the
+	// count of integrity problems (hash mismatches + missing files) so the caller
+	// can mark the job COMPLETED_WITH_WARNINGS.
+	verificationProblems := mhlProcessor.VerifyASCMHL(jobId, jobName, tasks, checksumSettings.Algorithm)
 
 	taskCount := len(tasks)
 	wg := &sync.WaitGroup{}
@@ -75,7 +77,7 @@ func (cm *ChecksumManager) ChecksumTasks(jobId string, tasks []*jobmanagertypes.
 			Total:     0,
 			Completed: 0,
 		})
-		return
+		return verificationProblems
 	}
 
 	prog.wg.Add(int(prog.total))
@@ -96,4 +98,6 @@ func (cm *ChecksumManager) ChecksumTasks(jobId string, tasks []*jobmanagertypes.
 	cm.statsLock.Lock()
 	delete(cm.stats, jobId)
 	cm.statsLock.Unlock()
+
+	return verificationProblems
 }

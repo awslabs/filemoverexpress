@@ -19,32 +19,33 @@ import (
 
 type (
 	Job struct {
-		jobId                 string
-		name                  string
-		transferProfile       *configtypes.TransferProfile
-		status                JobStatus
-		statusMessage         string
-		lock                  *sync.RWMutex
-		WaitGroup             sync.WaitGroup
-		direction             transfertypes.Direction
-		TotalBytes            int64
-		BytesUploaded         int64
-		BytesDownloaded       int64
-		CancelCtx             context.Context
-		CancelFunc            context.CancelCauseFunc
-		hasTaskErrors         bool
-		hasSuccessfulTasks    bool
-		dbObjects             []*databasetypes.DatabaseObject
-		destination           string
-		TimestampCreated      time.Time
-		TimestampDiscovering  time.Time
-		TimestampChecksumming time.Time
-		TimestampTransferring time.Time
-		TimestampCompleted    time.Time
-		sources               []string
-		s3PrefixToTrim        string
-		force                 bool
-		uploadBasePath        string
+		jobId                   string
+		name                    string
+		transferProfile         *configtypes.TransferProfile
+		status                  JobStatus
+		statusMessage           string
+		lock                    *sync.RWMutex
+		WaitGroup               sync.WaitGroup
+		direction               transfertypes.Direction
+		TotalBytes              int64
+		BytesUploaded           int64
+		BytesDownloaded         int64
+		CancelCtx               context.Context
+		CancelFunc              context.CancelCauseFunc
+		hasTaskErrors           bool
+		hasSuccessfulTasks      bool
+		hasVerificationWarnings bool
+		dbObjects               []*databasetypes.DatabaseObject
+		destination             string
+		TimestampCreated        time.Time
+		TimestampDiscovering    time.Time
+		TimestampChecksumming   time.Time
+		TimestampTransferring   time.Time
+		TimestampCompleted      time.Time
+		sources                 []string
+		s3PrefixToTrim          string
+		force                   bool
+		uploadBasePath          string
 	}
 	JobConfig struct {
 		Direction       transfertypes.Direction
@@ -165,6 +166,9 @@ func (j *Job) SetStatus(status JobStatus) {
 
 	case JobStatusCompleted:
 		j.TimestampCompleted = n
+
+	case JobStatusCompletedWithWarnings:
+		j.TimestampCompleted = n
 	}
 
 	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n)
@@ -204,6 +208,22 @@ func (j *Job) SetHasSuccessfulTasks(hasSuccessfulTasks bool) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 	j.hasSuccessfulTasks = hasSuccessfulTasks
+}
+
+// HasVerificationWarnings reports whether supplied-manifest (ASC MHL) verification
+// found at least one integrity problem (a hash mismatch or a listed file missing
+// on disk) during the checksumming phase. A job with this set completes as
+// JobStatusCompletedWithWarnings rather than JobStatusCompleted.
+func (j *Job) HasVerificationWarnings() bool {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.hasVerificationWarnings
+}
+
+func (j *Job) SetHasVerificationWarnings(hasVerificationWarnings bool) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+	j.hasVerificationWarnings = hasVerificationWarnings
 }
 
 func (j *Job) Direction() transfertypes.Direction {

@@ -9,8 +9,12 @@ const (
 	JobStatusPaused       JobStatus = "PAUSED"
 	JobStatusCancelled    JobStatus = "CANCELLED"
 	JobStatusCompleted    JobStatus = "COMPLETED"
-	JobStatusError        JobStatus = "ERROR"
-	JobStatusUnknown      JobStatus = "UNKNOWN"
+	// JobStatusCompletedWithWarnings is a terminal state: the transfer finished
+	// and the bytes were uploaded, but at least one file failed its supplied
+	// ASC MHL verification (hash mismatch or a listed file missing on disk).
+	JobStatusCompletedWithWarnings JobStatus = "COMPLETED_WITH_WARNINGS"
+	JobStatusError                 JobStatus = "ERROR"
+	JobStatusUnknown               JobStatus = "UNKNOWN"
 )
 
 type JobStatus string
@@ -33,6 +37,8 @@ func (j JobStatus) String() string {
 		return "Cancelled"
 	case JobStatusCompleted:
 		return "Completed"
+	case JobStatusCompletedWithWarnings:
+		return "Completed with Warnings"
 	case JobStatusError:
 		return "Error"
 	default:
@@ -58,6 +64,8 @@ func JobStatusFromString(status string) JobStatus {
 		return JobStatusCancelled
 	case "COMPLETED":
 		return JobStatusCompleted
+	case "COMPLETED_WITH_WARNINGS":
+		return JobStatusCompletedWithWarnings
 	case "ERROR":
 		return JobStatusError
 	default:

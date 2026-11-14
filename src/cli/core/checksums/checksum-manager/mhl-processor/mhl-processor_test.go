@@ -101,7 +101,7 @@ func TestVerifyManifestOutcomes(t *testing.T) {
 		},
 	}
 
-	counts := verifyManifest(manifestPath, manifest, constants.AlgorithmMD5)
+	counts := verifyManifest(verifyCtx{jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest)
 	// good.mov verifies via its xxh64; imported.txt verifies via md5 (the profile
 	// algo). Both are re-hashed and compared - nothing is trusted unverified.
 	assert.Equal(t, 2, counts.verified, "good.mov (xxh64) and imported.txt (md5) both verify")
@@ -124,9 +124,17 @@ func TestVerifyManifestHonorsC4(t *testing.T) {
 	}
 
 	// Profile algo is xxhash64, so the only honorable hash is the C4 one.
-	counts := verifyManifest(manifestPath, manifest, constants.AlgorithmXXHash64)
+	counts := verifyManifest(verifyCtx{jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest)
 	assert.Equal(t, 1, counts.verified)
 	assert.Equal(t, 0, counts.mismatched)
+}
+
+// integrityProblems counts only mismatches + missing (not unhonored), because
+// those are the outcomes that drive COMPLETED_WITH_WARNINGS.
+func TestIntegrityProblems(t *testing.T) {
+	assert.Equal(t, 0, verifyCounts{verified: 5}.integrityProblems())
+	assert.Equal(t, 0, verifyCounts{verified: 3, unhonored: 2}.integrityProblems())
+	assert.Equal(t, 3, verifyCounts{mismatched: 1, missing: 2}.integrityProblems())
 }
 
 // Guard the algorithm choice: profile algo wins when present, else fastest.
@@ -169,6 +177,6 @@ func TestVerifyManifestHexPadding(t *testing.T) {
 	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
 		{RelativePath: "f.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: padded}},
 	}}
-	counts := verifyManifest(manifestPath, manifest, constants.AlgorithmMD5)
+	counts := verifyManifest(verifyCtx{jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest)
 	assert.Equal(t, 1, counts.verified)
 }
