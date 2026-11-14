@@ -2,6 +2,7 @@ package mhl
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -63,13 +64,15 @@ type (
 
 	// ASCFileEntry is one file listed in an ASC MHL manifest, reduced to what FME
 	// needs: the manifest-relative path, the declared size, the hashes in
-	// algorithms FME can compute, and the names of any manifest algorithms FME
-	// cannot honor (so the caller can warn about them).
+	// algorithms FME can compute, the names of any manifest algorithms FME cannot
+	// compute (UnsupportedAlgos), and any hashes the manifest writer itself marked
+	// bad via a non-original/verified action (RejectedActions, e.g. "md5 (failed)").
 	ASCFileEntry struct {
 		RelativePath     string
 		Size             int64
 		Hashes           map[constants.ChecksumAlgorithm]string
 		UnsupportedAlgos []string
+		RejectedActions  []string
 	}
 
 	// ASCManifest is a parsed ASC MHL manifest.
@@ -142,17 +145,25 @@ func newASCFileEntry(relPath string, h ascHash) ASCFileEntry {
 	}
 
 	supported := []struct {
+		name string
 		algo constants.ChecksumAlgorithm
 		hash ascHashValue
 	}{
-		{constants.AlgorithmMD5, h.MD5},
-		{constants.AlgorithmXXHash64, h.XXH64},
-		{constants.AlgorithmXXH3, h.XXH3},
-		{constants.AlgorithmC4, h.C4},
+		{"md5", constants.AlgorithmMD5, h.MD5},
+		{"xxh64", constants.AlgorithmXXHash64, h.XXH64},
+		{"xxh3", constants.AlgorithmXXH3, h.XXH3},
+		{"c4", constants.AlgorithmC4, h.C4},
 	}
 	for _, s := range supported {
-		if v := strings.TrimSpace(s.hash.Value); v != "" && isAcceptableAction(s.hash.Action) {
-			entry.Hashes[s.algo] = v
+		if v := strings.TrimSpace(s.hash.Value); v != "" {
+			if isAcceptableAction(s.hash.Action) {
+				entry.Hashes[s.algo] = v
+			} else {
+				// The writer marked this hash bad; do not trust it, but record it
+				// so the caller can flag the file rather than silently ignore it.
+				entry.RejectedActions = append(entry.RejectedActions,
+					fmt.Sprintf("%s (action=%s)", s.name, strings.TrimSpace(s.hash.Action)))
+			}
 		}
 	}
 

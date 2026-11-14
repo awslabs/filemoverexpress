@@ -11,6 +11,7 @@ import (
 
 	"github.com/awslabs/filemoverexpress/constants"
 	"github.com/awslabs/filemoverexpress/core/checksums"
+	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 	"github.com/awslabs/filemoverexpress/utils/mhl"
 )
 
@@ -206,6 +207,106 @@ func TestIsUnder(t *testing.T) {
 	assert.True(t, isUnder(root, "/vol/offload"))
 	assert.False(t, isUnder(root, "/vol/other/a.mov"))
 	assert.False(t, isUnder(root, "/vol/offloadX/a.mov"))
+}
+
+// Verification recomputes from the bytes when a file is not in the fresh-hash
+// map: an empty precomputed map must NOT cause a file to be skipped or trusted.
+// This is the integrity guarantee - imported/cached hashes are never in
+// precomputed, so they are always re-read here.
+func TestVerifyManifestRecomputesWhenNotPrecomputed(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "a.mov"), "authentic-bytes")
+	good := fmeChecksum(t, filepath.Join(root, "a.mov"), constants.AlgorithmXXHash64)
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "a.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: good}},
+	}}
+
+	// precomputed is nil (as it is for imported/cached hashes) -> recompute.
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest, nil)
+	assert.Equal(t, 1, counts.verified)
+	assert.Equal(t, 0, counts.integrityProblems())
+}
+
+// A file whose only manifest hash was marked bad by the writer (action="failed")
+// is an integrity problem, not a silent "not-honored".
+func TestVerifyManifestWriterFlaggedIsIntegrityProblem(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "bad.mov"), "bytes")
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "bad.mov", RejectedActions: []string{"xxh64 (action=failed)"}},
+	}}
+
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest, nil)
+	assert.Equal(t, 1, counts.flagged)
+	assert.Equal(t, 0, counts.unhonored)
+	assert.Equal(t, 1, counts.integrityProblems())
+}
+
+// The ascmhl/ folder (chain file and manifests) travels with the media; none of
+// it may be reported as present-but-not-listed.
+func TestVerifyManifestIgnoresAscmhlFolderInUnlisted(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "a.mov"), "bytes")
+	good := fmeChecksum(t, filepath.Join(root, "a.mov"), constants.AlgorithmXXHash64)
+
+	newTask := func(p string) *jobmanagertypes.Task {
+		task, err := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: p},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-1",
+		})
+		require.NoError(t, err)
+		return task
+	}
+	tasks := []*jobmanagertypes.Task{
+		newTask(filepath.Join(root, "a.mov")),
+		newTask(filepath.Join(root, "ascmhl", "ascmhl_chain.xml")),
+		newTask(manifestPath),
+	}
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "a.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: good}},
+	}}
+
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest, tasks)
+	assert.Equal(t, 1, counts.verified)
+	assert.Equal(t, 0, counts.notListed, "chain file and manifest under ascmhl/ must not be flagged unlisted")
+}
+
+// A media file present on disk but absent from the manifest IS reported.
+func TestVerifyManifestReportsGenuinelyUnlisted(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "a.mov"), "bytes")
+	good := fmeChecksum(t, filepath.Join(root, "a.mov"), constants.AlgorithmXXHash64)
+	writeFile(t, filepath.Join(root, "stowaway.mov"), "extra")
+
+	newTask := func(p string) *jobmanagertypes.Task {
+		task, err := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: p},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-1",
+		})
+		require.NoError(t, err)
+		return task
+	}
+	tasks := []*jobmanagertypes.Task{
+		newTask(filepath.Join(root, "a.mov")),
+		newTask(filepath.Join(root, "stowaway.mov")),
+	}
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "a.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: good}},
+	}}
+
+	counts := verifyManifest(verifyCtx{ctx: context.Background(), profileAlgorithm: constants.AlgorithmXXHash64}, manifestPath, manifest, tasks)
+	assert.Equal(t, 1, counts.notListed)
+	assert.Equal(t, 0, counts.integrityProblems(), "a stowaway file is a warning, not an integrity failure")
 }
 
 // Guard the algorithm choice: profile algo wins when present, else fastest.

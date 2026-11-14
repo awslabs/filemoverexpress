@@ -2,6 +2,7 @@ package checksum_manager
 
 import (
 	"context"
+	"path/filepath"
 	"sync"
 
 	mhlProcessor "github.com/awslabs/filemoverexpress/core/checksums/checksum-manager/mhl-processor"
@@ -33,8 +34,9 @@ func (cm *ChecksumManager) ChecksumTasks(
 	tasks []*jobmanagertypes.Task,
 	checksumSettings configtypes.ChecksumSettings,
 ) int {
+	var freshlyHashed map[string]string
 	if checksumSettings.Enabled {
-		cm.runChecksumPass(job.ID, tasks, checksumSettings)
+		freshlyHashed = cm.runChecksumPass(job.ID, tasks, checksumSettings)
 	}
 
 	return mhlProcessor.VerifyASCMHL(mhlProcessor.VerifyRequest{
@@ -43,16 +45,22 @@ func (cm *ChecksumManager) ChecksumTasks(
 		JobName:          job.Name,
 		Tasks:            tasks,
 		ProfileAlgorithm: checksumSettings.Algorithm,
+		Precomputed:      freshlyHashed,
 	})
 }
 
 // runChecksumPass imports legacy MHL / cached checksums and computes the rest
-// through the worker pool, storing each result on its task.
+// through the worker pool, storing each result on its task. It returns the
+// checksums it FRESHLY computed from file bytes in this pass (abs path ->
+// checksum). Checksums imported from a legacy MHL or the cache are deliberately
+// NOT included: ASC MHL verification must never reuse a hash that was not read
+// from the current bytes, or a tampered file with a matching stale hash would
+// pass verification.
 func (cm *ChecksumManager) runChecksumPass(
 	jobId string,
 	tasks []*jobmanagertypes.Task,
 	checksumSettings configtypes.ChecksumSettings,
-) {
+) map[string]string {
 	mhlResults, mhlErrors := mhlProcessor.ProcessMHLFiles(tasks, checksumSettings.Algorithm)
 	for _, err := range mhlErrors {
 		events.Events.Warn("Failed processing MHL file: %s", err)
@@ -103,7 +111,7 @@ func (cm *ChecksumManager) runChecksumPass(
 			Total:     0,
 			Completed: 0,
 		})
-		return
+		return nil
 	}
 
 	prog.wg.Add(int(prog.total))
@@ -124,4 +132,23 @@ func (cm *ChecksumManager) runChecksumPass(
 	cm.statsLock.Lock()
 	delete(cm.stats, jobId)
 	cm.statsLock.Unlock()
+
+	return freshChecksums(reqs)
+}
+
+// freshChecksums collects the abs-path -> checksum map for the tasks that went
+// through the worker pool (i.e. were hashed from bytes this pass). Tasks that
+// errored have an empty checksum and are skipped.
+func freshChecksums(reqs []checksumRequest) map[string]string {
+	out := make(map[string]string, len(reqs))
+	for _, r := range reqs {
+		sum := r.task.Checksum()
+		if sum == "" {
+			continue
+		}
+		if abs, err := filepath.Abs(r.task.LocalFile().Path); err == nil {
+			out[abs] = sum
+		}
+	}
+	return out
 }

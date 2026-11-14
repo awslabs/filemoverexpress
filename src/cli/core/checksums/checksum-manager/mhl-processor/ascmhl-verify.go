@@ -26,8 +26,9 @@ const (
 	strASCUnhonored  = "Could not honor the ASC MHL hash for %s: no FME-supported algorithm present (manifest has: %s)"
 	strASCUnreadable = "Could not read %s to verify it against the supplied ASC MHL (%s): %s"
 	strASCEscape     = "ASC MHL entry %s escapes the offload tree and was NOT verified (manifest %s)"
+	strASCFlagged    = "The only ASC MHL hash(es) for %s are marked bad by the writer (%s) - treating as unverified"
 	strASCExtra      = "%s is present on disk but is NOT listed in the supplied ASC MHL (manifest %s)"
-	strASCSummary    = "ASC MHL verify for %s: %d ok, %d mismatch, %d missing, %d unreadable, %d rejected, %d unlisted, %d not-honored"
+	strASCSummary    = "ASC MHL verify for %s: %d verified, %d integrity problems, %d unlisted, %d not-honored"
 )
 
 // verifyPriority is the order in which FME-supported algorithms are chosen to
@@ -48,6 +49,7 @@ type (
 		missing    int
 		unreadable int
 		rejected   int
+		flagged    int
 		notListed  int
 		unhonored  int
 	}
@@ -59,37 +61,44 @@ type (
 		jobID            string
 		jobName          string
 		profileAlgorithm constants.ChecksumAlgorithm
-		// precomputed maps an absolute file path to the checksum the normal
-		// checksum pass already computed for it (in profileAlgorithm). When a
-		// file is verified in profileAlgorithm, this is reused instead of
-		// re-reading the file.
+		// precomputed maps an absolute file path to a checksum FRESHLY computed
+		// from the file's bytes by the worker pool in this pass (in
+		// profileAlgorithm). Reused instead of re-reading the file. It never
+		// contains a hash imported from a legacy MHL or the cache, so verification
+		// always reflects the bytes on disk right now.
 		precomputed map[string]string
 	}
 
-	// VerifyRequest is the input to VerifyASCMHL.
+	// VerifyRequest is the input to VerifyASCMHL. Precomputed carries only
+	// freshly-hashed (worker-pool) checksums keyed by absolute path; an imported
+	// or cached checksum must NOT be placed here, or a tampered file could be
+	// "verified" against a stale hash.
 	VerifyRequest struct {
 		Ctx              context.Context
 		JobID            string
 		JobName          string
 		Tasks            []*jobmanagertypes.Task
 		ProfileAlgorithm constants.ChecksumAlgorithm
+		Precomputed      map[string]string
 	}
 )
 
 // integrityProblems are the outcomes that mean the offload cannot be trusted as
-// delivered: a mismatch, a missing file, a file that could not be read, or an
-// entry whose path escaped the offload tree. "not-listed" and "not-honored" are
-// surfaced as warnings but do not, on their own, flag the job. These drive the
-// job to JobStatusCompletedWithWarnings.
+// delivered: a mismatch, a missing file, a file that could not be read, an entry
+// whose path escaped the offload tree, or a file whose only recorded hash the
+// writer itself marked bad. "not-listed" and "not-honored" are surfaced as
+// warnings but do not, on their own, flag the job. These drive the job to
+// JobStatusCompletedWithWarnings.
 func (c verifyCounts) integrityProblems() int {
-	return c.mismatched + c.missing + c.unreadable + c.rejected
+	return c.mismatched + c.missing + c.unreadable + c.rejected + c.flagged
 }
 
 // VerifyASCMHL verifies every file listed in the latest-generation ASC MHL
 // manifest(s) present in the task set. For each entry it re-hashes the source
-// (reusing the checksum the normal pass already computed when the algorithm
-// matches the profile) and compares it to the manifest value. It never trusts a
-// manifest hash without checking the bytes.
+// (reusing only a hash freshly computed from the bytes in this pass when the
+// algorithm matches the profile) and compares it to the manifest value. It never
+// trusts a manifest hash without checking the bytes, and never reuses an imported
+// or cached checksum.
 //
 // Returns the number of integrity problems found across all manifests so the
 // caller can mark the job JobStatusCompletedWithWarnings. Each problem is emitted
@@ -101,7 +110,7 @@ func VerifyASCMHL(req VerifyRequest) int {
 		jobID:            req.JobID,
 		jobName:          req.JobName,
 		profileAlgorithm: req.ProfileAlgorithm,
-		precomputed:      precomputedChecksums(req.Tasks),
+		precomputed:      req.Precomputed,
 	}
 
 	problems := 0
@@ -118,20 +127,6 @@ func VerifyASCMHL(req VerifyRequest) int {
 		problems += counts.integrityProblems()
 	}
 	return problems
-}
-
-// precomputedChecksums maps absolute file path -> the checksum the normal
-// checksum pass already stored on the task (empty when checksums were disabled).
-func precomputedChecksums(tasks []*jobmanagertypes.Task) map[string]string {
-	out := make(map[string]string, len(tasks))
-	for _, task := range tasks {
-		if sum := task.Checksum(); sum != "" {
-			if abs, err := filepath.Abs(task.LocalFile().Path); err == nil {
-				out[abs] = sum
-			}
-		}
-	}
-	return out
 }
 
 // ascManifestPaths returns the ASC MHL manifest paths among the tasks.
@@ -179,15 +174,21 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 			continue
 		}
 
+		// Defend against a symlink inside the tree that points outside it:
+		// resolve both ends and re-check containment before hashing.
+		if !resolvedUnder(root, absPath) {
+			emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCEscape, entry.RelativePath, manifestPath))
+			counts.rejected++
+			continue
+		}
+
 		verifyEntry(vctx, entry, absPath, &counts)
 	}
 
 	reportUnlistedFiles(manifestPath, tasks, listed, &counts)
 
-	events.Events.Info(strASCSummary, manifestPath, counts.verified, counts.mismatched,
-		counts.missing, counts.unreadable, counts.rejected, counts.notListed, counts.unhonored)
-	logger.Info(strASCSummary, manifestPath, counts.verified, counts.mismatched,
-		counts.missing, counts.unreadable, counts.rejected, counts.notListed, counts.unhonored)
+	events.Events.Info(strASCSummary, manifestPath, counts.verified, counts.integrityProblems(), counts.notListed, counts.unhonored)
+	logger.Info(strASCSummary, manifestPath, counts.verified, counts.integrityProblems(), counts.notListed, counts.unhonored)
 
 	return counts
 }
@@ -195,6 +196,15 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts *verifyCounts) {
 	algo, expected, ok := pickVerifyAlgorithm(entry, vctx.profileAlgorithm)
 	if !ok {
+		if len(entry.RejectedActions) > 0 {
+			// The only hashes the manifest has for this file were marked bad by
+			// the writer (e.g. action="failed") - treat that as an integrity
+			// problem, not a benign skip.
+			emitJobError(vctx.jobID, vctx.jobName,
+				fmt.Sprintf(strASCFlagged, entry.RelativePath, strings.Join(entry.RejectedActions, ", ")))
+			counts.flagged++
+			return
+		}
 		// Not an integrity failure - FME simply cannot compute the manifest's
 		// algorithm (e.g. sha1-only). Warn, but do not flag the job.
 		msg := fmt.Sprintf(strASCUnhonored, entry.RelativePath, strings.Join(entry.UnsupportedAlgos, ", "))
@@ -224,9 +234,11 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 	counts.mismatched++
 }
 
-// computeOrReuse returns the file's checksum in algo, reusing the value the
-// normal checksum pass already computed when algo is the profile algorithm
-// (avoiding a second read of the file), otherwise hashing it now.
+// computeOrReuse returns the file's checksum in algo, reusing ONLY a hash the
+// worker pool freshly computed from the bytes in this pass when algo is the
+// profile algorithm (avoiding a second read). A legacy-MHL-imported or cached
+// checksum is never placed in precomputed, so this never verifies a file against
+// a hash that was not read from the current bytes.
 func computeOrReuse(vctx verifyCtx, algo constants.ChecksumAlgorithm, absPath string) (string, error) {
 	if algo == vctx.profileAlgorithm {
 		if sum, ok := vctx.precomputed[absPath]; ok {
@@ -250,6 +262,7 @@ func reportUnlistedFiles(
 	counts *verifyCounts,
 ) {
 	root := ascRoot(manifestPath)
+	ascmhlDir := filepath.Join(root, "ascmhl")
 	for _, task := range tasks {
 		path := task.LocalFile().Path
 		if strings.ToLower(filepath.Ext(path)) == ".mhl" {
@@ -257,6 +270,12 @@ func reportUnlistedFiles(
 		}
 		abs, err := filepath.Abs(path)
 		if err != nil {
+			continue
+		}
+		// The ascmhl/ folder itself travels with the media (manifests + the chain
+		// file). The ASC reference tool ignores it, so neither the chain file nor
+		// anything else under ascmhl/ is "unlisted".
+		if isUnder(ascmhlDir, abs) {
 			continue
 		}
 		if !isUnder(root, abs) || listed[abs] {
@@ -271,6 +290,24 @@ func reportUnlistedFiles(
 		logger.Warn("%s", msg)
 		counts.notListed++
 	}
+}
+
+// resolvedUnder resolves symlinks on both the root and the path and reports
+// whether the path still lands inside the root. This catches a symlink inside
+// the offload tree that points outside it (safeEntryPath is only lexical).
+// Both ends are resolved so a symlinked root (e.g. macOS /var -> /private/var)
+// does not cause a false escape.
+func resolvedUnder(root, abs string) bool {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		resolvedRoot = root
+	}
+	resolvedAbs, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		// Could not resolve (e.g. broken link). Fall back to the lexical result.
+		return isUnder(root, abs)
+	}
+	return isUnder(resolvedRoot, resolvedAbs)
 }
 
 // safeEntryPath joins a manifest-supplied relative path onto the offload root and
