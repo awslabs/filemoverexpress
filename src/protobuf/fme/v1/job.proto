@@ -43,6 +43,7 @@ message Task {
     int32 priority = 11;
     string err = 12;
     int64 bytes_transferred = 13;
+    string checksum_algorithm = 14;
 }
 
 message TaskLocalFile {

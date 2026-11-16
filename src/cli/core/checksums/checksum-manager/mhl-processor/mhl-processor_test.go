@@ -112,6 +112,57 @@ func TestVerifyManifestOutcomes(t *testing.T) {
 	assert.Equal(t, 1, counts.unhonored, "sha-only.txt has no FME-supported hash")
 }
 
+// On a successful verify, the verified hash is carried onto the task (so the
+// upload tags the object) only when the task has no checksum of its own, and
+// never overwrites a profile-computed one.
+func TestVerifyManifestTagsTaskFromVerifiedHash(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "a.mov"), "tag-me-bytes")
+	xx := fmeChecksum(t, filepath.Join(root, "a.mov"), constants.AlgorithmXXHash64)
+	abs, err := filepath.Abs(filepath.Join(root, "a.mov"))
+	require.NoError(t, err)
+
+	newTask := func() *jobmanagertypes.Task {
+		task, terr := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: abs},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-1",
+		})
+		require.NoError(t, terr)
+		return task
+	}
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "a.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: xx}},
+	}}
+
+	// Task with no checksum (in-app checksum off): it gets tagged.
+	empty := newTask()
+	vctx := verifyCtx{
+		ctx:              context.Background(),
+		profileAlgorithm: constants.AlgorithmNone,
+		taskByPath:       map[string]*jobmanagertypes.Task{abs: empty},
+	}
+	counts := verifyManifest(vctx, manifestPath, manifest, nil)
+	assert.Equal(t, 1, counts.verified)
+	assert.Equal(t, xx, empty.Checksum())
+	assert.Equal(t, string(constants.AlgorithmXXHash64), empty.ChecksumAlgorithm())
+
+	// Task that already has a (profile-computed) checksum is left untouched.
+	preset := newTask()
+	preset.SetChecksum("preset-value")
+	vctx2 := verifyCtx{
+		ctx:              context.Background(),
+		profileAlgorithm: constants.AlgorithmXXHash64,
+		precomputed:      map[string]string{abs: xx},
+		taskByPath:       map[string]*jobmanagertypes.Task{abs: preset},
+	}
+	verifyManifest(vctx2, manifestPath, manifest, nil)
+	assert.Equal(t, "preset-value", preset.Checksum())
+	assert.Equal(t, "", preset.ChecksumAlgorithm())
+}
+
 func TestVerifyManifestHonorsC4(t *testing.T) {
 	root := t.TempDir()
 	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")

@@ -46,20 +46,21 @@ type (
 	}
 
 	Task struct {
-		destination      string
-		taskId           string
-		localFile        LocalFile
-		s3Object         S3Object
-		taskDirection    TaskDirection
-		status           TaskStatus
-		statusMessage    string
-		jobId            string
-		checksum         string
-		lock             *sync.RWMutex
-		priority         int
-		err              error
-		finished         atomic.Bool
-		BytesTransferred int64
+		destination       string
+		taskId            string
+		localFile         LocalFile
+		s3Object          S3Object
+		taskDirection     TaskDirection
+		status            TaskStatus
+		statusMessage     string
+		jobId             string
+		checksum          string
+		checksumAlgorithm string
+		lock              *sync.RWMutex
+		priority          int
+		err               error
+		finished          atomic.Bool
+		BytesTransferred  int64
 	}
 
 	TaskConfig struct {
@@ -258,6 +259,23 @@ func (t *Task) SetChecksum(checksum string) {
 	t.checksum = checksum
 }
 
+// ChecksumAlgorithm is the algorithm the task's checksum is in. It is set when a
+// checksum is produced outside the profile's own algorithm - for example a hash
+// taken from a supplied ASC MHL and verified on ingest - so the upload tags the
+// object with the correct algorithm key even when the in-app checksum is off.
+// Empty means "use the transfer profile's algorithm".
+func (t *Task) ChecksumAlgorithm() string {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	return t.checksumAlgorithm
+}
+
+func (t *Task) SetChecksumAlgorithm(algorithm string) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.checksumAlgorithm = algorithm
+}
+
 func (t *Task) ToProtobuf() *fmev1.Task {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
@@ -287,18 +305,19 @@ func (t *Task) ToProtobuf() *fmev1.Task {
 	}
 
 	return &fmev1.Task{
-		TaskId:           t.taskId,
-		Destination:      t.destination,
-		LocalFile:        &lf,
-		S3Object:         &s3o,
-		TaskDirection:    string(t.taskDirection),
-		Status:           string(t.status),
-		StatusMessage:    t.statusMessage,
-		JobId:            t.jobId,
-		Checksum:         t.checksum,
-		Priority:         priority,
-		Err:              errorString,
-		BytesTransferred: atomic.LoadInt64(&t.BytesTransferred),
+		TaskId:            t.taskId,
+		Destination:       t.destination,
+		LocalFile:         &lf,
+		S3Object:          &s3o,
+		TaskDirection:     string(t.taskDirection),
+		Status:            string(t.status),
+		StatusMessage:     t.statusMessage,
+		JobId:             t.jobId,
+		Checksum:          t.checksum,
+		ChecksumAlgorithm: t.checksumAlgorithm,
+		Priority:          priority,
+		Err:               errorString,
+		BytesTransferred:  atomic.LoadInt64(&t.BytesTransferred),
 	}
 }
 

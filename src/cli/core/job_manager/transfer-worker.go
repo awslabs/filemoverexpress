@@ -251,10 +251,18 @@ func TransferTask(task *jobmanagertypes.Task, job *jobmanagertypes.Job, s3Manage
 		}
 		cancelProgressChan := make(chan bool)
 		go updateUploadJobProgress(task, job, cancelProgressChan, &reader)
+		// The algorithm key for the object's checksum metadata: use the task's own
+		// algorithm when set (a hash carried from a supplied ASC MHL and verified on
+		// ingest, which tags the object even with the in-app checksum off), otherwise
+		// the transfer profile's configured algorithm.
+		checksumAlgorithm := string(transferProfile.Checksums.Algorithm)
+		if taskAlgo := task.ChecksumAlgorithm(); taskAlgo != "" {
+			checksumAlgorithm = taskAlgo
+		}
 		uploadCfg := transferapi.UploadConfig{
 			AutoTune:          transferProfile.AutoTuning,
 			Checksum:          task.Checksum(),
-			ChecksumAlgorithm: string(transferProfile.Checksums.Algorithm),
+			ChecksumAlgorithm: checksumAlgorithm,
 			ChunkSize:         int64(transferProfile.ChunkSize) * constants.MiB,
 			Context:           job.CancelCtx,
 			FilePath:          task.LocalFile().Path,

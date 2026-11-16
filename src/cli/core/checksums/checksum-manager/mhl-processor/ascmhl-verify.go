@@ -20,6 +20,7 @@ import (
 
 const (
 	strASCLoadFailed = "Failed to read ASC MHL manifest %s: %s"
+	strASCStart      = "Verifying %d files against supplied ASC MHL (%s)"
 	strASCMissing    = "ASC MHL lists %s but it is MISSING on disk - the offload is incomplete (manifest %s)"
 	strASCVerified   = "Verified %s against supplied ASC MHL (%s)"
 	strASCMismatch   = "%s does NOT match the hash in the supplied ASC MHL (%s): expected %s, computed %s - possible corruption"
@@ -67,6 +68,9 @@ type (
 		// contains a hash imported from a legacy MHL or the cache, so verification
 		// always reflects the bytes on disk right now.
 		precomputed map[string]string
+		// taskByPath maps an absolute file path to its task, so a verified hash can
+		// be carried onto the object as checksum metadata.
+		taskByPath map[string]*jobmanagertypes.Task
 	}
 
 	// VerifyRequest is the input to VerifyASCMHL. Precomputed carries only
@@ -111,6 +115,7 @@ func VerifyASCMHL(req VerifyRequest) int {
 		jobName:          req.JobName,
 		profileAlgorithm: req.ProfileAlgorithm,
 		precomputed:      req.Precomputed,
+		taskByPath:       tasksByAbsPath(req.Tasks),
 	}
 
 	problems := 0
@@ -127,6 +132,18 @@ func VerifyASCMHL(req VerifyRequest) int {
 		problems += counts.integrityProblems()
 	}
 	return problems
+}
+
+// tasksByAbsPath maps each task's absolute local path to the task, for carrying a
+// verified hash back onto the object as checksum metadata.
+func tasksByAbsPath(tasks []*jobmanagertypes.Task) map[string]*jobmanagertypes.Task {
+	out := make(map[string]*jobmanagertypes.Task, len(tasks))
+	for _, task := range tasks {
+		if abs, err := filepath.Abs(task.LocalFile().Path); err == nil {
+			out[abs] = task
+		}
+	}
+	return out
 }
 
 // ascManifestPaths returns the ASC MHL manifest paths among the tasks.
@@ -153,6 +170,11 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 	root := ascRoot(manifestPath)
 	var counts verifyCounts
 	listed := make(map[string]bool, len(manifest.Entries))
+
+	// Opener so it is clear in the logs that FME is verifying against a supplied
+	// manifest, even when the in-app checksum is off.
+	events.Events.Info(strASCStart, len(manifest.Entries), manifestPath)
+	logger.Info(strASCStart, len(manifest.Entries), manifestPath)
 
 	for _, entry := range manifest.Entries {
 		if vctx.ctx.Err() != nil {
@@ -226,6 +248,14 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 	if checksumsEqual(algo, computed, expected) {
 		events.Events.Info(strASCVerified, entry.RelativePath, algo)
 		logger.Info(strASCVerified, entry.RelativePath, algo)
+		// Carry the verified hash onto the object as checksum metadata, even when
+		// the in-app checksum is off. Only when the task has no checksum of its own
+		// (the in-app pass did not produce one); never overwrite a profile-computed
+		// hash. Safe because we just confirmed these bytes match the manifest.
+		if task := vctx.taskByPath[absPath]; task != nil && task.Checksum() == "" {
+			task.SetChecksum(computed)
+			task.SetChecksumAlgorithm(string(algo))
+		}
 		counts.verified++
 		return
 	}
