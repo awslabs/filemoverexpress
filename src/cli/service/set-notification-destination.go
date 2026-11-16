@@ -16,6 +16,7 @@ const (
 	strNotifyConfigDisabled = "notification configuration is disabled for remote clients"
 	strNotifyDestNameBad    = "a valid destination name is required"
 	strNotifyNoSuchDest     = "no such notification destination"
+	strNotifyTestFailed     = "test notification failed; see the FME daemon log for details"
 )
 
 // SetNotificationDestination creates or updates a webhook destination. The URL on

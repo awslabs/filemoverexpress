@@ -8,6 +8,7 @@ import (
 
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/core/notifications"
+	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 )
@@ -29,9 +30,13 @@ func (*FileMoverServer) SendTestNotification(
 		}), nil
 	}
 	if err := notifications.Shared().SendTest(dest); err != nil {
+		// The error is already URL-redacted by the notifications package, but it
+		// still belongs in the daemon log, not in an RPC response a settings-only
+		// client can read. Return a generic message.
+		logger.Error("notifications: test send to destination %q failed: %v", dest.Name, err)
 		return connect.NewResponse(&fmev1.SendTestNotificationResponse{
 			Success: false,
-			Message: err.Error(),
+			Message: strNotifyTestFailed,
 		}), nil
 	}
 	return connect.NewResponse(&fmev1.SendTestNotificationResponse{Success: true}), nil

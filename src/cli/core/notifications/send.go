@@ -3,10 +3,12 @@ package notifications
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"syscall"
 	"time"
 )
@@ -63,14 +65,14 @@ func checkDialAddress(address string) error {
 // or rebind the request to an internal address after the SSRF check has passed.
 func postWebhook(ctx context.Context, rawURL string, body []byte) error {
 	if err := ValidateWebhookURL(ctx, rawURL); err != nil {
-		return err
+		return redactURLError(err)
 	}
 	ctx, cancel := context.WithTimeout(ctx, sendTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rawURL, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("build webhook request: %w", err)
+		return redactURLError(fmt.Errorf("build webhook request: %w", err))
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -83,7 +85,7 @@ func postWebhook(ctx context.Context, rawURL string, body []byte) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("post webhook: %w", err)
+		return fmt.Errorf("post webhook: %w", redactURLError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 	_, _ = io.CopyN(io.Discard, resp.Body, maxResponseBytes)
@@ -92,4 +94,21 @@ func postWebhook(ctx context.Context, rawURL string, body []byte) error {
 		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// redactURLError strips the URL out of a *url.Error so a webhook secret never
+// reaches a log or an RPC response. Slack, Teams, Discord and Google Chat
+// webhook URLs carry their secret in the path, and net/http wraps delivery
+// failures as *url.Error with the full URL in both the .URL field and the
+// Error() string; url.Parse failures do the same with the raw input (which, for
+// a misconfigured destination, could be any decrypted bytes). The underlying
+// reason (.Err) never contains the URL, so re-wrapping with just Op + Err keeps
+// the diagnostic while dropping the secret. Any non-url error passes through
+// unchanged.
+func redactURLError(err error) error {
+	var uerr *url.Error
+	if errors.As(err, &uerr) {
+		return fmt.Errorf("%s: %w", uerr.Op, uerr.Err)
+	}
+	return err
 }

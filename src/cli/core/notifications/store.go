@@ -27,12 +27,28 @@ func NewSecretStore(dir string) *SecretStore {
 	return &SecretStore{dir: dir}
 }
 
-func (s *SecretStore) path(name string) string {
-	return filepath.Join(s.dir, name+secretFileExt)
+// path resolves the encrypted-file path for a destination name. The name is
+// attacker-influenced (it arrives over RPC), so it is validated and the resolved
+// path is confirmed to sit directly inside s.dir. This prevents a crafted name
+// from reaching any file outside the notification store, such as the OIDC token
+// cache in a sibling directory.
+func (s *SecretStore) path(name string) (string, error) {
+	if err := ValidateDestinationName(name); err != nil {
+		return "", err
+	}
+	full := filepath.Join(s.dir, name+secretFileExt)
+	if filepath.Dir(full) != filepath.Clean(s.dir) {
+		return "", fmt.Errorf("invalid destination name %q", name)
+	}
+	return full, nil
 }
 
 // Save encrypts url with the machine key and writes it at 0600.
 func (s *SecretStore) Save(name, url string) error {
+	p, err := s.path(name)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(s.dir, secretDirPerm); err != nil {
 		return fmt.Errorf("create secret dir: %w", err)
 	}
@@ -40,7 +56,7 @@ func (s *SecretStore) Save(name, url string) error {
 	if err != nil {
 		return fmt.Errorf("encrypt webhook url: %w", err)
 	}
-	if err := os.WriteFile(s.path(name), enc, secretFilePerm); err != nil {
+	if err := os.WriteFile(p, enc, secretFilePerm); err != nil {
 		return fmt.Errorf("write webhook secret: %w", err)
 	}
 	return nil
@@ -48,7 +64,11 @@ func (s *SecretStore) Save(name, url string) error {
 
 // Load decrypts and returns the stored URL for name.
 func (s *SecretStore) Load(name string) (string, error) {
-	enc, err := os.ReadFile(s.path(name))
+	p, err := s.path(name)
+	if err != nil {
+		return "", err
+	}
+	enc, err := os.ReadFile(p)
 	if err != nil {
 		return "", fmt.Errorf("read webhook secret: %w", err)
 	}
@@ -61,14 +81,23 @@ func (s *SecretStore) Load(name string) (string, error) {
 
 // Has reports whether a URL is on file for name.
 func (s *SecretStore) Has(name string) bool {
-	_, err := os.Stat(s.path(name))
-	return err == nil
+	p, err := s.path(name)
+	if err != nil {
+		return false
+	}
+	_, statErr := os.Stat(p)
+	return statErr == nil
 }
 
 // Delete removes the stored URL for name (no error if it was never stored).
 func (s *SecretStore) Delete(name string) error {
-	err := os.Remove(s.path(name))
-	if err != nil && !os.IsNotExist(err) {
+	p, err := s.path(name)
+	if err != nil {
+		// An invalid name can never have been stored, so there is nothing to
+		// remove. Treat it as a no-op to keep Delete idempotent.
+		return nil
+	}
+	if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("delete webhook secret: %w", err)
 	}
 	return nil
