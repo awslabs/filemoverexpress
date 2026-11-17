@@ -323,6 +323,42 @@ describe('JobsTableComponent', () => {
         });
     });
 
+    describe('ASC MHL column', () => {
+        it('flags a job verified against a manifest as used and clean', () => {
+            const job = makeJob({
+                status: JobStatus.Completed,
+                ascMhlListed: 3,
+                ascMhlVerified: 3,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(true);
+            expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 3 of 3 (xxhash64)');
+        });
+
+        it('does not flag a job that shipped no manifest', () => {
+            const job = makeJob({status: JobStatus.Completed});
+            expect(component.ascMhlUsed(job)).toBe(false);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('treats a warnings job as used but not clean', () => {
+            const job = makeJob({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 3,
+                ascMhlVerified: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('omits the algorithm from the tooltip when unknown', () => {
+            const job = makeJob({ascMhlListed: 2, ascMhlVerified: 2});
+            expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 2 of 2');
+        });
+    });
+
     describe('jobDetails', () => {
         it('opens the job details modal', () => {
             component.jobDetails(makeJob());

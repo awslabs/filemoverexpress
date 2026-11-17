@@ -141,6 +141,7 @@ export class JobsTableComponent implements AfterViewInit {
         'duration',
         'progress',
         'status',
+        'mhl',
         'actions',
     ];
     dataSource: MatTableDataSource<Job>;
@@ -344,6 +345,31 @@ export class JobsTableComponent implements AfterViewInit {
             // if elapsed time is 0, consider it to be 1 second
             summaryStats.averageSpeed = summaryStats.elapsedTime ? summaryStats.totalActiveBytesTransferred / summaryStats.elapsedTime : summaryStats.totalActiveBytesTransferred;
         }
+    }
+
+    /**
+     * Whether a supplied ASC MHL manifest was verified for this job (at least one
+     * listed file). Drives the ASC MHL column indicator.
+     */
+    ascMhlUsed(job: Job): boolean {
+        return (job.ascMhlListed ?? 0) > 0;
+    }
+
+    /**
+     * Whether the ASC MHL verified cleanly (a manifest was honored and the job did
+     * not complete with verification warnings). Green vs amber in the column.
+     */
+    ascMhlClean(job: Job): boolean {
+        return this.ascMhlUsed(job) && job.status !== JobStatus.CompletedWithWarnings;
+    }
+
+    /** Tooltip for the ASC MHL column cell, e.g. "ASC MHL verified 3 of 3 (xxhash64)". */
+    ascMhlTooltip(job: Job): string {
+        const verified = job.ascMhlVerified ?? 0;
+        const listed = job.ascMhlListed ?? 0;
+        const algorithm = job.ascMhlAlgorithm ?? '';
+        const base = `ASC MHL verified ${verified} of ${listed}`;
+        return algorithm ? `${base} (${algorithm})` : base;
     }
 
     /**

@@ -290,3 +290,21 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     }
 }
 // endregion
+
+// ASC MHL column indicator: a small verified shield, green when the manifest
+// verified cleanly, amber when the job completed with verification warnings.
+.job-mhl {
+    display: inline-flex;
+    align-items: center;
+    color: variables.$orange-accent;
+
+    &.clean {
+        color: variables.$green-500;
+    }
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+}
