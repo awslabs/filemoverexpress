@@ -30,13 +30,20 @@ func (*FileMoverServer) SendTestNotification(
 		}), nil
 	}
 	if err := notifications.Shared().SendTest(dest); err != nil {
-		// The error is already URL-redacted by the notifications package, but it
-		// still belongs in the daemon log, not in an RPC response a settings-only
-		// client can read. Return a generic message.
+		// Log the full detail (including any resolved IP) to the daemon log. Return
+		// the specific message only for user-fixable validation failures the
+		// notifications package marked safe (bad scheme, missing host, a
+		// non-routable target, an error status); every other failure - transport,
+		// DNS, parse, store - stays behind the generic message so a settings-only
+		// client (possibly on a remote daemon) never sees internal detail.
 		logger.Error("notifications: test send to destination %q failed: %v", dest.Name, err)
+		message := strNotifyTestFailed
+		if public, ok := notifications.PublicMessage(err); ok {
+			message = public
+		}
 		return connect.NewResponse(&fmev1.SendTestNotificationResponse{
 			Success: false,
-			Message: strNotifyTestFailed,
+			Message: message,
 		}), nil
 	}
 	return connect.NewResponse(&fmev1.SendTestNotificationResponse{Success: true}), nil

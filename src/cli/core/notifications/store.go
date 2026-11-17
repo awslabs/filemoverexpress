@@ -93,8 +93,11 @@ func (s *SecretStore) Has(name string) bool {
 func (s *SecretStore) Delete(name string) error {
 	p, err := s.path(name)
 	if err != nil {
-		// An invalid name can never have been stored, so there is nothing to
-		// remove. Treat it as a no-op to keep Delete idempotent.
+		// An invalid name can never have been stored under the current rules, so
+		// there is nothing to remove. Treat it as a no-op to keep Delete
+		// idempotent. Note: a legacy file written under the older, laxer naming
+		// rules whose name no longer validates can therefore no longer be removed
+		// through this API; it must be deleted from the secret directory by hand.
 		return nil
 	}
 	if err := os.Remove(p); err != nil && !os.IsNotExist(err) {

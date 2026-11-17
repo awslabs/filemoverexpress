@@ -91,7 +91,9 @@ func postWebhook(ctx context.Context, rawURL string, body []byte) error {
 	_, _ = io.CopyN(io.Discard, resp.Body, maxResponseBytes)
 
 	if resp.StatusCode >= httpRedirectMin {
-		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+		// A non-success status is a user-fixable, secret-free fact (it names no
+		// URL), so surface it to a settings client rather than hiding it.
+		return newPublicError(fmt.Errorf("webhook returned status %d", resp.StatusCode))
 	}
 	return nil
 }

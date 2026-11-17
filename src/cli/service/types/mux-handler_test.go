@@ -25,6 +25,9 @@ func TestResponseHeader_EchoesAllowedOrigin(t *testing.T) {
 	if got := rec.Header().Get("Access-Control-Allow-Credentials"); got != "true" {
 		t.Fatalf("Access-Control-Allow-Credentials = %q, want true", got)
 	}
+	if got := rec.Header().Values("Vary"); len(got) == 0 || got[0] != "Origin" {
+		t.Fatalf("Vary = %v, want it to include Origin", got)
+	}
 }
 
 func TestResponseHeader_RejectsUnknownOrigin(t *testing.T) {
@@ -39,6 +42,11 @@ func TestResponseHeader_RejectsUnknownOrigin(t *testing.T) {
 	}
 	if got := rec.Header().Get("Access-Control-Allow-Credentials"); got != "" {
 		t.Fatalf("Access-Control-Allow-Credentials = %q, want empty for a disallowed origin", got)
+	}
+	// Vary: Origin must be set even when the origin is NOT allowed, so a shared
+	// cache never serves this no-Allow-Origin response to a different origin.
+	if got := rec.Header().Values("Vary"); len(got) == 0 || got[0] != "Origin" {
+		t.Fatalf("Vary = %v, want it to include Origin even for a disallowed origin", got)
 	}
 	if rec.Code != http.StatusOK {
 		t.Fatalf("OPTIONS status = %d, want 200", rec.Code)

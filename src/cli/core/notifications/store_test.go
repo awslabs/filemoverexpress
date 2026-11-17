@@ -49,7 +49,7 @@ func TestSecretStore_RejectsTraversalName(t *testing.T) {
 
 	s := NewSecretStore(filepath.Join(root, "notifications"))
 
-	for _, name := range []string{"../oidc-tokens/prod", `..\oidc-tokens\prod`, "a/b", "x..y", ""} {
+	for _, name := range []string{"../oidc-tokens/prod", `..\oidc-tokens\prod`, "a/b", "a:b", "CON", ""} {
 		if got, err := s.Load(name); err == nil {
 			t.Errorf("Load(%q) = (%q, nil), want rejection", name, got)
 		}
