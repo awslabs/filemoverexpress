@@ -141,7 +141,7 @@ export class LogsService {
                 level: evt.logLevel,
                 message: evt.msg,
                 timestamp: new Date(),
-                jobId: null,
+                jobId: evt.jobId ? evt.jobId : null,
             },
         }));
     }

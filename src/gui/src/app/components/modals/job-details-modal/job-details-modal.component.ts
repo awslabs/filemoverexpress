@@ -213,6 +213,9 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                     hasTaskErrors: job.hasTaskErrors,
                     hasSuccessfulTasks: job.hasSuccessfulTasks,
                     force: job.force ?? this.jobDetails.force,
+                    ascMhlVerified: job.ascMhlVerified ?? this.jobDetails.ascMhlVerified,
+                    ascMhlListed: job.ascMhlListed ?? this.jobDetails.ascMhlListed,
+                    ascMhlAlgorithm: job.ascMhlAlgorithm ?? this.jobDetails.ascMhlAlgorithm,
                 };
             }
         }));
@@ -434,6 +437,32 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
     get isUpload(): boolean {
         return this.jobDetails.direction === TransferDirection.Upload;
+    }
+
+    /**
+     * Whether a supplied ASC MHL manifest was verified for this job (at least one
+     * listed file). Drives the "ASC MHL verified" chip and the Advanced-details row.
+     */
+    get ascMhlUsed(): boolean {
+        return (this.jobDetails.ascMhlListed ?? 0) > 0;
+    }
+
+    /**
+     * True when the ASC MHL verified cleanly: a manifest was honored and the job
+     * did not complete with verification warnings. A warnings job shows the amber
+     * status and red log lines instead of the green chip.
+     */
+    get ascMhlClean(): boolean {
+        return this.ascMhlUsed && !this.isWarnings;
+    }
+
+    /** Advanced-details summary for the ASC MHL verification, e.g. "Verified 3 of 3 - xxhash64". */
+    get ascMhlSummaryLabel(): string {
+        const verified = this.jobDetails.ascMhlVerified ?? 0;
+        const listed = this.jobDetails.ascMhlListed ?? 0;
+        const algorithm = this.jobDetails.ascMhlAlgorithm ?? '';
+        const base = `Verified ${verified} of ${listed}`;
+        return algorithm ? `${base} - ${algorithm}` : base;
     }
 
     get directionLabel(): string {

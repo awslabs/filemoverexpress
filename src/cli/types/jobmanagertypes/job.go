@@ -15,6 +15,7 @@ import (
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/types/transfertypes"
 	"github.com/awslabs/filemoverexpress/utils"
+	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
 type (
@@ -35,6 +36,9 @@ type (
 		hasTaskErrors           bool
 		hasSuccessfulTasks      bool
 		hasVerificationWarnings bool
+		ascMHLVerified          int
+		ascMHLListed            int
+		ascMHLAlgorithm         string
 		dbObjects               []*databasetypes.DatabaseObject
 		destination             string
 		TimestampCreated        time.Time
@@ -226,6 +230,41 @@ func (j *Job) SetHasVerificationWarnings(hasVerificationWarnings bool) {
 	j.hasVerificationWarnings = hasVerificationWarnings
 }
 
+// SetASCMHLResult records the outcome of ASC MHL verification so the GUI can
+// surface that a supplied manifest was honored, even on a clean run. verified is
+// how many listed files matched, listed is how many the manifest(s) contained,
+// and algorithm is the hash used (e.g. "xxhash64"). All zero / empty when no
+// ASC MHL manifest shipped with the media.
+func (j *Job) SetASCMHLResult(verified, listed int, algorithm string) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+	j.ascMHLVerified = verified
+	j.ascMHLListed = listed
+	j.ascMHLAlgorithm = algorithm
+}
+
+// ASCMHLVerified returns how many listed files matched their recorded hash.
+func (j *Job) ASCMHLVerified() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLVerified
+}
+
+// ASCMHLListed returns how many files the supplied ASC MHL manifest(s) listed.
+// Zero means no manifest was verified against.
+func (j *Job) ASCMHLListed() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLListed
+}
+
+// ASCMHLAlgorithm returns the hash algorithm used to verify the supplied ASC MHL.
+func (j *Job) ASCMHLAlgorithm() string {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLAlgorithm
+}
+
 func (j *Job) Direction() transfertypes.Direction {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
@@ -376,6 +415,9 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
+	ascVerified, _ := safeconv.IntToInt32(j.ascMHLVerified)
+	ascListed, _ := safeconv.IntToInt32(j.ascMHLListed)
+
 	return &fmev1.Job{
 		JobId:               j.jobId,
 		Name:                j.name,
@@ -396,5 +438,8 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 		Completed:           timestamppb.New(j.TimestampCompleted),
 		Bucket:              j.transferProfile.Bucket,
 		Force:               j.force,
+		AscMhlVerified:      ascVerified,
+		AscMhlListed:        ascListed,
+		AscMhlAlgorithm:     j.ascMHLAlgorithm,
 	}
 }

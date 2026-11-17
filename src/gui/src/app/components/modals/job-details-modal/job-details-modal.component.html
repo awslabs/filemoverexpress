@@ -9,6 +9,11 @@
             {{ jobDetails.jobName | textEllipses : MAX_INFO_STRING_LENGTH }}
         </span>
         <span class="job-status" [ngClass]="statusClass">{{ statusLabel }}</span>
+        @if (ascMhlClean) {
+            <span class="jd-mhl-chip" matTooltip="A supplied ASC MHL manifest was verified for this job">
+                <mat-icon>verified</mat-icon> ASC MHL verified
+            </span>
+        }
         <button mat-icon-button aria-label="close dialog" mat-dialog-close class="jd-close-btn">
             <mat-icon>close</mat-icon>
         </button>
@@ -79,6 +84,12 @@
                     }
                     @if (checksumLabel) {
                         <div class="jd-row"><span class="rk">Checksum</span><span class="rv">{{ checksumLabel }}</span></div>
+                    }
+                    @if (ascMhlUsed) {
+                        <div class="jd-row">
+                            <span class="rk">ASC MHL</span>
+                            <span class="rv" [class.jd-mhl-ok]="ascMhlClean">{{ ascMhlSummaryLabel }}</span>
+                        </div>
                     }
                     @if (parallelismLabel) {
                         <div class="jd-row"><span class="rk">Parallelism</span><span class="rv">{{ parallelismLabel }}</span></div>

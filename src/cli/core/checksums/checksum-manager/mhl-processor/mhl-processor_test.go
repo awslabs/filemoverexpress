@@ -403,3 +403,111 @@ func TestVerifyManifestHexPadding(t *testing.T) {
 	counts := verifyManifest(verifyCtx{ctx: context.Background(), jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmMD5}, manifestPath, manifest, nil)
 	assert.Equal(t, 1, counts.verified)
 }
+
+// A successful verify records which algorithm honored the manifest, so the job
+// summary can report it (e.g. the chip and Advanced-details row in the GUI).
+func TestVerifyManifestCapturesAlgorithm(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "a.mov"), "algo-capture-bytes")
+	xx := fmeChecksum(t, filepath.Join(root, "a.mov"), constants.AlgorithmXXHash64)
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "a.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: xx}},
+	}}
+
+	counts := verifyManifest(
+		verifyCtx{ctx: context.Background(), jobID: "job-1", jobName: "test-job", profileAlgorithm: constants.AlgorithmNone},
+		manifestPath, manifest, nil,
+	)
+	assert.Equal(t, 1, counts.verified)
+	assert.Equal(t, string(constants.AlgorithmXXHash64), counts.algorithm)
+}
+
+// VerifyASCMHL discovers the manifest among the tasks, verifies every listed
+// file, and returns the aggregate result (verified / listed counts, algorithm,
+// and integrity problems) the job surfaces to the GUI.
+func TestVerifyASCMHLAggregatesResult(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "clip.mov"), "aggregate-bytes")
+	xx := fmeChecksum(t, filepath.Join(root, "clip.mov"), constants.AlgorithmXXHash64)
+
+	writeFile(t, manifestPath, `<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0">
+  <hashes>
+    <hash>
+      <path size="15">clip.mov</path>
+      <xxh64 action="original">`+xx+`</xxh64>
+    </hash>
+  </hashes>
+</hashlist>`)
+
+	mkTask := func(p string) *jobmanagertypes.Task {
+		abs, err := filepath.Abs(p)
+		require.NoError(t, err)
+		task, terr := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: abs},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-agg",
+		})
+		require.NoError(t, terr)
+		return task
+	}
+	tasks := []*jobmanagertypes.Task{mkTask(manifestPath), mkTask(filepath.Join(root, "clip.mov"))}
+
+	result := VerifyASCMHL(VerifyRequest{
+		Ctx:              context.Background(),
+		JobID:            "job-agg",
+		JobName:          "agg",
+		Tasks:            tasks,
+		ProfileAlgorithm: constants.AlgorithmNone,
+	})
+	assert.Equal(t, 1, result.Verified, "clip.mov verifies against its xxh64 hash")
+	assert.Equal(t, 1, result.Listed, "manifest lists one file")
+	assert.Equal(t, 0, result.Problems, "a clean offload has no integrity problems")
+	assert.Equal(t, string(constants.AlgorithmXXHash64), result.Algorithm)
+}
+
+// A manifest with a mismatching hash still reports the listed count and the
+// algorithm, but surfaces the integrity problem.
+func TestVerifyASCMHLReportsProblems(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "clip.mov"), "tampered-bytes")
+
+	writeFile(t, manifestPath, `<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0">
+  <hashes>
+    <hash>
+      <path size="14">clip.mov</path>
+      <xxh64 action="original">deadbeefdeadbeef</xxh64>
+    </hash>
+  </hashes>
+</hashlist>`)
+
+	abs, err := filepath.Abs(manifestPath)
+	require.NoError(t, err)
+	clipAbs, err := filepath.Abs(filepath.Join(root, "clip.mov"))
+	require.NoError(t, err)
+	mkTask := func(p string) *jobmanagertypes.Task {
+		task, terr := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: p},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-bad",
+		})
+		require.NoError(t, terr)
+		return task
+	}
+
+	result := VerifyASCMHL(VerifyRequest{
+		Ctx:              context.Background(),
+		JobID:            "job-bad",
+		JobName:          "bad",
+		Tasks:            []*jobmanagertypes.Task{mkTask(abs), mkTask(clipAbs)},
+		ProfileAlgorithm: constants.AlgorithmNone,
+	})
+	assert.Equal(t, 0, result.Verified)
+	assert.Equal(t, 1, result.Listed)
+	assert.Equal(t, 1, result.Problems, "a hash mismatch is an integrity problem")
+}

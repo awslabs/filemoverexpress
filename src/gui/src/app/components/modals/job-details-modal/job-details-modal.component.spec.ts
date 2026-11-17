@@ -179,6 +179,40 @@ describe('JobDetailsModalComponent', () => {
             const {component} = build(makeData({progress: 150}));
             expect(component.progressPct).toBe(100);
         });
+
+        it('flags ASC MHL used and clean on a verified completed job', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Completed,
+                ascMhlListed: 3,
+                ascMhlVerified: 3,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlClean).toBe(true);
+            expect(component.ascMhlSummaryLabel).toBe('Verified 3 of 3 - xxhash64');
+        });
+
+        it('does not flag ASC MHL when no manifest shipped', () => {
+            const {component} = build(makeData({}));
+            expect(component.ascMhlUsed).toBe(false);
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('treats ASC MHL as used but not clean on a warnings job', () => {
+            const {component} = build(makeData({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 3,
+                ascMhlVerified: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('omits the algorithm from the ASC MHL summary when unknown', () => {
+            const {component} = build(makeData({ascMhlListed: 2, ascMhlVerified: 2}));
+            expect(component.ascMhlSummaryLabel).toBe('Verified 2 of 2');
+        });
     });
 
     describe('duration + speed labels', () => {

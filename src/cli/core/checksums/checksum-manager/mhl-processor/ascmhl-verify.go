@@ -53,6 +53,10 @@ type (
 		flagged    int
 		notListed  int
 		unhonored  int
+		// algorithm is the hash algorithm actually used to verify a file in this
+		// manifest (set on the first successful verify). Surfaced on the job so the
+		// GUI can show which hash the ASC MHL was honored with.
+		algorithm string
 	}
 
 	// verifyCtx carries the per-job verification context so the manifest/entry
@@ -85,6 +89,17 @@ type (
 		ProfileAlgorithm constants.ChecksumAlgorithm
 		Precomputed      map[string]string
 	}
+
+	// VerifyResult is the aggregate outcome of verifying every supplied ASC MHL
+	// manifest in a job. Problems drives JobStatusCompletedWithWarnings; Verified
+	// / Listed / Algorithm let the GUI show that a manifest was honored even on a
+	// clean run. Listed == 0 means no ASC MHL manifest shipped with the media.
+	VerifyResult struct {
+		Problems  int
+		Verified  int
+		Listed    int
+		Algorithm string
+	}
 )
 
 // integrityProblems are the outcomes that mean the offload cannot be trusted as
@@ -108,7 +123,7 @@ func (c verifyCounts) integrityProblems() int {
 // caller can mark the job JobStatusCompletedWithWarnings. Each problem is emitted
 // as a job-scoped error event (red, in the job's Logs tab) AND written to the
 // daemon log. Honors ctx cancellation: a cancelled job stops verifying.
-func VerifyASCMHL(req VerifyRequest) int {
+func VerifyASCMHL(req VerifyRequest) VerifyResult {
 	vctx := verifyCtx{
 		ctx:              req.Ctx,
 		jobID:            req.JobID,
@@ -118,7 +133,7 @@ func VerifyASCMHL(req VerifyRequest) int {
 		taskByPath:       tasksByAbsPath(req.Tasks),
 	}
 
-	problems := 0
+	var result VerifyResult
 	for _, manifestPath := range latestASCGenerations(ascManifestPaths(req.Tasks)) {
 		if req.Ctx.Err() != nil {
 			break
@@ -129,9 +144,14 @@ func VerifyASCMHL(req VerifyRequest) int {
 			continue
 		}
 		counts := verifyManifest(vctx, manifestPath, manifest, req.Tasks)
-		problems += counts.integrityProblems()
+		result.Problems += counts.integrityProblems()
+		result.Verified += counts.verified
+		result.Listed += len(manifest.Entries)
+		if result.Algorithm == "" && counts.algorithm != "" {
+			result.Algorithm = counts.algorithm
+		}
 	}
-	return problems
+	return result
 }
 
 // tasksByAbsPath maps each task's absolute local path to the task, for carrying a
@@ -172,9 +192,9 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 	listed := make(map[string]bool, len(manifest.Entries))
 
 	// Opener so it is clear in the logs that FME is verifying against a supplied
-	// manifest, even when the in-app checksum is off.
-	events.Events.Info(strASCStart, len(manifest.Entries), manifestPath)
-	logger.Info(strASCStart, len(manifest.Entries), manifestPath)
+	// manifest, even when the in-app checksum is off. Job-scoped so it shows in
+	// the job's Logs tab, not just the global log.
+	events.Events.InfoForJob(vctx.jobID, strASCStart, len(manifest.Entries), manifestPath)
 
 	for _, entry := range manifest.Entries {
 		if vctx.ctx.Err() != nil {
@@ -207,10 +227,10 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 		verifyEntry(vctx, entry, absPath, &counts)
 	}
 
-	reportUnlistedFiles(manifestPath, tasks, listed, &counts)
+	counts.notListed += reportUnlistedFiles(vctx, manifestPath, tasks, listed)
 
-	events.Events.Info(strASCSummary, manifestPath, counts.verified, counts.integrityProblems(), counts.notListed, counts.unhonored)
-	logger.Info(strASCSummary, manifestPath, counts.verified, counts.integrityProblems(), counts.notListed, counts.unhonored)
+	events.Events.InfoForJob(vctx.jobID, strASCSummary, manifestPath, counts.verified,
+		counts.integrityProblems(), counts.notListed, counts.unhonored)
 
 	return counts
 }
@@ -229,9 +249,7 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 		}
 		// Not an integrity failure - FME simply cannot compute the manifest's
 		// algorithm (e.g. sha1-only). Warn, but do not flag the job.
-		msg := fmt.Sprintf(strASCUnhonored, entry.RelativePath, strings.Join(entry.UnsupportedAlgos, ", "))
-		events.Events.Warn("%s", msg)
-		logger.Warn("%s", msg)
+		events.Events.WarnForJob(vctx.jobID, strASCUnhonored, entry.RelativePath, strings.Join(entry.UnsupportedAlgos, ", "))
 		counts.unhonored++
 		return
 	}
@@ -246,8 +264,12 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 	}
 
 	if checksumsEqual(algo, computed, expected) {
-		events.Events.Info(strASCVerified, entry.RelativePath, algo)
-		logger.Info(strASCVerified, entry.RelativePath, algo)
+		events.Events.InfoForJob(vctx.jobID, strASCVerified, entry.RelativePath, algo)
+		// Record which algorithm honored the manifest, for the job summary the GUI
+		// shows (set once, on the first verified file).
+		if counts.algorithm == "" {
+			counts.algorithm = string(algo)
+		}
 		// Carry the verified hash onto the object as checksum metadata, even when
 		// the in-app checksum is off. Only when the task has no checksum of its own
 		// (the in-app pass did not produce one); never overwrite a profile-computed
@@ -284,15 +306,17 @@ func computeOrReuse(vctx verifyCtx, algo constants.ChecksumAlgorithm, absPath st
 
 // reportUnlistedFiles warns about media files being transferred under this
 // manifest's root that the manifest does not list (the ASC reference tool flags
-// these). A not-listed file is a warning, not an integrity failure.
+// these). A not-listed file is a warning, not an integrity failure. Returns how
+// many unlisted files it found so the caller can tally them.
 func reportUnlistedFiles(
+	vctx verifyCtx,
 	manifestPath string,
 	tasks []*jobmanagertypes.Task,
 	listed map[string]bool,
-	counts *verifyCounts,
-) {
+) int {
 	root := ascRoot(manifestPath)
 	ascmhlDir := filepath.Join(root, "ascmhl")
+	notListed := 0
 	for _, task := range tasks {
 		path := task.LocalFile().Path
 		if strings.ToLower(filepath.Ext(path)) == ".mhl" {
@@ -315,11 +339,10 @@ func reportUnlistedFiles(
 		if relErr != nil {
 			rel = abs
 		}
-		msg := fmt.Sprintf(strASCExtra, rel, manifestPath)
-		events.Events.Warn("%s", msg)
-		logger.Warn("%s", msg)
-		counts.notListed++
+		events.Events.WarnForJob(vctx.jobID, strASCExtra, rel, manifestPath)
+		notListed++
 	}
+	return notListed
 }
 
 // resolvedUnder resolves symlinks on both the root and the path and reports

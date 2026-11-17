@@ -243,6 +243,9 @@ export class JobsTableComponent implements AfterViewInit {
                             timestampCompleted: j.timestampCompleted,
                             checksumProgress: null,
                             force: j.force,
+                            ascMhlVerified: j.ascMhlVerified,
+                            ascMhlListed: j.ascMhlListed,
+                            ascMhlAlgorithm: j.ascMhlAlgorithm,
                         });
                     }
 

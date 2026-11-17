@@ -22,6 +22,9 @@ export class Job {
         public timestampCompleted: Date | null,
         public bucket: string,
         public force: boolean,
+        public ascMhlVerified: number,
+        public ascMhlListed: number,
+        public ascMhlAlgorithm: string,
     ) {
     }
 
@@ -46,6 +49,9 @@ export class Job {
             job.completed ? timestampDate(job.completed) : null,
             job.bucket,
             job.force,
+            job.ascMhlVerified,
+            job.ascMhlListed,
+            job.ascMhlAlgorithm,
         );
     }
 }

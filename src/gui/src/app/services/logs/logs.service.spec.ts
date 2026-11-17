@@ -61,6 +61,18 @@ describe('LogsService', () => {
         );
     });
 
+    it('dispatches addLog with the jobId for a job-scoped MessageEvent', () => {
+        createService();
+        events$.next(new MessageEvent('Verifying 3 files against supplied ASC MHL', 'info', 'job-7'));
+        expect(dispatch).toHaveBeenCalledWith(
+            addLog({log: expect.objectContaining({
+                message: 'Verifying 3 files against supplied ASC MHL',
+                level: 'info',
+                jobId: 'job-7',
+            })}),
+        );
+    });
+
     it('dispatches addLog for an AlertEvent', () => {
         createService();
         events$.next(new AlertEvent('disk full', 'warning'));

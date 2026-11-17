@@ -101,6 +101,34 @@ func (eb *EventBus) Warn(message string, args ...interface{}) {
 	eb.Send(evt)
 }
 
+// InfoForJob emits an INFO message scoped to a job, so the GUI files it under
+// that job's Logs tab (not just the global log). Mirrors Info but carries the
+// job id. Also written to the daemon log at INFO level.
+func (eb *EventBus) InfoForJob(jobID, message string, args ...interface{}) {
+	if len(message) == 0 {
+		logger.Error(strTriedSendingEmptyMessages)
+		return
+	}
+
+	msg := logger.FormatLogMessage(message, args)
+	logger.Info("%s", msg)
+	eb.Send(&eventtypes.MessageEvent{Msg: msg, EventPriority: logger.InfoLevel, JobID: jobID})
+}
+
+// WarnForJob emits a WARN message scoped to a job, so the GUI files it under
+// that job's Logs tab. Mirrors Warn but carries the job id. Also written to the
+// daemon log at WARN level.
+func (eb *EventBus) WarnForJob(jobID, message string, args ...interface{}) {
+	if len(message) == 0 {
+		logger.Error(strTriedSendingEmptyMessages)
+		return
+	}
+
+	msg := logger.FormatLogMessage(message, args)
+	logger.Warn("%s", msg)
+	eb.Send(&eventtypes.MessageEvent{Msg: msg, EventPriority: logger.WarnLevel, JobID: jobID})
+}
+
 func (eb *EventBus) Error(message string, args ...interface{}) {
 	if len(message) == 0 {
 		logger.Error(strTriedSendingEmptyMessages)
