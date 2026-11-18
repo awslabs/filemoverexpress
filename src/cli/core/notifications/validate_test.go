@@ -97,23 +97,24 @@ func TestValidateWebhookURL_PublicClassification(t *testing.T) {
 	}
 }
 
-func TestValidateWebhookURL_ParseErrorKeepsContextStaysGeneric(t *testing.T) {
-	// Decrypted non-URL bytes (the reported token-echo path) must not surface: a
-	// parse failure keeps the "invalid webhook url" context but stays generic (not
-	// public) and never echoes the raw bytes.
+func TestValidateWebhookURL_ParseErrorIsPublicButRedacted(t *testing.T) {
+	// A malformed URL is user-fixable, so the parse failure is public (the user
+	// should see the URL is bad). The reason is still redacted: decrypted non-URL
+	// bytes (the reported token-echo path) never appear in the message or detail.
 	tokenJSON := `{"refresh_token":"REAL-REFRESH-TOKEN"}`
 	err := ValidateWebhookURL(context.Background(), tokenJSON)
 	if err == nil {
 		t.Fatal("expected token JSON to be rejected as an invalid URL")
 	}
-	if _, ok := PublicMessage(err); ok {
-		t.Fatalf("parse failure must not be public, got %q", err)
+	msg, ok := PublicMessage(err)
+	if !ok {
+		t.Fatalf("a parse failure should be public so the user learns the URL is bad, got %q", err)
 	}
-	if !strings.Contains(err.Error(), "invalid webhook url") {
-		t.Fatalf("parse failure lost its context: %q", err)
+	if !strings.Contains(msg, "invalid webhook url") {
+		t.Fatalf("parse failure lost its context: %q", msg)
 	}
-	if strings.Contains(err.Error(), "REAL-REFRESH-TOKEN") {
-		t.Fatalf("parse failure leaked the raw bytes: %q", err)
+	if strings.Contains(msg, "REAL-REFRESH-TOKEN") || strings.Contains(err.Error(), "REAL-REFRESH-TOKEN") {
+		t.Fatalf("parse failure leaked the raw bytes: public=%q detail=%q", msg, err.Error())
 	}
 }
 

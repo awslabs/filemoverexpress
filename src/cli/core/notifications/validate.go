@@ -118,7 +118,11 @@ func ValidateWebhookURL(ctx context.Context, raw string) error {
 		// (.Err never contains the URL), so the message stays secret-safe.
 		var uerr *url.Error
 		if errors.As(err, &uerr) {
-			return fmt.Errorf("invalid webhook url: %w", uerr.Err)
+			// uerr.Err is the reason only and never carries the raw input, so the
+			// message is already redacted. Mark it public: a malformed URL is
+			// user-fixable, and the user should see why rather than a generic save
+			// error. (The raw URL, which can hold a secret, is dropped with uerr.)
+			return newPublicError(fmt.Errorf("invalid webhook url: %w", uerr.Err))
 		}
 		return fmt.Errorf("invalid webhook url: %w", err)
 	}

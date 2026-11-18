@@ -18,6 +18,7 @@ const (
 	strNotifyDestNameBad    = "a valid destination name is required"
 	strNotifyNoSuchDest     = "no such notification destination"
 	strNotifyTestFailed     = "test notification failed; see the FME daemon log for details"
+	strNotifyURLInvalid     = "the webhook url could not be validated; see the FME daemon log for details"
 	strNotifySaveFailed     = "saving the notification destination failed; see the FME daemon log for details"
 )
 
@@ -43,9 +44,12 @@ func (*FileMoverServer) SetNotificationDestination(
 	if url != "" {
 		if err := notifications.ValidateWebhookURL(ctx, url); err != nil {
 			// Log the full detail (which may include the resolved IP); return only
-			// the client-safe message so a settings client never sees it.
+			// the client-safe message so a settings client never sees it. A bad
+			// scheme, missing host, non-routable target, or malformed URL comes
+			// back with its own specific text; a DNS failure (whose detail names
+			// the host) stays behind the url-oriented generic.
 			logger.Error("notifications: set destination %q rejected: %v", in.GetName(), err)
-			return setNotifyResult(false, clientSafeNotifyMessage(err, strNotifySaveFailed), nil), nil
+			return setNotifyResult(false, clientSafeNotifyMessage(err, strNotifyURLInvalid), nil), nil
 		}
 	}
 	saved, err := notifications.Shared().Upsert(configtypes.NotificationDestinationFromProtobuf(in), url)
