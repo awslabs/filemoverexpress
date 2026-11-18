@@ -92,7 +92,15 @@ func ValidateDestinationName(name string) error {
 	if first, last := name[0], name[len(name)-1]; first == '.' || first == ' ' || last == '.' || last == ' ' {
 		return errors.New("destination name must not start or end with a dot or space")
 	}
-	if _, reserved := reservedDeviceNames[strings.ToUpper(name)]; reserved {
+	// Windows treats "CON", and equally "CON.anything", as the device: the
+	// component before the first dot is what names it, and the store file is
+	// "<name>.enc". Check that leading component, uppercased, so "CON.x" and
+	// "NUL.backup" are rejected, not just the bare "CON".
+	base := name
+	if dot := strings.IndexByte(name, '.'); dot >= 0 {
+		base = name[:dot]
+	}
+	if _, reserved := reservedDeviceNames[strings.ToUpper(base)]; reserved {
 		return errors.New("destination name is a reserved device name")
 	}
 	return nil

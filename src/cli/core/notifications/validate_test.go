@@ -64,6 +64,7 @@ func TestValidateDestinationName(t *testing.T) {
 		"a(b)", "a!b", "a@b", // punctuation outside the allowlist
 		".lead", "trail.", " lead", "trail ", // leading/trailing dot or space
 		"CON", "nul", "Lpt1", "Com9", // Windows reserved device names, any case
+		"con.x", "NUL.backup", "COM1.txt", // reserved device name with an extension
 		strings.Repeat("a", 129), // over the length cap
 	}
 	for _, name := range bad {

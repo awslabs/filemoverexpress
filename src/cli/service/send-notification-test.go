@@ -37,13 +37,9 @@ func (*FileMoverServer) SendTestNotification(
 		// DNS, parse, store - stays behind the generic message so a settings-only
 		// client (possibly on a remote daemon) never sees internal detail.
 		logger.Error("notifications: test send to destination %q failed: %v", dest.Name, err)
-		message := strNotifyTestFailed
-		if public, ok := notifications.PublicMessage(err); ok {
-			message = public
-		}
 		return connect.NewResponse(&fmev1.SendTestNotificationResponse{
 			Success: false,
-			Message: message,
+			Message: clientSafeNotifyMessage(err, strNotifyTestFailed),
 		}), nil
 	}
 	return connect.NewResponse(&fmev1.SendTestNotificationResponse{Success: true}), nil
