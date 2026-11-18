@@ -18,6 +18,11 @@ func TestValidateOrigin_BuiltInOrigins(t *testing.T) {
 		{"wails://wails", true},
 		{"https://evil.example.com", false},
 		{"", false},
+		// Regression: a value that merely begins with an allowed origin must be
+		// rejected (the old prefix match accepted these).
+		{"http://wails.localhost.attacker.example", false},
+		{"http://wails.localhostX", false},
+		{"wails://localhost.evil", false},
 	}
 
 	for _, c := range cases {

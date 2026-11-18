@@ -8,6 +8,7 @@ import (
 
 	"github.com/awslabs/filemoverexpress/config"
 	"github.com/awslabs/filemoverexpress/core/notifications"
+	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 )
@@ -29,9 +30,16 @@ func (*FileMoverServer) SendTestNotification(
 		}), nil
 	}
 	if err := notifications.Shared().SendTest(dest); err != nil {
+		// Log the full detail (including any resolved IP) to the daemon log. Return
+		// the specific message only for user-fixable validation failures the
+		// notifications package marked safe (bad scheme, missing host, a
+		// non-routable target, an error status); every other failure - transport,
+		// DNS, parse, store - stays behind the generic message so a settings-only
+		// client (possibly on a remote daemon) never sees internal detail.
+		logger.Error("notifications: test send to destination %q failed: %v", dest.Name, err)
 		return connect.NewResponse(&fmev1.SendTestNotificationResponse{
 			Success: false,
-			Message: err.Error(),
+			Message: clientSafeNotifyMessage(err, strNotifyTestFailed),
 		}), nil
 	}
 	return connect.NewResponse(&fmev1.SendTestNotificationResponse{Success: true}), nil

@@ -20,10 +20,10 @@ func (*FileMoverServer) DeleteNotificationDestination(
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New(strNotifyConfigDisabled))
 	}
 	name := req.Msg.GetName()
-	if notifications.ValidateDestinationName(name) != nil {
+	if err := notifications.ValidateDestinationName(name); err != nil {
 		return connect.NewResponse(&fmev1.DeleteNotificationDestinationResponse{
 			Success: false,
-			Message: strNotifyDestNameBad,
+			Message: err.Error(),
 		}), nil
 	}
 	if err := notifications.Shared().Remove(name); err != nil {
