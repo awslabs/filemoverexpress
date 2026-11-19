@@ -6,6 +6,7 @@ import { LogsService } from './logs.service';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { BaseEvent } from '@app/interfaces/events';
 import { MessageEvent, AlertEvent } from '@events/core';
+import { JobChecksumProgressEvent } from '@events/job/job-checksum-progress-event';
 import { addLog } from '@state/logs/actions/logs.actions';
 
 // LogsService subscribes to fmeClientService.events$ in its constructor and calls
@@ -59,6 +60,29 @@ describe('LogsService', () => {
         expect(dispatch).toHaveBeenCalledWith(
             addLog({log: expect.objectContaining({message: 'hello world', level: 'info', jobId: null})}),
         );
+    });
+
+    it('logs a checksum-progress percent when there are files to hash', () => {
+        createService();
+        events$.next(new JobChecksumProgressEvent('job-7', 10, 4));
+        expect(dispatch).toHaveBeenCalledWith(
+            addLog({log: expect.objectContaining({
+                message: expect.stringContaining('checksum 40% complete (4/10)'),
+                jobId: 'job-7',
+            })}),
+        );
+    });
+
+    it('does not emit NaN% when there are no files to checksum', () => {
+        createService();
+        events$.next(new JobChecksumProgressEvent('job-8', 0, 0));
+        const call = dispatch.mock.calls.find(
+            (c) => (c[0] as ReturnType<typeof addLog>)?.log?.jobId === 'job-8',
+        );
+        expect(call).toBeDefined();
+        const message = (call![0] as ReturnType<typeof addLog>).log.message;
+        expect(message).toContain('had no files to checksum');
+        expect(message).not.toContain('NaN');
     });
 
     it('dispatches addLog with the jobId for a job-scoped MessageEvent', () => {

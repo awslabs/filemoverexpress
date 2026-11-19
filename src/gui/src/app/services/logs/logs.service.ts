@@ -298,12 +298,18 @@ export class LogsService {
     }
 
     private handleJobChecksumProgressEvent(evt: JobEvents.JobChecksumProgressEvent) {
-        const pct = parseFloat(((evt.completed / evt.total) * 100).toFixed(2));
+        const jobName = this.getJobName(evt.jobId);
+
+        // No files to hash (every checksum was cached or the profile had checksums
+        // off): total is 0, so a percent would be NaN. Report it plainly instead.
+        const message = evt.total < 1
+            ? `Job '${jobName}' had no files to checksum`
+            : `Job '${jobName}' checksum ${parseFloat(((evt.completed / evt.total) * 100).toFixed(2))}% complete (${evt.completed}/${evt.total})`;
 
         this.store.dispatch(addLog({
             log: {
                 level: evt.logLevel,
-                message: `Job '${this.getJobName(evt.jobId)}' checksum ${pct}% complete (${evt.completed}/${evt.total})`,
+                message,
                 timestamp: new Date(),
                 jobId: evt.jobId,
             },
