@@ -141,6 +141,9 @@ func VerifyASCMHL(req VerifyRequest) VerifyResult {
 		manifest, err := mhl.LoadASCMHLFile(manifestPath)
 		if err != nil {
 			emitJobError(req.JobID, req.JobName, fmt.Sprintf(strASCLoadFailed, manifestPath, err))
+			// A manifest we cannot read is an integrity problem: the offload cannot
+			// be shown as cleanly verified when one of its manifests did not load.
+			result.Problems++
 			continue
 		}
 		counts := verifyManifest(vctx, manifestPath, manifest, req.Tasks)

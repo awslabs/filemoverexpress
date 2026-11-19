@@ -583,3 +583,33 @@ func TestVerifyASCMHLMixedAlgorithms(t *testing.T) {
 	assert.Equal(t, 0, result.Problems)
 	assert.Equal(t, "mixed", result.Algorithm)
 }
+
+// A manifest that cannot be loaded counts as an integrity problem, so a job with
+// one unreadable manifest is not shown as cleanly verified.
+func TestVerifyASCMHLCountsLoadFailureAsProblem(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	// Declares the ASC MHL namespace (so it is detected) but is malformed XML.
+	writeFile(t, manifestPath, `<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0"><hashes><hash><path>clip.mov`)
+
+	abs, err := filepath.Abs(manifestPath)
+	require.NoError(t, err)
+	task, terr := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+		LocalFile:     jobmanagertypes.LocalFile{Path: abs},
+		TaskDirection: jobmanagertypes.TaskDirectionUpload,
+		JobId:         "job-badmanifest",
+	})
+	require.NoError(t, terr)
+
+	result := VerifyASCMHL(VerifyRequest{
+		Ctx:              context.Background(),
+		JobID:            "job-badmanifest",
+		JobName:          "badmanifest",
+		Tasks:            []*jobmanagertypes.Task{task},
+		ProfileAlgorithm: constants.AlgorithmNone,
+	})
+	assert.Equal(t, 1, result.Problems, "a manifest that fails to load is an integrity problem")
+	assert.Equal(t, 0, result.Verified)
+	assert.Equal(t, 0, result.Listed)
+}

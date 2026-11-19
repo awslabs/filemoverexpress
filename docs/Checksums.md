@@ -56,7 +56,7 @@ File Mover Express also reads and verifies the industry-standard **ASC MHL** for
 **Supported hash algorithms:** xxHash64, XXH3, MD5, and C4. A manifest written in an algorithm File Mover Express cannot compute (for example SHA1) is reported in the logs rather than silently skipped.
 
 **What you see:**
-- A job verified against a supplied ASC MHL shows an "ASC MHL verified" marker on the job, a column in the jobs table (green when clean, amber when there were integrity problems), and a "Verified N of M - <algorithm>" row in the job's Advanced details.
+- A job verified against a supplied ASC MHL shows an "ASC MHL verified" marker on the job, a column in the jobs table (green when every listed file verified, amber otherwise), and a "Verified N of M - <algorithm>" row in the job's Advanced details.
 - The job's Logs tab records the manifest being verified and names any per-file problems.
 - A hash mismatch or a listed file missing on disk completes the job as "Complete w/ Warnings" (amber), with the failing files named, rather than a silent green success.
 

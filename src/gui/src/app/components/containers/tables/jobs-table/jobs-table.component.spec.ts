@@ -370,6 +370,29 @@ describe('JobsTableComponent', () => {
             expect(component.ascMhlClean(job)).toBe(true);
         });
 
+        it('is not clean when fewer files verified than listed (unsupported algorithm)', () => {
+            // sha1-only manifest: verified 0 of 5, no integrity problems, but nothing
+            // was actually verified - must not read green.
+            const job = makeJob({
+                status: JobStatus.Completed,
+                ascMhlListed: 5,
+                ascMhlVerified: 0,
+                ascMhlProblems: 0,
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('is not clean on a partial (cancelled) verify even with no problems', () => {
+            const job = makeJob({
+                status: JobStatus.Cancelled,
+                ascMhlListed: 100,
+                ascMhlVerified: 3,
+                ascMhlProblems: 0,
+            });
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
         it('omits the algorithm from the tooltip when unknown', () => {
             const job = makeJob({ascMhlListed: 2, ascMhlVerified: 2});
             expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 2 of 2');

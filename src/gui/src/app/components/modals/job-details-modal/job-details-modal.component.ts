@@ -449,13 +449,17 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
-     * True when the ASC MHL verified cleanly: a manifest was honored with zero
-     * integrity problems. Keyed off the verification result (problem count), not
-     * the job status, so an all-mismatch run reads amber even mid-transfer and a
+     * True when the ASC MHL verified cleanly: a manifest was honored, every listed
+     * file matched (verified == listed), and there were zero integrity problems.
+     * Keyed off the verification result, not the job status, so an all-mismatch run
+     * reads amber even mid-transfer, a partially-verified run (cancelled, or an
+     * unsupported-algorithm manifest where verified < listed) reads amber, and a
      * failed or cancelled job does not falsely read green.
      */
     get ascMhlClean(): boolean {
-        return this.ascMhlUsed && (this.jobDetails.ascMhlProblems ?? 0) === 0;
+        return this.ascMhlUsed
+            && (this.jobDetails.ascMhlProblems ?? 0) === 0
+            && (this.jobDetails.ascMhlVerified ?? 0) === (this.jobDetails.ascMhlListed ?? 0);
     }
 
     /** Advanced-details summary for the ASC MHL verification, e.g. "Verified 3 of 3 - xxhash64". */

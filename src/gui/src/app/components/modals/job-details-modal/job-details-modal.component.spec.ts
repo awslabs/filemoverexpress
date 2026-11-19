@@ -221,6 +221,27 @@ describe('JobDetailsModalComponent', () => {
             expect(component.ascMhlClean).toBe(true);
         });
 
+        it('is not clean when fewer files verified than listed (unsupported algorithm)', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Completed,
+                ascMhlListed: 5,
+                ascMhlVerified: 0,
+                ascMhlProblems: 0,
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('is not clean on a partial (cancelled) verify even with no problems', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Cancelled,
+                ascMhlListed: 100,
+                ascMhlVerified: 3,
+                ascMhlProblems: 0,
+            }));
+            expect(component.ascMhlClean).toBe(false);
+        });
+
         it('omits the algorithm from the ASC MHL summary when unknown', () => {
             const {component} = build(makeData({ascMhlListed: 2, ascMhlVerified: 2}));
             expect(component.ascMhlSummaryLabel).toBe('Verified 2 of 2');
