@@ -302,6 +302,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         color: variables.$green-500;
     }
 
+    &.failed {
+        color: variables.$red-500;
+    }
+
     mat-icon {
         font-size: 18px;
         width: 18px;

@@ -397,6 +397,24 @@ describe('JobsTableComponent', () => {
             const job = makeJob({ascMhlListed: 2, ascMhlVerified: 2});
             expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 2 of 2');
         });
+
+        it('flags a mismatch job as failed (the red X state)', () => {
+            const job = makeJob({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 12,
+                ascMhlVerified: 10,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlFailed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+            expect(component.ascMhlTooltip(job)).toContain('failed');
+        });
+
+        it('is not failed when there are no integrity problems', () => {
+            const job = makeJob({ascMhlListed: 12, ascMhlVerified: 12, ascMhlProblems: 0});
+            expect(component.ascMhlFailed(job)).toBe(false);
+        });
     });
 
     describe('jobDetails', () => {

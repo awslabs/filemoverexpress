@@ -137,6 +137,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
     color: variables.$green-500;
 }
 
+.jd-mhl-fail {
+    color: variables.$red-500;
+}
+
 .jd-body {
     flex: 1;
     min-height: 0;

@@ -56,6 +56,10 @@ message Task {
     string err = 12;
     int64 bytes_transferred = 13;
     string checksum_algorithm = 14;
+    // Per-file ASC MHL verification outcome: "verified", "mismatch", "unreadable",
+    // or "flagged" (writer marked the hash bad); empty when the file was not listed
+    // in a supplied manifest. Lets a report flag exactly which files failed verify.
+    string asc_mhl_status = 15;
 }
 
 message TaskLocalFile {
