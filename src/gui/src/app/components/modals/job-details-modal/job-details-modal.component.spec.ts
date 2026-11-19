@@ -231,10 +231,26 @@ describe('JobDetailsModalComponent', () => {
             expect(fmeClient.resumeJob).toHaveBeenCalledWith('job-1');
         });
 
-        it('cancels a job', () => {
+        it('cancels a job when confirmed', () => {
             const {component} = build(makeData({status: JobStatus.InProgress}));
             component.cancel();
             expect(fmeClient.cancelJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not cancel when the confirmation is dismissed', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(undefined)});
+            component.cancel();
+            expect(fmeClient.cancelJob).not.toHaveBeenCalled();
+        });
+
+        it('escapes a malicious job name in the confirmation message', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress, jobName: "<script>alert('x')</script>"}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.cancel();
+            const message = dialogOpen.mock.calls[dialogOpen.mock.calls.length - 1][1].data.message as string;
+            expect(message).not.toContain('<script>');
+            expect(message).toContain('&lt;script&gt;');
         });
 
         it('retries a job after the user confirms', () => {

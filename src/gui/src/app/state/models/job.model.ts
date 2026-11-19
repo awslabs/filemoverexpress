@@ -75,3 +75,13 @@ export const RESUBMITTABLE_STATES: JobStatus[] = [
     JobStatus.Cancelled,
     JobStatus.Error,
 ];
+
+// States a job can be cleared from the jobs table. Must mirror the daemon's
+// clearable set (job_manager.clearableStates): only finished jobs can be cleared,
+// never one that is still created/discovering/checksumming/in progress.
+export const CLEARABLE_STATES: JobStatus[] = [
+    JobStatus.Completed,
+    JobStatus.CompletedWithWarnings,
+    JobStatus.Error,
+    JobStatus.Cancelled,
+];

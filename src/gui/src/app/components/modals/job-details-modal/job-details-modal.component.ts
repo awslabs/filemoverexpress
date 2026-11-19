@@ -23,14 +23,14 @@ import {
 } from '@angular/material/table';
 import { MatTooltip } from '@angular/material/tooltip';
 import { Task } from '@app/classes/grpc/task';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { cancelTransferDialog, resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { TaskCounts } from '@app/components/modals/job-details-modal/job-details-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
 import { JobStatusClassPipe, JobStatusPipe, TaskTableStatusClassPipe } from '@app/pipes/jobs-table-status.pipe';
 import { TaskStatusPipe } from '@app/pipes/task-status.pipe';
-import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
-import { resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { getOSFileBrowserName } from '@app/components/layout/file-browser/file-browser.utils';
@@ -745,7 +745,14 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     cancel(): void {
-        this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
+        this.dialog.open(
+            ConfirmationModalComponent,
+            cancelTransferDialog(this.jobDetails.jobName),
+        ).afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
+            }
+        });
     }
 
     retry(): void {

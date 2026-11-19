@@ -447,6 +447,16 @@ describe('FmeClientService', () => {
             await expect(firstValueFrom(service.clearCompletedJobs())).rejects.toBe('cannot clear');
         });
 
+        it('clearCompletedJob returns the cleared id on success', async () => {
+            unarySuccess('clearCompletedJob', {success: true, clearedJobIds: ['job-1']});
+            expect(await firstValueFrom(service.clearCompletedJob('job-1'))).toEqual(['job-1']);
+        });
+
+        it('clearCompletedJob errors when result.success is false', async () => {
+            unarySuccess('clearCompletedJob', {success: false, error: 'cannot clear active job'});
+            await expect(firstValueFrom(service.clearCompletedJob('job-1'))).rejects.toBe('cannot clear active job');
+        });
+
         it('listJobNames maps job ids to names', async () => {
             unarySuccess('listJobs', {jobs: [{jobId: 'a', name: 'Alpha'}]});
             const names = await firstValueFrom(service.listJobNames());

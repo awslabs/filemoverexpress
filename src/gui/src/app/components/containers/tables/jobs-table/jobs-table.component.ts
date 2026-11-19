@@ -28,7 +28,7 @@ import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 import { ExportJobModalComponent } from '@app/components/modals/export-job-modal/export-job-modal.component';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
-import { resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
+import { cancelTransferDialog, resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { JobDetailsModalComponent } from '@app/components/modals/job-details-modal/job-details-modal.component';
 import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal/job-rename-modal.component';
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
@@ -55,7 +55,7 @@ import * as JobActions from '@state/job/actions/job.actions';
 import { clearCompleted as clearCompletedJobsAction } from '@state/job/actions/job.actions';
 import { selectAll as jobSelectAll } from '@state/job/job.selectors';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TERMINAL_STATES } from '@state/models/job.model';
+import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TERMINAL_STATES, CLEARABLE_STATES } from '@state/models/job.model';
 import { debounceTime, Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
@@ -482,6 +482,23 @@ export class JobsTableComponent implements AfterViewInit {
             this.notifications.error('Unable to cancel job that is not in progress or paused');
             return;
         }
+        this.dialog.open(
+            ConfirmationModalComponent,
+            cancelTransferDialog(job.name),
+        ).afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.performCancel(job);
+            }
+        });
+    }
+
+    /**
+     * Issue the cancel request after the user confirms.
+     *
+     * @param job {Job} Job to cancel
+     * @private
+     */
+    private performCancel(job: Job) {
         this.fmeClientService.cancelJob(job.id).subscribe((data) => {
             if (!data.success) {
                 this.notifications.error('Unable to cancel job');
@@ -538,6 +555,27 @@ export class JobsTableComponent implements AfterViewInit {
                 this.store.dispatch(clearCompletedJobsAction());
             },
         );
+    }
+
+    /**
+     * Clear a single finished job from the table. Only completed, errored, or cancelled
+     * jobs can be cleared; the daemon rejects anything still in progress.
+     *
+     * @param job {Job} Job to clear
+     */
+    clearJob(job: Job) {
+        if (!CLEARABLE_STATES.includes(job.status)) {
+            this.notifications.error('Only completed, failed, or cancelled jobs can be cleared');
+            return;
+        }
+        this.fmeClientService.clearCompletedJob(job.id).subscribe({
+            next: () => {
+                this.store.dispatch(JobActions.clearJob({jobId: job.id}));
+            },
+            error: () => {
+                this.notifications.error('Unable to clear job');
+            },
+        });
     }
 
     /**

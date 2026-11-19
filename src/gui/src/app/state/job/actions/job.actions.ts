@@ -69,6 +69,13 @@ export const clearCompleted = createAction(
     '[Job Service] Clear Job',
 );
 
+export const clearJob = createAction(
+    '[Job Service] Clear Single Job',
+    props<{
+        jobId: string,
+    }>(),
+);
+
 export const clearAll = createAction(
     '[Job Service] Clear All Jobs',
 );
