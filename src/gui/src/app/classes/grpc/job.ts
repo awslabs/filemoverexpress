@@ -25,6 +25,7 @@ export class Job {
         public ascMhlVerified: number,
         public ascMhlListed: number,
         public ascMhlAlgorithm: string,
+        public ascMhlProblems: number,
     ) {
     }
 
@@ -52,6 +53,7 @@ export class Job {
             job.ascMhlVerified,
             job.ascMhlListed,
             job.ascMhlAlgorithm,
+            job.ascMhlProblems,
         );
     }
 }

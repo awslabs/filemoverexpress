@@ -58,6 +58,9 @@ export interface Job {
     ascMhlVerified?: number;
     ascMhlListed?: number;
     ascMhlAlgorithm?: string;
+    // Count of ASC MHL integrity problems; 0 means a clean verify. This, not the
+    // job status, is what the "verified" indicator keys off.
+    ascMhlProblems?: number;
 }
 
 export const PROGRESS_STATES: JobStatus[] = [

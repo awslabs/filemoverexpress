@@ -198,15 +198,27 @@ describe('JobDetailsModalComponent', () => {
             expect(component.ascMhlClean).toBe(false);
         });
 
-        it('treats ASC MHL as used but not clean on a warnings job', () => {
+        it('is used but not clean when there are integrity problems', () => {
             const {component} = build(makeData({
-                status: JobStatus.CompletedWithWarnings,
+                status: JobStatus.InProgress,
                 ascMhlListed: 3,
-                ascMhlVerified: 2,
+                ascMhlVerified: 0,
+                ascMhlProblems: 3,
                 ascMhlAlgorithm: 'xxhash64',
             }));
             expect(component.ascMhlUsed).toBe(true);
             expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('stays clean for a failed job whose verification had no problems', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Error,
+                ascMhlListed: 2,
+                ascMhlVerified: 2,
+                ascMhlProblems: 0,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlClean).toBe(true);
         });
 
         it('omits the algorithm from the ASC MHL summary when unknown', () => {

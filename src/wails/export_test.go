@@ -20,18 +20,19 @@ func sampleData() ExportJobList {
 			Bucket:              "my-bucket",
 			Transfers: []TaskData{
 				{
-					TaskID:           "task-1",
-					Destination:      "/prefix/dest/",
-					LocalFile:        FileInfo{Path: "/local/file.mov", Size: 1024, LastModified: "2024-01-15T10:00:00Z"},
-					S3Object:         S3ObjectInfo{},
-					Direction:        "upload",
-					Status:           "completed",
-					StatusMessage:    "done",
-					JobID:            "job-1",
-					Checksum:         "abc123",
-					Priority:         1,
-					Error:            "",
-					BytesTransferred: 1024,
+					TaskID:            "task-1",
+					Destination:       "/prefix/dest/",
+					LocalFile:         FileInfo{Path: "/local/file.mov", Size: 1024, LastModified: "2024-01-15T10:00:00Z"},
+					S3Object:          S3ObjectInfo{},
+					Direction:         "upload",
+					Status:            "completed",
+					StatusMessage:     "done",
+					JobID:             "job-1",
+					Checksum:          "abc123",
+					ChecksumAlgorithm: "xxhash64",
+					Priority:          1,
+					Error:             "",
+					BytesTransferred:  1024,
 				},
 			},
 		},
@@ -173,6 +174,23 @@ func TestGenerateCsvReport(t *testing.T) {
 	lines := strings.Split(string(raw), "\r\n")
 	assert.GreaterOrEqual(t, len(lines), 3) // header + 2 data rows
 	assert.Equal(t, strings.Join(csvHeaders, ","), lines[0])
+
+	// hashType must be the LAST column (appended, not inserted mid-schema) so
+	// positional readers of the stable columns do not shift. Every data row must
+	// have exactly the header's column count, and the algorithm lands last.
+	assert.Equal(t, "hashType", csvHeaders[len(csvHeaders)-1])
+	foundAlgo := false
+	for _, ln := range lines[1:] {
+		if ln == "" {
+			continue
+		}
+		cols := strings.Split(ln, ",")
+		assert.Len(t, cols, len(csvHeaders), "each row has one field per header column")
+		if cols[len(cols)-1] == csvQuote("xxhash64") {
+			foundAlgo = true
+		}
+	}
+	assert.True(t, foundAlgo, "the xxhash64 algorithm lands in the last (hashType) column")
 }
 
 func TestGenerateCsvReportEmpty(t *testing.T) {

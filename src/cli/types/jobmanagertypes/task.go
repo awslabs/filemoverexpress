@@ -248,8 +248,8 @@ func (t *Task) SetPriority(priority int) {
 }
 
 func (t *Task) Checksum() string {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.lock.RLock()
+	defer t.lock.RUnlock()
 	return t.checksum
 }
 
@@ -265,8 +265,8 @@ func (t *Task) SetChecksum(checksum string) {
 // object with the correct algorithm key even when the in-app checksum is off.
 // Empty means "use the transfer profile's algorithm".
 func (t *Task) ChecksumAlgorithm() string {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.lock.RLock()
+	defer t.lock.RUnlock()
 	return t.checksumAlgorithm
 }
 

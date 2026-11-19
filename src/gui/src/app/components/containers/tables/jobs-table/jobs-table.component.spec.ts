@@ -324,11 +324,12 @@ describe('JobsTableComponent', () => {
     });
 
     describe('ASC MHL column', () => {
-        it('flags a job verified against a manifest as used and clean', () => {
+        it('flags a job verified against a manifest with no problems as used and clean', () => {
             const job = makeJob({
                 status: JobStatus.Completed,
                 ascMhlListed: 3,
                 ascMhlVerified: 3,
+                ascMhlProblems: 0,
                 ascMhlAlgorithm: 'xxhash64',
             });
             expect(component.ascMhlUsed(job)).toBe(true);
@@ -342,15 +343,31 @@ describe('JobsTableComponent', () => {
             expect(component.ascMhlClean(job)).toBe(false);
         });
 
-        it('treats a warnings job as used but not clean', () => {
+        it('is used but not clean when there are integrity problems, regardless of status', () => {
+            // All-mismatch run still mid-transfer: problems > 0 reads amber even
+            // though the status has not yet flipped to CompletedWithWarnings.
             const job = makeJob({
-                status: JobStatus.CompletedWithWarnings,
+                status: JobStatus.InProgress,
                 ascMhlListed: 3,
-                ascMhlVerified: 2,
+                ascMhlVerified: 0,
+                ascMhlProblems: 3,
                 ascMhlAlgorithm: 'xxhash64',
             });
             expect(component.ascMhlUsed(job)).toBe(true);
             expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('stays clean for a failed job whose verification had no problems', () => {
+            // A clean verify followed by a transfer failure is still a clean verify;
+            // the indicator reflects verification, not transfer outcome.
+            const job = makeJob({
+                status: JobStatus.Error,
+                ascMhlListed: 2,
+                ascMhlVerified: 2,
+                ascMhlProblems: 0,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlClean(job)).toBe(true);
         });
 
         it('omits the algorithm from the tooltip when unknown', () => {

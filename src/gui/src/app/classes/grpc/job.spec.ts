@@ -11,12 +11,14 @@ describe('Job (grpc)', () => {
         pb.ascMhlVerified = 3;
         pb.ascMhlListed = 4;
         pb.ascMhlAlgorithm = 'xxhash64';
+        pb.ascMhlProblems = 1;
 
         const job = Job.fromProtobuf(pb);
 
         expect(job.ascMhlVerified).toBe(3);
         expect(job.ascMhlListed).toBe(4);
         expect(job.ascMhlAlgorithm).toBe('xxhash64');
+        expect(job.ascMhlProblems).toBe(1);
     });
 
     it('defaults ASC MHL fields to zero / empty when no manifest shipped', () => {
@@ -28,5 +30,6 @@ describe('Job (grpc)', () => {
         expect(job.ascMhlVerified).toBe(0);
         expect(job.ascMhlListed).toBe(0);
         expect(job.ascMhlAlgorithm).toBe('');
+        expect(job.ascMhlProblems).toBe(0);
     });
 });

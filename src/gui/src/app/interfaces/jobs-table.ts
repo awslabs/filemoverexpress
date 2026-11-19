@@ -36,6 +36,7 @@ export interface JobDetailsData {
     ascMhlVerified?: number;
     ascMhlListed?: number;
     ascMhlAlgorithm?: string;
+    ascMhlProblems?: number;
     // Which tab the details modal should open on. When omitted, the modal picks:
     // Logs for a failed or warnings job, otherwise Files. Set to 'logs' to jump
     // straight to the logs (e.g. the "View Logs" row action).

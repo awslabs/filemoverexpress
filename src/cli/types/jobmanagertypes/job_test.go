@@ -34,11 +34,13 @@ func TestJob_ASCMHLResultDefaultsEmpty(t *testing.T) {
 
 	assert.Equal(t, 0, job.ASCMHLVerified())
 	assert.Equal(t, 0, job.ASCMHLListed())
+	assert.Equal(t, 0, job.ASCMHLProblems())
 	assert.Equal(t, "", job.ASCMHLAlgorithm())
 
 	pb := job.ToProtobuf()
 	assert.Equal(t, int32(0), pb.GetAscMhlVerified())
 	assert.Equal(t, int32(0), pb.GetAscMhlListed())
+	assert.Equal(t, int32(0), pb.GetAscMhlProblems())
 	assert.Equal(t, "", pb.GetAscMhlAlgorithm())
 }
 
@@ -47,14 +49,16 @@ func TestJob_ASCMHLResultDefaultsEmpty(t *testing.T) {
 func TestJob_SetASCMHLResult(t *testing.T) {
 	job := newASCMHLTestJob(t)
 
-	job.SetASCMHLResult(3, 4, "xxhash64")
+	job.SetASCMHLResult(3, 4, 1, "xxhash64")
 
 	assert.Equal(t, 3, job.ASCMHLVerified())
 	assert.Equal(t, 4, job.ASCMHLListed())
+	assert.Equal(t, 1, job.ASCMHLProblems())
 	assert.Equal(t, "xxhash64", job.ASCMHLAlgorithm())
 
 	pb := job.ToProtobuf()
 	assert.Equal(t, int32(3), pb.GetAscMhlVerified())
 	assert.Equal(t, int32(4), pb.GetAscMhlListed())
+	assert.Equal(t, int32(1), pb.GetAscMhlProblems())
 	assert.Equal(t, "xxhash64", pb.GetAscMhlAlgorithm())
 }

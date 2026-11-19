@@ -36,6 +36,10 @@ message Job {
     int32 asc_mhl_verified = 20;
     int32 asc_mhl_listed = 21;
     string asc_mhl_algorithm = 22;
+    // Count of ASC MHL integrity problems (hash mismatch, missing, unreadable,
+    // path-escape, writer-flagged). The authoritative "clean" signal: a verified
+    // manifest with asc_mhl_problems == 0 is clean, independent of job status.
+    int32 asc_mhl_problems = 23;
 }
 
 message Task {

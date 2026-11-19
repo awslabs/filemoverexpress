@@ -247,6 +247,7 @@ export class JobsTableComponent implements AfterViewInit {
                             ascMhlVerified: j.ascMhlVerified,
                             ascMhlListed: j.ascMhlListed,
                             ascMhlAlgorithm: j.ascMhlAlgorithm,
+                            ascMhlProblems: j.ascMhlProblems,
                         });
                     }
 
@@ -356,11 +357,13 @@ export class JobsTableComponent implements AfterViewInit {
     }
 
     /**
-     * Whether the ASC MHL verified cleanly (a manifest was honored and the job did
-     * not complete with verification warnings). Green vs amber in the column.
+     * Whether the ASC MHL verified cleanly: a manifest was honored with zero
+     * integrity problems. Keyed off the verification result (problem count), not
+     * the job status, so an all-mismatch run shows amber even mid-transfer and a
+     * failed or cancelled job does not falsely show green.
      */
     ascMhlClean(job: Job): boolean {
-        return this.ascMhlUsed(job) && job.status !== JobStatus.CompletedWithWarnings;
+        return this.ascMhlUsed(job) && (job.ascMhlProblems ?? 0) === 0;
     }
 
     /** Tooltip for the ASC MHL column cell, e.g. "ASC MHL verified 3 of 3 (xxhash64)". */

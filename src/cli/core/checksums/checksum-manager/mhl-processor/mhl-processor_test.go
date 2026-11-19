@@ -511,3 +511,75 @@ func TestVerifyASCMHLReportsProblems(t *testing.T) {
 	assert.Equal(t, 1, result.Listed)
 	assert.Equal(t, 1, result.Problems, "a hash mismatch is an integrity problem")
 }
+
+// Even when every file mismatches, the algorithm that was used is still recorded
+// so the job summary can report it (regression guard for the empty-algorithm case).
+func TestVerifyManifestCapturesAlgorithmOnMismatch(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "a.mov"), "mismatch-bytes")
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "a.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: "deadbeefdeadbeef"}},
+	}}
+
+	counts := verifyManifest(
+		verifyCtx{ctx: context.Background(), jobID: "j", jobName: "n", profileAlgorithm: constants.AlgorithmNone},
+		manifestPath, manifest, nil,
+	)
+	assert.Equal(t, 1, counts.mismatched)
+	assert.Equal(t, 0, counts.verified)
+	assert.Equal(t, string(constants.AlgorithmXXHash64), counts.algorithm, "algorithm is recorded even on an all-mismatch run")
+}
+
+// Two manifests honored with different algorithms aggregate to a "mixed" label,
+// since no single algorithm describes the whole job.
+func TestVerifyASCMHLMixedAlgorithms(t *testing.T) {
+	root := t.TempDir()
+
+	// sub1: xxh64
+	writeFile(t, filepath.Join(root, "sub1", "clip.mov"), "sub1-bytes")
+	xx := fmeChecksum(t, filepath.Join(root, "sub1", "clip.mov"), constants.AlgorithmXXHash64)
+	m1 := filepath.Join(root, "sub1", "ascmhl", "0001_sub1.mhl")
+	writeFile(t, m1, `<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0">
+  <hashes><hash><path size="10">clip.mov</path><xxh64 action="original">`+xx+`</xxh64></hash></hashes>
+</hashlist>`)
+
+	// sub2: md5
+	writeFile(t, filepath.Join(root, "sub2", "clip.mov"), "sub2-bytes")
+	md5 := fmeChecksum(t, filepath.Join(root, "sub2", "clip.mov"), constants.AlgorithmMD5)
+	m2 := filepath.Join(root, "sub2", "ascmhl", "0001_sub2.mhl")
+	writeFile(t, m2, `<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0">
+  <hashes><hash><path size="10">clip.mov</path><md5 action="original">`+md5+`</md5></hash></hashes>
+</hashlist>`)
+
+	mkTask := func(p string) *jobmanagertypes.Task {
+		abs, err := filepath.Abs(p)
+		require.NoError(t, err)
+		task, terr := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: abs},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-mixed",
+		})
+		require.NoError(t, terr)
+		return task
+	}
+	tasks := []*jobmanagertypes.Task{
+		mkTask(m1), mkTask(filepath.Join(root, "sub1", "clip.mov")),
+		mkTask(m2), mkTask(filepath.Join(root, "sub2", "clip.mov")),
+	}
+
+	result := VerifyASCMHL(VerifyRequest{
+		Ctx:              context.Background(),
+		JobID:            "job-mixed",
+		JobName:          "mixed",
+		Tasks:            tasks,
+		ProfileAlgorithm: constants.AlgorithmNone,
+	})
+	assert.Equal(t, 2, result.Verified)
+	assert.Equal(t, 2, result.Listed)
+	assert.Equal(t, 0, result.Problems)
+	assert.Equal(t, "mixed", result.Algorithm)
+}

@@ -39,6 +39,7 @@ type (
 		ascMHLVerified          int
 		ascMHLListed            int
 		ascMHLAlgorithm         string
+		ascMHLProblems          int
 		dbObjects               []*databasetypes.DatabaseObject
 		destination             string
 		TimestampCreated        time.Time
@@ -233,13 +234,15 @@ func (j *Job) SetHasVerificationWarnings(hasVerificationWarnings bool) {
 // SetASCMHLResult records the outcome of ASC MHL verification so the GUI can
 // surface that a supplied manifest was honored, even on a clean run. verified is
 // how many listed files matched, listed is how many the manifest(s) contained,
-// and algorithm is the hash used (e.g. "xxhash64"). All zero / empty when no
-// ASC MHL manifest shipped with the media.
-func (j *Job) SetASCMHLResult(verified, listed int, algorithm string) {
+// problems is how many integrity problems were found (the authoritative clean
+// signal), and algorithm is the hash used (e.g. "xxhash64"). All zero / empty
+// when no ASC MHL manifest shipped with the media.
+func (j *Job) SetASCMHLResult(verified, listed, problems int, algorithm string) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 	j.ascMHLVerified = verified
 	j.ascMHLListed = listed
+	j.ascMHLProblems = problems
 	j.ascMHLAlgorithm = algorithm
 }
 
@@ -256,6 +259,14 @@ func (j *Job) ASCMHLListed() int {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.ascMHLListed
+}
+
+// ASCMHLProblems returns how many ASC MHL integrity problems were found. Zero on
+// a manifest that verified cleanly; this is what the GUI keys "verified" off of.
+func (j *Job) ASCMHLProblems() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLProblems
 }
 
 // ASCMHLAlgorithm returns the hash algorithm used to verify the supplied ASC MHL.
@@ -417,6 +428,7 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 
 	ascVerified, _ := safeconv.IntToInt32(j.ascMHLVerified)
 	ascListed, _ := safeconv.IntToInt32(j.ascMHLListed)
+	ascProblems, _ := safeconv.IntToInt32(j.ascMHLProblems)
 
 	return &fmev1.Job{
 		JobId:               j.jobId,
@@ -441,5 +453,6 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 		AscMhlVerified:      ascVerified,
 		AscMhlListed:        ascListed,
 		AscMhlAlgorithm:     j.ascMHLAlgorithm,
+		AscMhlProblems:      ascProblems,
 	}
 }

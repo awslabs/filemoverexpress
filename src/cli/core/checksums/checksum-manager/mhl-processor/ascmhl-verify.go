@@ -147,8 +147,12 @@ func VerifyASCMHL(req VerifyRequest) VerifyResult {
 		result.Problems += counts.integrityProblems()
 		result.Verified += counts.verified
 		result.Listed += len(manifest.Entries)
-		if result.Algorithm == "" && counts.algorithm != "" {
+		switch {
+		case result.Algorithm == "":
 			result.Algorithm = counts.algorithm
+		case counts.algorithm != "" && counts.algorithm != result.Algorithm:
+			// Manifests honored with different algorithms - no single label fits.
+			result.Algorithm = "mixed"
 		}
 	}
 	return result
@@ -254,6 +258,12 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 		return
 	}
 
+	// Record the algorithm used to honor this manifest even if the file then
+	// mismatches, so the summary reports an algorithm on an all-mismatch run too.
+	if counts.algorithm == "" {
+		counts.algorithm = string(algo)
+	}
+
 	computed, err := computeOrReuse(vctx, algo, absPath)
 	if err != nil {
 		// An unreadable listed file cannot be verified - that is an integrity
@@ -264,12 +274,11 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 	}
 
 	if checksumsEqual(algo, computed, expected) {
-		events.Events.InfoForJob(vctx.jobID, strASCVerified, entry.RelativePath, algo)
-		// Record which algorithm honored the manifest, for the job summary the GUI
-		// shows (set once, on the first verified file).
-		if counts.algorithm == "" {
-			counts.algorithm = string(algo)
-		}
+		// Per-file success goes to the daemon debug log only, not the job's Logs
+		// tab: a large offload (10k+ files) would otherwise flood it with one line
+		// per file. The opener and summary stay job-scoped INFO; failures stay
+		// job-scoped error lines.
+		logger.Debug(strASCVerified, entry.RelativePath, algo)
 		// Carry the verified hash onto the object as checksum metadata, even when
 		// the in-app checksum is off. Only when the task has no checksum of its own
 		// (the in-app pass did not produce one); never overwrite a profile-computed

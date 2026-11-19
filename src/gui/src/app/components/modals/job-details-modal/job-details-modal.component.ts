@@ -216,6 +216,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                     ascMhlVerified: job.ascMhlVerified ?? this.jobDetails.ascMhlVerified,
                     ascMhlListed: job.ascMhlListed ?? this.jobDetails.ascMhlListed,
                     ascMhlAlgorithm: job.ascMhlAlgorithm ?? this.jobDetails.ascMhlAlgorithm,
+                    ascMhlProblems: job.ascMhlProblems ?? this.jobDetails.ascMhlProblems,
                 };
             }
         }));
@@ -448,12 +449,13 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
-     * True when the ASC MHL verified cleanly: a manifest was honored and the job
-     * did not complete with verification warnings. A warnings job shows the amber
-     * status and red log lines instead of the green chip.
+     * True when the ASC MHL verified cleanly: a manifest was honored with zero
+     * integrity problems. Keyed off the verification result (problem count), not
+     * the job status, so an all-mismatch run reads amber even mid-transfer and a
+     * failed or cancelled job does not falsely read green.
      */
     get ascMhlClean(): boolean {
-        return this.ascMhlUsed && !this.isWarnings;
+        return this.ascMhlUsed && (this.jobDetails.ascMhlProblems ?? 0) === 0;
     }
 
     /** Advanced-details summary for the ASC MHL verification, e.g. "Verified 3 of 3 - xxhash64". */

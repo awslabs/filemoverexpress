@@ -76,8 +76,8 @@ var (
 	csvHeaders            = []string{
 		"jobName", "direction", "remoteConfigurationName",
 		"jobId", "taskId", "destination", "source", "size",
-		"lastModified", "status", "statusMessage", "checksum", "hashType",
-		"priority", "error", "bytesTransferred",
+		"lastModified", "status", "statusMessage", "checksum",
+		"priority", "error", "bytesTransferred", "hashType",
 	}
 )
 
@@ -142,10 +142,10 @@ func (a *FMEApp) GenerateCsvReport(data ExportJobList) string {
 				csvQuote(r.Status),
 				csvQuote(r.StatusMessage),
 				csvQuote(r.Checksum),
-				csvQuote(r.ChecksumAlgorithm),
 				fmt.Sprintf("%d", r.Priority),
 				csvQuote(r.Error),
 				fmt.Sprintf("%d", r.BytesTransferred),
+				csvQuote(r.ChecksumAlgorithm),
 			}, ","))
 		}
 	}
@@ -247,7 +247,7 @@ func writeExcelHeaders(f *excelize.File, sheet string) {
 	headers := []string{
 		"taskId", "destination", "source", "size", "lastModified",
 		"direction", "status", "statusMessage", "jobId",
-		"checksum", "hashType", "priority", "error", "bytesTransferred",
+		"checksum", "priority", "error", "bytesTransferred", "hashType",
 	}
 	for col, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
@@ -268,10 +268,10 @@ func writeExcelRows(f *excelize.File, sheet string, rows []flatRow) {
 		f.SetCellValue(sheet, cellName(8, row), r.StatusMessage)
 		f.SetCellValue(sheet, cellName(9, row), r.JobID)
 		f.SetCellValue(sheet, cellName(10, row), r.Checksum)
-		f.SetCellValue(sheet, cellName(11, row), r.ChecksumAlgorithm)
-		f.SetCellValue(sheet, cellName(12, row), r.Priority)
-		f.SetCellValue(sheet, cellName(13, row), r.Error)
-		f.SetCellValue(sheet, cellName(14, row), r.BytesTransferred)
+		f.SetCellValue(sheet, cellName(11, row), r.Priority)
+		f.SetCellValue(sheet, cellName(12, row), r.Error)
+		f.SetCellValue(sheet, cellName(13, row), r.BytesTransferred)
+		f.SetCellValue(sheet, cellName(14, row), r.ChecksumAlgorithm)
 	}
 }
 
