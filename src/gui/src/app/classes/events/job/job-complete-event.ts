@@ -13,6 +13,7 @@ export class JobCompleteEvent implements BaseEvent {
         public hasTaskErrors: boolean,
         public hasSuccessfulTasks: boolean,
         public hasAllTasksSkipped: boolean,
+        public status = '',
     ) {
     }
 
@@ -28,6 +29,7 @@ export class JobCompleteEvent implements BaseEvent {
             evt.completed ? timestampDate(evt.completed) : new Date(),
             evt.hasTaskErrors,
             evt.hasSuccessfulTasks,
-            evt.hasAllSkippedTasks);
+            evt.hasAllSkippedTasks,
+            evt.status);
     }
 }

@@ -44,6 +44,22 @@ func TestJobCompleteEvent_ToProtobuf(t *testing.T) {
 	assert.IsType(t, &fmev1.ListEventsResponse_JobCompleteEvent{}, pbEvt)
 }
 
+// The terminal status must survive serialization so the GUI can keep a
+// verify-failed job amber instead of flattening it to a clean COMPLETED.
+func TestJobCompleteEvent_ToProtobuf_CarriesStatus(t *testing.T) {
+	evt := JobCompleteEvent{
+		Id:             "id",
+		CompletionTime: time.Now(),
+		Status:         "COMPLETED_WITH_WARNINGS",
+	}
+
+	pbEvt, _ := evt.ToProtobuf()
+
+	wrapper, ok := pbEvt.(*fmev1.ListEventsResponse_JobCompleteEvent)
+	assert.True(t, ok)
+	assert.Equal(t, "COMPLETED_WITH_WARNINGS", wrapper.JobCompleteEvent.GetStatus())
+}
+
 func TestJobCompleteEvent_Priority(t *testing.T) {
 	evt := JobCompleteEvent{
 		Id:             "",
