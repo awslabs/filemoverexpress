@@ -9,6 +9,7 @@ import * as JobActions from '@state/job/actions/job.actions';
 import * as TransferStatsActions from '@state/transfer-stats/actions/transfer-stats.actions';
 import { BaseEvent } from '@app/interfaces/events';
 import { Job, JobStatus } from '@state/models/job.model';
+import { stringToJobStatus } from '@app/utils/job-utils';
 import { JobUpdateEvent } from '@events/job/job-update-event';
 import { TaskCompleteEvent } from '@events/job/task-complete-event';
 import { FileBrowserService } from '@services/file-browser/file-browser.service';
@@ -126,7 +127,11 @@ export class TransferService {
             job: {
                 id: evt.id,
                 changes: {
-                    status: JobStatus.Completed,
+                    // Take the terminal status from the daemon. It may be
+                    // COMPLETED_WITH_WARNINGS (an ASC MHL verification failure), which
+                    // must not be flattened to a clean COMPLETED here. Older events
+                    // without a status fall back to COMPLETED.
+                    status: evt.status ? stringToJobStatus(evt.status) : JobStatus.Completed,
                     hasTaskErrors: evt.hasTaskErrors,
                     hasSuccessfulTasks: evt.hasSuccessfulTasks,
                     timestampCompleted: evt.completed,

@@ -170,6 +170,26 @@ describe('TransferService', () => {
                 lastUpdate: completed,
             });
         });
+
+        it('preserves COMPLETED_WITH_WARNINGS from the daemon instead of flattening to Completed', () => {
+            const completed = new Date('2026-02-02T02:02:02Z');
+            events$.next(new JobCompleteEvent('job-3w', 'Verify failed', completed, false, true, false,
+                JobStatus.CompletedWithWarnings));
+
+            const action = dispatchSpy.mock.calls[0][0] as {
+                type: string,
+                job: { id: string, changes: Record<string, unknown> },
+            };
+            expect(action.type).toBe('[Job Service] Complete Job');
+            expect(action.job.id).toBe('job-3w');
+            expect(action.job.changes).toMatchObject({
+                status: JobStatus.CompletedWithWarnings,
+                hasTaskErrors: false,
+                hasSuccessfulTasks: true,
+                timestampCompleted: completed,
+                lastUpdate: completed,
+            });
+        });
     });
 
     // -----------------------------------------------------------------------

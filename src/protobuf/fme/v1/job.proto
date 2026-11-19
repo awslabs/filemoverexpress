@@ -135,6 +135,11 @@ message JobCompleteEvent {
     bool has_task_errors = 4;
     bool has_successful_tasks = 5;
     bool has_all_skipped_tasks = 6;
+    // Terminal job status the daemon settled on (COMPLETED or
+    // COMPLETED_WITH_WARNINGS). The GUI takes the final status from this event,
+    // so it must carry the warnings state or a verify-failed job shows as a
+    // clean COMPLETED.
+    string status = 7;
 }
 
 message JobErrorEvent {

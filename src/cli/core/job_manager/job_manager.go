@@ -383,7 +383,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		job.SetStatus(completionStatus(job))
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
 		// even though the skip event is sent first. Need to investigate order of events for event bus
 		time.Sleep(constants.SleepDuration)
@@ -396,6 +396,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 				HasAllSkippedTasks: true,
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
+				Status:             string(job.Status()),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -486,7 +487,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		job.SetStatus(completionStatus(job))
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
 		// even though the skip event is sent first. Need to investigate order of events for event bus
 		time.Sleep(constants.SleepDuration)
@@ -499,6 +500,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasAllSkippedTasks: true,
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
+				Status:             string(job.Status()),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -592,7 +594,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		job.SetStatus(completionStatus(job))
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
 		// even though the skip event is sent first. Need to investigate order of events for event bus
 		time.Sleep(constants.SleepDuration)
@@ -605,6 +607,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasAllSkippedTasks: true,
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
+				Status:             string(job.Status()),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -731,6 +734,19 @@ func sortTasks(tasks []*jobmanagertypes.Task, sortList []sorting.FileMoverSorter
 	return sortedTasks
 }
 
+// completionStatus is the terminal status for a finished job: amber
+// COMPLETED_WITH_WARNINGS when a supplied ASC MHL manifest failed verification
+// (a hash mismatch or a listed file missing on disk), otherwise COMPLETED.
+// Centralized so every completion path (the all-skipped early exits and the
+// normal transfer finish) agrees, and so the status carried on the
+// JobCompleteEvent always matches the job's own status.
+func completionStatus(job *jobmanagertypes.Job) jobmanagertypes.JobStatus {
+	if job.HasVerificationWarnings() {
+		return jobmanagertypes.JobStatusCompletedWithWarnings
+	}
+	return jobmanagertypes.JobStatusCompleted
+}
+
 // SendEventWhenJobComplete waits for the job's waitGroup to finish, and sends a JobCompleteEvent once it is finished
 func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	job.WaitGroup.Wait()
@@ -742,11 +758,7 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	// are triggered? For now, sleep is needed to force order of events
 	time.Sleep(constants.SleepDuration)
 	if job.Status() != jobmanagertypes.JobStatusError && job.Status() != jobmanagertypes.JobStatusCancelled {
-		if job.HasVerificationWarnings() {
-			job.SetStatus(jobmanagertypes.JobStatusCompletedWithWarnings)
-		} else {
-			job.SetStatus(jobmanagertypes.JobStatusCompleted)
-		}
+		job.SetStatus(completionStatus(job))
 		events.Events.Send(
 			&eventtypes.JobCompleteEvent{
 				Id:                 job.JobId(),
@@ -755,6 +767,7 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 				HasSuccessfulTasks: job.HasSuccessfulTasks(),
 				HasTaskErrors:      job.HasTaskErrors(),
 				HasAllSkippedTasks: false,
+				Status:             string(job.Status()),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
