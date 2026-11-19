@@ -10,6 +10,10 @@ export interface ConfirmationModalData {
     confirmType: ButtonType;
     cancelClass: ThemePalette | null;
     confirmClass: ThemePalette | null;
+    // When set, an acknowledgement checkbox with this label is shown and the
+    // confirm button stays disabled until it is checked. Used by the pre-upload
+    // verification gate so "Upload anyway" is a deliberate, acknowledged choice.
+    acknowledgeText?: string;
 }
 
 export const ConfirmationModalDataDefaults: ConfirmationModalData = {

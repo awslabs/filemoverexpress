@@ -69,6 +69,7 @@ describe('JobsTableComponent', () => {
         clearCompletedJobs: ReturnType<typeof vi.fn>;
         clearCompletedJob: ReturnType<typeof vi.fn>;
         renameJob: ReturnType<typeof vi.fn>;
+        resolveVerificationGate: ReturnType<typeof vi.fn>;
     };
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
     let exportSvc: { exportJobById: ReturnType<typeof vi.fn> };
@@ -86,6 +87,7 @@ describe('JobsTableComponent', () => {
             clearCompletedJobs: vi.fn(() => of({})),
             clearCompletedJob: vi.fn(() => of(['job-1'])),
             renameJob: vi.fn(() => of({success: true})),
+            resolveVerificationGate: vi.fn(() => of({success: true})),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
         exportSvc = {exportJobById: vi.fn()};
@@ -421,6 +423,54 @@ describe('JobsTableComponent', () => {
         it('opens the job details modal', () => {
             component.jobDetails(makeJob());
             expect(dialogOpen).toHaveBeenCalled();
+        });
+    });
+
+    describe('verification gate', () => {
+        const gateJob = () => makeJob({
+            id: 'gate-1',
+            status: JobStatus.NeedsReview,
+            ascMhlListed: 3,
+            ascMhlVerified: 1,
+            ascMhlProblems: 2,
+            ascMhlAlgorithm: 'xxhash64',
+        });
+
+        it('auto-opens the gate once when a job enters NEEDS_REVIEW and resolves on close', () => {
+            dialogOpen.mockReturnValue({afterClosed: () => of(false)});
+            store.overrideSelector(jobSelectAll, [gateJob()]);
+            store.refreshState();
+
+            expect(dialogOpen).toHaveBeenCalledTimes(1);
+            expect(fmeClient.resolveVerificationGate).toHaveBeenCalledWith('gate-1', false);
+
+            // A second emission of the same NEEDS_REVIEW job does not reopen it.
+            store.refreshState();
+            expect(dialogOpen).toHaveBeenCalledTimes(1);
+        });
+
+        it('resolves proceed=true when the operator confirms upload-anyway', () => {
+            dialogOpen.mockReturnValue({afterClosed: () => of(true)});
+            store.overrideSelector(jobSelectAll, [gateJob()]);
+            store.refreshState();
+
+            expect(fmeClient.resolveVerificationGate).toHaveBeenCalledWith('gate-1', true);
+        });
+
+        it('notifies on a resolve error', () => {
+            dialogOpen.mockReturnValue({afterClosed: () => of(false)});
+            fmeClient.resolveVerificationGate.mockReturnValueOnce(throwError(() => new Error('boom')));
+            store.overrideSelector(jobSelectAll, [gateJob()]);
+            store.refreshState();
+
+            expect(notifications.error).toHaveBeenCalledWith('Unable to resolve verification review');
+        });
+
+        it('Review action reopens the gate for a NEEDS_REVIEW job', () => {
+            dialogOpen.mockReturnValue({afterClosed: () => of(false)});
+            component.openVerificationGate(gateJob());
+            expect(dialogOpen).toHaveBeenCalledTimes(1);
+            expect(fmeClient.resolveVerificationGate).toHaveBeenCalledWith('gate-1', false);
         });
     });
 });

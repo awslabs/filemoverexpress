@@ -127,5 +127,6 @@ export function createTransferProfileForm(
         ),
         fileOrder: new FormControl<string[]>([], {nonNullable: true, validators: [fileOrderListValidator]}),
         enableMetadataFilter: new FormControl<boolean>(true, {nonNullable: true}),
+        blockUploadOnVerifyFailure: new FormControl<boolean>(true, {nonNullable: true}),
     });
 }

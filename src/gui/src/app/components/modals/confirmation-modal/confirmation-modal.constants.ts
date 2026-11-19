@@ -81,3 +81,45 @@ export const resubmitJobDialog: MatDialogConfig<ConfirmationModalData> = {
         title: 'Resubmit this job?',
     },
 };
+
+/**
+ * Shared config for the pre-upload ASC MHL verification gate, raised when a job
+ * enters NEEDS_REVIEW because a supplied manifest failed verification before any
+ * upload started. "Stop" is the safe default (filled, primary, Esc maps to it)
+ * and resolves the gate to cancel; "Upload anyway" is the deliberate override
+ * (stroked, warn) gated behind an acknowledgement checkbox. The counts summarize
+ * what failed. All text is plain ASCII.
+ *
+ * @param {number} problems Number of ASC MHL integrity problems found.
+ * @param {number} verified Number of listed files that matched their hash.
+ * @param {number} listed Number of files the manifest(s) listed.
+ * @param {string} [algorithm] Hash algorithm used (e.g. "xxhash64").
+ * @returns {MatDialogConfig<ConfirmationModalData>} Dialog config for dialog.open().
+ */
+export function verificationGateDialog(
+    problems: number,
+    verified: number,
+    listed: number,
+    algorithm?: string,
+): MatDialogConfig<ConfirmationModalData> {
+    const algo = algorithm ? ` (${escapeHtml(algorithm)})` : '';
+    return {
+        width: '520px',
+        disableClose: true,
+        data: {
+            title: 'Verification failed - review before upload',
+            message: `${problems} of ${listed} file(s) failed ASC MHL verification${algo}, `
+                + `${verified} verified. Uploading now sends files that do not match the `
+                + 'supplied manifest. Check the files named in the logs first - the source '
+                + 'may be corrupt or incomplete. Nothing has been uploaded yet.',
+            cancelText: 'Stop',
+            cancelType: 'filled',
+            cancelClass: 'primary',
+            confirmText: 'Upload anyway',
+            confirmType: 'stroked',
+            confirmClass: 'warn',
+            acknowledgeText: 'I understand these files failed ASC MHL verification '
+                + 'and want to upload them anyway.',
+        },
+    };
+}

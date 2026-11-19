@@ -61,6 +61,7 @@ const FORM_DATA = FmeConfig.fromJson({
                     accelerated: true,
                     fileOrder: [],
                     enableMetadataFilter: false,
+                    blockUploadOnVerifyFailure: true,
                     storageClass: 'standard',
                     paths: {
                         local: '/',
@@ -85,6 +86,7 @@ const FORM_DATA = FmeConfig.fromJson({
                     accelerated: true,
                     fileOrder: [],
                     enableMetadataFilter: false,
+                    blockUploadOnVerifyFailure: true,
                     storageClass: 'standard-ia',
                     paths: {
                         local: '/',
@@ -109,6 +111,7 @@ const FORM_DATA = FmeConfig.fromJson({
                     accelerated: true,
                     fileOrder: [],
                     enableMetadataFilter: false,
+                    blockUploadOnVerifyFailure: true,
                     storageClass: 'glacier',
                     paths: {
                         local: '/',

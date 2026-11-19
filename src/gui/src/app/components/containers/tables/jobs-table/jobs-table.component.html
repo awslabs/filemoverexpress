@@ -171,6 +171,12 @@
                 Cancel
             </button>
         }
+        @if (job.status === 'NEEDS_REVIEW') {
+            <button mat-menu-item (click)="openVerificationGate(job)">
+                <mat-icon>rule</mat-icon>
+                Review
+            </button>
+        }
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="exportJob(job)">
             <mat-icon>download</mat-icon>
