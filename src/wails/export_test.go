@@ -30,6 +30,7 @@ func sampleData() ExportJobList {
 					JobID:             "job-1",
 					Checksum:          "abc123",
 					ChecksumAlgorithm: "xxhash64",
+					ASCMhlStatus:      "verified",
 					Priority:          1,
 					Error:             "",
 					BytesTransferred:  1024,
@@ -175,22 +176,23 @@ func TestGenerateCsvReport(t *testing.T) {
 	assert.GreaterOrEqual(t, len(lines), 3) // header + 2 data rows
 	assert.Equal(t, strings.Join(csvHeaders, ","), lines[0])
 
-	// hashType must be the LAST column (appended, not inserted mid-schema) so
+	// The ASC MHL columns are appended at the END (hashType then mhlStatus) so
 	// positional readers of the stable columns do not shift. Every data row must
-	// have exactly the header's column count, and the algorithm lands last.
-	assert.Equal(t, "hashType", csvHeaders[len(csvHeaders)-1])
-	foundAlgo := false
+	// have exactly the header's column count, and the verify status lands last.
+	assert.Equal(t, "mhlStatus", csvHeaders[len(csvHeaders)-1])
+	assert.Equal(t, "hashType", csvHeaders[len(csvHeaders)-2])
+	foundStatus := false
 	for _, ln := range lines[1:] {
 		if ln == "" {
 			continue
 		}
 		cols := strings.Split(ln, ",")
 		assert.Len(t, cols, len(csvHeaders), "each row has one field per header column")
-		if cols[len(cols)-1] == csvQuote("xxhash64") {
-			foundAlgo = true
+		if cols[len(cols)-1] == csvQuote("verified") {
+			foundStatus = true
 		}
 	}
-	assert.True(t, foundAlgo, "the xxhash64 algorithm lands in the last (hashType) column")
+	assert.True(t, foundStatus, "the ASC MHL verify status lands in the last (mhlStatus) column")
 }
 
 func TestGenerateCsvReportEmpty(t *testing.T) {

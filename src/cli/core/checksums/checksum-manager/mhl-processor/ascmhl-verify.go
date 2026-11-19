@@ -30,6 +30,14 @@ const (
 	strASCFlagged    = "The only ASC MHL hash(es) for %s are marked bad by the writer (%s) - treating as unverified"
 	strASCExtra      = "%s is present on disk but is NOT listed in the supplied ASC MHL (manifest %s)"
 	strASCSummary    = "ASC MHL verify for %s: %d verified, %d integrity problems, %d unlisted, %d not-honored"
+
+	// Per-file ASC MHL verification outcomes recorded on the task (see
+	// Task.SetASCMHLStatus) so a report can flag which files failed.
+	ascMHLStatusVerified   = "verified"
+	ascMHLStatusMismatch   = "mismatch"
+	ascMHLStatusUnreadable = "unreadable"
+	ascMHLStatusFlagged    = "flagged"
+	ascMHLStatusUnhonored  = "unhonored"
 )
 
 // verifyPriority is the order in which FME-supported algorithms are chosen to
@@ -251,12 +259,14 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 			// problem, not a benign skip.
 			emitJobError(vctx.jobID, vctx.jobName,
 				fmt.Sprintf(strASCFlagged, entry.RelativePath, strings.Join(entry.RejectedActions, ", ")))
+			setTaskASCMHLStatus(vctx, absPath, ascMHLStatusFlagged)
 			counts.flagged++
 			return
 		}
 		// Not an integrity failure - FME simply cannot compute the manifest's
 		// algorithm (e.g. sha1-only). Warn, but do not flag the job.
 		events.Events.WarnForJob(vctx.jobID, strASCUnhonored, entry.RelativePath, strings.Join(entry.UnsupportedAlgos, ", "))
+		setTaskASCMHLStatus(vctx, absPath, ascMHLStatusUnhonored)
 		counts.unhonored++
 		return
 	}
@@ -272,6 +282,7 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 		// An unreadable listed file cannot be verified - that is an integrity
 		// problem, not a benign skip.
 		emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCUnreadable, entry.RelativePath, algo, err))
+		setTaskASCMHLStatus(vctx, absPath, ascMHLStatusUnreadable)
 		counts.unreadable++
 		return
 	}
@@ -282,6 +293,7 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 		// per file. The opener and summary stay job-scoped INFO; failures stay
 		// job-scoped error lines.
 		logger.Debug(strASCVerified, entry.RelativePath, algo)
+		setTaskASCMHLStatus(vctx, absPath, ascMHLStatusVerified)
 		// Carry the verified hash onto the object as checksum metadata, even when
 		// the in-app checksum is off. Only when the task has no checksum of its own
 		// (the in-app pass did not produce one); never overwrite a profile-computed
@@ -295,7 +307,17 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 	}
 
 	emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCMismatch, entry.RelativePath, algo, expected, computed))
+	setTaskASCMHLStatus(vctx, absPath, ascMHLStatusMismatch)
 	counts.mismatched++
+}
+
+// setTaskASCMHLStatus records the per-file verification outcome on the matching
+// task (when the file is a task in this job) so a report can flag which files
+// failed. A missing file has no task and is reported through the job log instead.
+func setTaskASCMHLStatus(vctx verifyCtx, absPath, status string) {
+	if task := vctx.taskByPath[absPath]; task != nil {
+		task.SetASCMHLStatus(status)
+	}
 }
 
 // computeOrReuse returns the file's checksum in algo, reusing ONLY a hash the

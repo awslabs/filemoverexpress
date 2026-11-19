@@ -370,13 +370,28 @@ export class JobsTableComponent implements AfterViewInit {
             && (job.ascMhlVerified ?? 0) === (job.ascMhlListed ?? 0);
     }
 
-    /** Tooltip for the ASC MHL column cell, e.g. "ASC MHL verified 3 of 3 (xxhash64)". */
+    /**
+     * Whether the ASC MHL verification had integrity problems (a hash mismatch,
+     * a missing or unreadable listed file). Drives the red X in the column, so a
+     * failed verify is a loud signal rather than an amber one.
+     */
+    ascMhlFailed(job: Job): boolean {
+        return this.ascMhlUsed(job) && (job.ascMhlProblems ?? 0) > 0;
+    }
+
+    /** Tooltip for the ASC MHL column cell, reflecting clean / failed / partial. */
     ascMhlTooltip(job: Job): string {
         const verified = job.ascMhlVerified ?? 0;
         const listed = job.ascMhlListed ?? 0;
         const algorithm = job.ascMhlAlgorithm ?? '';
-        const base = `ASC MHL verified ${verified} of ${listed}`;
-        return algorithm ? `${base} (${algorithm})` : base;
+        const suffix = algorithm ? ` (${algorithm})` : '';
+        if (this.ascMhlFailed(job)) {
+            return `ASC MHL verification failed: ${verified} of ${listed} verified, ${job.ascMhlProblems ?? 0} with problems${suffix}`;
+        }
+        if (this.ascMhlClean(job)) {
+            return `ASC MHL verified ${verified} of ${listed}${suffix}`;
+        }
+        return `ASC MHL: ${verified} of ${listed} verified${suffix}`;
     }
 
     /**
