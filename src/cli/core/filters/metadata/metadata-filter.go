@@ -1,6 +1,8 @@
 package metadata
 
 import (
+	"path"
+	"path/filepath"
 	"regexp"
 
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
@@ -27,15 +29,19 @@ func (medf *MetadataFilter) SkipType() s3_sharedv1.SkippedState {
 }
 
 func (*MetadataFilter) IsFiltered(task *jobmanagertypes.Task) (bool, error) {
-	var source string
+	var name string
 
+	// Match on the base name. The patterns are anchored (^...$), so matching them
+	// against a full path never caught a metadata file in a subfolder - only a
+	// bare ".DS_Store". S3 keys are always forward-slash separated, local paths
+	// use the OS separator.
 	if task.TaskDirection() == jobmanagertypes.TaskDirectionDownload {
-		source = task.S3Object().Key
+		name = path.Base(task.S3Object().Key)
 	} else if task.TaskDirection() == jobmanagertypes.TaskDirectionUpload {
-		source = task.LocalFile().Path
+		name = filepath.Base(task.LocalFile().Path)
 	}
 	for _, metadataPattern := range metadataFilePatterns {
-		if metadataPattern.MatchString(source) {
+		if metadataPattern.MatchString(name) {
 			return true, nil
 		}
 	}

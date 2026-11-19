@@ -14,6 +14,10 @@ export class JobCompleteEvent implements BaseEvent {
         public hasSuccessfulTasks: boolean,
         public hasAllTasksSkipped: boolean,
         public status = '',
+        public ascMhlVerified = 0,
+        public ascMhlListed = 0,
+        public ascMhlProblems = 0,
+        public ascMhlAlgorithm = '',
     ) {
     }
 
@@ -30,6 +34,10 @@ export class JobCompleteEvent implements BaseEvent {
             evt.hasTaskErrors,
             evt.hasSuccessfulTasks,
             evt.hasAllSkippedTasks,
-            evt.status);
+            evt.status,
+            evt.ascMhlVerified,
+            evt.ascMhlListed,
+            evt.ascMhlProblems,
+            evt.ascMhlAlgorithm);
     }
 }

@@ -174,7 +174,7 @@ describe('TransferService', () => {
         it('preserves COMPLETED_WITH_WARNINGS from the daemon instead of flattening to Completed', () => {
             const completed = new Date('2026-02-02T02:02:02Z');
             events$.next(new JobCompleteEvent('job-3w', 'Verify failed', completed, false, true, false,
-                JobStatus.CompletedWithWarnings));
+                JobStatus.CompletedWithWarnings, 1, 3, 2, 'xxhash64'));
 
             const action = dispatchSpy.mock.calls[0][0] as {
                 type: string,
@@ -188,6 +188,10 @@ describe('TransferService', () => {
                 hasSuccessfulTasks: true,
                 timestampCompleted: completed,
                 lastUpdate: completed,
+                ascMhlVerified: 1,
+                ascMhlListed: 3,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
             });
         });
     });
