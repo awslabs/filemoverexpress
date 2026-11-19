@@ -28,7 +28,7 @@ import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 import { ExportJobModalComponent } from '@app/components/modals/export-job-modal/export-job-modal.component';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
-import { cancelTransferDialog, resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
+import { cancelTransferDialog, resubmitJobDialog, verificationGateDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { JobDetailsModalComponent } from '@app/components/modals/job-details-modal/job-details-modal.component';
 import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal/job-rename-modal.component';
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
@@ -145,6 +145,12 @@ export class JobsTableComponent implements AfterViewInit {
         'actions',
     ];
     dataSource: MatTableDataSource<Job>;
+    // Job ids already auto-prompted for verification review, so the gate dialog
+    // opens once per NEEDS_REVIEW transition (not on every store emission). A
+    // manual Review action bypasses this and reopens regardless.
+    private gatePrompted = new Set<string>();
+    // Whether a verification-gate dialog is currently open, to avoid stacking.
+    private gateDialogOpen = false;
     uploadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};
     downloadTransferStats: TransferSummaryStats = {...INITIAL_TRANSFER_SUMMARY_STATS};
     protected readonly TransferDirection = TransferDirection;
@@ -261,6 +267,7 @@ export class JobsTableComponent implements AfterViewInit {
         this.store.select(jobSelectAll).pipe(
             takeUntilDestroyed(this.destroyRef),
         ).subscribe((jobs) => {
+            this.checkVerificationGates(jobs);
             const openMenus = this.contextMenus.find((item) => item.menuOpen);
             if (openMenus) {
                 if (this.menuClosed) {
@@ -594,6 +601,77 @@ export class JobsTableComponent implements AfterViewInit {
                     this.notifications.error('Unable to resubmit job');
                 }
             });
+        });
+    }
+
+    /**
+     * Auto-raise the pre-upload verification gate once for each job that enters
+     * NEEDS_REVIEW (a supplied ASC MHL manifest failed verification and the profile
+     * blocks on failure). Jobs that leave the state are forgotten so a later re-run
+     * can prompt again.
+     *
+     * @param jobs {Job[]} Current jobs from the store.
+     * @private
+     */
+    private checkVerificationGates(jobs: Job[]) {
+        const needingReview = new Set<string>();
+        for (const job of jobs) {
+            if (job.status !== JobStatus.NeedsReview) {
+                continue;
+            }
+            needingReview.add(job.id);
+            if (!this.gatePrompted.has(job.id)) {
+                this.gatePrompted.add(job.id);
+                this.openVerificationGate(job);
+            }
+        }
+        // Forget jobs no longer awaiting review so a resubmit can prompt again.
+        for (const id of this.gatePrompted) {
+            if (!needingReview.has(id)) {
+                this.gatePrompted.delete(id);
+            }
+        }
+    }
+
+    /**
+     * Open the Stop / Upload-anyway verification gate for a job. Used both by the
+     * auto-prompt and by the manual "Review" row action (so a dismissed gate can be
+     * reopened). Stop resolves the gate to cancel; Upload anyway (acknowledged)
+     * resolves it to proceed, after which the job finishes with warnings.
+     *
+     * @param job {Job} Job awaiting verification review.
+     */
+    openVerificationGate(job: Job) {
+        if (this.gateDialogOpen) {
+            return;
+        }
+        this.gateDialogOpen = true;
+        this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+            ConfirmationModalComponent,
+            verificationGateDialog(
+                job.ascMhlProblems ?? 0,
+                job.ascMhlVerified ?? 0,
+                job.ascMhlListed ?? 0,
+                job.ascMhlAlgorithm,
+            ),
+        ).afterClosed().subscribe((proceed) => {
+            this.gateDialogOpen = false;
+            this.performGateResolution(job, proceed === true);
+        });
+    }
+
+    /**
+     * Send the operator's gate decision to the daemon.
+     *
+     * @param job {Job} Job awaiting review.
+     * @param proceed {boolean} true to upload anyway, false to stop.
+     * @private
+     */
+    private performGateResolution(job: Job, proceed: boolean) {
+        this.fmeClientService.resolveVerificationGate(job.id, proceed).subscribe({
+            error: () => {
+                this.notifications.error('Unable to resolve verification review');
+            },
         });
     }
 

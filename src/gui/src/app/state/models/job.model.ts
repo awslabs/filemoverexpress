@@ -9,6 +9,7 @@ export enum JobStatus {
     InProgress = 'IN_PROGRESS',
     Paused = 'PAUSED',
     Cancelled = 'CANCELLED',
+    NeedsReview = 'NEEDS_REVIEW',
     Completed = 'COMPLETED',
     CompletedWithWarnings = 'COMPLETED_WITH_WARNINGS',
     Error = 'ERROR',

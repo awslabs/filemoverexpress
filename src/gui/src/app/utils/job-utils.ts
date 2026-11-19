@@ -42,6 +42,8 @@ export function jobStatusToDisplayString(status: JobStatus): string {
             return 'Paused';
         case JobStatus.Cancelled:
             return 'Cancelled';
+        case JobStatus.NeedsReview:
+            return 'Needs Review';
         case JobStatus.Error:
             return 'Error';
         default:
