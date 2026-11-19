@@ -40,6 +40,11 @@ enum DisconnectType {
 message MessageEvent {
     string msg = 1;
     string log_level = 2;
+    // Optional job this message belongs to. When set, the GUI files the line
+    // under that job's Logs tab (not just the global log), so job-scoped INFO
+    // and WARN lines (e.g. ASC MHL verification progress) are visible where a
+    // user looks at a single job. Empty for global daemon messages.
+    string job_id = 3;
 }
 
 message AlertEvent {

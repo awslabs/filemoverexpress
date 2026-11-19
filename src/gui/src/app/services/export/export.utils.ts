@@ -35,6 +35,7 @@ function serializeForBinding(data: ExportJobList): WailsExportJobList {
                 statusMessage: t.statusMessage,
                 jobId: t.jobId,
                 checksum: t.checksum,
+                checksumAlgorithm: t.checksumAlgorithm,
                 priority: t.priority,
                 error: t.error,
                 bytesTransferred: t.bytesTransferred,

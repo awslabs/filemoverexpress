@@ -51,6 +51,16 @@ export interface Job {
     // Whether the job overwrites existing destination files (old "force" flag).
     // Optional: not every code path that builds a partial Job needs to supply it.
     force?: boolean;
+    // ASC MHL verification outcome, present when a supplied manifest was honored.
+    // ascMhlListed > 0 means at least one manifest was verified against;
+    // ascMhlVerified is how many listed files matched; ascMhlAlgorithm is the hash
+    // used (e.g. "xxhash64"). Optional: only jobs that shipped a manifest set them.
+    ascMhlVerified?: number;
+    ascMhlListed?: number;
+    ascMhlAlgorithm?: string;
+    // Count of ASC MHL integrity problems; 0 means a clean verify. This, not the
+    // job status, is what the "verified" indicator keys off.
+    ascMhlProblems?: number;
 }
 
 export const PROGRESS_STATES: JobStatus[] = [

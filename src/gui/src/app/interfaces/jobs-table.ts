@@ -30,6 +30,13 @@ export interface JobDetailsData {
     // Whether the job was submitted to overwrite existing destination files
     // (the "Overwrite existing files" toggle in the transfer dialog).
     force: boolean;
+    // ASC MHL verification outcome. ascMhlListed > 0 means a supplied manifest
+    // was verified against; ascMhlVerified is how many listed files matched;
+    // ascMhlAlgorithm is the hash used. All zero / empty when no manifest shipped.
+    ascMhlVerified?: number;
+    ascMhlListed?: number;
+    ascMhlAlgorithm?: string;
+    ascMhlProblems?: number;
     // Which tab the details modal should open on. When omitted, the modal picks:
     // Logs for a failed or warnings job, otherwise Files. Set to 'logs' to jump
     // straight to the logs (e.g. the "View Logs" row action).

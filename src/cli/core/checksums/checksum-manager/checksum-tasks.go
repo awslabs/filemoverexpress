@@ -26,14 +26,16 @@ type JobRef struct {
 // runs REGARDLESS of the checksum setting - a manifest shipped with the media is
 // honored even when checksums are off - and runs after the checksum pass so a
 // file verified in the profile's own algorithm reuses the hash already computed
-// instead of reading the file twice. Returns the number of ASC MHL integrity
-// problems so the caller can mark the job COMPLETED_WITH_WARNINGS.
+// instead of reading the file twice. Returns the aggregate verification result
+// (ASC MHL integrity problems plus verified/listed counts and the algorithm used)
+// so the caller can mark the job COMPLETED_WITH_WARNINGS and surface that a
+// supplied manifest was honored.
 func (cm *ChecksumManager) ChecksumTasks(
 	ctx context.Context,
 	job JobRef,
 	tasks []*jobmanagertypes.Task,
 	checksumSettings configtypes.ChecksumSettings,
-) int {
+) mhlProcessor.VerifyResult {
 	var freshlyHashed map[string]string
 	if checksumSettings.Enabled {
 		freshlyHashed = cm.runChecksumPass(job.ID, tasks, checksumSettings)

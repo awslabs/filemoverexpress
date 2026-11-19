@@ -141,6 +141,7 @@ export class JobsTableComponent implements AfterViewInit {
         'duration',
         'progress',
         'status',
+        'mhl',
         'actions',
     ];
     dataSource: MatTableDataSource<Job>;
@@ -243,6 +244,10 @@ export class JobsTableComponent implements AfterViewInit {
                             timestampCompleted: j.timestampCompleted,
                             checksumProgress: null,
                             force: j.force,
+                            ascMhlVerified: j.ascMhlVerified,
+                            ascMhlListed: j.ascMhlListed,
+                            ascMhlAlgorithm: j.ascMhlAlgorithm,
+                            ascMhlProblems: j.ascMhlProblems,
                         });
                     }
 
@@ -341,6 +346,37 @@ export class JobsTableComponent implements AfterViewInit {
             // if elapsed time is 0, consider it to be 1 second
             summaryStats.averageSpeed = summaryStats.elapsedTime ? summaryStats.totalActiveBytesTransferred / summaryStats.elapsedTime : summaryStats.totalActiveBytesTransferred;
         }
+    }
+
+    /**
+     * Whether a supplied ASC MHL manifest was verified for this job (at least one
+     * listed file). Drives the ASC MHL column indicator.
+     */
+    ascMhlUsed(job: Job): boolean {
+        return (job.ascMhlListed ?? 0) > 0;
+    }
+
+    /**
+     * Whether the ASC MHL verified cleanly: a manifest was honored, every listed
+     * file matched (verified == listed), and there were zero integrity problems.
+     * Keyed off the verification result, not the job status, so an all-mismatch
+     * run shows amber even mid-transfer, a partially-verified run (cancelled, or
+     * an unsupported-algorithm manifest where verified < listed) shows amber, and
+     * a failed or cancelled job does not falsely show green.
+     */
+    ascMhlClean(job: Job): boolean {
+        return this.ascMhlUsed(job)
+            && (job.ascMhlProblems ?? 0) === 0
+            && (job.ascMhlVerified ?? 0) === (job.ascMhlListed ?? 0);
+    }
+
+    /** Tooltip for the ASC MHL column cell, e.g. "ASC MHL verified 3 of 3 (xxhash64)". */
+    ascMhlTooltip(job: Job): string {
+        const verified = job.ascMhlVerified ?? 0;
+        const listed = job.ascMhlListed ?? 0;
+        const algorithm = job.ascMhlAlgorithm ?? '';
+        const base = `ASC MHL verified ${verified} of ${listed}`;
+        return algorithm ? `${base} (${algorithm})` : base;
     }
 
     /**

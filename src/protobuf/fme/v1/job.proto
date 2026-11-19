@@ -28,6 +28,18 @@ message Job {
     // Whether the job was submitted with "overwrite existing files" on (the old
     // "force" flag): existing destination objects are re-uploaded instead of skipped.
     bool force = 19;
+    // ASC MHL verification outcome, so the GUI can show that a supplied manifest
+    // was honored even on a clean run. asc_mhl_listed > 0 means at least one
+    // ASC MHL manifest was verified against; asc_mhl_verified is how many of its
+    // listed files matched their recorded hash; asc_mhl_algorithm is the hash
+    // algorithm used (e.g. "xxhash64"). All zero / empty when no manifest shipped.
+    int32 asc_mhl_verified = 20;
+    int32 asc_mhl_listed = 21;
+    string asc_mhl_algorithm = 22;
+    // Count of ASC MHL integrity problems (hash mismatch, missing, unreadable,
+    // path-escape, writer-flagged). The authoritative "clean" signal: a verified
+    // manifest with asc_mhl_problems == 0 is clean, independent of job status.
+    int32 asc_mhl_problems = 23;
 }
 
 message Task {
@@ -43,6 +55,7 @@ message Task {
     int32 priority = 11;
     string err = 12;
     int64 bytes_transferred = 13;
+    string checksum_algorithm = 14;
 }
 
 message TaskLocalFile {

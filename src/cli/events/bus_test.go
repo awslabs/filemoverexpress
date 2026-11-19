@@ -276,3 +276,53 @@ func TestEventBus_DoSendToClosedChannelRecovers(t *testing.T) {
 	}()
 	eb.doSend(listener, &eventtypes.MessageEvent{Msg: "x"})
 }
+
+func TestEventBus_InfoForJob(t *testing.T) {
+	c := make(chan eventtypes.Event, 1)
+	if err := Events.RegisterListener("test-listener-info-for-job", c, eventtypes.AllEvents); err != nil {
+		t.Fatalf("failed registering listener: %s", err)
+	}
+
+	Events.InfoForJob("job-abc", "verifying %d files", 3)
+
+	select {
+	case evt := <-c:
+		me, ok := evt.(*eventtypes.MessageEvent)
+		if !ok {
+			t.Fatalf("expected *MessageEvent, got %T", evt)
+		}
+		if me.JobID != "job-abc" {
+			t.Errorf("expected JobID job-abc, got %q", me.JobID)
+		}
+		if me.Msg != "verifying 3 files" {
+			t.Errorf("expected formatted message 'verifying 3 files', got %q", me.Msg)
+		}
+	case <-time.After(3 * time.Second):
+		t.Error("channel timed out before receiving message")
+	}
+}
+
+func TestEventBus_WarnForJob(t *testing.T) {
+	c := make(chan eventtypes.Event, 1)
+	if err := Events.RegisterListener("test-listener-warn-for-job", c, eventtypes.AllEvents); err != nil {
+		t.Fatalf("failed registering listener: %s", err)
+	}
+
+	Events.WarnForJob("job-def", "stowaway %s", "clip.mov")
+
+	select {
+	case evt := <-c:
+		me, ok := evt.(*eventtypes.MessageEvent)
+		if !ok {
+			t.Fatalf("expected *MessageEvent, got %T", evt)
+		}
+		if me.JobID != "job-def" {
+			t.Errorf("expected JobID job-def, got %q", me.JobID)
+		}
+		if me.Msg != "stowaway clip.mov" {
+			t.Errorf("expected formatted message 'stowaway clip.mov', got %q", me.Msg)
+		}
+	case <-time.After(3 * time.Second):
+		t.Error("channel timed out before receiving message")
+	}
+}
