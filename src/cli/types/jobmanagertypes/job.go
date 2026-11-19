@@ -36,21 +36,25 @@ type (
 		hasTaskErrors           bool
 		hasSuccessfulTasks      bool
 		hasVerificationWarnings bool
-		ascMHLVerified          int
-		ascMHLListed            int
-		ascMHLAlgorithm         string
-		ascMHLProblems          int
-		dbObjects               []*databasetypes.DatabaseObject
-		destination             string
-		TimestampCreated        time.Time
-		TimestampDiscovering    time.Time
-		TimestampChecksumming   time.Time
-		TimestampTransferring   time.Time
-		TimestampCompleted      time.Time
-		sources                 []string
-		s3PrefixToTrim          string
-		force                   bool
-		uploadBasePath          string
+		// gateResolution delivers the operator's decision when a job is paused in
+		// NEEDS_REVIEW (ASC MHL verify failed and the profile blocks on failure):
+		// true = upload anyway, false = stop. Buffered so ResolveGate never blocks.
+		gateResolution        chan bool
+		ascMHLVerified        int
+		ascMHLListed          int
+		ascMHLAlgorithm       string
+		ascMHLProblems        int
+		dbObjects             []*databasetypes.DatabaseObject
+		destination           string
+		TimestampCreated      time.Time
+		TimestampDiscovering  time.Time
+		TimestampChecksumming time.Time
+		TimestampTransferring time.Time
+		TimestampCompleted    time.Time
+		sources               []string
+		s3PrefixToTrim        string
+		force                 bool
+		uploadBasePath        string
 	}
 	JobConfig struct {
 		Direction       transfertypes.Direction
@@ -76,6 +80,7 @@ func NewJob(config JobConfig) (*Job, error) {
 		BytesUploaded:         0,
 		CancelCtx:             ctx,
 		CancelFunc:            cancelFunc,
+		gateResolution:        make(chan bool, 1),
 		direction:             config.Direction,
 		hasTaskErrors:         false,
 		hasSuccessfulTasks:    false,
@@ -229,6 +234,28 @@ func (j *Job) SetHasVerificationWarnings(hasVerificationWarnings bool) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 	j.hasVerificationWarnings = hasVerificationWarnings
+}
+
+// AwaitGateResolution blocks until the operator resolves a NEEDS_REVIEW pause via
+// ResolveGate, or the job is cancelled. Returns true to upload anyway, false to
+// stop. A cancel (CancelCtx done) always resolves to false.
+func (j *Job) AwaitGateResolution() bool {
+	select {
+	case proceed := <-j.gateResolution:
+		return proceed
+	case <-j.CancelCtx.Done():
+		return false
+	}
+}
+
+// ResolveGate delivers the operator's NEEDS_REVIEW decision to the waiting job
+// goroutine. Non-blocking: the channel is buffered to one and a second call is
+// dropped rather than blocking the caller.
+func (j *Job) ResolveGate(proceed bool) {
+	select {
+	case j.gateResolution <- proceed:
+	default:
+	}
 }
 
 // SetASCMHLResult records the outcome of ASC MHL verification so the GUI can

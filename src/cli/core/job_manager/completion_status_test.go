@@ -2,8 +2,10 @@ package job_manager
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
@@ -41,4 +43,33 @@ func TestCompletionStatus_VerificationWarningsIsCompletedWithWarnings(t *testing
 	job := newCompletionTestJob(t)
 	job.SetHasVerificationWarnings(true)
 	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
+}
+
+// Proceeding at the verification gate parks the job in NEEDS_REVIEW and returns
+// true once the operator resolves it.
+func TestAwaitVerificationGate_Proceed(t *testing.T) {
+	job := newCompletionTestJob(t)
+	done := make(chan bool, 1)
+	go func() { done <- awaitVerificationGate(job, 2) }()
+
+	require.Eventually(t, func() bool {
+		return job.Status() == jobmanagertypes.JobStatusNeedsReview
+	}, time.Second, 5*time.Millisecond)
+
+	job.ResolveGate(true)
+	assert.True(t, <-done)
+}
+
+// Stopping at the gate returns false so the caller aborts the upload.
+func TestAwaitVerificationGate_Stop(t *testing.T) {
+	job := newCompletionTestJob(t)
+	done := make(chan bool, 1)
+	go func() { done <- awaitVerificationGate(job, 2) }()
+
+	require.Eventually(t, func() bool {
+		return job.Status() == jobmanagertypes.JobStatusNeedsReview
+	}, time.Second, 5*time.Millisecond)
+
+	job.ResolveGate(false)
+	assert.False(t, <-done)
 }

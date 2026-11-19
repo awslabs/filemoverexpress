@@ -434,7 +434,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 
 //revive:enable:function-length,flag-parameter
 
-//revive:disable:function-length,flag-parameter
+//revive:disable:function-length,flag-parameter,cyclomatic
 func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	transferProfile := job.TransferProfile()
 	jobId := job.JobId()
@@ -564,6 +564,18 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		// clean success. The per-file detail was already emitted as job-scoped
 		// error log lines.
 		job.SetHasVerificationWarnings(true)
+	}
+	//endregion
+
+	// region Verification Gate
+	// A supplied ASC MHL manifest failed verification. If the profile blocks on
+	// failure, pause here - nothing has uploaded yet - in NEEDS_REVIEW until the
+	// operator resolves the gate (ResolveVerificationGate). Stop cancels the job;
+	// proceeding logs an override and the upload runs, finishing with warnings.
+	if verificationResult.Problems > 0 && transferProfile.BlockUploadOnVerifyFailure {
+		if !awaitVerificationGate(job, verificationResult.Problems) {
+			return
+		}
 	}
 	//endregion
 
@@ -738,7 +750,7 @@ func sendJobProgress(job *jobmanagertypes.Job, cancelChan chan bool) {
 	}
 }
 
-//revive:enable:function-length,flag-parameter
+//revive:enable:function-length,flag-parameter,cyclomatic
 
 func sortTasks(tasks []*jobmanagertypes.Task, sortList []sorting.FileMoverSorter) []*jobmanagertypes.Task {
 	sortedTasks := tasks
@@ -750,6 +762,23 @@ func sortTasks(tasks []*jobmanagertypes.Task, sortList []sorting.FileMoverSorter
 		}
 	}
 	return sortedTasks
+}
+
+// awaitVerificationGate parks a job in NEEDS_REVIEW after a supplied ASC MHL
+// manifest fails verification and waits for the operator's decision via
+// ResolveVerificationGate. Returns true to continue the upload (the job finishes
+// with warnings), or false to stop - in which case the gate resolver (or a
+// cancel) has already moved the job to a terminal state, so the caller returns.
+func awaitVerificationGate(job *jobmanagertypes.Job, problems int) bool {
+	job.SetStatus(jobmanagertypes.JobStatusNeedsReview)
+	events.Events.InfoForJob(job.JobId(),
+		"ASC MHL verification found %d integrity problem(s); upload paused for review", problems)
+	if job.AwaitGateResolution() {
+		events.Events.WarnForJob(job.JobId(),
+			"Upload-anyway override: proceeding with %d acknowledged ASC MHL integrity problem(s)", problems)
+		return true
+	}
+	return false
 }
 
 // completionStatus is the terminal status for a finished job: amber
