@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -43,12 +44,24 @@ const (
 // verifyPriority is the order in which FME-supported algorithms are chosen to
 // verify a file on ingest when the profile's own algorithm is not one the
 // manifest carries. Faster hashes are preferred; C4 (SHA-512 based) is last.
-var verifyPriority = []constants.ChecksumAlgorithm{
-	constants.AlgorithmXXHash64,
-	constants.AlgorithmXXH3,
-	constants.AlgorithmMD5,
-	constants.AlgorithmC4,
-}
+var (
+	verifyPriority = []constants.ChecksumAlgorithm{
+		constants.AlgorithmXXHash64,
+		constants.AlgorithmXXH3,
+		constants.AlgorithmMD5,
+		constants.AlgorithmC4,
+	}
+
+	// osMetadataFiles are OS-generated sidecar files (Finder / Explorer metadata)
+	// that are never part of a media offload: AppleDouble resource forks (._*),
+	// macOS .DS_Store, and Windows Thumbs.db. Matched on the base name so a file
+	// in any subfolder is caught.
+	osMetadataFiles = []*regexp.Regexp{
+		regexp.MustCompile(`^\._`),
+		regexp.MustCompile(`^\.DS_Store$`),
+		regexp.MustCompile(`^Thumbs\.db$`),
+	}
+)
 
 type (
 	// verifyCounts tallies the outcome of verifying one manifest.
@@ -338,6 +351,19 @@ func computeOrReuse(vctx verifyCtx, algo constants.ChecksumAlgorithm, absPath st
 	return checksummer.ChecksumFile(absPath)
 }
 
+// isOSMetadataFile reports whether path's base name is an OS-generated sidecar
+// file that the ASC reference tool ignores, so FME does not flag it as unlisted
+// against a supplied manifest.
+func isOSMetadataFile(path string) bool {
+	base := filepath.Base(path)
+	for _, re := range osMetadataFiles {
+		if re.MatchString(base) {
+			return true
+		}
+	}
+	return false
+}
+
 // reportUnlistedFiles warns about media files being transferred under this
 // manifest's root that the manifest does not list (the ASC reference tool flags
 // these). A not-listed file is a warning, not an integrity failure. Returns how
@@ -354,6 +380,13 @@ func reportUnlistedFiles(
 	for _, task := range tasks {
 		path := task.LocalFile().Path
 		if strings.ToLower(filepath.Ext(path)) == ".mhl" {
+			continue
+		}
+		// OS-generated sidecar files (.DS_Store, AppleDouble ._*, Thumbs.db) are
+		// never part of a media offload. The ASC reference tool ignores them, so
+		// FME does not flag them as unlisted: it would only be log noise that
+		// confuses a DIT reviewing an otherwise clean manifest.
+		if isOSMetadataFile(path) {
 			continue
 		}
 		abs, err := filepath.Abs(path)
