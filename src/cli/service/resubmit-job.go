@@ -29,7 +29,7 @@ func (*FileMoverServer) ResubmitJob(
 		}), connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(strJobDoesNotExist, jobId))
 	}
 	jobStatus := job.Status()
-	if jobStatus != jobmanagertypes.JobStatusCompleted &&
+	if !jobStatus.IsCompleted() &&
 		jobStatus != jobmanagertypes.JobStatusCancelled &&
 		jobStatus != jobmanagertypes.JobStatusError {
 		return connect.NewResponse(&fmev1.ResubmitJobResponse{

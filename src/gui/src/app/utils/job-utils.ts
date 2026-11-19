@@ -36,6 +36,8 @@ export function jobStatusToDisplayString(status: JobStatus): string {
             return 'In Progress';
         case JobStatus.Completed:
             return 'Completed';
+        case JobStatus.CompletedWithWarnings:
+            return 'Complete w/ Warnings';
         case JobStatus.Paused:
             return 'Paused';
         case JobStatus.Cancelled:
@@ -45,4 +47,16 @@ export function jobStatusToDisplayString(status: JobStatus): string {
         default:
             return 'Unknown';
     }
+}
+
+
+/**
+ * Whether a status is a successful terminal completion: a clean Completed or
+ * Completed-with-Warnings (an ASC MHL verification warning). Use this anywhere
+ * that used to test only for JobStatus.Completed so a new completion state is
+ * handled everywhere at once (clear/cancel guards, completion-event suppression,
+ * terminal timestamp, progress/ETA).
+ */
+export function isCompletedStatus(status: JobStatus): boolean {
+    return status === JobStatus.Completed || status === JobStatus.CompletedWithWarnings;
 }

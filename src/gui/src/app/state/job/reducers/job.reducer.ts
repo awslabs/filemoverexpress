@@ -2,6 +2,7 @@ import { createReducer, on } from '@ngrx/store';
 import { createEntityAdapter, EntityAdapter, EntityState } from '@ngrx/entity';
 import * as JobActions from '../actions/job.actions';
 import { Job, JobStatus, CLEARABLE_STATES } from '../../models/job.model';
+import { isCompletedStatus } from '@app/utils/job-utils';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 
 export const jobFeatureKey = 'jobs';
@@ -140,8 +141,8 @@ export const reducer = createReducer(
                 console.debug('[Job] Got a cancel event without a create event');
                 return state;
             }
-            if (entity.status == JobStatus.Completed) {
-                console.debug('[Job] Got a cancel event when event was already complete');
+            if (isCompletedStatus(entity.status)) {
+                console.debug('[Job] Got a cancel event when job was already complete');
                 return state;
             }
             return adapter.updateOne(
@@ -304,7 +305,7 @@ export const reducer = createReducer(
 
             // We're not updating when we get a completion as the `JobCompleteEvent` takes care of signalling all the necessary
             // information necessary for the GUI.
-            if (action.job.changes.status === JobStatus.Completed) {
+            if (isCompletedStatus(action.job.changes.status as JobStatus)) {
                 return state;
             }
 

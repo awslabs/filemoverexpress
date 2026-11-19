@@ -129,6 +129,10 @@
             <mat-icon>info_outline</mat-icon>
             Job Details
         </button>
+        <button mat-menu-item (click)="viewLogs(job)">
+            <mat-icon>article</mat-icon>
+            View Logs
+        </button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="renameJob(job)">
             <mat-icon>edit</mat-icon>
@@ -157,7 +161,7 @@
             <mat-icon>download</mat-icon>
             Generate report
         </button>
-        @if (job.status === 'CANCELLED' || job.status === 'COMPLETED' || job.status === 'ERROR') {
+        @if (job.status === 'CANCELLED' || job.status === 'COMPLETED' || job.status === 'COMPLETED_WITH_WARNINGS' || job.status === 'ERROR') {
             <button mat-menu-item (click)="resubmitJob(job)">
                 <mat-icon>restart_alt</mat-icon>
                 Resubmit

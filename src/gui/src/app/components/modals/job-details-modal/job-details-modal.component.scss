@@ -88,6 +88,11 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         background: color.adjust(variables.$orange-accent, $alpha: -0.88);
     }
 
+    &.status-completed-with-warnings {
+        color: variables.$orange-accent;
+        background: color.adjust(variables.$orange-accent, $alpha: -0.88);
+    }
+
     &.status-error {
         color: variables.$red-500;
         background: color.adjust(variables.$red-500, $alpha: -0.88);

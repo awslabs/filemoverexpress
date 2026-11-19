@@ -127,6 +127,8 @@ export class FileBrowserComponent implements OnInit, AfterViewInit, OnChanges, O
     @Input() fileBrowserType: FileBrowserType = 'unknown';
     @Input() fileBrowserID = '';
     @Input() allowExternalDragOver = false;
+    /** When true, paints the dashed "Drop files to upload" cue while an OS (Finder) drag is over this panel. */
+    @Input() externalDragActive = false;
     @Input() isRoot = false;
     @Input() currentDirectory = '';
     @Input() fileBrowserData: FileBrowserData = {...FILE_BROWSER_INITIAL_DATA};

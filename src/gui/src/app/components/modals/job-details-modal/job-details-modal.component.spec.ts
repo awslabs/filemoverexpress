@@ -76,6 +76,8 @@ describe('JobDetailsModalComponent', () => {
             setClipboardText: vi.fn(() => of(void 0)),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
+        // Confirmation dialog: default to confirmed (afterClosed -> true). Tests that
+        // need the dismissed path override with dialogOpen.mockReturnValueOnce.
         dialogOpen = vi.fn(() => ({afterClosed: () => of(true)}));
 
         TestBed.configureTestingModule({
@@ -251,10 +253,17 @@ describe('JobDetailsModalComponent', () => {
             expect(message).toContain('&lt;script&gt;');
         });
 
-        it('retries a job', () => {
+        it('retries a job after the user confirms', () => {
             const {component} = build(makeData({status: JobStatus.Completed}));
             component.retry();
             expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not retry when the confirmation is dismissed', () => {
+            const {component} = build(makeData({status: JobStatus.Completed}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(false)});
+            component.retry();
+            expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
         });
 
         it('copies the error to the clipboard and notifies', () => {

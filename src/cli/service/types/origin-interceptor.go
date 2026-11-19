@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"connectrpc.com/connect"
 
@@ -18,7 +17,7 @@ const (
 
 var (
 	errInvalidOrigin = errors.New("access denied")
-	validOrigins     = []string{
+	builtInOrigins   = []string{
 		"http://wails.localhost",
 		"wails://wails.localhost",
 		"wails://wails",
@@ -73,17 +72,31 @@ func (i *OriginInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFu
 	}
 }
 
-func (*OriginInterceptor) validateOrigin(origin string, remoteAddr string) bool {
-	for _, v := range validOrigins {
-		if strings.HasPrefix(origin, v) {
+// isAllowedOrigin reports whether origin EXACTLY matches a built-in GUI origin
+// or a user-configured allowed origin. The match is exact on purpose: a value
+// that merely begins with an allowed origin - for example
+// "http://wails.localhost.attacker.example" - must be rejected. An empty origin
+// is never allowed.
+func isAllowedOrigin(origin string) bool {
+	if origin == "" {
+		return false
+	}
+	for _, v := range builtInOrigins {
+		if origin == v {
 			return true
 		}
 	}
-
-	for _, allowedOrigin := range config.LoadConfiguration().APIServer.AllowedOrigins {
-		if origin == allowedOrigin {
+	for _, allowed := range config.LoadConfiguration().APIServer.AllowedOrigins {
+		if origin == allowed {
 			return true
 		}
+	}
+	return false
+}
+
+func (*OriginInterceptor) validateOrigin(origin string, remoteAddr string) bool {
+	if isAllowedOrigin(origin) {
+		return true
 	}
 
 	logger.Warn("Rejecting connection attempt from %s because it sent an invalid CORS header: %s", remoteAddr, origin)

@@ -24,12 +24,13 @@ import {
 import { MatTooltip } from '@angular/material/tooltip';
 import { Task } from '@app/classes/grpc/task';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
-import { cancelTransferDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
+import { cancelTransferDialog, resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { TaskCounts } from '@app/components/modals/job-details-modal/job-details-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
 import { JobStatusClassPipe, JobStatusPipe, TaskTableStatusClassPipe } from '@app/pipes/jobs-table-status.pipe';
 import { TaskStatusPipe } from '@app/pipes/task-status.pipe';
+import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
 import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { getOSFileBrowserName } from '@app/components/layout/file-browser/file-browser.utils';
@@ -192,9 +193,10 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
         this.loadTasks();
         this.loadProfileDetails();
-        // Open on Logs for a failed job (users look there first to see why it failed),
-        // otherwise show the file list.
-        this.tab = this.isError ? 'logs' : 'files';
+        // Open on the explicitly requested tab (e.g. the "View Logs" row action);
+        // otherwise open on Logs for a failed OR warnings job (users look there
+        // first to see what went wrong), else the file list.
+        this.tab = this.jobDetails.openTab ?? ((this.isError || this.isWarnings) ? 'logs' : 'files');
         // Keep the summary live while the modal is open (progress/speed/status for active jobs).
         this.subscriptions.push(this.store.select(jobSelectAll).subscribe((jobs) => {
             const job = jobs.find((j) => j.id === this.jobDetails.jobId);
@@ -419,6 +421,15 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     get isError(): boolean {
         const d = this.jobDetails;
         return d.status === JobStatus.Error || (d.status === JobStatus.Completed && d.hasTaskErrors && !d.hasSuccessfulTasks);
+    }
+
+    /**
+     * A job that finished and uploaded, but at least one file failed its supplied
+     * ASC MHL verification (hash mismatch or missing on disk). Amber, not red:
+     * the bytes transferred, but the offload cannot be trusted as delivered.
+     */
+    get isWarnings(): boolean {
+        return this.jobDetails.status === JobStatus.CompletedWithWarnings;
     }
 
     get isUpload(): boolean {
@@ -745,6 +756,14 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     retry(): void {
-        this.fmeClientService.resubmitJob(this.jobDetails.jobId).subscribe();
+        const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+            ConfirmationModalComponent,
+            resubmitJobDialog,
+        );
+        dialogRef.afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.fmeClientService.resubmitJob(this.jobDetails.jobId).subscribe();
+            }
+        });
     }
 }

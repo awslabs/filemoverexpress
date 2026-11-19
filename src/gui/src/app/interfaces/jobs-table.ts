@@ -30,6 +30,10 @@ export interface JobDetailsData {
     // Whether the job was submitted to overwrite existing destination files
     // (the "Overwrite existing files" toggle in the transfer dialog).
     force: boolean;
+    // Which tab the details modal should open on. When omitted, the modal picks:
+    // Logs for a failed or warnings job, otherwise Files. Set to 'logs' to jump
+    // straight to the logs (e.g. the "View Logs" row action).
+    openTab?: 'files' | 'logs';
 }
 
 export interface TaskElement {
