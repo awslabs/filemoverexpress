@@ -346,10 +346,10 @@ export class ConfigComponent implements OnInit {
             if (this.dialogRef && this.configForm.dirty) {
                 this.dialog.open(ConfirmationModalComponent, discardUnsavedChangesDialog)
                     .afterClosed().subscribe((discard) => {
-                        if (discard) {
-                            this.closeSettings();
-                        }
-                    });
+                    if (discard) {
+                        this.closeSettings();
+                    }
+                });
                 return;
             }
             this.closeSettings();
