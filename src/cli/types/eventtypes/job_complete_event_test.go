@@ -45,12 +45,17 @@ func TestJobCompleteEvent_ToProtobuf(t *testing.T) {
 }
 
 // The terminal status must survive serialization so the GUI can keep a
-// verify-failed job amber instead of flattening it to a clean COMPLETED.
+// verify-failed job amber instead of flattening it to a clean COMPLETED, and the
+// ASC MHL result must ride along so the jobs-table column updates on completion.
 func TestJobCompleteEvent_ToProtobuf_CarriesStatus(t *testing.T) {
 	evt := JobCompleteEvent{
-		Id:             "id",
-		CompletionTime: time.Now(),
-		Status:         "COMPLETED_WITH_WARNINGS",
+		Id:              "id",
+		CompletionTime:  time.Now(),
+		Status:          "COMPLETED_WITH_WARNINGS",
+		ASCMHLVerified:  1,
+		ASCMHLListed:    3,
+		ASCMHLProblems:  2,
+		ASCMHLAlgorithm: "xxhash64",
 	}
 
 	pbEvt, _ := evt.ToProtobuf()
@@ -58,6 +63,10 @@ func TestJobCompleteEvent_ToProtobuf_CarriesStatus(t *testing.T) {
 	wrapper, ok := pbEvt.(*fmev1.ListEventsResponse_JobCompleteEvent)
 	assert.True(t, ok)
 	assert.Equal(t, "COMPLETED_WITH_WARNINGS", wrapper.JobCompleteEvent.GetStatus())
+	assert.Equal(t, int32(1), wrapper.JobCompleteEvent.GetAscMhlVerified())
+	assert.Equal(t, int32(3), wrapper.JobCompleteEvent.GetAscMhlListed())
+	assert.Equal(t, int32(2), wrapper.JobCompleteEvent.GetAscMhlProblems())
+	assert.Equal(t, "xxhash64", wrapper.JobCompleteEvent.GetAscMhlAlgorithm())
 }
 
 func TestJobCompleteEvent_Priority(t *testing.T) {

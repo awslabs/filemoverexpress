@@ -136,6 +136,13 @@ export class TransferService {
                     hasSuccessfulTasks: evt.hasSuccessfulTasks,
                     timestampCompleted: evt.completed,
                     lastUpdate: evt.completed,
+                    // ASC MHL verification outcome, so the jobs-table column (red X /
+                    // amber / green) and Advanced-details counts update on completion
+                    // rather than only after a full job-list refresh.
+                    ascMhlVerified: evt.ascMhlVerified,
+                    ascMhlListed: evt.ascMhlListed,
+                    ascMhlProblems: evt.ascMhlProblems,
+                    ascMhlAlgorithm: evt.ascMhlAlgorithm,
                 },
             },
         }));

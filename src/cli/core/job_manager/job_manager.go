@@ -334,6 +334,15 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 	} else {
 		forcedFilterList = append(forcedFilterList, blockedPathsFilter)
 	}
+	// Metadata files (.DS_Store, AppleDouble ._*, Thumbs.db) are never intended
+	// payload, so when the profile enables the metadata filter they are excluded
+	// unconditionally - even under Force (overwrite), which bypasses the optional
+	// filters below.
+	if mdFilter, mdErr := metadata.NewMetadataFilter(); mdErr != nil {
+		events.Events.Warn("Error while parsing metadata filter: %s", mdErr)
+	} else if mdFilter != nil && transferProfile.EnableMetadataFilter {
+		forcedFilterList = append(forcedFilterList, mdFilter)
+	}
 	filteredTasks = filterTasks(forcedFilterList, filteredTasks)
 
 	var filterList []filters.FileMoverFilter
@@ -348,12 +357,6 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 		events.Events.Warn("Error while parsing inclusion filter: %s", err)
 	} else if inclusionFilter != nil {
 		filterList = append(filterList, inclusionFilter)
-	}
-	metadataFilter, err := metadata.NewMetadataFilter()
-	if err != nil {
-		events.Events.Warn("Error while parsing metadata filter: %s", err)
-	} else if metadataFilter != nil && transferProfile.EnableMetadataFilter {
-		filterList = append(filterList, metadataFilter)
 	}
 	fileExistsFilter, err := fileAlreadyExists.NewFileAlreadyExistsFilter(job)
 	if err != nil {
@@ -397,6 +400,10 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
 				Status:             string(job.Status()),
+				ASCMHLVerified:     job.ASCMHLVerified(),
+				ASCMHLListed:       job.ASCMHLListed(),
+				ASCMHLProblems:     job.ASCMHLProblems(),
+				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -456,6 +463,15 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	} else {
 		forcedFilterList = append(forcedFilterList, blockedPathsFilter)
 	}
+	// Metadata files (.DS_Store, AppleDouble ._*, Thumbs.db) are never intended
+	// payload, so when the profile enables the metadata filter they are excluded
+	// unconditionally - even under Force (overwrite), which bypasses the optional
+	// filters below.
+	if mdFilter, mdErr := metadata.NewMetadataFilter(); mdErr != nil {
+		events.Events.Warn("Error while parsing metadata filter: %s", mdErr)
+	} else if mdFilter != nil && transferProfile.EnableMetadataFilter {
+		forcedFilterList = append(forcedFilterList, mdFilter)
+	}
 	filteredTasks = filterTasks(forcedFilterList, filteredTasks)
 
 	var filterList []filters.FileMoverFilter
@@ -470,12 +486,6 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		events.Events.Warn("Error while parsing inclusion filter: %s", err)
 	} else if inclusionFilter != nil {
 		filterList = append(filterList, inclusionFilter)
-	}
-	metadataFilter, err := metadata.NewMetadataFilter()
-	if err != nil {
-		events.Events.Warn("Error while parsing metadata filter: %s", err)
-	} else if metadataFilter != nil && transferProfile.EnableMetadataFilter {
-		filterList = append(filterList, metadataFilter)
 	}
 
 	if !job.Force() {
@@ -501,6 +511,10 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
 				Status:             string(job.Status()),
+				ASCMHLVerified:     job.ASCMHLVerified(),
+				ASCMHLListed:       job.ASCMHLListed(),
+				ASCMHLProblems:     job.ASCMHLProblems(),
+				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -608,6 +622,10 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
 				Status:             string(job.Status()),
+				ASCMHLVerified:     job.ASCMHLVerified(),
+				ASCMHLListed:       job.ASCMHLListed(),
+				ASCMHLProblems:     job.ASCMHLProblems(),
+				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -768,6 +786,10 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 				HasTaskErrors:      job.HasTaskErrors(),
 				HasAllSkippedTasks: false,
 				Status:             string(job.Status()),
+				ASCMHLVerified:     job.ASCMHLVerified(),
+				ASCMHLListed:       job.ASCMHLListed(),
+				ASCMHLProblems:     job.ASCMHLProblems(),
+				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)

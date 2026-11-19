@@ -140,6 +140,14 @@ message JobCompleteEvent {
     // so it must carry the warnings state or a verify-failed job shows as a
     // clean COMPLETED.
     string status = 7;
+    // ASC MHL verification outcome, carried on the completion event so the GUI's
+    // jobs-table column (red X / amber / green) and the Advanced-details counts
+    // appear live when a job finishes, instead of only after a full job-list
+    // refresh pulls the daemon's authoritative state.
+    int32 asc_mhl_verified = 8;
+    int32 asc_mhl_listed = 9;
+    int32 asc_mhl_problems = 10;
+    string asc_mhl_algorithm = 11;
 }
 
 message JobErrorEvent {
