@@ -121,6 +121,18 @@ message ResubmitJobResponse {
     bool success = 2;
 }
 
+message ResolveVerificationGateRequest {
+    string job_id = 1;
+    // proceed=true uploads anyway (the job finishes with warnings); proceed=false
+    // stops and cancels the job without uploading.
+    bool proceed = 2;
+}
+
+message ResolveVerificationGateResponse {
+    string job_id = 1;
+    bool success = 2;
+}
+
 message JobProgressEvent {
     string id = 1;
     string name = 2;

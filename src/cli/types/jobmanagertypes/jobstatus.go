@@ -8,7 +8,11 @@ const (
 	JobStatusInProgress   JobStatus = "IN_PROGRESS"
 	JobStatusPaused       JobStatus = "PAUSED"
 	JobStatusCancelled    JobStatus = "CANCELLED"
-	JobStatusCompleted    JobStatus = "COMPLETED"
+	// JobStatusNeedsReview is a non-terminal pause: a supplied ASC MHL manifest
+	// failed verification and the profile blocks upload on failure, so the job
+	// waits (nothing uploaded) until ResolveVerificationGate proceeds or stops it.
+	JobStatusNeedsReview JobStatus = "NEEDS_REVIEW"
+	JobStatusCompleted   JobStatus = "COMPLETED"
 	// JobStatusCompletedWithWarnings is a terminal state: the transfer finished
 	// and the bytes were uploaded, but at least one file failed its supplied
 	// ASC MHL verification (hash mismatch or a listed file missing on disk).
@@ -35,6 +39,8 @@ func (j JobStatus) String() string {
 		return "Paused"
 	case JobStatusCancelled:
 		return "Cancelled"
+	case JobStatusNeedsReview:
+		return "Needs Review"
 	case JobStatusCompleted:
 		return "Completed"
 	case JobStatusCompletedWithWarnings:
@@ -62,6 +68,8 @@ func JobStatusFromString(status string) JobStatus {
 		return JobStatusPaused
 	case "CANCELLED":
 		return JobStatusCancelled
+	case "NEEDS_REVIEW":
+		return JobStatusNeedsReview
 	case "COMPLETED":
 		return JobStatusCompleted
 	case "COMPLETED_WITH_WARNINGS":

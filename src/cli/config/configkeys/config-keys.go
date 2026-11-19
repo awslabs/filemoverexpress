@@ -58,6 +58,7 @@ const (
 	TransferProfilesAccelerated                 = "accelerated"
 	TransferProfilesFileOrder                   = "fileOrder"
 	TransferProfilesEnableMetadataFilter        = "enableMetadataFilter"
+	TransferProfilesBlockUploadOnVerifyFailure  = "blockUploadOnVerifyFailure"
 	TransferProfilesStorageClass                = "storageClass"
 	TransferProfilesPaths                       = "paths"
 	TransferProfilesPathsLocal                  = TransferProfilesPaths + KeySeparator + "local"
