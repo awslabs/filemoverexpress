@@ -1,0 +1,98 @@
+name: 'Resolve CI images'
+description: >
+  Works out which prebuilt CI images match the checked-out sources and whether they have been
+  published. An output is empty when the image does not exist, so callers can fall back to
+  installing tools on the runner. Requires the repository to be checked out.
+
+inputs:
+  owners:
+    description: >
+      Comma-separated GHCR owners to look in, in order. The default tries the repository owner
+      (so a fork can test its own images) and then the upstream project.
+    required: false
+    default: ''
+  github-token:
+    description: 'Token used to read packages that are not public'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  ci-tag:
+    description: 'Tag of the general CI image for these sources'
+    value: ${{ steps.resolve.outputs.ci-tag }}
+  e2e-tag:
+    description: 'Tag of the end-to-end image for these sources'
+    value: ${{ steps.resolve.outputs.e2e-tag }}
+  ci-image:
+    description: 'Full reference of the general CI image, or empty if it is not published'
+    value: ${{ steps.resolve.outputs.ci-image }}
+  e2e-image:
+    description: 'Full reference of the end-to-end image, or empty if it is not published'
+    value: ${{ steps.resolve.outputs.e2e-image }}
+  ci-container:
+    description: >
+      The ci image as JSON for `jobs.<id>.container` through `fromJSON(...)`: an object when the image is
+      published, `null` otherwise. An empty string is not accepted there, hence the JSON.
+    value: ${{ steps.resolve.outputs.ci-container }}
+  e2e-container:
+    description: 'Same as ci-container, for the end-to-end image'
+    value: ${{ steps.resolve.outputs.e2e-container }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve images
+      id: resolve
+      shell: bash
+      env:
+        OWNERS: ${{ inputs.owners }}
+        REPO_OWNER: ${{ github.repository_owner }}
+        GITHUB_ACTOR_NAME: ${{ github.actor }}
+        TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+
+        owners="${OWNERS:-${REPO_OWNER},awslabs}"
+        owners="$(tr '[:upper:]' '[:lower:]' <<<"${owners}")"
+
+        # A login only matters for packages that are not public. Never fail on it.
+        echo "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR_NAME}" --password-stdin >/dev/null 2>&1 || true
+
+        ci_tag="$(bash .github/scripts/image-tag.sh ci)"
+        e2e_tag="$(bash .github/scripts/image-tag.sh e2e)"
+
+        find_image() { # <name> <tag>
+          local owner ref
+          for owner in ${owners//,/ }; do
+            ref="ghcr.io/${owner}/filemoverexpress-$1:$2"
+            if docker manifest inspect "${ref}" >/dev/null 2>&1; then
+              echo "${ref}"
+              return 0
+            fi
+          done
+          return 0
+        }
+
+        container_json() { # <image or empty>
+          if [ -n "$1" ]; then printf '{"image":"%s"}' "$1"; else printf 'null'; fi
+        }
+
+        ci_image="$(find_image ci "${ci_tag}")"
+        e2e_image="$(find_image e2e "${e2e_tag}")"
+
+        {
+          echo "ci-tag=${ci_tag}"
+          echo "e2e-tag=${e2e_tag}"
+          echo "ci-image=${ci_image}"
+          echo "e2e-image=${e2e_image}"
+          echo "ci-container=$(container_json "${ci_image}")"
+          echo "e2e-container=$(container_json "${e2e_image}")"
+        } >> "${GITHUB_OUTPUT}"
+
+        {
+          echo "### CI images"
+          echo "| Image | Tag | Resolved |"
+          echo "|---|---|---|"
+          echo "| ci | \`${ci_tag}\` | \`${ci_image:-not published, using runner setup}\` |"
+          echo "| e2e | \`${e2e_tag}\` | \`${e2e_image:-not published}\` |"
+        } >> "${GITHUB_STEP_SUMMARY}"
