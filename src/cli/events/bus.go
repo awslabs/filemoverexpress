@@ -221,11 +221,16 @@ func (*EventBus) doSend(listener EventListener, event eventtypes.Event) {
 	listener.channel <- event
 }
 
-func (eb *EventBus) SendJobStatusChange(jobId string, status string, timestamp time.Time) {
+func (eb *EventBus) SendJobStatusChange(jobId string, status string, timestamp time.Time,
+	asc eventtypes.ASCMHLSummary) {
 	evt := eventtypes.JobStatusChangeEvent{
-		Id:        jobId,
-		Status:    status,
-		Timestamp: timestamp,
+		Id:              jobId,
+		Status:          status,
+		Timestamp:       timestamp,
+		ASCMHLVerified:  asc.Verified,
+		ASCMHLListed:    asc.Listed,
+		ASCMHLProblems:  asc.Problems,
+		ASCMHLAlgorithm: asc.Algorithm,
 	}
 	eb.Send(&evt)
 }
