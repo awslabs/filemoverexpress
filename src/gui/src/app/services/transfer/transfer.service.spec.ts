@@ -174,7 +174,8 @@ describe('TransferService', () => {
         it('preserves COMPLETED_WITH_WARNINGS from the daemon instead of flattening to Completed', () => {
             const completed = new Date('2026-02-02T02:02:02Z');
             events$.next(new JobCompleteEvent('job-3w', 'Verify failed', completed, false, true, false,
-                JobStatus.CompletedWithWarnings, 1, 3, 2, 'xxhash64'));
+                JobStatus.CompletedWithWarnings,
+                {verified: 1, listed: 3, problems: 2, algorithm: 'xxhash64', failures: []}));
 
             const action = dispatchSpy.mock.calls[0][0] as {
                 type: string,
@@ -264,8 +265,8 @@ describe('TransferService', () => {
         });
 
         it('carries ASC MHL counts so the gate dialog has real numbers on NEEDS_REVIEW', () => {
-            events$.next(new JobStatusChangeEvent('job-6r', JobStatus.NeedsReview, ts, 1, 3, 2, 'xxhash64',
-                ['clip.mov (hash mismatch)']));
+            events$.next(new JobStatusChangeEvent('job-6r', JobStatus.NeedsReview, ts,
+                {verified: 1, listed: 3, problems: 2, algorithm: 'xxhash64', failures: ['clip.mov (hash mismatch)']}));
 
             const action = dispatchSpy.mock.calls[0][0] as {
                 type: string,

@@ -182,16 +182,10 @@ func (j *Job) SetStatus(status JobStatus) {
 		j.TimestampCompleted = n
 	}
 
-	// Reads the ASC MHL fields directly (not the RLock getters) because the write
-	// lock is already held here. Carried on the event so a NEEDS_REVIEW pause can
-	// show real counts in the gate dialog before the job completes.
-	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n, eventtypes.ASCMHLSummary{
-		Verified:  j.ascMHLVerified,
-		Listed:    j.ascMHLListed,
-		Problems:  j.ascMHLProblems,
-		Algorithm: j.ascMHLAlgorithm,
-		Failures:  j.ascMHLFailures,
-	})
+	// Build the ASC MHL payload directly (the write lock is already held), so a
+	// NEEDS_REVIEW pause carries real counts and the failing-file list to the gate
+	// dialog before the job completes. nil when no manifest was verified.
+	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n, j.ascMHLEventDataLocked())
 }
 
 func (j *Job) StatusMessage() string {
@@ -326,6 +320,35 @@ func (j *Job) ASCMHLFailures() []string {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.ascMHLFailures
+}
+
+// ASCMHLEventData builds the nested ASC MHL payload for a job event, or nil when
+// no supplied manifest was verified (listed == 0), so an event for a job without
+// a manifest carries no ASC MHL data. Takes the read lock; safe for external
+// callers.
+func (j *Job) ASCMHLEventData() *eventtypes.ASCMHLEventData {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLEventDataLocked()
+}
+
+// ascMHLEventDataLocked is ASCMHLEventData assuming the caller already holds the
+// lock (e.g. SetStatus, which holds the write lock). The int -> int32 conversion
+// lives here, the one place the counts cross into event/protobuf types.
+func (j *Job) ascMHLEventDataLocked() *eventtypes.ASCMHLEventData {
+	if j.ascMHLListed == 0 {
+		return nil
+	}
+	verified, _ := safeconv.IntToInt32(j.ascMHLVerified)
+	listed, _ := safeconv.IntToInt32(j.ascMHLListed)
+	problems, _ := safeconv.IntToInt32(j.ascMHLProblems)
+	return &eventtypes.ASCMHLEventData{
+		Verified:  verified,
+		Listed:    listed,
+		Problems:  problems,
+		Algorithm: j.ascMHLAlgorithm,
+		Failures:  j.ascMHLFailures,
+	}
 }
 
 func (j *Job) Direction() transfertypes.Direction {

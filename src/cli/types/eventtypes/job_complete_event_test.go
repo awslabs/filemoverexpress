@@ -49,13 +49,15 @@ func TestJobCompleteEvent_ToProtobuf(t *testing.T) {
 // ASC MHL result must ride along so the jobs-table column updates on completion.
 func TestJobCompleteEvent_ToProtobuf_CarriesStatus(t *testing.T) {
 	evt := JobCompleteEvent{
-		Id:              "id",
-		CompletionTime:  time.Now(),
-		Status:          "COMPLETED_WITH_WARNINGS",
-		ASCMHLVerified:  1,
-		ASCMHLListed:    3,
-		ASCMHLProblems:  2,
-		ASCMHLAlgorithm: "xxhash64",
+		Id:             "id",
+		CompletionTime: time.Now(),
+		Status:         "COMPLETED_WITH_WARNINGS",
+		ASCMHL: &ASCMHLEventData{
+			Verified:  1,
+			Listed:    3,
+			Problems:  2,
+			Algorithm: "xxhash64",
+		},
 	}
 
 	pbEvt, _ := evt.ToProtobuf()
@@ -63,10 +65,23 @@ func TestJobCompleteEvent_ToProtobuf_CarriesStatus(t *testing.T) {
 	wrapper, ok := pbEvt.(*fmev1.ListEventsResponse_JobCompleteEvent)
 	assert.True(t, ok)
 	assert.Equal(t, "COMPLETED_WITH_WARNINGS", wrapper.JobCompleteEvent.GetStatus())
-	assert.Equal(t, int32(1), wrapper.JobCompleteEvent.GetAscMhlVerified())
-	assert.Equal(t, int32(3), wrapper.JobCompleteEvent.GetAscMhlListed())
-	assert.Equal(t, int32(2), wrapper.JobCompleteEvent.GetAscMhlProblems())
-	assert.Equal(t, "xxhash64", wrapper.JobCompleteEvent.GetAscMhlAlgorithm())
+	asc := wrapper.JobCompleteEvent.GetAscMhl()
+	assert.NotNil(t, asc)
+	assert.Equal(t, int32(1), asc.GetVerified())
+	assert.Equal(t, int32(3), asc.GetListed())
+	assert.Equal(t, int32(2), asc.GetProblems())
+	assert.Equal(t, "xxhash64", asc.GetAlgorithm())
+}
+
+// A job with no supplied manifest carries no ASC MHL payload at all.
+func TestJobCompleteEvent_ToProtobuf_NoManifestIsNil(t *testing.T) {
+	evt := JobCompleteEvent{Id: "id", CompletionTime: time.Now(), Status: "COMPLETED"}
+
+	pbEvt, _ := evt.ToProtobuf()
+
+	wrapper, ok := pbEvt.(*fmev1.ListEventsResponse_JobCompleteEvent)
+	assert.True(t, ok)
+	assert.Nil(t, wrapper.JobCompleteEvent.GetAscMhl())
 }
 
 func TestJobCompleteEvent_Priority(t *testing.T) {

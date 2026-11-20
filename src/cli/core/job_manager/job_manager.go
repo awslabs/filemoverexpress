@@ -400,10 +400,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
 				Status:             string(job.Status()),
-				ASCMHLVerified:     job.ASCMHLVerified(),
-				ASCMHLListed:       job.ASCMHLListed(),
-				ASCMHLProblems:     job.ASCMHLProblems(),
-				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -511,10 +508,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
 				Status:             string(job.Status()),
-				ASCMHLVerified:     job.ASCMHLVerified(),
-				ASCMHLListed:       job.ASCMHLListed(),
-				ASCMHLProblems:     job.ASCMHLProblems(),
-				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -635,10 +629,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
 				Status:             string(job.Status()),
-				ASCMHLVerified:     job.ASCMHLVerified(),
-				ASCMHLListed:       job.ASCMHLListed(),
-				ASCMHLProblems:     job.ASCMHLProblems(),
-				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -816,10 +807,7 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 				HasTaskErrors:      job.HasTaskErrors(),
 				HasAllSkippedTasks: false,
 				Status:             string(job.Status()),
-				ASCMHLVerified:     job.ASCMHLVerified(),
-				ASCMHLListed:       job.ASCMHLListed(),
-				ASCMHLProblems:     job.ASCMHLProblems(),
-				ASCMHLAlgorithm:    job.ASCMHLAlgorithm(),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)

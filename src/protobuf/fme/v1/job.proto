@@ -152,14 +152,24 @@ message JobCompleteEvent {
     // so it must carry the warnings state or a verify-failed job shows as a
     // clean COMPLETED.
     string status = 7;
-    // ASC MHL verification outcome, carried on the completion event so the GUI's
-    // jobs-table column (red X / amber / green) and the Advanced-details counts
-    // appear live when a job finishes, instead of only after a full job-list
-    // refresh pulls the daemon's authoritative state.
-    int32 asc_mhl_verified = 8;
-    int32 asc_mhl_listed = 9;
-    int32 asc_mhl_problems = 10;
-    string asc_mhl_algorithm = 11;
+    // ASC MHL verification outcome. A nested message so the common case (no
+    // supplied manifest) sends nothing: unset when the job verified no manifest.
+    // Lets the GUI's jobs-table column and Advanced-details counts appear live on
+    // completion instead of only after a full job-list refresh.
+    AscMhlResult asc_mhl = 8;
+}
+
+// AscMhlResult is the ASC MHL verification outcome carried on job events. Nested
+// (and left unset when no manifest was verified) so events for the ~95% of jobs
+// without a manifest do not carry these fields at all.
+message AscMhlResult {
+    int32 verified = 1;
+    int32 listed = 2;
+    int32 problems = 3;
+    string algorithm = 4;
+    // Per-file integrity problems as "path (reason)", so the pre-upload gate can
+    // list the offending files, not just count them.
+    repeated string failures = 5;
 }
 
 message JobErrorEvent {
@@ -225,16 +235,11 @@ message JobStatusChangeEvent {
     string job_id = 1;
     string status = 2;
     google.protobuf.Timestamp timestamp = 3;
-    // ASC MHL verification outcome, carried so a job paused in NEEDS_REVIEW (which
-    // has not completed, so no JobCompleteEvent yet) can show real counts in the
-    // pre-upload gate dialog. Zero on status changes before verification runs.
-    int32 asc_mhl_verified = 4;
-    int32 asc_mhl_listed = 5;
-    int32 asc_mhl_problems = 6;
-    string asc_mhl_algorithm = 7;
-    // Per-file integrity problems as "path (reason)", so the pre-upload gate can
-    // list the offending files, not just count them.
-    repeated string asc_mhl_failures = 8;
+    // ASC MHL verification outcome. Nested and left unset when no manifest was
+    // verified, so a job paused in NEEDS_REVIEW (which has not completed, so no
+    // JobCompleteEvent yet) can still show real counts and the failing-file list
+    // in the pre-upload gate dialog.
+    AscMhlResult asc_mhl = 4;
 }
 
 message JobChecksumProgressEvent {
