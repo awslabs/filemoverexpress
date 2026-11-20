@@ -20,6 +20,7 @@ func TestJobStatusChangeEvent_ToProtobuf_CarriesASCMHL(t *testing.T) {
 		ASCMHLListed:    3,
 		ASCMHLProblems:  2,
 		ASCMHLAlgorithm: "xxhash64",
+		ASCMHLFailures:  []string{"clip.mov (hash mismatch)"},
 	}
 
 	pbEvt, pbType := evt.ToProtobuf()
@@ -32,4 +33,5 @@ func TestJobStatusChangeEvent_ToProtobuf_CarriesASCMHL(t *testing.T) {
 	assert.Equal(t, int32(3), wrapper.JobStatusChangeEvent.GetAscMhlListed())
 	assert.Equal(t, int32(2), wrapper.JobStatusChangeEvent.GetAscMhlProblems())
 	assert.Equal(t, "xxhash64", wrapper.JobStatusChangeEvent.GetAscMhlAlgorithm())
+	assert.Equal(t, []string{"clip.mov (hash mismatch)"}, wrapper.JobStatusChangeEvent.GetAscMhlFailures())
 }

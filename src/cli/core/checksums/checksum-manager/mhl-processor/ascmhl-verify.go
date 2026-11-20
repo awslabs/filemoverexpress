@@ -39,6 +39,13 @@ const (
 	ascMHLStatusUnreadable = "unreadable"
 	ascMHLStatusFlagged    = "flagged"
 	ascMHLStatusUnhonored  = "unhonored"
+
+	// Short failure reasons shown in the pre-upload gate's per-file list.
+	reasonMismatch   = "hash mismatch"
+	reasonMissing    = "missing on disk"
+	reasonUnreadable = "unreadable"
+	reasonEscape     = "escapes the offload tree"
+	reasonFlagged    = "marked bad by the writer"
 )
 
 // verifyPriority is the order in which FME-supported algorithms are chosen to
@@ -78,6 +85,9 @@ type (
 		// manifest (set on the first successful verify). Surfaced on the job so the
 		// GUI can show which hash the ASC MHL was honored with.
 		algorithm string
+		// failures lists each integrity problem as "relative/path (reason)", so the
+		// pre-upload gate can name the offending files, not just count them.
+		failures []string
 	}
 
 	// verifyCtx carries the per-job verification context so the manifest/entry
@@ -120,6 +130,9 @@ type (
 		Verified  int
 		Listed    int
 		Algorithm string
+		// Failures names each integrity problem as "relative/path (reason)" so the
+		// pre-upload gate can list the offending files.
+		Failures []string
 	}
 )
 
@@ -171,6 +184,7 @@ func VerifyASCMHL(req VerifyRequest) VerifyResult {
 		result.Problems += counts.integrityProblems()
 		result.Verified += counts.verified
 		result.Listed += len(manifest.Entries)
+		result.Failures = append(result.Failures, counts.failures...)
 		switch {
 		case result.Algorithm == "":
 			result.Algorithm = counts.algorithm
@@ -233,6 +247,7 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 		if !ok {
 			// Path escapes the offload tree (e.g. "../../x"). Never stat or hash it.
 			emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCEscape, entry.RelativePath, manifestPath))
+			counts.addFailure(entry.RelativePath, reasonEscape)
 			counts.rejected++
 			continue
 		}
@@ -240,6 +255,7 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 
 		if _, err := os.Stat(absPath); err != nil {
 			emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCMissing, entry.RelativePath, manifestPath))
+			counts.addFailure(entry.RelativePath, reasonMissing)
 			counts.missing++
 			continue
 		}
@@ -248,6 +264,7 @@ func verifyManifest(vctx verifyCtx, manifestPath string, manifest mhl.ASCManifes
 		// resolve both ends and re-check containment before hashing.
 		if !resolvedUnder(root, absPath) {
 			emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCEscape, entry.RelativePath, manifestPath))
+			counts.addFailure(entry.RelativePath, reasonEscape)
 			counts.rejected++
 			continue
 		}
@@ -273,6 +290,7 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 			emitJobError(vctx.jobID, vctx.jobName,
 				fmt.Sprintf(strASCFlagged, entry.RelativePath, strings.Join(entry.RejectedActions, ", ")))
 			setTaskASCMHLStatus(vctx, absPath, ascMHLStatusFlagged)
+			counts.addFailure(entry.RelativePath, reasonFlagged)
 			counts.flagged++
 			return
 		}
@@ -296,6 +314,7 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 		// problem, not a benign skip.
 		emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCUnreadable, entry.RelativePath, algo, err))
 		setTaskASCMHLStatus(vctx, absPath, ascMHLStatusUnreadable)
+		counts.addFailure(entry.RelativePath, reasonUnreadable)
 		counts.unreadable++
 		return
 	}
@@ -321,6 +340,7 @@ func verifyEntry(vctx verifyCtx, entry mhl.ASCFileEntry, absPath string, counts 
 
 	emitJobError(vctx.jobID, vctx.jobName, fmt.Sprintf(strASCMismatch, entry.RelativePath, algo, expected, computed))
 	setTaskASCMHLStatus(vctx, absPath, ascMHLStatusMismatch)
+	counts.addFailure(entry.RelativePath, reasonMismatch)
 	counts.mismatched++
 }
 
@@ -331,6 +351,12 @@ func setTaskASCMHLStatus(vctx verifyCtx, absPath, status string) {
 	if task := vctx.taskByPath[absPath]; task != nil {
 		task.SetASCMHLStatus(status)
 	}
+}
+
+// addFailure records a per-file integrity problem as "relative/path (reason)" for
+// the pre-upload gate's list.
+func (c *verifyCounts) addFailure(relPath, reason string) {
+	c.failures = append(c.failures, fmt.Sprintf("%s (%s)", relPath, reason))
 }
 
 // computeOrReuse returns the file's checksum in algo, reusing ONLY a hash the

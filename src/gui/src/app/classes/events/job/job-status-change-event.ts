@@ -16,6 +16,7 @@ export class JobStatusChangeEvent implements BaseEvent {
         public ascMhlListed = 0,
         public ascMhlProblems = 0,
         public ascMhlAlgorithm = '',
+        public ascMhlFailures: string[] = [],
     ) {
     }
 
@@ -34,6 +35,7 @@ export class JobStatusChangeEvent implements BaseEvent {
             evt.ascMhlListed,
             evt.ascMhlProblems,
             evt.ascMhlAlgorithm,
+            evt.ascMhlFailures,
         );
     }
 }

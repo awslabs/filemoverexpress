@@ -113,6 +113,7 @@ export class VerificationGateService {
                 job.ascMhlVerified ?? 0,
                 job.ascMhlListed ?? 0,
                 job.ascMhlAlgorithm,
+                job.ascMhlFailures,
             ),
         ).afterClosed().subscribe((proceed) => {
             this.dialogOpen = false;

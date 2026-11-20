@@ -232,6 +232,9 @@ message JobStatusChangeEvent {
     int32 asc_mhl_listed = 5;
     int32 asc_mhl_problems = 6;
     string asc_mhl_algorithm = 7;
+    // Per-file integrity problems as "path (reason)", so the pre-upload gate can
+    // list the offending files, not just count them.
+    repeated string asc_mhl_failures = 8;
 }
 
 message JobChecksumProgressEvent {

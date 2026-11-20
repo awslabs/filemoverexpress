@@ -557,6 +557,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	// problem count, and the algorithm) so the GUI can show it even on a clean run.
 	job.SetASCMHLResult(verificationResult.Verified, verificationResult.Listed,
 		verificationResult.Problems, verificationResult.Algorithm)
+	job.SetASCMHLFailures(verificationResult.Failures)
 	if verificationResult.Problems > 0 {
 		// At least one file failed its supplied ASC MHL verification (hash
 		// mismatch or missing on disk). The transfer still proceeds, but the job

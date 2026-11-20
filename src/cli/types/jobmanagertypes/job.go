@@ -44,6 +44,7 @@ type (
 		ascMHLListed          int
 		ascMHLAlgorithm       string
 		ascMHLProblems        int
+		ascMHLFailures        []string
 		dbObjects             []*databasetypes.DatabaseObject
 		destination           string
 		TimestampCreated      time.Time
@@ -189,6 +190,7 @@ func (j *Job) SetStatus(status JobStatus) {
 		Listed:    j.ascMHLListed,
 		Problems:  j.ascMHLProblems,
 		Algorithm: j.ascMHLAlgorithm,
+		Failures:  j.ascMHLFailures,
 	})
 }
 
@@ -309,6 +311,21 @@ func (j *Job) ASCMHLAlgorithm() string {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.ascMHLAlgorithm
+}
+
+// SetASCMHLFailures records the per-file integrity problems ("path (reason)") so
+// the pre-upload gate can list the offending files.
+func (j *Job) SetASCMHLFailures(failures []string) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+	j.ascMHLFailures = failures
+}
+
+// ASCMHLFailures returns the per-file integrity problem descriptions.
+func (j *Job) ASCMHLFailures() []string {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLFailures
 }
 
 func (j *Job) Direction() transfertypes.Direction {

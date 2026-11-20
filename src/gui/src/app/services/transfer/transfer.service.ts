@@ -205,6 +205,7 @@ export class TransferService {
                 ascMhlListed: evt.ascMhlListed,
                 ascMhlProblems: evt.ascMhlProblems,
                 ascMhlAlgorithm: evt.ascMhlAlgorithm,
+                ascMhlFailures: evt.ascMhlFailures,
             },
         };
 

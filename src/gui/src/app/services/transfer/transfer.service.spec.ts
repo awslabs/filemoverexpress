@@ -264,7 +264,8 @@ describe('TransferService', () => {
         });
 
         it('carries ASC MHL counts so the gate dialog has real numbers on NEEDS_REVIEW', () => {
-            events$.next(new JobStatusChangeEvent('job-6r', JobStatus.NeedsReview, ts, 1, 3, 2, 'xxhash64'));
+            events$.next(new JobStatusChangeEvent('job-6r', JobStatus.NeedsReview, ts, 1, 3, 2, 'xxhash64',
+                ['clip.mov (hash mismatch)']));
 
             const action = dispatchSpy.mock.calls[0][0] as {
                 type: string,
@@ -277,6 +278,7 @@ describe('TransferService', () => {
                 ascMhlListed: 3,
                 ascMhlProblems: 2,
                 ascMhlAlgorithm: 'xxhash64',
+                ascMhlFailures: ['clip.mov (hash mismatch)'],
             });
         });
     });
