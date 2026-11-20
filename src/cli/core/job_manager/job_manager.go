@@ -764,10 +764,10 @@ func sortTasks(tasks []*jobmanagertypes.Task, sortList []sorting.FileMoverSorter
 func awaitVerificationGate(job *jobmanagertypes.Job, problems int) bool {
 	job.SetStatus(jobmanagertypes.JobStatusNeedsReview)
 	events.Events.InfoForJob(job.JobId(),
-		"ASC MHL verification found %d integrity problem(s); upload paused for review", problems)
+		"MHL verification found %d integrity problem(s); upload paused for review", problems)
 	if job.AwaitGateResolution() {
 		events.Events.WarnForJob(job.JobId(),
-			"Upload-anyway override: proceeding with %d acknowledged ASC MHL integrity problem(s)", problems)
+			"Upload-anyway override: proceeding with %d acknowledged MHL integrity problem(s)", problems)
 		return true
 	}
 	return false

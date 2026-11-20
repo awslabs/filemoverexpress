@@ -31,7 +31,7 @@ describe('[confirmation-modal.constants] verificationGateDialog', () => {
     it('summarizes the counts, algorithm, and acknowledgement gate', () => {
         const cfg = verificationGateDialog(2, 1, 3, 'xxhash64').data!;
         expect(cfg.title).toBe('Verification failed - review before upload');
-        expect(cfg.message).toContain('2 of 3 file(s) failed ASC MHL verification (xxhash64), 1 verified');
+        expect(cfg.message).toContain('2 of 3 file(s) failed MHL verification (xxhash64), 1 verified');
         expect(cfg.cancelText).toBe('Stop');
         expect(cfg.confirmText).toBe('Upload anyway');
         expect(cfg.acknowledgeText).toBeTruthy();
