@@ -1,5 +1,5 @@
 import * as proto from '@gen/es/fme/v1/config_pb';
-import { NotificationSettings } from '@gen/es/fme/v1/notifications_pb';
+import { NotificationPreset } from '@gen/es/fme/v1/notifications_pb';
 
 export type FmeConfigSection =
     proto.GeneralSettings
@@ -16,9 +16,27 @@ export interface FmeConfig {
     protocols: ConfigProtocols;
     uploadHotFolders: ConfigHotFolders[];
     // Webhook notification settings are managed by their own RPCs (not this form), but
-    // the whole-config save must carry them through unchanged. Held as the raw protobuf
-    // message since the form never edits it.
-    notifications?: NotificationSettings;
+    // the whole-config save must carry them through unchanged. Modeled as a plain TS
+    // type (mapped to/from the protobuf message by the Notifications class) rather than
+    // holding the raw gRPC message here.
+    notifications?: Notifications;
+}
+
+export interface Notifications {
+    destinations: NotificationDestination[];
+    notifyAllTransfers: boolean;
+}
+
+export interface NotificationDestination {
+    name: string;
+    preset: NotificationPreset;
+    notifyOnFinish: boolean;
+    notifyOnFailure: boolean;
+    isDefault: boolean;
+    // Read-only hints from the daemon. The webhook URL itself is a secret and is never
+    // carried here: hasUrl reports whether one is on file, urlHint is a display tail.
+    hasUrl: boolean;
+    urlHint: string;
 }
 
 export interface ConfigGeneral {
