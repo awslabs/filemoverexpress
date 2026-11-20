@@ -231,6 +231,7 @@ func (eb *EventBus) SendJobStatusChange(jobId string, status string, timestamp t
 		ASCMHLListed:    asc.Listed,
 		ASCMHLProblems:  asc.Problems,
 		ASCMHLAlgorithm: asc.Algorithm,
+		ASCMHLFailures:  asc.Failures,
 	}
 	eb.Send(&evt)
 }

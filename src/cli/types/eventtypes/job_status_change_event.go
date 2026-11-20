@@ -22,6 +22,7 @@ type (
 		ASCMHLListed    int
 		ASCMHLProblems  int
 		ASCMHLAlgorithm string
+		ASCMHLFailures  []string
 	}
 
 	// ASCMHLSummary bundles a job's ASC MHL verification counts so they can be
@@ -31,6 +32,7 @@ type (
 		Listed    int
 		Problems  int
 		Algorithm string
+		Failures  []string
 	}
 )
 
@@ -58,6 +60,7 @@ func (jsce *JobStatusChangeEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) 
 		AscMhlListed:    ascListed,
 		AscMhlProblems:  ascProblems,
 		AscMhlAlgorithm: jsce.ASCMHLAlgorithm,
+		AscMhlFailures:  jsce.ASCMHLFailures,
 	}
 
 	msgEvent := &fmev1.ListEventsResponse_JobStatusChangeEvent{JobStatusChangeEvent: &pbEvent}

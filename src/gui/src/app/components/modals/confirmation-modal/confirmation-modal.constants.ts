@@ -88,12 +88,13 @@ export const resubmitJobDialog: MatDialogConfig<ConfirmationModalData> = {
  * upload started. "Stop" is the safe default (filled, primary, Esc maps to it)
  * and resolves the gate to cancel; "Upload anyway" is the deliberate override
  * (stroked, warn) gated behind an acknowledgement checkbox. The counts summarize
- * what failed. All text is plain ASCII.
+ * what failed and the list names the offending files. All text is plain ASCII.
  *
  * @param {number} problems Number of ASC MHL integrity problems found.
  * @param {number} verified Number of listed files that matched their hash.
  * @param {number} listed Number of files the manifest(s) listed.
  * @param {string} [algorithm] Hash algorithm used (e.g. "xxhash64").
+ * @param {string[]} [failures] Per-file problems as "path (reason)".
  * @returns {MatDialogConfig<ConfirmationModalData>} Dialog config for dialog.open().
  */
 export function verificationGateDialog(
@@ -101,17 +102,19 @@ export function verificationGateDialog(
     verified: number,
     listed: number,
     algorithm?: string,
+    failures?: string[],
 ): MatDialogConfig<ConfirmationModalData> {
     const algo = algorithm ? ` (${escapeHtml(algorithm)})` : '';
+    const message = `${problems} of ${listed} file(s) failed ASC MHL verification${algo}, `
+        + `${verified} verified. Uploading now sends files that do not match the `
+        + 'supplied manifest. Nothing has been uploaded yet.'
+        + buildFailureList(failures);
     return {
         width: '520px',
         disableClose: true,
         data: {
             title: 'Verification failed - review before upload',
-            message: `${problems} of ${listed} file(s) failed ASC MHL verification${algo}, `
-                + `${verified} verified. Uploading now sends files that do not match the `
-                + 'supplied manifest. Check the files named in the logs first - the source '
-                + 'may be corrupt or incomplete. Nothing has been uploaded yet.',
+            message,
             cancelText: 'Stop',
             cancelType: 'filled',
             cancelClass: 'primary',
@@ -122,4 +125,20 @@ export function verificationGateDialog(
                 + 'and want to upload them anyway.',
         },
     };
+}
+
+// buildFailureList renders the failing files as an HTML list for the gate dialog
+// (the message is bound with innerHTML). Each entry is escaped. The list is
+// capped so a large offload does not produce an unusable dialog.
+function buildFailureList(failures?: string[]): string {
+    if (!failures || failures.length === 0) {
+        return '';
+    }
+    const cap = 15;
+    const shown = failures.slice(0, cap);
+    const items = shown.map((f) => `<li>${escapeHtml(f)}</li>`).join('');
+    const more = failures.length > cap
+        ? `<li>and ${failures.length - cap} more</li>`
+        : '';
+    return `<p>Files that failed:</p><ul class="verify-failures">${items}${more}</ul>`;
 }

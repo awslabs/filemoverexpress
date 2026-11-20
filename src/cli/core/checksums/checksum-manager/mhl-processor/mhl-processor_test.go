@@ -510,6 +510,8 @@ func TestVerifyASCMHLReportsProblems(t *testing.T) {
 	assert.Equal(t, 0, result.Verified)
 	assert.Equal(t, 1, result.Listed)
 	assert.Equal(t, 1, result.Problems, "a hash mismatch is an integrity problem")
+	assert.Equal(t, []string{"clip.mov (hash mismatch)"}, result.Failures,
+		"the gate list should name the mismatched file and reason")
 }
 
 // Even when every file mismatches, the algorithm that was used is still recorded

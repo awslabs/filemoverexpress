@@ -62,6 +62,8 @@ export interface Job {
     // Count of ASC MHL integrity problems; 0 means a clean verify. This, not the
     // job status, is what the "verified" indicator keys off.
     ascMhlProblems?: number;
+    // Per-file integrity problems as "path (reason)", for the pre-upload gate list.
+    ascMhlFailures?: string[];
 }
 
 export const PROGRESS_STATES: JobStatus[] = [
