@@ -1,4 +1,4 @@
-import { Component, effect, ElementRef, inject, NgZone, OnDestroy, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, effect, ElementRef, HostListener, inject, NgZone, OnDestroy, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { BreadcrumbsComponent } from '@primitives/breadcrumbs/breadcrumbs.component';
@@ -190,7 +190,6 @@ export class BucketBrowserComponent implements OnDestroy {
             this.zone.run(() => this.externalDragActive.set(false));
         });
         this.setContextMenuData();
-
         this.subscriptions.push(this.transferProfileService.transferProfileState.subscribe(
             (transferProfileState: TransferProfileState) => {
                 this.selectedTransferProfile = transferProfileState.currentTransferProfile;
@@ -280,6 +279,25 @@ export class BucketBrowserComponent implements OnDestroy {
         this.subscriptions.map((subscription) => subscription.unsubscribe());
         this.subscriptions = [];
         this.effRef.destroy();
+    }
+
+    // Backstops that clear a stuck external-drag cue. macOS reports only window
+    // drag enter/exit (no per-move event), and the "exit" is not guaranteed to
+    // reach the webview on every drag-end path (e.g. focus shifts to a screenshot
+    // tool, or the drag concludes over a non-target area), which can leave the
+    // dashed S3 drop frame painted with no live drag. Both events below fire only
+    // AFTER a native drag has ended - a live OS file drag suppresses normal pointer
+    // events and holds app focus - so neither can wipe the cue mid-drag.
+    @HostListener('window:blur')
+    clearExternalDragOnBlur(): void {
+        this.externalDragActive.set(false);
+    }
+
+    @HostListener('document:pointerdown')
+    clearExternalDragOnPointerDown(): void {
+        if (this.externalDragActive()) {
+            this.externalDragActive.set(false);
+        }
     }
 
     /**
