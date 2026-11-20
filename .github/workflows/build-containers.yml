@@ -1,48 +1,173 @@
 name: Build CI Containers
 
-# Disabled: container builds are not currently used and the Dockerfiles
-# reference stale workspace paths that cause failures. Re-enable when the
-# Dockerfiles are updated to match the current monorepo layout.
-# on:
-#   push:
-#     branches: [main]
-#     paths:
-#       - '.github/docker/**'
-#       - 'package-lock.json'
-#       - 'src/*/package.json'
-#   workflow_dispatch:
-on: workflow_dispatch
+# Publishes the CI images described in .github/docker/ to GHCR, under the owner of the
+# repository this workflow runs in (ghcr.io/<owner>/filemoverexpress-ci and -e2e):
+#
+#   ci   general pipeline image, linux/amd64 + linux/arm64 (each built natively)
+#   e2e  end-to-end image on top of ci (AWS Emulator, Playwright), linux/amd64 only
+#
+# Tags are a hash of the toolchain inputs (.github/scripts/image-tag.sh), so an image is built
+# when its Dockerfile or versions change, plus weekly to refresh its dependency caches. ci.yml
+# finds the matching image with the resolve-image action and falls back to plain runner setup
+# when there is none.
+#
+# After the first publish, set each package to Public (Package settings -> Change visibility)
+# so forks and unauthenticated pulls work.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/docker/**'
+      - '.github/versions.env'
+      - '.github/scripts/image-tag.sh'
+      - '.github/workflows/build-containers.yml'
+  # The image carries warm Go module and npm caches that go stale as dependencies change.
+  # Rebuilding weekly (same tag, forced) refreshes them and picks up base image updates.
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Rebuild and push even if the tag already exists'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: build-containers-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build-and-push:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      repo-prefix: ${{ steps.names.outputs.repo-prefix }}
+      ci-tag: ${{ steps.resolve.outputs.ci-tag }}
+      e2e-tag: ${{ steps.resolve.outputs.e2e-tag }}
+      build-ci: ${{ steps.decide.outputs.build-ci }}
+      build-e2e: ${{ steps.decide.outputs.build-e2e }}
+      build-args: ${{ steps.args.outputs.build-args }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - id: names
+        run: echo "repo-prefix=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/filemoverexpress" >> "$GITHUB_OUTPUT"
+        shell: bash
+      # Only this repository's own registry decides what is missing.
+      - id: resolve
+        uses: ./.github/actions/resolve-image
+        with:
+          owners: ${{ github.repository_owner }}
+      - id: decide
+        shell: bash
+        env:
+          FORCE: ${{ inputs.force || github.event_name == 'schedule' }}
+          CI_IMAGE: ${{ steps.resolve.outputs.ci-image }}
+          E2E_IMAGE: ${{ steps.resolve.outputs.e2e-image }}
+        run: |
+          echo "build-ci=$([ "$FORCE" = true ] || [ -z "$CI_IMAGE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "build-e2e=$([ "$FORCE" = true ] || [ -z "$E2E_IMAGE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - id: args
+        shell: bash
+        run: |
+          {
+            echo 'build-args<<EOF'
+            grep -E '^[A-Z_]+=' .github/versions.env
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+  build-ci:
+    needs: plan
+    if: needs.plan.outputs.build-ci == 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        with:
+          context: .
+          file: .github/docker/ci.Dockerfile
+          platforms: linux/${{ matrix.arch }}
+          push: true
+          tags: ${{ needs.plan.outputs.repo-prefix }}-ci:${{ needs.plan.outputs.ci-tag }}-${{ matrix.arch }}
+          build-args: ${{ needs.plan.outputs.build-args }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=ci-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=ci-${{ matrix.arch }}
+
+  # Joins the two per-architecture images under one tag. The tag only appears once both
+  # architectures are published, so finding it means the whole image is usable.
+  publish-ci:
+    needs: [plan, build-ci]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        include:
-          - dockerfile: .github/docker/fme-builder.Dockerfile
-            # TODO: Change tag before publishing
-            tag: containers.lax.bunjiboys.dk/awslabs/fme-builder:latest
-            platform: linux/amd64
-          - dockerfile: .github/docker/fme-builder-arm64.Dockerfile
-            tag: containers.lax.bunjiboys.dk/awslabs/fme-builder-arm64:latest
-            platform: linux/arm64
+    steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create multi-architecture tag
+        shell: bash
+        env:
+          IMAGE: ${{ needs.plan.outputs.repo-prefix }}-ci
+          TAG: ${{ needs.plan.outputs.ci-tag }}
+        run: |
+          docker buildx imagetools create -t "${IMAGE}:${TAG}" "${IMAGE}:${TAG}-amd64" "${IMAGE}:${TAG}-arm64"
+
+  build-e2e:
+    needs: [plan, publish-ci]
+    # publish-ci is skipped when the ci image already existed; that is fine, but a failure is not.
+    if: ${{ !cancelled() && !failure() && needs.plan.outputs.build-e2e == 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4 # v4
-#      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
-#        with:
-#          registry: ghcr.io
-#          username: ${{ github.actor }}
-#          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: .github/docker/e2e.Dockerfile
+          platforms: linux/amd64
           push: true
-          tags: ${{ matrix.tag }}
-          platforms: ${{ matrix.platform }}
+          tags: ${{ needs.plan.outputs.repo-prefix }}-e2e:${{ needs.plan.outputs.e2e-tag }}
+          build-args: |
+            CI_IMAGE=${{ needs.plan.outputs.repo-prefix }}-ci:${{ needs.plan.outputs.ci-tag }}
+            ${{ needs.plan.outputs.build-args }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=e2e
+          cache-to: type=gha,mode=max,scope=e2e

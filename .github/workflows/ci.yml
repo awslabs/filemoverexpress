@@ -15,66 +15,82 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  generate-protobuf:
+  # Finds the prebuilt CI image that matches this checkout (see .github/docker/ and
+  # build-containers.yml). When it has not been published yet, for example in a pull request
+  # that changes the image inputs, `ci-image` is empty: the jobs below then run directly on the
+  # runner and install the toolchain with setup-environment, exactly as they did before.
+  resolve-image:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      ci-image: ${{ steps.resolve.outputs.ci-image }}
+      ci-container: ${{ steps.resolve.outputs.ci-container }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - id: resolve
+        uses: ./.github/actions/resolve-image
+
+  lint:
+    needs: [resolve-image]
+    runs-on: ubuntu-latest
+    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
         with:
-          working-directory: src/protobuf
-      - uses: ./.github/actions/generate-protobuf
-
-  generate-bindings:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/generate-bindings
-
-  lint:
-    needs: [generate-protobuf, generate-bindings]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf and Wails bindings
+        run: task generate
+        shell: bash
       - uses: ./.github/actions/lint-gui
       - uses: ./.github/actions/lint-cli
       - uses: ./.github/actions/lint-protobuf
 
   test-cli:
-    needs: [generate-protobuf, generate-bindings]
+    needs: [resolve-image]
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
-      - uses: ./.github/actions/test-cli
-
-  test-gui:
-    needs: [generate-protobuf, generate-bindings]
-    runs-on: ubuntu-latest
+    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
         with:
-          install-go: 'false'
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
-      - uses: ./.github/actions/test-gui
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf code
+        run: task proto:generate
+        shell: bash
+      - uses: ./.github/actions/test-cli
 
-  test-wails:
-    needs: [generate-protobuf, generate-bindings]
+  test-gui:
+    needs: [resolve-image]
     runs-on: ubuntu-latest
+    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
+        with:
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf and Wails bindings
+        run: task generate
+        shell: bash
+      - uses: ./.github/actions/test-gui
+
+  test-wails:
+    needs: [resolve-image]
+    runs-on: ubuntu-latest
+    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf code
+        run: task proto:generate
+        shell: bash
       - name: Create dummy frontend dist for embedFS
         run: mkdir -p src/wails/frontend/dist/browser && touch src/wails/frontend/dist/browser/.gitkeep
         shell: bash
       - name: Run Wails tests
         run: task wails:test
+        shell: bash
