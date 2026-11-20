@@ -105,7 +105,7 @@ export function verificationGateDialog(
     failures?: string[],
 ): MatDialogConfig<ConfirmationModalData> {
     const algo = algorithm ? ` (${escapeHtml(algorithm)})` : '';
-    const message = `${problems} of ${listed} file(s) failed ASC MHL verification${algo}, `
+    const message = `${problems} of ${listed} file(s) failed MHL verification${algo}, `
         + `${verified} verified. Uploading now sends files that do not match the `
         + 'supplied manifest. Nothing has been uploaded yet.'
         + buildFailureList(failures);
@@ -121,7 +121,7 @@ export function verificationGateDialog(
             confirmText: 'Upload anyway',
             confirmType: 'stroked',
             confirmClass: 'warn',
-            acknowledgeText: 'I understand these files failed ASC MHL verification '
+            acknowledgeText: 'I understand these files failed MHL verification '
                 + 'and want to upload them anyway.',
         },
     };
