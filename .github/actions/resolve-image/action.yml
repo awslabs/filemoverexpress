@@ -7,8 +7,9 @@ description: >
 inputs:
   owners:
     description: >
-      Comma-separated GHCR owners to look in, in order. The default tries the repository owner
-      (so a fork can test its own images) and then the upstream project.
+      Comma-separated GHCR owners to look in, in order. The default tries the owner of the pull
+      request's head repository (so a pull request from a fork can use images the fork published),
+      then the repository owner (a fork testing in its own repository), then the upstream project.
     required: false
     default: ''
   github-token:
@@ -46,13 +47,17 @@ runs:
       shell: bash
       env:
         OWNERS: ${{ inputs.owners }}
+        # Empty outside pull requests. On a pull request from a fork, github.repository_owner is the
+        # base repository's owner, so this is the only way to see the fork's own images. The image
+        # only provides the toolchain: the pull request's code runs in it either way.
+        HEAD_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
         REPO_OWNER: ${{ github.repository_owner }}
         GITHUB_ACTOR_NAME: ${{ github.actor }}
         TOKEN: ${{ inputs.github-token }}
       run: |
         set -euo pipefail
 
-        owners="${OWNERS:-${REPO_OWNER},awslabs}"
+        owners="${OWNERS:-${HEAD_OWNER:+${HEAD_OWNER},}${REPO_OWNER},awslabs}"
         owners="$(tr '[:upper:]' '[:lower:]' <<<"${owners}")"
 
         # A login only matters for packages that are not public. Never fail on it.
