@@ -199,6 +199,12 @@ export class TransferService {
             id: evt.id,
             changes: {
                 status: evt.status,
+                // Carry the ASC MHL counts so a NEEDS_REVIEW pause has real numbers
+                // for the gate dialog before the job completes. Zero before verify.
+                ascMhlVerified: evt.ascMhlVerified,
+                ascMhlListed: evt.ascMhlListed,
+                ascMhlProblems: evt.ascMhlProblems,
+                ascMhlAlgorithm: evt.ascMhlAlgorithm,
             },
         };
 

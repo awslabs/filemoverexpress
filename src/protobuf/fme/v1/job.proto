@@ -225,6 +225,13 @@ message JobStatusChangeEvent {
     string job_id = 1;
     string status = 2;
     google.protobuf.Timestamp timestamp = 3;
+    // ASC MHL verification outcome, carried so a job paused in NEEDS_REVIEW (which
+    // has not completed, so no JobCompleteEvent yet) can show real counts in the
+    // pre-upload gate dialog. Zero on status changes before verification runs.
+    int32 asc_mhl_verified = 4;
+    int32 asc_mhl_listed = 5;
+    int32 asc_mhl_problems = 6;
+    string asc_mhl_algorithm = 7;
 }
 
 message JobChecksumProgressEvent {

@@ -181,7 +181,15 @@ func (j *Job) SetStatus(status JobStatus) {
 		j.TimestampCompleted = n
 	}
 
-	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n)
+	// Reads the ASC MHL fields directly (not the RLock getters) because the write
+	// lock is already held here. Carried on the event so a NEEDS_REVIEW pause can
+	// show real counts in the gate dialog before the job completes.
+	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n, eventtypes.ASCMHLSummary{
+		Verified:  j.ascMHLVerified,
+		Listed:    j.ascMHLListed,
+		Problems:  j.ascMHLProblems,
+		Algorithm: j.ascMHLAlgorithm,
+	})
 }
 
 func (j *Job) StatusMessage() string {

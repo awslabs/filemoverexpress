@@ -8,13 +8,31 @@ import (
 
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
+	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
-type JobStatusChangeEvent struct {
-	Id        string
-	Status    string
-	Timestamp time.Time
-}
+type (
+	JobStatusChangeEvent struct {
+		Id        string
+		Status    string
+		Timestamp time.Time
+		// ASC MHL verification outcome, carried so a NEEDS_REVIEW pause (no
+		// completion event yet) can show real counts in the pre-upload gate dialog.
+		ASCMHLVerified  int
+		ASCMHLListed    int
+		ASCMHLProblems  int
+		ASCMHLAlgorithm string
+	}
+
+	// ASCMHLSummary bundles a job's ASC MHL verification counts so they can be
+	// passed as a single argument (keeping callers within the argument limit).
+	ASCMHLSummary struct {
+		Verified  int
+		Listed    int
+		Problems  int
+		Algorithm string
+	}
+)
 
 func (jsce *JobStatusChangeEvent) String() string {
 	return fmt.Sprintf("Job %s status changed to %s", jsce.Id, jsce.Status)
@@ -29,10 +47,17 @@ func (*JobStatusChangeEvent) Priority() logger.LogLevel {
 }
 
 func (jsce *JobStatusChangeEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) {
+	ascVerified, _ := safeconv.IntToInt32(jsce.ASCMHLVerified)
+	ascListed, _ := safeconv.IntToInt32(jsce.ASCMHLListed)
+	ascProblems, _ := safeconv.IntToInt32(jsce.ASCMHLProblems)
 	pbEvent := fmev1.JobStatusChangeEvent{
-		JobId:     jsce.Id,
-		Status:    jsce.Status,
-		Timestamp: timestamppb.New(jsce.Timestamp),
+		JobId:           jsce.Id,
+		Status:          jsce.Status,
+		Timestamp:       timestamppb.New(jsce.Timestamp),
+		AscMhlVerified:  ascVerified,
+		AscMhlListed:    ascListed,
+		AscMhlProblems:  ascProblems,
+		AscMhlAlgorithm: jsce.ASCMHLAlgorithm,
 	}
 
 	msgEvent := &fmev1.ListEventsResponse_JobStatusChangeEvent{JobStatusChangeEvent: &pbEvent}

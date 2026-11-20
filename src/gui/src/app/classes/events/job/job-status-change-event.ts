@@ -12,6 +12,10 @@ export class JobStatusChangeEvent implements BaseEvent {
         public id: string,
         public status: JobStatus,
         public timestamp: Date,
+        public ascMhlVerified = 0,
+        public ascMhlListed = 0,
+        public ascMhlProblems = 0,
+        public ascMhlAlgorithm = '',
     ) {
     }
 
@@ -26,6 +30,10 @@ export class JobStatusChangeEvent implements BaseEvent {
             evt.jobId,
             stringToJobStatus(evt.status),
             evt.timestamp ? timestampDate(evt.timestamp) : new Date(),
+            evt.ascMhlVerified,
+            evt.ascMhlListed,
+            evt.ascMhlProblems,
+            evt.ascMhlAlgorithm,
         );
     }
 }

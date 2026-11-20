@@ -262,6 +262,23 @@ describe('TransferService', () => {
             expect(action.job.changes['status']).toBe(status);
             expect(action.job.changes[tsField]).toBe(ts);
         });
+
+        it('carries ASC MHL counts so the gate dialog has real numbers on NEEDS_REVIEW', () => {
+            events$.next(new JobStatusChangeEvent('job-6r', JobStatus.NeedsReview, ts, 1, 3, 2, 'xxhash64'));
+
+            const action = dispatchSpy.mock.calls[0][0] as {
+                type: string,
+                job: { id: string, changes: Record<string, unknown> },
+            };
+            expect(action.type).toBe('[Job Service] Update Status');
+            expect(action.job.changes).toMatchObject({
+                status: JobStatus.NeedsReview,
+                ascMhlVerified: 1,
+                ascMhlListed: 3,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+        });
     });
 
     // -----------------------------------------------------------------------
