@@ -18,19 +18,30 @@ describe('JobCompleteEvent', () => {
                     hasSuccessfulTasks: true,
                     hasAllSkippedTasks: false,
                     status: 'COMPLETED_WITH_WARNINGS',
-                    ascMhlVerified: 1,
-                    ascMhlListed: 3,
-                    ascMhlProblems: 2,
-                    ascMhlAlgorithm: 'xxhash64',
+                    ascMhl: {verified: 1, listed: 3, problems: 2, algorithm: 'xxhash64', failures: []},
                 },
             },
         } as unknown as ListEventsResponse);
 
         expect(evt.status).toBe('COMPLETED_WITH_WARNINGS');
         expect(evt.hasSuccessfulTasks).toBe(true);
-        expect(evt.ascMhlProblems).toBe(2);
-        expect(evt.ascMhlVerified).toBe(1);
-        expect(evt.ascMhlListed).toBe(3);
-        expect(evt.ascMhlAlgorithm).toBe('xxhash64');
+        expect(evt.ascMhl?.problems).toBe(2);
+        expect(evt.ascMhl?.verified).toBe(1);
+        expect(evt.ascMhl?.listed).toBe(3);
+        expect(evt.ascMhl?.algorithm).toBe('xxhash64');
+    });
+
+    it('leaves ascMhl undefined when the event carried no manifest payload', () => {
+        const evt = JobCompleteEvent.fromProtobuf({
+            event: {
+                value: {
+                    id: 'job-id', name: 'n', completed: undefined,
+                    hasTaskErrors: false, hasSuccessfulTasks: true, hasAllSkippedTasks: false,
+                    status: 'COMPLETED', ascMhl: undefined,
+                },
+            },
+        } as unknown as ListEventsResponse);
+
+        expect(evt.ascMhl).toBeUndefined();
     });
 });

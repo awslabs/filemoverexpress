@@ -58,7 +58,7 @@ export class VerificationGateService {
             this.pending.add(job.id);
             this.queue.push(job.id);
         }
-        this.pump();
+        this.processQueue();
     }
 
     private onJobs(jobs: Job[]) {
@@ -81,17 +81,17 @@ export class VerificationGateService {
                 this.queue = this.queue.filter((queued) => queued !== id);
             }
         }
-        this.pump();
+        this.processQueue();
     }
 
     /**
      * Open the next queued gate if none is currently showing. Re-entrant-safe: a
      * second call while a dialog is open is a no-op; the dialog's close handler
-     * calls pump() again to drain the queue.
+     * calls processQueue() again to drain the queue.
      *
      * @private
      */
-    private pump() {
+    private processQueue() {
         if (this.dialogOpen || this.queue.length === 0) {
             return;
         }
@@ -101,7 +101,7 @@ export class VerificationGateService {
             // Stale id with no snapshot; drop it and continue.
             this.queue.shift();
             this.pending.delete(jobId);
-            this.pump();
+            this.processQueue();
             return;
         }
 
@@ -120,7 +120,7 @@ export class VerificationGateService {
             this.queue.shift();
             this.pending.delete(jobId);
             this.resolve(jobId, proceed === true);
-            this.pump();
+            this.processQueue();
         });
     }
 

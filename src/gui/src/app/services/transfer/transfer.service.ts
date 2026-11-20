@@ -18,6 +18,28 @@ import { Update } from '@ngrx/entity';
 import { JobStatusChangeEvent } from '@events/job/job-status-change-event';
 import { JobChecksumProgressEvent } from '@events/job/job-checksum-progress-event';
 import { TransferStatsEvent } from '@events/core';
+import { AscMhlEventData } from '@events/job/asc-mhl-event-data';
+
+/**
+ * Map the nested ASC MHL event payload onto the flat job-model fields the GUI
+ * reads (jobs-table column, Advanced-details, gate dialog). Returns an empty
+ * object when the event carried no payload, so spreading it changes nothing.
+ *
+ * @param {AscMhlEventData | undefined} asc The event's ASC MHL payload, if any.
+ * @returns {Partial<Job>} The job-model fields to merge, or empty.
+ */
+function ascMhlChanges(asc: AscMhlEventData | undefined): Partial<Job> {
+    if (!asc) {
+        return {};
+    }
+    return {
+        ascMhlVerified: asc.verified,
+        ascMhlListed: asc.listed,
+        ascMhlProblems: asc.problems,
+        ascMhlAlgorithm: asc.algorithm,
+        ascMhlFailures: asc.failures,
+    };
+}
 
 @Injectable({
     providedIn: 'root',
@@ -139,10 +161,7 @@ export class TransferService {
                     // ASC MHL verification outcome, so the jobs-table column (red X /
                     // amber / green) and Advanced-details counts update on completion
                     // rather than only after a full job-list refresh.
-                    ascMhlVerified: evt.ascMhlVerified,
-                    ascMhlListed: evt.ascMhlListed,
-                    ascMhlProblems: evt.ascMhlProblems,
-                    ascMhlAlgorithm: evt.ascMhlAlgorithm,
+                    ...ascMhlChanges(evt.ascMhl),
                 },
             },
         }));
@@ -199,13 +218,10 @@ export class TransferService {
             id: evt.id,
             changes: {
                 status: evt.status,
-                // Carry the ASC MHL counts so a NEEDS_REVIEW pause has real numbers
-                // for the gate dialog before the job completes. Zero before verify.
-                ascMhlVerified: evt.ascMhlVerified,
-                ascMhlListed: evt.ascMhlListed,
-                ascMhlProblems: evt.ascMhlProblems,
-                ascMhlAlgorithm: evt.ascMhlAlgorithm,
-                ascMhlFailures: evt.ascMhlFailures,
+                // Carry the ASC MHL outcome so a NEEDS_REVIEW pause has real numbers
+                // and the failing-file list for the gate dialog before the job
+                // completes. Absent (no change) when the event carried no payload.
+                ...ascMhlChanges(evt.ascMhl),
             },
         };
 

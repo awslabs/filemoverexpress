@@ -27,8 +27,10 @@ export class ConfirmationModalComponent {
 
     config: ConfirmationModalData;
 
-    // Checked state of the optional acknowledgement checkbox (shown only when
-    // config.acknowledgeText is set). Confirm stays disabled until this is true.
+    /**
+     * Checked state of the optional acknowledgement checkbox, shown only when
+     * config.acknowledgeText is set. Confirm stays disabled until this is true.
+     */
     acknowledged = false;
 
     constructor() {
@@ -40,8 +42,11 @@ export class ConfirmationModalComponent {
         };
     }
 
-    // Confirm is blocked only while an acknowledgement is required and unchecked.
-    // Dialogs without acknowledgeText are never blocked.
+    /**
+     * Confirm is blocked only while an acknowledgement is required and unchecked.
+     * Dialogs without acknowledgeText are never blocked.
+     * @returns {boolean} True when the confirm action is blocked, else false.
+     */
     get confirmDisabled(): boolean {
         return !!this.config.acknowledgeText && !this.acknowledged;
     }

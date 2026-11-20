@@ -4,6 +4,7 @@ import { timestampDate } from '@bufbuild/protobuf/wkt';
 import { ListEventsResponse } from '@gen/es/fme/v1/fme_service_pb';
 import { JobStatusChangeEvent as ProtoJobStatusChangeEvent } from '@gen/es/fme/v1/job_pb';
 import { JobStatus } from '@state/models/job.model';
+import { AscMhlEventData, ascMhlFromProtobuf } from './asc-mhl-event-data';
 
 export class JobStatusChangeEvent implements BaseEvent {
     logLevel = EventLogLevel.Info;
@@ -12,11 +13,7 @@ export class JobStatusChangeEvent implements BaseEvent {
         public id: string,
         public status: JobStatus,
         public timestamp: Date,
-        public ascMhlVerified = 0,
-        public ascMhlListed = 0,
-        public ascMhlProblems = 0,
-        public ascMhlAlgorithm = '',
-        public ascMhlFailures: string[] = [],
+        public ascMhl?: AscMhlEventData,
     ) {
     }
 
@@ -31,11 +28,7 @@ export class JobStatusChangeEvent implements BaseEvent {
             evt.jobId,
             stringToJobStatus(evt.status),
             evt.timestamp ? timestampDate(evt.timestamp) : new Date(),
-            evt.ascMhlVerified,
-            evt.ascMhlListed,
-            evt.ascMhlProblems,
-            evt.ascMhlAlgorithm,
-            evt.ascMhlFailures,
+            ascMhlFromProtobuf(evt.ascMhl),
         );
     }
 }
