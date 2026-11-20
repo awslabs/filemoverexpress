@@ -106,6 +106,16 @@ tasks:
       - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out ./...
       - go tool cover -html coverage.out -o coverage.html
 
+  test:e2e:
+    desc: Run the end-to-end tests (needs aws-emulator on PATH, Linux; see task e2e:docker)
+    cmds:
+      - task: cli:e2e
+
+  e2e:docker:
+    desc: Run the end-to-end tests inside the fme-e2e image (needs Docker; E2E_IMAGE overrides the image)
+    cmds:
+      - docker run --rm -v "{{.ROOT_DIR}}:/src:ro" {{.E2E_IMAGE | default "fme-e2e:local"}} bash /src/src/cli/e2e/run-in-docker.sh
+
   # ====================
   # Lint
   # ====================

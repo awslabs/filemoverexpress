@@ -27,6 +27,8 @@ jobs:
     outputs:
       ci-image: ${{ steps.resolve.outputs.ci-image }}
       ci-container: ${{ steps.resolve.outputs.ci-container }}
+      e2e-image: ${{ steps.resolve.outputs.e2e-image }}
+      e2e-container: ${{ steps.resolve.outputs.e2e-container }}
     steps:
       - uses: actions/checkout@v4 # v4
       - id: resolve
@@ -93,4 +95,26 @@ jobs:
         shell: bash
       - name: Run Wails tests
         run: task wails:test
+        shell: bash
+
+  # Needs the end-to-end image (AWS Emulator is installed there). Skipped, not failed, while that image
+  # is not published, for example in a pull request that changes the image inputs.
+  e2e:
+    needs: [resolve-image]
+    if: needs.resolve-image.outputs.e2e-image != ''
+    runs-on: ubuntu-latest
+    container: ${{ fromJSON(needs.resolve-image.outputs.e2e-container) }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          force-container-mode: true
+      - name: Generate protobuf code
+        run: task proto:generate
+        shell: bash
+      - name: Prepare home directory
+        run: mkdir -p "$HOME/.filemoverexpress"
+        shell: bash
+      - name: Run end-to-end tests
+        run: task cli:e2e
         shell: bash

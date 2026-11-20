@@ -355,7 +355,6 @@ linters:
         paths:
             - .*\.my\.pb.go$
             - vendor
-            - e2e-tests
 issues:
     max-issues-per-linter: 100
     max-same-issues: 100
@@ -377,4 +376,3 @@ formatters:
         paths:
             - .*\.my\.pb.go$
             - vendor
-            - e2e-tests
