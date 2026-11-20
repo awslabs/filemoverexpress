@@ -658,24 +658,3 @@ func TestVerifyManifestSetsTaskASCMHLStatus(t *testing.T) {
 	assert.Equal(t, "mismatch", badTask.ASCMHLStatus())
 }
 
-// OS-generated sidecar files must be recognized by base name in any subfolder so
-// the ASC MHL verify does not flag them as unlisted (log noise for a DIT).
-func TestIsOSMetadataFile(t *testing.T) {
-	cases := []struct {
-		path string
-		want bool
-	}{
-		{"/media/F003/.DS_Store", true},
-		{".DS_Store", true},
-		{"/media/F003/._F003C003.mxf", true},
-		{"/media/F003/Thumbs.db", true},
-		{"/media/F003/F003C003_190925_MN99.mxf", false},
-		{"/media/F003/notes.DS_Store.txt", false},
-		{"/media/F003/ascmhl/0001_F003.mhl", false},
-	}
-	for _, c := range cases {
-		if got := isOSMetadataFile(c.path); got != c.want {
-			t.Errorf("isOSMetadataFile(%q) = %v, want %v", c.path, got, c.want)
-		}
-	}
-}

@@ -176,3 +176,24 @@ func TestMetadataFilter_NestedPaths(t *testing.T) {
 		})
 	}
 }
+
+// IsMetadataFileName matches OS sidecar base names. Shared with the ASC MHL
+// verifier so both skip the same set without a duplicate pattern list.
+func TestIsMetadataFileName(t *testing.T) {
+	cases := []struct {
+		base string
+		want bool
+	}{
+		{".DS_Store", true},
+		{"._F003C003.mxf", true},
+		{"Thumbs.db", true},
+		{"F003C003_190925_MN99.mxf", false},
+		{"notes.DS_Store.txt", false},
+		{"0001_F003.mhl", false},
+	}
+	for _, c := range cases {
+		if got := IsMetadataFileName(c.base); got != c.want {
+			t.Errorf("IsMetadataFileName(%q) = %v, want %v", c.base, got, c.want)
+		}
+	}
+}
