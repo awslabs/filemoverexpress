@@ -17,6 +17,7 @@ import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { VerificationGateService } from '@services/verification-gate/verification-gate.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { ExportService } from '@services/export/export.service';
 import { ConnectionState } from '@state/models/connection-state-model';
@@ -74,6 +75,7 @@ describe('JobsTableComponent', () => {
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
     let exportSvc: { exportJobById: ReturnType<typeof vi.fn> };
     let dialogOpen: ReturnType<typeof vi.fn>;
+    let verificationGate: { openGate: ReturnType<typeof vi.fn>; init: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
         connectionState$ = new BehaviorSubject<ConnectionState>(ConnectionState.DISCONNECTED);
@@ -92,6 +94,7 @@ describe('JobsTableComponent', () => {
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
         exportSvc = {exportJobById: vi.fn()};
         dialogOpen = vi.fn(() => ({afterClosed: () => of(undefined)}));
+        verificationGate = {openGate: vi.fn(), init: vi.fn()};
 
         TestBed.configureTestingModule({
             imports: [
@@ -114,6 +117,7 @@ describe('JobsTableComponent', () => {
                 {provide: NotificationsService, useValue: notifications},
                 {provide: ExportService, useValue: exportSvc},
                 {provide: MatDialog, useValue: {open: dialogOpen}},
+                {provide: VerificationGateService, useValue: verificationGate},
             ],
         });
         store = TestBed.inject(MockStore);
@@ -427,50 +431,10 @@ describe('JobsTableComponent', () => {
     });
 
     describe('verification gate', () => {
-        const gateJob = () => makeJob({
-            id: 'gate-1',
-            status: JobStatus.NeedsReview,
-            ascMhlListed: 3,
-            ascMhlVerified: 1,
-            ascMhlProblems: 2,
-            ascMhlAlgorithm: 'xxhash64',
-        });
-
-        it('auto-opens the gate once when a job enters NEEDS_REVIEW and resolves on close', () => {
-            dialogOpen.mockReturnValue({afterClosed: () => of(false)});
-            store.overrideSelector(jobSelectAll, [gateJob()]);
-            store.refreshState();
-
-            expect(dialogOpen).toHaveBeenCalledTimes(1);
-            expect(fmeClient.resolveVerificationGate).toHaveBeenCalledWith('gate-1', false);
-
-            // A second emission of the same NEEDS_REVIEW job does not reopen it.
-            store.refreshState();
-            expect(dialogOpen).toHaveBeenCalledTimes(1);
-        });
-
-        it('resolves proceed=true when the operator confirms upload-anyway', () => {
-            dialogOpen.mockReturnValue({afterClosed: () => of(true)});
-            store.overrideSelector(jobSelectAll, [gateJob()]);
-            store.refreshState();
-
-            expect(fmeClient.resolveVerificationGate).toHaveBeenCalledWith('gate-1', true);
-        });
-
-        it('notifies on a resolve error', () => {
-            dialogOpen.mockReturnValue({afterClosed: () => of(false)});
-            fmeClient.resolveVerificationGate.mockReturnValueOnce(throwError(() => new Error('boom')));
-            store.overrideSelector(jobSelectAll, [gateJob()]);
-            store.refreshState();
-
-            expect(notifications.error).toHaveBeenCalledWith('Unable to resolve verification review');
-        });
-
-        it('Review action reopens the gate for a NEEDS_REVIEW job', () => {
-            dialogOpen.mockReturnValue({afterClosed: () => of(false)});
-            component.openVerificationGate(gateJob());
-            expect(dialogOpen).toHaveBeenCalledTimes(1);
-            expect(fmeClient.resolveVerificationGate).toHaveBeenCalledWith('gate-1', false);
+        it('delegates the Review row action to the verification gate service', () => {
+            const job = makeJob({id: 'gate-1', status: JobStatus.NeedsReview});
+            component.openVerificationGate(job);
+            expect(verificationGate.openGate).toHaveBeenCalledWith(job);
         });
     });
 });
