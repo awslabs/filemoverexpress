@@ -14,6 +14,30 @@ tasks:
         NODE_OPTIONS: "--no-experimental-webstorage"
 
   lint:
-    desc: Run Angular ESLint
+    desc: Run Angular ESLint (app and browser e2e tests)
     cmds:
       - npx ng lint
+      # The e2e tests are outside the Angular project, so lint and type-check them separately.
+      - npx eslint --no-config-lookup -c eslint.config.mjs e2e --parser-options project:e2e/tsconfig.json
+      - npx tsc -p e2e/tsconfig.json
+
+  # Browser end-to-end tests (e2e/README.md). Needs the generated code (task generate) and, for the
+  # backend, aws-emulator on PATH (Linux); use `task e2e:docker` from the repository root elsewhere.
+  e2e:build:
+    desc: Build what the browser e2e tests run (GUI, desktop app web build, e2e backend)
+    vars:
+      EXE: '{{if eq OS "windows"}}.exe{{end}}'
+    cmds:
+      - task: build
+      # The desktop app embeds the GUI built above. The server tag serves it over HTTP instead of
+      # opening a native window, so a browser can drive it; no CGO or GTK is needed.
+      - cd ../wails && go build -tags server,production -o ../gui/e2e/.bin/fme-server{{.EXE}} .
+      - cd ../cli && go test -c -tags e2e -o ../gui/e2e/.bin/e2e.test{{.EXE}} ./e2e/
+    env:
+      CGO_ENABLED: '0'
+
+  e2e:
+    desc: Run the browser e2e tests (Playwright, Chromium)
+    cmds:
+      - task: e2e:build
+      - npx playwright test --config e2e/playwright.config.ts {{.CLI_ARGS}}

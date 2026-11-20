@@ -32,6 +32,9 @@ const (
 	// guiOrigin is accepted by the daemon's origin check without any configuration.
 	guiOrigin = "wails://wails.localhost"
 
+	// homeDirName is the HOME of the daemon, below the suite's work directory.
+	homeDirName = "fme-home"
+
 	// envDaemonBinary overrides the daemon binary; by default the suite builds it from source.
 	envDaemonBinary = "E2E_DAEMON_BINARY"
 )
@@ -92,15 +95,23 @@ func startDaemon(bin, workDir string, em *emulator, cfg daemonConfig) (*daemon, 
 	if err := requirePortFree(); err != nil {
 		return nil, err
 	}
-	configDir := filepath.Join(workDir, "fme-config")
-	home := filepath.Join(workDir, "fme-home")
-	for _, d := range []string{configDir, home} {
-		if err := os.MkdirAll(d, 0o750); err != nil {
+	// The configuration directory is the default one under HOME. The desktop app finds a running
+	// daemon through the pid file there, so with the same HOME it reuses this daemon instead of
+	// starting its own (see the GUI layer, src/gui/e2e).
+	home := filepath.Join(workDir, homeDirName)
+	configDir := filepath.Join(home, ".filemoverexpress")
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
+		return nil, err
+	}
+	files := map[string]string{
+		"configuration.yaml": cfg.yaml(),
+		// Marks the app as launched before, so the GUI does not open its welcome dialog.
+		".first-launch-complete": "",
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(configDir, name), []byte(content), 0o600); err != nil {
 			return nil, err
 		}
-	}
-	if err := os.WriteFile(filepath.Join(configDir, "configuration.yaml"), []byte(cfg.yaml()), 0o600); err != nil {
-		return nil, err
 	}
 
 	logPath := filepath.Join(workDir, "daemon.log")

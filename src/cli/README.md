@@ -105,7 +105,7 @@ The end-to-end suite runs the built daemon against AWS Emulator, so it needs no 
 bucket. See [e2e/README.md](e2e/README.md).
 
 ```bash
-task e2e:docker   # inside the fme-e2e image, from the repository root
+task e2e:docker SUITE=daemon   # inside the fme-e2e image, from the repository root
 task cli:e2e      # directly, with aws-emulator on PATH (Linux)
 ```
 
