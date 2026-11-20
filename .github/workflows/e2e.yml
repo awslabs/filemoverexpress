@@ -1,0 +1,87 @@
+name: End-to-end tests
+
+# Reusable workflow: runs the daemon suite (src/cli/e2e) and the browser suite (src/gui/e2e) inside
+# the fme-e2e image, which carries AWS Emulator and Playwright. Called by ci.yml (pull requests
+# that touch the product, and every push to main) and by release.yml (a release gate).
+on:
+  workflow_call:
+    inputs:
+      require-image:
+        description: >
+          Fail when the end-to-end image for this checkout is not published. Off for pull requests,
+          where a change to the image inputs has no image yet; on for releases, which must not
+          ship without the suites having run.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      e2e-image: ${{ steps.resolve.outputs.e2e-image }}
+      e2e-container: ${{ steps.resolve.outputs.e2e-container }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - id: resolve
+        uses: ./.github/actions/resolve-image
+
+  missing-image:
+    needs: [resolve-image]
+    if: needs.resolve-image.outputs.e2e-image == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the missing image
+        shell: bash
+        env:
+          REQUIRED: ${{ inputs.require-image }}
+        run: |
+          msg="The end-to-end image for this checkout is not published, so the e2e suites did not run. Run the Build CI Containers workflow to publish it."
+          echo "### End-to-end tests skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$REQUIRED" = "true" ]; then
+            echo "::error::$msg"
+            exit 1
+          fi
+          echo "::warning::$msg"
+
+  e2e:
+    needs: [resolve-image]
+    if: needs.resolve-image.outputs.e2e-image != ''
+    runs-on: ubuntu-latest
+    container: ${{ fromJSON(needs.resolve-image.outputs.e2e-container) }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          force-container-mode: true
+      - name: Generate protobuf and Wails bindings
+        run: task generate
+        shell: bash
+      - name: Prepare home directory
+        run: mkdir -p "$HOME/.filemoverexpress"
+        shell: bash
+      - name: Run daemon end-to-end tests
+        run: task cli:e2e
+        shell: bash
+      - name: Run GUI end-to-end tests
+        # Runs even when the daemon suite failed, so both results are reported.
+        if: ${{ !cancelled() }}
+        run: task gui:e2e
+        shell: bash
+        env:
+          CI: 'true'
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4 # v4.6.2
+        with:
+          name: playwright-report
+          path: |
+            src/gui/e2e/playwright-report/
+            src/gui/e2e/test-results/
+          retention-days: 14

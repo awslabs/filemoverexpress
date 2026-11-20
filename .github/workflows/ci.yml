@@ -27,8 +27,6 @@ jobs:
     outputs:
       ci-image: ${{ steps.resolve.outputs.ci-image }}
       ci-container: ${{ steps.resolve.outputs.ci-container }}
-      e2e-image: ${{ steps.resolve.outputs.e2e-image }}
-      e2e-container: ${{ steps.resolve.outputs.e2e-container }}
     steps:
       - uses: actions/checkout@v4 # v4
       - id: resolve
@@ -97,40 +95,44 @@ jobs:
         run: task wails:test
         shell: bash
 
-  # Needs the end-to-end image (AWS Emulator is installed there). Skipped, not failed, while that image
-  # is not published, for example in a pull request that changes the image inputs.
-  e2e:
-    needs: [resolve-image]
-    if: needs.resolve-image.outputs.e2e-image != ''
+  # Decides whether the end-to-end suites run: always on a push to main, and on a pull request only
+  # when it changes something the suites exercise. Docs, website and other unrelated changes skip
+  # them. A skipped job still satisfies a required status check.
+  e2e-changes:
     runs-on: ubuntu-latest
-    container: ${{ fromJSON(needs.resolve-image.outputs.e2e-container) }}
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
     steps:
       - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
         with:
-          force-container-mode: true
-      - name: Generate protobuf and Wails bindings
-        run: task generate
-        shell: bash
-      - name: Prepare home directory
-        run: mkdir -p "$HOME/.filemoverexpress"
-        shell: bash
-      - name: Run daemon end-to-end tests
-        run: task cli:e2e
-        shell: bash
-      - name: Run GUI end-to-end tests
-        # Runs even when the daemon suite failed, so both results are reported.
-        if: ${{ !cancelled() }}
-        run: task gui:e2e
+          fetch-depth: 0
+      - id: decide
         shell: bash
         env:
-          CI: 'true'
-      - name: Upload Playwright report
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4 # v4.6.2
-        with:
-          name: playwright-report
-          path: |
-            src/gui/e2e/playwright-report/
-            src/gui/e2e/test-results/
-          retention-days: 14
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Paths the suites depend on. Keep in step with what src/cli/e2e and src/gui/e2e build.
+          pattern='^(src/(cli|gui|wails|protobuf)/|\.github/(docker|actions|scripts)/|\.github/versions\.env$|\.github/workflows/(ci|e2e)\.yml$|package(-lock)?\.json$|Taskfile\.yml$)'
+          changed="$(git diff --name-only "$BASE...$HEAD")"
+          if grep -Eq "$pattern" <<<"$changed"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No change under the paths the end-to-end suites cover; skipping them." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  e2e:
+    needs: [e2e-changes]
+    if: needs.e2e-changes.outputs.run == 'true'
+    uses: ./.github/workflows/e2e.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      require-image: false
