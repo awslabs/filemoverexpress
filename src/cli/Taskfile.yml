@@ -62,7 +62,13 @@ tasks:
       - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out {{.CLI_ARGS | default "./..."}}
       - go tool cover -html coverage.out -o coverage.html
 
+  # -tags e2e so the end-to-end suite (src/cli/e2e) is linted as well.
   lint:
     desc: Run golangci-lint
     cmds:
-      - golangci-lint run {{.CLI_ARGS}}
+      - golangci-lint run --build-tags e2e {{.CLI_ARGS}}
+
+  e2e:
+    desc: Run the end-to-end tests against a real daemon and AWS Emulator (needs aws-emulator on PATH)
+    cmds:
+      - go test -tags e2e -count=1 -v {{.CLI_ARGS | default "./e2e/..."}}
