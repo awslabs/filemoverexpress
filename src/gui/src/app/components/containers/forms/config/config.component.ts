@@ -323,6 +323,10 @@ export class ConfigComponent implements OnInit {
                     notifyAllTransfers: this.notifyAllTransfers.value,
                 } as unknown as typeof settings.notifications;
             }
+            // The form only edits some general settings. Carry the loaded message through
+            // so the ones it doesn't (adaptiveConcurrency, maxConnectionsPerHost,
+            // sendBufferBytes) aren't reset to zero by this save.
+            settings.source = this.originalConfig?.source;
             const input = FmeConfig.fromJson(settings);
 
             this.fmeClientService.setConfiguration(input).subscribe({

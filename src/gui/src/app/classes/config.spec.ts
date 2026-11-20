@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import * as ConfigInterfaces from '@app/interfaces/config';
+import { create } from '@bufbuild/protobuf';
 import {
     Checksums,
+    FmeConfig,
     General,
     HotFolders,
     HotFoldersTransferConfigurations,
@@ -118,6 +120,79 @@ describe('HotFolders', () => {
     it('should convert from json', () => {
         const hf = HotFolders.fromJson(data);
         validate(hf);
+    });
+});
+
+// A whole-config save must not reset fields the GUI models don't represent. These are
+// set in the daemon's config file (adaptiveConcurrency, maxConnectionsPerHost,
+// sendBufferBytes, a hot folder's forceInitialUpload) and the daemon writes whatever
+// the GUI sends, so dropping them silently turned them off on every save.
+describe('saving keeps fields the GUI does not model', () => {
+    function daemonMessage(): proto.GRPCFmeConfig {
+        return create(proto.GRPCFmeConfigSchema, {
+            general: {
+                noSleep: false,
+                retryCount: 3,
+                maxActiveTransfers: 10,
+                maxActiveChecksums: 4,
+                targetBandwidth: 0,
+                adaptiveConcurrency: true,
+                maxConnectionsPerHost: 64,
+                sendBufferBytes: 2 * 1024 * 1024,
+            },
+            uploadHotFolders: [{
+                name: 'dailies',
+                enabled: true,
+                localSourceFolder: '/footage',
+                forceInitialUpload: true,
+            }],
+        });
+    }
+
+    function expectUnmodelledKept(pb: proto.GRPCFmeConfig) {
+        expect(pb.general?.adaptiveConcurrency).toBe(true);
+        expect(pb.general?.maxConnectionsPerHost).toBe(64);
+        expect(pb.general?.sendBufferBytes).toBe(2 * 1024 * 1024);
+        expect(pb.uploadHotFolders[0].forceInitialUpload).toBe(true);
+    }
+
+    it('General.jsonToProtobuf keeps base-only fields and applies edited ones', () => {
+        const base = daemonMessage().general as proto.GeneralSettings;
+        const edited = {...General.fromProtobuf(base), retryCount: 9};
+        const pb = General.jsonToProtobuf(edited, base);
+        expect(pb.retryCount).toBe(9);
+        expect(pb.adaptiveConcurrency).toBe(true);
+        expect(pb.maxConnectionsPerHost).toBe(64);
+        expect(pb.sendBufferBytes).toBe(2 * 1024 * 1024);
+        expect(base.retryCount).toBe(3); // base is cloned, not mutated
+    });
+
+    it('General.jsonToProtobuf without a base keeps the previous behaviour', () => {
+        const pb = General.jsonToProtobuf(General.fromProtobuf(daemonMessage().general as proto.GeneralSettings));
+        expect(pb.adaptiveConcurrency).toBe(false);
+        expect(pb.sendBufferBytes).toBe(0);
+    });
+
+    it('a config loaded from the daemon round-trips unmodelled fields', () => {
+        expectUnmodelledKept(FmeConfig.fromProtobuf(daemonMessage()).toProtobuf());
+    });
+
+    it('the Settings form path (fromJson with source) keeps them and applies edits', () => {
+        const loaded = FmeConfig.fromProtobuf(daemonMessage());
+        const formValues: ConfigInterfaces.FmeConfig = {
+            ...loaded,
+            general: {...loaded.general, retryCount: 7},
+            source: loaded.source,
+        };
+        const pb = FmeConfig.fromJson(formValues).toProtobuf();
+        expect(pb.general?.retryCount).toBe(7);
+        expectUnmodelledKept(pb);
+    });
+
+    it('a renamed hot folder has no base, so it is built fresh', () => {
+        const loaded = FmeConfig.fromProtobuf(daemonMessage());
+        loaded.uploadHotFolders[0].name = 'renamed';
+        expect(loaded.toProtobuf().uploadHotFolders[0].forceInitialUpload).toBe(false);
     });
 });
 
