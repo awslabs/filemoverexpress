@@ -29,23 +29,29 @@ func (medf *MetadataFilter) SkipType() s3_sharedv1.SkippedState {
 }
 
 func (*MetadataFilter) IsFiltered(task *jobmanagertypes.Task) (bool, error) {
-	var name string
+	var source string
 
-	// Match on the base name. The patterns are anchored (^...$), so matching them
-	// against a full path never caught a metadata file in a subfolder - only a
-	// bare ".DS_Store". S3 keys are always forward-slash separated, local paths
-	// use the OS separator.
 	if task.TaskDirection() == jobmanagertypes.TaskDirectionDownload {
-		name = path.Base(task.S3Object().Key)
+		source = path.Base(task.S3Object().Key)
 	} else if task.TaskDirection() == jobmanagertypes.TaskDirectionUpload {
-		name = filepath.Base(task.LocalFile().Path)
+		source = filepath.Base(task.LocalFile().Path)
 	}
+	return IsMetadataFileName(source), nil
+}
+
+// IsMetadataFileName reports whether a file's base name is an OS-generated
+// metadata sidecar (._*, .DS_Store, Thumbs.db). Exported so other code (e.g. the
+// ASC MHL verifier's unlisted-file check) matches the same set without a second
+// copy of the patterns. Callers pass the base name (path.Base for an S3 key,
+// filepath.Base for a local path); the patterns are anchored, so passing a full
+// path would only ever match a bare name, never one in a subfolder.
+func IsMetadataFileName(baseName string) bool {
 	for _, metadataPattern := range metadataFilePatterns {
-		if metadataPattern.MatchString(name) {
-			return true, nil
+		if metadataPattern.MatchString(baseName) {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 // NewMetadataFilter returns a new MetadataFilter.
