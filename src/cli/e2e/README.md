@@ -9,7 +9,8 @@ so no AWS account, credentials or bucket are needed. Every file has the `e2e` bu
 
 ```bash
 # Inside the fme-e2e image, from any host with Docker (builds nothing on your machine):
-task e2e:docker                      # uses the image fme-e2e:local; E2E_IMAGE=<ref> overrides it
+task e2e:docker SUITE=daemon         # uses the image fme-e2e:local; E2E_IMAGE=<ref> overrides it
+task e2e:docker                      # this suite and the browser suite (src/gui/e2e)
 
 # Directly, on Linux with aws-emulator on PATH:
 task cli:e2e
@@ -25,7 +26,7 @@ docker build -f .github/docker/ci.Dockerfile  $args -t fme-ci:local .
 docker build -f .github/docker/e2e.Dockerfile $args --build-arg CI_IMAGE=fme-ci:local -t fme-e2e:local .
 ```
 
-CI runs the same suite in the `e2e` job of `.github/workflows/ci.yml`.
+CI runs the same suite, then the browser suite, in the `e2e` job of `.github/workflows/ci.yml`.
 
 ## What the harness does
 
@@ -42,6 +43,9 @@ separate S3 client, not with the daemon's own code.
 | `E2E_EMULATOR_DIR`, `E2E_EMULATOR_ENDPOINT` | Use an emulator that is already running; the directory holds its `config`, `emulator_credentials` and `ca.pem` |
 | `E2E_DAEMON_BINARY` | Test a prebuilt daemon instead of building one |
 | `E2E_KEEP_WORKDIR` | Keep the temporary directory (daemon config, logs) for inspection |
+| `E2E_WORKDIR` | Use this (new or empty) directory instead of a temporary one |
+| `E2E_SERVE` | Run `TestServeEnvironment`: keep the backend up for the browser tests in `src/gui/e2e` |
+| `E2E_GUI_PORT` | Port of the GUI web build to allow as an origin (default 8080) |
 
 The daemon's own log is `daemon.log` in that directory.
 

@@ -109,12 +109,28 @@ jobs:
       - uses: ./.github/actions/setup-environment
         with:
           force-container-mode: true
-      - name: Generate protobuf code
-        run: task proto:generate
+      - name: Generate protobuf and Wails bindings
+        run: task generate
         shell: bash
       - name: Prepare home directory
         run: mkdir -p "$HOME/.filemoverexpress"
         shell: bash
-      - name: Run end-to-end tests
+      - name: Run daemon end-to-end tests
         run: task cli:e2e
         shell: bash
+      - name: Run GUI end-to-end tests
+        # Runs even when the daemon suite failed, so both results are reported.
+        if: ${{ !cancelled() }}
+        run: task gui:e2e
+        shell: bash
+        env:
+          CI: 'true'
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4 # v4.6.2
+        with:
+          name: playwright-report
+          path: |
+            src/gui/e2e/playwright-report/
+            src/gui/e2e/test-results/
+          retention-days: 14

@@ -52,3 +52,9 @@ Thumbs.db
 src/gen
 package.json.md5
 wailsjs/
+
+# Browser end-to-end tests (e2e/): built binaries and run output
+e2e/.bin/
+e2e/test-results/
+e2e/playwright-report/
+e2e/out/

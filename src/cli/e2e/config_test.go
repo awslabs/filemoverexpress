@@ -4,6 +4,8 @@ package e2e
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -22,6 +24,20 @@ const (
 )
 
 const missingBucket = "e2e-bucket-that-does-not-exist"
+
+const (
+	// envGUIPort is the port the desktop app's web build listens on in the GUI layer. The daemon
+	// only accepts requests from pages served from that origin.
+	envGUIPort     = "E2E_GUI_PORT"
+	defaultGUIPort = 8080
+)
+
+func guiPort() int {
+	if v, err := strconv.Atoi(os.Getenv(envGUIPort)); err == nil && v > 0 {
+		return v
+	}
+	return defaultGUIPort
+}
 
 // daemonConfig describes the daemon configuration file for a suite run.
 type daemonConfig struct {
@@ -52,7 +68,7 @@ func (c daemonConfig) profiles() []profileSpec {
 // its own HTTP client, which ignores the emulator's CA bundle (see the plan, section 9A).
 func (c daemonConfig) yaml() string {
 	var b strings.Builder
-	b.WriteString(`general:
+	fmt.Fprintf(&b, `general:
     noSleep: false
     retryCount: 1
     maxActiveChecksums: 4
@@ -74,11 +90,13 @@ apiServer:
     remote:
         enabled: false
     blockedPaths: []
-    allowedOrigins: []
+    allowedOrigins:
+        - http://127.0.0.1:%[1]d
+        - http://localhost:%[1]d
 protocols:
     s3:
         transferProfiles:
-`)
+`, guiPort())
 	for _, p := range c.profiles() {
 		fmt.Fprintf(&b, `            %[1]s:
                 name: %[1]s

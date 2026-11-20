@@ -14,7 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-const suiteBucket = "e2e"
+const (
+	suiteBucket = "e2e"
+	// envWorkDir fixes the scratch directory, so a second process (the desktop app in the GUI layer)
+	// can find the daemon's HOME without being told.
+	envWorkDir = "E2E_WORKDIR"
+)
 
 // suite is the state shared by every test: one emulator, one daemon, and a bucket.
 type suite struct {
@@ -52,7 +57,7 @@ func runSuite(m *testing.M) int {
 }
 
 func newSuite() (*suite, error) {
-	work, err := os.MkdirTemp("", "e2e-suite-")
+	work, err := newWorkDir()
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +101,19 @@ func (s *suite) close() error {
 		_ = os.RemoveAll(s.work)
 	}
 	return err
+}
+
+// newWorkDir returns the suite's scratch directory: E2E_WORKDIR when set (it must not exist yet or
+// be empty, because it is deleted at the end), otherwise a fresh temporary directory.
+func newWorkDir() (string, error) {
+	dir := os.Getenv(envWorkDir)
+	if dir == "" {
+		return os.MkdirTemp("", "e2e-suite-")
+	}
+	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
+		return "", fmt.Errorf("%s=%s is not empty", envWorkDir, dir)
+	}
+	return dir, os.MkdirAll(dir, 0o750)
 }
 
 // newS3Client builds the suite's own S3 client for seeding and checking objects. It does not use
