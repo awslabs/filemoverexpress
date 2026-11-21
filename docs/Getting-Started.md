@@ -186,7 +186,7 @@ Now that you're familiar with the basics:
 - **[Using the GUI](Using-the-GUI)** - Detailed GUI features and workflows
 - **[Using the CLI](Using-the-CLI)** - Advanced CLI usage and scripting
 - **[Hot Folders](Hot-Folders)** - Set up automated monitoring and uploads
-- **[Remote Daemon](Remote-Daemon)** - Configure multi-user or high-performance setups
+- **[Remote Daemon](Configuration#remote-daemon-configuration)** - Configure multi-user or high-performance setups
 - **[Best Practices](Best-Practices)** - Optimize performance and security
 - **[Checksums](Checksums)** - Understand file integrity verification
 

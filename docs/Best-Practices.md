@@ -283,7 +283,7 @@ logging:
 
 ## Next Steps
 
-- **[Performance Optimization](Performance-Optimization)** - Detailed performance tuning
+- **[Performance Optimization](#performance-parameters)** - Detailed performance tuning
 - **[Security](Security)** - Comprehensive security guidelines
-- **[Monitoring](Monitoring)** - Set up monitoring and alerting
+- **[Monitoring](#monitoring-and-logging)** - Set up monitoring and alerting
 - **[Troubleshooting](Troubleshooting)** - Resolve common issues
