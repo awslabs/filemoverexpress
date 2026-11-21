@@ -26,7 +26,6 @@ jobs:
       packages: read
     outputs:
       ci-image: ${{ steps.resolve.outputs.ci-image }}
-      ci-container: ${{ steps.resolve.outputs.ci-container }}
     steps:
       - uses: actions/checkout@v4 # v4
       - id: resolve
@@ -35,7 +34,12 @@ jobs:
   lint:
     needs: [resolve-image]
     runs-on: ubuntu-latest
-    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
@@ -51,7 +55,12 @@ jobs:
   test-cli:
     needs: [resolve-image]
     runs-on: ubuntu-latest
-    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
@@ -65,7 +74,12 @@ jobs:
   test-gui:
     needs: [resolve-image]
     runs-on: ubuntu-latest
-    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
@@ -79,7 +93,12 @@ jobs:
   test-wails:
     needs: [resolve-image]
     runs-on: ubuntu-latest
-    container: ${{ fromJSON(needs.resolve-image.outputs.ci-container) }}
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment

@@ -13,7 +13,7 @@ inputs:
     required: false
     default: ''
   github-token:
-    description: 'Token used to read packages that are not public'
+    description: 'Token used to read the images (the packages are private); needs packages: read'
     required: false
     default: ${{ github.token }}
 
@@ -30,14 +30,6 @@ outputs:
   e2e-image:
     description: 'Full reference of the end-to-end image, or empty if it is not published'
     value: ${{ steps.resolve.outputs.e2e-image }}
-  ci-container:
-    description: >
-      The ci image as JSON for `jobs.<id>.container` through `fromJSON(...)`: an object when the image is
-      published, `null` otherwise. An empty string is not accepted there, hence the JSON.
-    value: ${{ steps.resolve.outputs.ci-container }}
-  e2e-container:
-    description: 'Same as ci-container, for the end-to-end image'
-    value: ${{ steps.resolve.outputs.e2e-container }}
 
 runs:
   using: composite
@@ -60,7 +52,7 @@ runs:
         owners="${OWNERS:-${HEAD_OWNER:+${HEAD_OWNER},}${REPO_OWNER},awslabs}"
         owners="$(tr '[:upper:]' '[:lower:]' <<<"${owners}")"
 
-        # A login only matters for packages that are not public. Never fail on it.
+        # The packages are private, so the manifest lookup needs a login. A failed login only means no image is found.
         echo "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR_NAME}" --password-stdin >/dev/null 2>&1 || true
 
         ci_tag="$(bash .github/scripts/image-tag.sh ci)"
@@ -78,10 +70,6 @@ runs:
           return 0
         }
 
-        container_json() { # <image or empty>
-          if [ -n "$1" ]; then printf '{"image":"%s"}' "$1"; else printf 'null'; fi
-        }
-
         ci_image="$(find_image ci "${ci_tag}")"
         e2e_image="$(find_image e2e "${e2e_tag}")"
 
@@ -90,8 +78,6 @@ runs:
           echo "e2e-tag=${e2e_tag}"
           echo "ci-image=${ci_image}"
           echo "e2e-image=${e2e_image}"
-          echo "ci-container=$(container_json "${ci_image}")"
-          echo "e2e-container=$(container_json "${e2e_image}")"
         } >> "${GITHUB_OUTPUT}"
 
         {

@@ -25,7 +25,6 @@ jobs:
       packages: read
     outputs:
       e2e-image: ${{ steps.resolve.outputs.e2e-image }}
-      e2e-container: ${{ steps.resolve.outputs.e2e-container }}
     steps:
       - uses: actions/checkout@v4 # v4
       - id: resolve
@@ -54,7 +53,11 @@ jobs:
     needs: [resolve-image]
     if: needs.resolve-image.outputs.e2e-image != ''
     runs-on: ubuntu-latest
-    container: ${{ fromJSON(needs.resolve-image.outputs.e2e-container) }}
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials (see ci.yml).
+    container: ${{ needs.resolve-image.outputs.e2e-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.e2e-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment

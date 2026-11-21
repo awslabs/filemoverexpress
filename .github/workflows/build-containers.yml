@@ -11,8 +11,10 @@ name: Build CI Containers
 # finds the matching image with the resolve-image action and falls back to plain runner setup
 # when there is none.
 #
-# After the first publish, set each package to Public (Package settings -> Change visibility)
-# so forks and unauthenticated pulls work.
+# The packages stay private (organization policy), so every pull is authenticated: the jobs in
+# ci.yml and e2e.yml pass the workflow's GITHUB_TOKEN as container credentials. After the first
+# publish, check in the package settings that the repository has access to each package (the
+# image source label links it automatically).
 on:
   push:
     branches: [main]

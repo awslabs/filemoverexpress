@@ -28,9 +28,24 @@ under `awslabs`. If it finds none (for example in a pull request that changes th
 `versions.env`), the jobs run on the plain runner and install the tools as before. The end-to-end
 job is skipped in that case.
 
-Images are pushed only by `build-containers.yml`, with the repository's own `GITHUB_TOKEN`. A fork
-can run that workflow to publish its own images, then make the packages public so its pull
-requests and anyone else can pull them without credentials.
+Images are pushed only by `build-containers.yml`, with the repository's own `GITHUB_TOKEN`.
+
+## Private packages
+
+The `awslabs` packages cannot be made public, so every pull is authenticated. `resolve-image` logs
+in to GHCR with the workflow's `GITHUB_TOKEN`, and each container job passes the same token as
+container credentials. Jobs that pull an image need `packages: read`. The credentials are built in
+the job's `container:` expression, not in a `resolve-image` output, because GitHub drops job
+outputs that contain a secret.
+
+The token can read an `awslabs` package only if the package grants access to this repository
+(Package settings -> Manage Actions access). Packages published by `build-containers.yml` are linked
+to the repository by their source label and inherit its access.
+
+A pull request from a fork gets a read-only token that belongs to the base repository, so it can
+pull the `awslabs` images when the package allows it. If a lookup fails for any reason, the jobs run
+on the plain runner and install the toolchain, and the end-to-end job is skipped. A fork can run
+`build-containers.yml` to publish its own images; its own workflows pull them with its own token.
 
 ## Building locally
 
