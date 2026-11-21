@@ -32,7 +32,7 @@ Images are pushed only by `build-containers.yml`, with the repository's own `GIT
 
 ## Private packages
 
-The `awslabs` packages cannot be made public, so every pull is authenticated. `resolve-image` logs
+The packages are private, so every pull is authenticated. `resolve-image` logs
 in to GHCR with the workflow's `GITHUB_TOKEN`, and each container job passes the same token as
 container credentials. Jobs that pull an image need `packages: read`. The credentials are built in
 the job's `container:` expression, not in a `resolve-image` output, because GitHub drops job
