@@ -25,6 +25,7 @@ const txpData: ConfigInterfaces.ConfigTransferProfile = {
     accelerated: false,
     fileOrder: [],
     enableMetadataFilter: false,
+    blockUploadOnVerifyFailure: false,
     storageClass: 'STANDARD',
     paths: Paths.fromJson({local: '', remote: ''}),
     chunkSize: 25,
@@ -258,6 +259,7 @@ describe('S3Config', () => {
             expect(txp.accelerated).toEqual(false);
             expect(txp.fileOrder).toEqual([]);
             expect(txp.enableMetadataFilter).toEqual(false);
+            expect(txp.blockUploadOnVerifyFailure).toEqual(false);
             expect(txp.storageClass).toEqual('STANDARD');
             expect(txp.paths).toEqual(txpData.paths);
             expect(txp.chunkSize).toEqual(25);
@@ -301,6 +303,7 @@ describe('TransferProfile', () => {
         expect(t.accelerated).toEqual(txpData.accelerated);
         expect(t.fileOrder).toEqual(txpData.fileOrder);
         expect(t.enableMetadataFilter).toEqual(txpData.enableMetadataFilter);
+        expect(t.blockUploadOnVerifyFailure).toEqual(txpData.blockUploadOnVerifyFailure);
         expect(t.storageClass).toEqual(txpData.storageClass);
         expect(t.paths).toEqual(txpData.paths);
         expect(t.chunkSize).toEqual(txpData.chunkSize);
@@ -321,6 +324,7 @@ describe('TransferProfile', () => {
             txpData.accelerated,
             txpData.fileOrder,
             txpData.enableMetadataFilter,
+            txpData.blockUploadOnVerifyFailure,
             txpData.storageClass,
             txpData.paths,
             txpData.chunkSize,
@@ -426,6 +430,7 @@ function setCommonPbTxpData(pb: proto.TransferProfile, inputConfig: ConfigInterf
     pb.accelerated = inputConfig.accelerated;
     pb.fileOrder = inputConfig.fileOrder;
     pb.enableMetadataFilter = inputConfig.enableMetadataFilter;
+    pb.blockUploadOnVerifyFailure = inputConfig.blockUploadOnVerifyFailure;
     pb.storageClass = inputConfig.storageClass;
     pb.chunkSize = inputConfig.chunkSize;
     pb.threads = inputConfig.threads;

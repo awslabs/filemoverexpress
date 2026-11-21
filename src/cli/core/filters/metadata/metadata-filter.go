@@ -1,6 +1,8 @@
 package metadata
 
 import (
+	"path"
+	"path/filepath"
 	"regexp"
 
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
@@ -30,16 +32,26 @@ func (*MetadataFilter) IsFiltered(task *jobmanagertypes.Task) (bool, error) {
 	var source string
 
 	if task.TaskDirection() == jobmanagertypes.TaskDirectionDownload {
-		source = task.S3Object().Key
+		source = path.Base(task.S3Object().Key)
 	} else if task.TaskDirection() == jobmanagertypes.TaskDirectionUpload {
-		source = task.LocalFile().Path
+		source = filepath.Base(task.LocalFile().Path)
 	}
+	return IsMetadataFileName(source), nil
+}
+
+// IsMetadataFileName reports whether a file's base name is an OS-generated
+// metadata sidecar (._*, .DS_Store, Thumbs.db). Exported so other code (e.g. the
+// ASC MHL verifier's unlisted-file check) matches the same set without a second
+// copy of the patterns. Callers pass the base name (path.Base for an S3 key,
+// filepath.Base for a local path); the patterns are anchored, so passing a full
+// path would only ever match a bare name, never one in a subfolder.
+func IsMetadataFileName(baseName string) bool {
 	for _, metadataPattern := range metadataFilePatterns {
-		if metadataPattern.MatchString(source) {
-			return true, nil
+		if metadataPattern.MatchString(baseName) {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 // NewMetadataFilter returns a new MetadataFilter.

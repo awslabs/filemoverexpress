@@ -51,6 +51,7 @@ import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { VerificationGateService } from '@services/verification-gate/verification-gate.service';
 import * as JobActions from '@state/job/actions/job.actions';
 import { clearCompleted as clearCompletedJobsAction } from '@state/job/actions/job.actions';
 import { selectAll as jobSelectAll } from '@state/job/job.selectors';
@@ -109,6 +110,7 @@ export class JobsTableComponent implements AfterViewInit {
     private notifications = inject(NotificationsService);
     private exportSvc = inject(ExportService);
     private destroyRef = inject(DestroyRef);
+    private verificationGate = inject(VerificationGateService);
 
     @ViewChildren(MatMenuTrigger) contextMenus: MatMenuTrigger[] = [];
     // Cursor-positioned trigger for the per-row context menu (opened on right-click).
@@ -370,13 +372,28 @@ export class JobsTableComponent implements AfterViewInit {
             && (job.ascMhlVerified ?? 0) === (job.ascMhlListed ?? 0);
     }
 
-    /** Tooltip for the ASC MHL column cell, e.g. "ASC MHL verified 3 of 3 (xxhash64)". */
+    /**
+     * Whether the ASC MHL verification had integrity problems (a hash mismatch,
+     * a missing or unreadable listed file). Drives the red X in the column, so a
+     * failed verify is a loud signal rather than an amber one.
+     */
+    ascMhlFailed(job: Job): boolean {
+        return this.ascMhlUsed(job) && (job.ascMhlProblems ?? 0) > 0;
+    }
+
+    /** Tooltip for the ASC MHL column cell, reflecting clean / failed / partial. */
     ascMhlTooltip(job: Job): string {
         const verified = job.ascMhlVerified ?? 0;
         const listed = job.ascMhlListed ?? 0;
         const algorithm = job.ascMhlAlgorithm ?? '';
-        const base = `ASC MHL verified ${verified} of ${listed}`;
-        return algorithm ? `${base} (${algorithm})` : base;
+        const suffix = algorithm ? ` (${algorithm})` : '';
+        if (this.ascMhlFailed(job)) {
+            return `ASC MHL verification failed: ${verified} of ${listed} verified, ${job.ascMhlProblems ?? 0} with problems${suffix}`;
+        }
+        if (this.ascMhlClean(job)) {
+            return `ASC MHL verified ${verified} of ${listed}${suffix}`;
+        }
+        return `ASC MHL: ${verified} of ${listed} verified${suffix}`;
     }
 
     /**
@@ -580,6 +597,18 @@ export class JobsTableComponent implements AfterViewInit {
                 }
             });
         });
+    }
+
+    /**
+     * Re-open the pre-upload verification gate for a job (the "Review" row action).
+     * Delegates to the always-on VerificationGateService, which owns the dialog and
+     * the resolve RPC so the gate behaves identically whether the Jobs tray is open
+     * or not.
+     *
+     * @param job {Job} Job awaiting verification review.
+     */
+    openVerificationGate(job: Job) {
+        this.verificationGate.openGate(job);
     }
 
     /**

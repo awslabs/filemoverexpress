@@ -128,6 +128,26 @@ describe('BucketBrowserComponent', () => {
         expect(component).toBeTruthy();
     });
 
+    describe('external drag cue backstops', () => {
+        it('clears a stuck cue when the window loses focus', () => {
+            component.externalDragActive.set(true);
+            component.clearExternalDragOnBlur();
+            expect(component.externalDragActive()).toBe(false);
+        });
+
+        it('clears a stuck cue on the first pointer-down after a drag ends', () => {
+            component.externalDragActive.set(true);
+            component.clearExternalDragOnPointerDown();
+            expect(component.externalDragActive()).toBe(false);
+        });
+
+        it('pointer-down is a no-op when no cue is showing', () => {
+            component.externalDragActive.set(false);
+            component.clearExternalDragOnPointerDown();
+            expect(component.externalDragActive()).toBe(false);
+        });
+    });
+
     describe('connection state', () => {
         it('shows the no-active-session error while disconnected', () => {
             expect(component.connectionState).toBe(ConnectionState.DISCONNECTED);

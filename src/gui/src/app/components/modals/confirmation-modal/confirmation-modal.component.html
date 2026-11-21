@@ -3,6 +3,11 @@
 </div>
 <div mat-dialog-content (fmeEnterSubmit)="confirm()()" [enterSubmitDisabled]="false">
     <div class="modal-text" [innerHTML]="config.message"></div>
+    @if (config.acknowledgeText) {
+        <mat-checkbox class="modal-acknowledge" [(ngModel)]="acknowledged">
+            {{ config.acknowledgeText }}
+        </mat-checkbox>
+    }
 </div>
 <div mat-dialog-actions class="modal-buttons">
     @if (config.cancelText) {
@@ -16,6 +21,7 @@
         <fme-button [type]="config.confirmType"
                     [text]="config.confirmText"
                     [color]="config.confirmClass"
+                    [disabled]="confirmDisabled"
                     [onClick]="confirm()">
         </fme-button>
     }

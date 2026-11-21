@@ -1,6 +1,7 @@
 package jobmanagertypes
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,4 +62,32 @@ func TestJob_SetASCMHLResult(t *testing.T) {
 	assert.Equal(t, int32(4), pb.GetAscMhlListed())
 	assert.Equal(t, int32(1), pb.GetAscMhlProblems())
 	assert.Equal(t, "xxhash64", pb.GetAscMhlAlgorithm())
+}
+
+// NEEDS_REVIEW is a non-terminal pause with a human-readable label.
+func TestJobStatus_NeedsReviewRoundTrip(t *testing.T) {
+	assert.Equal(t, "Needs Review", JobStatusNeedsReview.String())
+	assert.Equal(t, JobStatusNeedsReview, JobStatusFromString("NEEDS_REVIEW"))
+	assert.False(t, JobStatusNeedsReview.IsCompleted())
+}
+
+// Proceeding at the gate resolves to true (upload anyway).
+func TestJob_GateResolution_Proceed(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	job.ResolveGate(true)
+	assert.True(t, job.AwaitGateResolution())
+}
+
+// Stopping at the gate resolves to false.
+func TestJob_GateResolution_StopViaResolveFalse(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	job.ResolveGate(false)
+	assert.False(t, job.AwaitGateResolution())
+}
+
+// A cancel while parked at the gate resolves to false without an explicit decision.
+func TestJob_GateResolution_StopViaCancel(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	job.CancelFunc(errors.New("cancelled"))
+	assert.False(t, job.AwaitGateResolution())
 }

@@ -10,10 +10,20 @@ Adds support for the industry-standard ASC Media Hash List (ASC MHL) format: Fil
 * **ASC MHL read and verify**: File Mover Express detects an `ascmhl/` folder travelling with your media, reads the latest-generation ASC MHL v2 manifest, and verifies every listed file against its recorded hash on ingest. Supported hash algorithms are xxHash64, XXH3, MD5, and C4; a manifest in an algorithm File Mover Express cannot compute (for example SHA1) is reported rather than silently skipped. Verification runs even when the transfer profile's in-app checksum is off, so a manifest that shipped with the media is always honored. The `ascmhl/` folder itself travels to S3 with the media.
 * **Verification you can see**: a job verified against a supplied ASC MHL shows an "ASC MHL verified" marker on the job header, a column in the jobs table (green when every listed file verified, amber otherwise), and a row in the job's Advanced details ("Verified N of M - <algorithm>"). The Logs tab records the manifest being verified and names any per-file problems. A job with a hash mismatch or a listed file missing on disk completes as "Complete w/ Warnings" (amber) with the failing files called out, rather than a silent green.
 * **Hash type in reports**: the CSV and XLSX job reports include a `hashType` column recording the algorithm each file's hash was computed in.
+* **Per-file verification in reports and the jobs table**: the job report adds an `mhlStatus` column marking each file `verified`, `mismatch`, `unreadable`, or `flagged`, so a report is a quick manifest of exactly which files failed. The jobs-table ASC MHL column shows a red mark when a job had an integrity problem (a hash mismatch or a missing file), rather than amber.
+* **Pre-upload verification gate**: when a supplied ASC MHL manifest fails verification, File Mover Express can stop before any bytes upload and ask what to do. The job pauses in a "Needs Review" state and a dialog lists the files that failed and why (hash mismatch, missing on disk, unreadable), with Stop (the default) or Upload anyway behind an acknowledgement checkbox; an override is recorded in the job log and the job still finishes as "Complete w/ Warnings". The gate is controlled per transfer profile by "Stop upload on ASC MHL verify failure" (on the Performance tab), on by default for new profiles. Headless jobs (CLI, hot folder, MCP) pause for review until resolved when the profile blocks on failure.
 
 ### Changed
 
 * **Objects verified against an ASC MHL are tagged with the verified hash even when the in-app checksum is off.** Previously an upload with checksums off wrote no hash to the S3 object. Now, when a file matches its ASC MHL entry, the verified hash and its algorithm are written to the object's metadata. The hash is only ever written after the file's bytes are re-read and matched against the manifest; a manifest value is never trusted onto an object unverified.
+* **OS metadata files are kept out of ASC MHL warnings and S3.** `.DS_Store`, AppleDouble `._*` resource forks, and `Thumbs.db` are no longer flagged as unlisted against a supplied manifest (matching the ASC reference tool), and the metadata filter now excludes them from uploads even in subfolders and when overwrite is on.
+
+### Fixed
+
+* A job that failed ASC MHL verification could show as a clean green "Completed" instead of amber "Complete w/ Warnings". The failing status now travels with the job's completion so the outcome is shown honestly.
+* The jobs-table ASC MHL mark and the Advanced-details counts now update as soon as a job finishes, rather than only after the jobs list was refreshed.
+* The checksum progress log no longer reads "NaN% complete" when every file's checksum was already cached; it reports that there were no files to checksum.
+* The dashed drop outline on the S3 panel no longer stays stuck after a drag ends.
 
 ## 1.1.3
 

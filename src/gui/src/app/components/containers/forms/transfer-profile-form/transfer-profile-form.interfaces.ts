@@ -54,6 +54,7 @@ export interface TransferProfileForm {
     maxAge: FormControl<string>;
     fileOrder: FormControl<string[]>;
     enableMetadataFilter: FormControl<boolean>;
+    blockUploadOnVerifyFailure: FormControl<boolean>;
 }
 
 export interface StorageClass {

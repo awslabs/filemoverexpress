@@ -88,6 +88,7 @@ export interface ConfigTransferProfile {
     accelerated: boolean;
     fileOrder: string[];
     enableMetadataFilter: boolean;
+    blockUploadOnVerifyFailure: boolean;
     storageClass: string;
     paths: Paths;
     chunkSize: number;

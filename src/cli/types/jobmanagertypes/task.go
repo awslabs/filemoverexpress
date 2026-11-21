@@ -56,6 +56,7 @@ type (
 		jobId             string
 		checksum          string
 		checksumAlgorithm string
+		ascMHLStatus      string
 		lock              *sync.RWMutex
 		priority          int
 		err               error
@@ -276,6 +277,21 @@ func (t *Task) SetChecksumAlgorithm(algorithm string) {
 	t.checksumAlgorithm = algorithm
 }
 
+// ASCMHLStatus is the per-file ASC MHL verification outcome ("verified",
+// "mismatch", "unreadable", "flagged"), empty when the file was not listed in a
+// supplied manifest. Lets a report flag which files failed verification.
+func (t *Task) ASCMHLStatus() string {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	return t.ascMHLStatus
+}
+
+func (t *Task) SetASCMHLStatus(status string) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.ascMHLStatus = status
+}
+
 func (t *Task) ToProtobuf() *fmev1.Task {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
@@ -315,6 +331,7 @@ func (t *Task) ToProtobuf() *fmev1.Task {
 		JobId:             t.jobId,
 		Checksum:          t.checksum,
 		ChecksumAlgorithm: t.checksumAlgorithm,
+		AscMhlStatus:      t.ascMHLStatus,
 		Priority:          priority,
 		Err:               errorString,
 		BytesTransferred:  atomic.LoadInt64(&t.BytesTransferred),

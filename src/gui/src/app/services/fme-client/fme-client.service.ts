@@ -43,6 +43,8 @@ import {
     RenameJobResponse,
     ResubmitJobRequestSchema,
     ResubmitJobResponse,
+    ResolveVerificationGateRequestSchema,
+    ResolveVerificationGateResponse,
     ResumeJobRequestSchema,
     ResumeJobResponse,
 } from '@gen/es/fme/v1/job_pb';
@@ -507,6 +509,33 @@ export class FmeClientService {
         this.connectClient.resubmitJob(
             req,
             (err: ConnectError | undefined, res: ResubmitJobResponse) => {
+                if (err) {
+                    sub.error(err);
+                    return;
+                }
+
+                sub.next(res);
+                sub.complete();
+            },
+        );
+
+        return sub.asObservable();
+    }
+
+    resolveVerificationGate(jobId: string, proceed: boolean): Observable<ResolveVerificationGateResponse> {
+        const sub = new Subject<ResolveVerificationGateResponse>();
+        const req = create(ResolveVerificationGateRequestSchema);
+        req.jobId = jobId;
+        req.proceed = proceed;
+
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+
+        this.connectClient.resolveVerificationGate(
+            req,
+            (err: ConnectError | undefined, res: ResolveVerificationGateResponse) => {
                 if (err) {
                     sub.error(err);
                     return;

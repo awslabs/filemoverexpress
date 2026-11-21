@@ -36,21 +36,26 @@ type (
 		hasTaskErrors           bool
 		hasSuccessfulTasks      bool
 		hasVerificationWarnings bool
-		ascMHLVerified          int
-		ascMHLListed            int
-		ascMHLAlgorithm         string
-		ascMHLProblems          int
-		dbObjects               []*databasetypes.DatabaseObject
-		destination             string
-		TimestampCreated        time.Time
-		TimestampDiscovering    time.Time
-		TimestampChecksumming   time.Time
-		TimestampTransferring   time.Time
-		TimestampCompleted      time.Time
-		sources                 []string
-		s3PrefixToTrim          string
-		force                   bool
-		uploadBasePath          string
+		// gateResolution delivers the operator's decision when a job is paused in
+		// NEEDS_REVIEW (ASC MHL verify failed and the profile blocks on failure):
+		// true = upload anyway, false = stop. Buffered so ResolveGate never blocks.
+		gateResolution        chan bool
+		ascMHLVerified        int
+		ascMHLListed          int
+		ascMHLAlgorithm       string
+		ascMHLProblems        int
+		ascMHLFailures        []string
+		dbObjects             []*databasetypes.DatabaseObject
+		destination           string
+		TimestampCreated      time.Time
+		TimestampDiscovering  time.Time
+		TimestampChecksumming time.Time
+		TimestampTransferring time.Time
+		TimestampCompleted    time.Time
+		sources               []string
+		s3PrefixToTrim        string
+		force                 bool
+		uploadBasePath        string
 	}
 	JobConfig struct {
 		Direction       transfertypes.Direction
@@ -76,6 +81,7 @@ func NewJob(config JobConfig) (*Job, error) {
 		BytesUploaded:         0,
 		CancelCtx:             ctx,
 		CancelFunc:            cancelFunc,
+		gateResolution:        make(chan bool, 1),
 		direction:             config.Direction,
 		hasTaskErrors:         false,
 		hasSuccessfulTasks:    false,
@@ -176,7 +182,10 @@ func (j *Job) SetStatus(status JobStatus) {
 		j.TimestampCompleted = n
 	}
 
-	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n)
+	// Build the ASC MHL payload directly (the write lock is already held), so a
+	// NEEDS_REVIEW pause carries real counts and the failing-file list to the gate
+	// dialog before the job completes. nil when no manifest was verified.
+	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n, j.ascMHLEventDataLocked())
 }
 
 func (j *Job) StatusMessage() string {
@@ -231,6 +240,28 @@ func (j *Job) SetHasVerificationWarnings(hasVerificationWarnings bool) {
 	j.hasVerificationWarnings = hasVerificationWarnings
 }
 
+// AwaitGateResolution blocks until the operator resolves a NEEDS_REVIEW pause via
+// ResolveGate, or the job is cancelled. Returns true to upload anyway, false to
+// stop. A cancel (CancelCtx done) always resolves to false.
+func (j *Job) AwaitGateResolution() bool {
+	select {
+	case proceed := <-j.gateResolution:
+		return proceed
+	case <-j.CancelCtx.Done():
+		return false
+	}
+}
+
+// ResolveGate delivers the operator's NEEDS_REVIEW decision to the waiting job
+// goroutine. Non-blocking: the channel is buffered to one and a second call is
+// dropped rather than blocking the caller.
+func (j *Job) ResolveGate(proceed bool) {
+	select {
+	case j.gateResolution <- proceed:
+	default:
+	}
+}
+
 // SetASCMHLResult records the outcome of ASC MHL verification so the GUI can
 // surface that a supplied manifest was honored, even on a clean run. verified is
 // how many listed files matched, listed is how many the manifest(s) contained,
@@ -274,6 +305,50 @@ func (j *Job) ASCMHLAlgorithm() string {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.ascMHLAlgorithm
+}
+
+// SetASCMHLFailures records the per-file integrity problems ("path (reason)") so
+// the pre-upload gate can list the offending files.
+func (j *Job) SetASCMHLFailures(failures []string) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+	j.ascMHLFailures = failures
+}
+
+// ASCMHLFailures returns the per-file integrity problem descriptions.
+func (j *Job) ASCMHLFailures() []string {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLFailures
+}
+
+// ASCMHLEventData builds the nested ASC MHL payload for a job event, or nil when
+// no supplied manifest was verified (listed == 0), so an event for a job without
+// a manifest carries no ASC MHL data. Takes the read lock; safe for external
+// callers.
+func (j *Job) ASCMHLEventData() *eventtypes.ASCMHLEventData {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLEventDataLocked()
+}
+
+// ascMHLEventDataLocked is ASCMHLEventData assuming the caller already holds the
+// lock (e.g. SetStatus, which holds the write lock). The int -> int32 conversion
+// lives here, the one place the counts cross into event/protobuf types.
+func (j *Job) ascMHLEventDataLocked() *eventtypes.ASCMHLEventData {
+	if j.ascMHLListed == 0 {
+		return nil
+	}
+	verified, _ := safeconv.IntToInt32(j.ascMHLVerified)
+	listed, _ := safeconv.IntToInt32(j.ascMHLListed)
+	problems, _ := safeconv.IntToInt32(j.ascMHLProblems)
+	return &eventtypes.ASCMHLEventData{
+		Verified:  verified,
+		Listed:    listed,
+		Problems:  problems,
+		Algorithm: j.ascMHLAlgorithm,
+		Failures:  j.ascMHLFailures,
+	}
 }
 
 func (j *Job) Direction() transfertypes.Direction {

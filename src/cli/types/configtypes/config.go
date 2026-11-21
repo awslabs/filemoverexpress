@@ -111,8 +111,9 @@ type (
 		Accelerated bool     `koanf:"accelerated" yaml:"accelerated"`
 		FileOrder   []string `koanf:"fileOrder" yaml:"fileOrder"`
 
-		EnableMetadataFilter bool   `koanf:"enableMetadataFilter" yaml:"enableMetadataFilter"`
-		StorageClass         string `koanf:"storageClass" yaml:"storageClass"`
+		EnableMetadataFilter       bool   `koanf:"enableMetadataFilter" yaml:"enableMetadataFilter"`
+		BlockUploadOnVerifyFailure bool   `koanf:"blockUploadOnVerifyFailure" yaml:"blockUploadOnVerifyFailure"`
+		StorageClass               string `koanf:"storageClass" yaml:"storageClass"`
 
 		Paths PathsSettings `koanf:"paths" yaml:"paths"`
 
@@ -306,15 +307,16 @@ func TransferProfilesFromProtobuf(profileList map[string]*fmev1.TransferProfile)
 
 	for name, transferProfile := range profileList {
 		vdr := TransferProfile{
-			Name:                 transferProfile.Name,
-			Bucket:               transferProfile.Bucket,
-			Region:               transferProfile.Region,
-			Profile:              transferProfile.Profile,
-			Endpoint:             transferProfile.Endpoint,
-			Accelerated:          transferProfile.Accelerated,
-			FileOrder:            transferProfile.FileOrder,
-			EnableMetadataFilter: transferProfile.EnableMetadataFilter,
-			StorageClass:         transferProfile.StorageClass,
+			Name:                       transferProfile.Name,
+			Bucket:                     transferProfile.Bucket,
+			Region:                     transferProfile.Region,
+			Profile:                    transferProfile.Profile,
+			Endpoint:                   transferProfile.Endpoint,
+			Accelerated:                transferProfile.Accelerated,
+			FileOrder:                  transferProfile.FileOrder,
+			EnableMetadataFilter:       transferProfile.EnableMetadataFilter,
+			BlockUploadOnVerifyFailure: transferProfile.BlockUploadOnVerifyFailure,
+			StorageClass:               transferProfile.StorageClass,
 			Paths: PathsSettings{
 				Local:  transferProfile.Paths.Local,
 				Remote: transferProfile.Paths.Remote,
@@ -363,15 +365,16 @@ func TransferProfilesToProtobuf(transferProfiles map[string]TransferProfile) map
 		}
 
 		pbv := &fmev1.TransferProfile{
-			Name:                 transferProfile.Name,
-			Bucket:               transferProfile.Bucket,
-			Region:               transferProfile.Region,
-			Profile:              transferProfile.Profile,
-			Endpoint:             transferProfile.Endpoint,
-			Accelerated:          transferProfile.Accelerated,
-			FileOrder:            transferProfile.FileOrder,
-			EnableMetadataFilter: transferProfile.EnableMetadataFilter,
-			StorageClass:         transferProfile.StorageClass,
+			Name:                       transferProfile.Name,
+			Bucket:                     transferProfile.Bucket,
+			Region:                     transferProfile.Region,
+			Profile:                    transferProfile.Profile,
+			Endpoint:                   transferProfile.Endpoint,
+			Accelerated:                transferProfile.Accelerated,
+			FileOrder:                  transferProfile.FileOrder,
+			EnableMetadataFilter:       transferProfile.EnableMetadataFilter,
+			BlockUploadOnVerifyFailure: transferProfile.BlockUploadOnVerifyFailure,
+			StorageClass:               transferProfile.StorageClass,
 			Paths: &fmev1.PathsSettings{
 				Local:  transferProfile.Paths.Local,
 				Remote: transferProfile.Paths.Remote,

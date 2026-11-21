@@ -17,6 +17,15 @@ type JobCompleteEvent struct {
 	HasTaskErrors      bool
 	HasSuccessfulTasks bool
 	HasAllSkippedTasks bool
+	// Status is the terminal job status (COMPLETED or COMPLETED_WITH_WARNINGS).
+	// The GUI takes the final status from this event, so it must be populated or
+	// a verify-failed job renders as a clean COMPLETED.
+	Status string
+	// ASCMHL is the ASC MHL verification outcome, or nil when no supplied manifest
+	// was verified. Carried so the GUI's jobs-table column and the Advanced-details
+	// counts update live on completion rather than only after a full job-list
+	// refresh.
+	ASCMHL *ASCMHLEventData
 }
 
 func (dce *JobCompleteEvent) String() string {
@@ -39,6 +48,8 @@ func (dce *JobCompleteEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) {
 		HasTaskErrors:      dce.HasTaskErrors,
 		HasSuccessfulTasks: dce.HasSuccessfulTasks,
 		HasAllSkippedTasks: dce.HasAllSkippedTasks,
+		Status:             dce.Status,
+		AscMhl:             dce.ASCMHL.toProtobuf(),
 	}
 	msgEvent := fmev1.ListEventsResponse_JobCompleteEvent{JobCompleteEvent: pbEvent}
 	return &msgEvent, fmev1.EventType_EVENT_TYPE_JOB_COMPLETE_EVENT_TYPE

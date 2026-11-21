@@ -246,6 +246,20 @@ describe('JobDetailsModalComponent', () => {
             const {component} = build(makeData({ascMhlListed: 2, ascMhlVerified: 2}));
             expect(component.ascMhlSummaryLabel).toBe('Verified 2 of 2');
         });
+
+        it('flags a mismatch job as failed with a partial summary', () => {
+            const {component} = build(makeData({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 12,
+                ascMhlVerified: 10,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlFailed).toBe(true);
+            expect(component.ascMhlClean).toBe(false);
+            expect(component.ascMhlSummaryLabel).toBe('Verified 10 of 12 - xxhash64');
+        });
     });
 
     describe('duration + speed labels', () => {
