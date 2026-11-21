@@ -1,7 +1,7 @@
 import * as ConfigInterfaces from '../interfaces/config';
 import { FmeConfigSection } from '../interfaces/config';
 import * as proto from '@gen/es/fme/v1/config_pb';
-import { NotificationSettings } from '@gen/es/fme/v1/notifications_pb';
+import * as notifProto from '@gen/es/fme/v1/notifications_pb';
 import {
     DEFAULT_CHECKSUMS,
     DEFAULT_GENERAL_SETTINGS,
@@ -21,8 +21,9 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
         public protocols: Protocols,
         public uploadHotFolders: HotFolders[],
         // Managed by the webhook-notification RPCs, not this form. Carried through
-        // unchanged as the raw protobuf message so a whole-config save never wipes it.
-        public notifications?: NotificationSettings,
+        // unchanged (mapped to/from the protobuf message) so a whole-config save never
+        // wipes it.
+        public notifications?: Notifications,
     ) {
     }
 
@@ -37,7 +38,7 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             Reports.fromJson(input.reports),
             Protocols.fromJson(input.protocols),
             hotFolders,
-            input.notifications,
+            input.notifications ? Notifications.fromJson(input.notifications) : undefined,
         );
     }
 
@@ -66,7 +67,7 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
             input.reports ? Reports.fromProtobuf(input.reports) : Reports.fromJson(DEFAULT_REPORTS_SETTINGS),
             input.protocols ? Protocols.fromProtobuf(input.protocols) : Protocols.fromJson(DEFAULT_PROTOCOLS_SETTINGS),
             hotFolders,
-            input.notifications,
+            input.notifications ? Notifications.fromProtobuf(input.notifications) : undefined,
         );
     }
 
@@ -79,7 +80,9 @@ export class FmeConfig implements ConfigInterfaces.FmeConfig {
         grpcConfig.uploadHotFolders = this.uploadHotFolders.map(
             (itm) => HotFolders.jsonToProtobuf(itm),
         );
-        grpcConfig.notifications = this.notifications;
+        grpcConfig.notifications = this.notifications
+            ? Notifications.jsonToProtobuf(this.notifications)
+            : undefined;
         return grpcConfig;
     }
 }
@@ -535,5 +538,84 @@ export class Checksums implements ConfigInterfaces.Checksums {
         checksumSettings.enabled = input.enabled;
         checksumSettings.algorithm = input.algorithm;
         return checksumSettings;
+    }
+}
+
+
+export class Notifications implements ConfigInterfaces.Notifications {
+    constructor(
+        public destinations: NotificationDestination[],
+        public notifyAllTransfers: boolean,
+    ) {
+    }
+
+    static fromProtobuf(input: notifProto.NotificationSettings): Notifications {
+        return new Notifications(
+            input.destinations.map((itm) => NotificationDestination.fromProtobuf(itm)),
+            input.notifyAllTransfers,
+        );
+    }
+
+    static fromJson(input: ConfigInterfaces.Notifications): Notifications {
+        return new Notifications(
+            input.destinations.map((itm) => NotificationDestination.fromJson(itm)),
+            input.notifyAllTransfers,
+        );
+    }
+
+    static jsonToProtobuf(input: ConfigInterfaces.Notifications): notifProto.NotificationSettings {
+        const settings = create(notifProto.NotificationSettingsSchema);
+        settings.destinations = input.destinations.map((itm) => NotificationDestination.jsonToProtobuf(itm));
+        settings.notifyAllTransfers = input.notifyAllTransfers;
+        return settings;
+    }
+}
+
+export class NotificationDestination implements ConfigInterfaces.NotificationDestination {
+    constructor(
+        public name: string,
+        public preset: notifProto.NotificationPreset,
+        public notifyOnFinish: boolean,
+        public notifyOnFailure: boolean,
+        public isDefault: boolean,
+        public hasUrl: boolean,
+        public urlHint: string,
+    ) {
+    }
+
+    static fromProtobuf(input: notifProto.NotificationDestination): NotificationDestination {
+        return new NotificationDestination(
+            input.name,
+            input.preset,
+            input.notifyOnFinish,
+            input.notifyOnFailure,
+            input.isDefault,
+            input.hasUrl,
+            input.urlHint,
+        );
+    }
+
+    static fromJson(input: ConfigInterfaces.NotificationDestination): NotificationDestination {
+        return new NotificationDestination(
+            input.name,
+            input.preset,
+            input.notifyOnFinish,
+            input.notifyOnFailure,
+            input.isDefault,
+            input.hasUrl,
+            input.urlHint,
+        );
+    }
+
+    static jsonToProtobuf(input: ConfigInterfaces.NotificationDestination): notifProto.NotificationDestination {
+        const destination = create(notifProto.NotificationDestinationSchema);
+        destination.name = input.name;
+        destination.preset = input.preset;
+        destination.notifyOnFinish = input.notifyOnFinish;
+        destination.notifyOnFailure = input.notifyOnFailure;
+        destination.isDefault = input.isDefault;
+        destination.hasUrl = input.hasUrl;
+        destination.urlHint = input.urlHint;
+        return destination;
     }
 }
