@@ -432,6 +432,6 @@ When seeking help, collect:
 
 ## Next Steps
 
-- **[Performance Optimization](Performance-Optimization)** - Tune for better performance
+- **[Performance Optimization](Best-Practices#performance-parameters)** - Tune for better performance
 - **[Best Practices](Best-Practices)** - Prevent common issues
 - **[Security](Security)** - Secure your File Mover Express deployment

@@ -357,6 +357,6 @@ ENTRYPOINT ["filemoverexpress"]
 ## Next Steps
 
 - **[Hot Folders](Hot-Folders)** - Automated file monitoring and uploads
-- **[Remote Daemon](Remote-Daemon)** - Multi-user and high-performance setups
-- **[Performance Optimization](Performance-Optimization)** - Tune for your workload
+- **[Remote Daemon](Configuration#remote-daemon-configuration)** - Multi-user and high-performance setups
+- **[Performance Optimization](Best-Practices#performance-parameters)** - Tune for your workload
 - **[Troubleshooting](Troubleshooting)** - Resolve common issues
