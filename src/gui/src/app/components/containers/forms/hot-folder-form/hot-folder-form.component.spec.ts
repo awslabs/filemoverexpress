@@ -6,7 +6,9 @@ import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { HotFolders, HotFoldersTransferConfigurations } from '@classes/config';
+import { HotFolderFormGroup } from './hot-folder-form.interfaces';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -34,5 +36,23 @@ describe('HotFolderFormComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    // forceInitialUpload is set in the config file and not shown in the form. The modal saves
+    // getRawValue(), so the hidden control is what carries it through, including a rename.
+    it('carries forceInitialUpload through getRawValue(), including after a rename', () => {
+        fixture.componentRef.setInput('hotFolders', [
+            new HotFolders('dailies', true, '/footage', [new HotFoldersTransferConfigurations('txp', 'prefix')], true),
+        ]);
+        fixture.detectChanges();
+        const form = (component as unknown as {
+            hotFolderFormArray: () => FormArray<FormGroup<HotFolderFormGroup>>;
+        }).hotFolderFormArray();
+
+        form.at(0).controls.name.setValue('renamed');
+
+        const saved = form.getRawValue();
+        expect(saved[0].name).toBe('renamed');
+        expect(saved[0].forceInitialUpload).toBe(true);
     });
 });

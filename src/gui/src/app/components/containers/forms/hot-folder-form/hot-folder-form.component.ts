@@ -114,6 +114,7 @@ export class HotFolderFormComponent implements OnDestroy {
                 enabled: new FormControl<boolean>(hotFolder.enabled, {validators: [Validators.required], nonNullable: true}),
                 localSourceFolder: new FormControl<string>(hotFolder.localSourceFolder, {validators: [Validators.required], nonNullable: true}),
                 remoteConfigurations: remoteConfigs,
+                forceInitialUpload: new FormControl<boolean>(hotFolder.forceInitialUpload, {nonNullable: true}),
             }));
         }
 
@@ -142,6 +143,7 @@ export class HotFolderFormComponent implements OnDestroy {
                             }),
                         }),
                     ], {validators: [Validators.required]}),
+                    forceInitialUpload: new FormControl<boolean>(false, {nonNullable: true}),
                 });
                 hff.push(prefillFormGroup);
 
@@ -229,6 +231,7 @@ export class HotFolderFormComponent implements OnDestroy {
                     ],
                     Validators.required,
                 ),
+                forceInitialUpload: new FormControl<boolean>(false, {nonNullable: true}),
             }));
         };
     }

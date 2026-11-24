@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import {
+    create,
+    isFieldSet,
+    ScalarType,
+    type DescField,
+    type DescMessage,
+    type MessageShape,
+} from '@bufbuild/protobuf';
 import * as ConfigInterfaces from '@app/interfaces/config';
 import {
     Checksums,
+    FmeConfig,
     General,
     HotFolders,
     HotFoldersTransferConfigurations,
@@ -44,6 +53,9 @@ describe('General', () => {
         autoMaxActiveTransfers: true,
         maxActiveChecksums: 8,
         targetBandwidth: 150,
+        maxConnectionsPerHost: 64,
+        sendBufferBytes: 2 * 1024 * 1024,
+        adaptiveConcurrency: true,
     };
 
     function validate(gen: General) {
@@ -54,6 +66,9 @@ describe('General', () => {
         expect(gen.autoMaxActiveTransfers).toEqual(data.autoMaxActiveTransfers);
         expect(gen.maxActiveChecksums).toEqual(data.maxActiveChecksums);
         expect(gen.targetBandwidth).toEqual(data.targetBandwidth);
+        expect(gen.maxConnectionsPerHost).toEqual(data.maxConnectionsPerHost);
+        expect(gen.sendBufferBytes).toEqual(data.sendBufferBytes);
+        expect(gen.adaptiveConcurrency).toEqual(data.adaptiveConcurrency);
     }
 
     it('should create', () => {
@@ -64,6 +79,9 @@ describe('General', () => {
             data.autoMaxActiveTransfers,
             data.maxActiveChecksums,
             data.targetBandwidth,
+            data.maxConnectionsPerHost,
+            data.sendBufferBytes,
+            data.adaptiveConcurrency,
         );
 
         validate(gen);
@@ -92,6 +110,7 @@ describe('HotFolders', () => {
                 s3DestinationFolder: 'prefix/in/bucket',
             },
         ],
+        forceInitialUpload: true,
     };
 
     function validate(hf: HotFolders) {
@@ -99,6 +118,7 @@ describe('HotFolders', () => {
         expect(hf.name).toEqual(data.name);
         expect(hf.enabled).toEqual(data.enabled);
         expect(hf.localSourceFolder).toEqual(data.localSourceFolder);
+        expect(hf.forceInitialUpload).toEqual(data.forceInitialUpload);
     }
 
     it('should create', () => {
@@ -107,6 +127,7 @@ describe('HotFolders', () => {
             data.enabled,
             data.localSourceFolder,
             data.remoteConfigurations.map((itm) => HotFoldersTransferConfigurations.fromJson(itm)),
+            data.forceInitialUpload,
         );
 
         validate(hf);
@@ -121,6 +142,95 @@ describe('HotFolders', () => {
     it('should convert from json', () => {
         const hf = HotFolders.fromJson(data);
         validate(hf);
+    });
+});
+
+// The GUI saves the whole config and the daemon persists whatever it receives, so a proto
+// field the mappers skip is silently reset to zero on the next save. These tests set every
+// field of the schema to a non-default value and require it to survive a fromProtobuf ->
+// jsonToProtobuf round trip, so they fail as soon as a new proto field is added without a
+// matching mapper change.
+describe('config mappers keep every proto field', () => {
+    function nonDefaultScalar(scalar: ScalarType, n: number): unknown {
+        switch (scalar) {
+            case ScalarType.BOOL:
+                return true;
+            case ScalarType.STRING:
+                return `value-${n}`;
+            case ScalarType.BYTES:
+                return new Uint8Array([n]);
+            case ScalarType.INT64:
+            case ScalarType.UINT64:
+            case ScalarType.FIXED64:
+            case ScalarType.SFIXED64:
+            case ScalarType.SINT64:
+                return BigInt(n);
+            default:
+                return n; // 32-bit integers, float and double
+        }
+    }
+
+    function nonDefaultValue(field: DescField, n: number): unknown {
+        switch (field.fieldKind) {
+            case 'scalar':
+                return nonDefaultScalar(field.scalar, n);
+            case 'enum':
+                return field.enum.values[field.enum.values.length - 1].number;
+            case 'message':
+                return filled(field.message);
+            case 'list':
+                if (field.listKind === 'message') {
+                    return [filled(field.message)];
+                }
+                if (field.listKind === 'enum') {
+                    return [field.enum.values[field.enum.values.length - 1].number];
+                }
+                return [nonDefaultScalar(field.scalar, n)];
+            default:
+                throw new Error(`${field.fieldKind} field ${field.name} is not handled; extend this helper`);
+        }
+    }
+
+    /** A message of the given schema with every field set to a non-default value. */
+    function filled<Desc extends DescMessage>(schema: Desc): MessageShape<Desc> {
+        const message = create(schema);
+        const fields = message as unknown as Record<string, unknown>;
+        schema.fields.forEach((field, i) => {
+            if (field.oneof) {
+                throw new Error(`oneof field ${field.name} is not handled; extend this helper`);
+            }
+            fields[field.localName] = nonDefaultValue(field, i + 1);
+        });
+        return message;
+    }
+
+    function unsetFields<Desc extends DescMessage>(schema: Desc, message: MessageShape<Desc>): string[] {
+        return schema.fields.filter((field) => !isFieldSet(message, field)).map((field) => field.name);
+    }
+
+    it('GeneralSettings', () => {
+        const original = filled(proto.GeneralSettingsSchema);
+        expect(unsetFields(proto.GeneralSettingsSchema, original)).toEqual([]);
+        expect(General.jsonToProtobuf(General.fromProtobuf(original))).toEqual(original);
+    });
+
+    it('UploadHotFolderSettings', () => {
+        const original = filled(proto.UploadHotFolderSettingsSchema);
+        expect(unsetFields(proto.UploadHotFolderSettingsSchema, original)).toEqual([]);
+        expect(HotFolders.jsonToProtobuf(HotFolders.fromProtobuf(original))).toEqual(original);
+    });
+
+    it('a whole config from the daemon keeps them through FmeConfig', () => {
+        const message = create(proto.GRPCFmeConfigSchema, {
+            general: filled(proto.GeneralSettingsSchema),
+            logging: {},
+            reports: {},
+            protocols: {s3: {}},
+            uploadHotFolders: [filled(proto.UploadHotFolderSettingsSchema)],
+        });
+        const saved = FmeConfig.fromProtobuf(message).toProtobuf();
+        expect(saved.general).toEqual(message.general);
+        expect(saved.uploadHotFolders).toEqual(message.uploadHotFolders);
     });
 });
 

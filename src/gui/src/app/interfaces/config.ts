@@ -46,6 +46,11 @@ export interface ConfigGeneral {
     autoMaxActiveTransfers: boolean;
     maxActiveChecksums: number;
     targetBandwidth: number;
+    // Set in the daemon's config file, not in the Settings form. Modeled so a whole-config
+    // save carries them through instead of resetting them to zero.
+    maxConnectionsPerHost: number;
+    sendBufferBytes: number;
+    adaptiveConcurrency: boolean;
 }
 
 export interface ConfigHotFolders {
@@ -53,6 +58,9 @@ export interface ConfigHotFolders {
     enabled: boolean;
     localSourceFolder: string;
     remoteConfigurations: HotFolderTransferConfigurations[];
+    // Set in the daemon's config file and not shown in the hot-folder form, but carried
+    // through saves (and renames) by a hidden form control.
+    forceInitialUpload: boolean;
 }
 
 export interface HotFolderTransferConfigurations {
