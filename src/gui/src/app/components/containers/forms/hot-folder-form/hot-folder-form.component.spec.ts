@@ -9,6 +9,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { HotFolders, HotFoldersTransferConfigurations } from '@classes/config';
 import { HotFolderFormGroup } from './hot-folder-form.interfaces';
+import { MetadataService } from '@services/metadata/metadata.service';
+import { of } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -27,7 +29,18 @@ describe('HotFolderFormComponent', () => {
                 MatBadgeModule,
                 MatTooltipModule,
             ],
-            providers: [provideMockStore<AppState>({initialState: initialTestState})],
+            providers: [
+                provideMockStore<AppState>({initialState: initialTestState}),
+                // Rendering a hot folder's destinations reads transferProfiles, which throws
+                // until metadata has loaded. Same stub as configure-hot-folder-modal's spec.
+                {
+                    provide: MetadataService,
+                    useValue: {
+                        onUpdate: of(false),
+                        transferProfiles: {},
+                    },
+                },
+            ],
         });
         fixture = TestBed.createComponent(HotFolderFormComponent);
         component = fixture.componentInstance;
