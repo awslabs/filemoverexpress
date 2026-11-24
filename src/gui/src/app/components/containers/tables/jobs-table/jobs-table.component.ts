@@ -143,7 +143,6 @@ export class JobsTableComponent implements AfterViewInit {
         'duration',
         'progress',
         'status',
-        'mhl',
         'actions',
     ];
     dataSource: MatTableDataSource<Job>;
@@ -383,18 +382,30 @@ export class JobsTableComponent implements AfterViewInit {
     }
 
     /** Tooltip for the ASC MHL column cell, reflecting clean / failed / partial. */
+    /**
+     * The manifest-kind label shown on the inline tag. Legacy MHL (v1) is
+     * currently import-only - it produces no verification counts - so the only
+     * manifest that drives a tag today is ASC MHL (v2), and the label is "ASC MHL".
+     * When legacy verification lands, this returns "MHL" for a legacy manifest.
+     */
+    mhlLabel(): string {
+        return 'ASC MHL';
+    }
+
+    /** Tooltip for the inline MHL tag, reflecting clean / failed / partial. */
     ascMhlTooltip(job: Job): string {
         const verified = job.ascMhlVerified ?? 0;
         const listed = job.ascMhlListed ?? 0;
         const algorithm = job.ascMhlAlgorithm ?? '';
         const suffix = algorithm ? ` (${algorithm})` : '';
+        const label = this.mhlLabel();
         if (this.ascMhlFailed(job)) {
-            return `ASC MHL verification failed: ${verified} of ${listed} verified, ${job.ascMhlProblems ?? 0} with problems${suffix}`;
+            return `${label} verification failed: ${verified} of ${listed} verified, ${job.ascMhlProblems ?? 0} with problems${suffix}`;
         }
         if (this.ascMhlClean(job)) {
-            return `ASC MHL verified ${verified} of ${listed}${suffix}`;
+            return `${label} verified ${verified} of ${listed}${suffix}`;
         }
-        return `ASC MHL: ${verified} of ${listed} verified${suffix}`;
+        return `${label}: ${verified} of ${listed} verified${suffix}`;
     }
 
     /**

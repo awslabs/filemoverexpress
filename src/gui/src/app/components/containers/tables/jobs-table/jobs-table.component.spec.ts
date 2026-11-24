@@ -329,7 +329,18 @@ describe('JobsTableComponent', () => {
         });
     });
 
-    describe('ASC MHL column', () => {
+    describe('inline MHL tag', () => {
+        it('renders the tag inline in the name cell, not as a dedicated column', () => {
+            expect(component.displayedColumns).not.toContain('mhl');
+            expect(component.displayedColumns).toContain('name');
+        });
+
+        it('labels the tag by manifest kind (ASC MHL today; MHL when legacy verify lands)', () => {
+            const job = makeJob({ascMhlListed: 3, ascMhlVerified: 3});
+            expect(component.mhlLabel()).toBe('ASC MHL');
+            expect(component.ascMhlTooltip(job)).toContain('ASC MHL');
+        });
+
         it('flags a job verified against a manifest with no problems as used and clean', () => {
             const job = makeJob({
                 status: JobStatus.Completed,
