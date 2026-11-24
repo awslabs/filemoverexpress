@@ -400,6 +400,18 @@ describe('JobsTableComponent', () => {
             expect(component.ascMhlClean(job)).toBe(false);
         });
 
+        it('tooltip on a partial verify flags the unverified count and points at the Logs', () => {
+            const job = makeJob({
+                status: JobStatus.Completed,
+                ascMhlListed: 2,
+                ascMhlVerified: 0,
+                ascMhlProblems: 0,
+            });
+            const tip = component.ascMhlTooltip(job);
+            expect(tip).toContain('2 not verified');
+            expect(tip).toContain('Logs');
+        });
+
         it('is not clean on a partial (cancelled) verify even with no problems', () => {
             const job = makeJob({
                 status: JobStatus.Cancelled,

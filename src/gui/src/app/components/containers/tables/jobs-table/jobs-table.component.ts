@@ -405,7 +405,12 @@ export class JobsTableComponent implements AfterViewInit {
         if (this.ascMhlClean(job)) {
             return `${label} verified ${verified} of ${listed}${suffix}`;
         }
-        return `${label}: ${verified} of ${listed} verified${suffix}`;
+        // Partial: a manifest was honored but not every listed file was verified
+        // (e.g. an algorithm FME cannot compute, or a cancelled run). No hard
+        // integrity problem, so the job status can read green - the tooltip points
+        // the user at the Logs, which carry the exact reason (the not-honored count).
+        const unverified = listed - verified;
+        return `${label}: verified ${verified} of ${listed}${suffix}. ${unverified} not verified - see the job Logs for details.`;
     }
 
     /**
