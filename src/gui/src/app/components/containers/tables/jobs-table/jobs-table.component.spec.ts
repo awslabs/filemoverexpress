@@ -17,6 +17,7 @@ import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
+import { VerificationGateService } from '@services/verification-gate/verification-gate.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { ExportService } from '@services/export/export.service';
 import { ConnectionState } from '@state/models/connection-state-model';
@@ -69,10 +70,12 @@ describe('JobsTableComponent', () => {
         clearCompletedJobs: ReturnType<typeof vi.fn>;
         clearCompletedJob: ReturnType<typeof vi.fn>;
         renameJob: ReturnType<typeof vi.fn>;
+        resolveVerificationGate: ReturnType<typeof vi.fn>;
     };
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
     let exportSvc: { exportJobById: ReturnType<typeof vi.fn> };
     let dialogOpen: ReturnType<typeof vi.fn>;
+    let verificationGate: { openGate: ReturnType<typeof vi.fn>; init: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
         connectionState$ = new BehaviorSubject<ConnectionState>(ConnectionState.DISCONNECTED);
@@ -86,10 +89,12 @@ describe('JobsTableComponent', () => {
             clearCompletedJobs: vi.fn(() => of({})),
             clearCompletedJob: vi.fn(() => of(['job-1'])),
             renameJob: vi.fn(() => of({success: true})),
+            resolveVerificationGate: vi.fn(() => of({success: true})),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
         exportSvc = {exportJobById: vi.fn()};
         dialogOpen = vi.fn(() => ({afterClosed: () => of(undefined)}));
+        verificationGate = {openGate: vi.fn(), init: vi.fn()};
 
         TestBed.configureTestingModule({
             imports: [
@@ -112,6 +117,7 @@ describe('JobsTableComponent', () => {
                 {provide: NotificationsService, useValue: notifications},
                 {provide: ExportService, useValue: exportSvc},
                 {provide: MatDialog, useValue: {open: dialogOpen}},
+                {provide: VerificationGateService, useValue: verificationGate},
             ],
         });
         store = TestBed.inject(MockStore);
@@ -397,12 +403,52 @@ describe('JobsTableComponent', () => {
             const job = makeJob({ascMhlListed: 2, ascMhlVerified: 2});
             expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 2 of 2');
         });
+
+        it('flags a mismatch job as failed (the red X state)', () => {
+            const job = makeJob({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 12,
+                ascMhlVerified: 10,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlFailed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+            expect(component.ascMhlTooltip(job)).toContain('failed');
+        });
+
+        it('is not failed when there are no integrity problems', () => {
+            const job = makeJob({ascMhlListed: 12, ascMhlVerified: 12, ascMhlProblems: 0});
+            expect(component.ascMhlFailed(job)).toBe(false);
+        });
+
+        it('flags an unreadable manifest (problems, nothing listed) as used and failed', () => {
+            // A manifest that failed to load bumps problems but lists nothing; the
+            // column must still light red rather than appear as "no manifest".
+            const job = makeJob({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 0,
+                ascMhlVerified: 0,
+                ascMhlProblems: 1,
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlFailed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
     });
 
     describe('jobDetails', () => {
         it('opens the job details modal', () => {
             component.jobDetails(makeJob());
             expect(dialogOpen).toHaveBeenCalled();
+        });
+    });
+
+    describe('verification gate', () => {
+        it('delegates the Review row action to the verification gate service', () => {
+            const job = makeJob({id: 'gate-1', status: JobStatus.NeedsReview});
+            component.openVerificationGate(job);
+            expect(verificationGate.openGate).toHaveBeenCalledWith(job);
         });
     });
 });

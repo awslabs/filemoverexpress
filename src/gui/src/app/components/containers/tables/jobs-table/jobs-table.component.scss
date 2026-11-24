@@ -214,6 +214,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         background: variables.$orange-accent;
     }
 
+    &.status-needs-review {
+        background: variables.$orange-accent;
+    }
+
     &.status-error {
         background: variables.$red-500;
     }
@@ -272,6 +276,11 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         background: color.adjust(variables.$orange-accent, $alpha: -0.88);
     }
 
+    &.status-needs-review {
+        color: variables.$orange-accent;
+        background: color.adjust(variables.$orange-accent, $alpha: -0.88);
+    }
+
     &.status-error {
         color: variables.$red-500;
         background: color.adjust(variables.$red-500, $alpha: -0.88);
@@ -300,6 +309,10 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 
     &.clean {
         color: variables.$green-500;
+    }
+
+    &.failed {
+        color: variables.$red-500;
     }
 
     mat-icon {

@@ -88,7 +88,7 @@
                     @if (ascMhlUsed) {
                         <div class="jd-row">
                             <span class="rk">ASC MHL</span>
-                            <span class="rv" [class.jd-mhl-ok]="ascMhlClean">{{ ascMhlSummaryLabel }}</span>
+                            <span class="rv" [class.jd-mhl-ok]="ascMhlClean" [class.jd-mhl-fail]="ascMhlFailed">{{ ascMhlSummaryLabel }}</span>
                         </div>
                     }
                     @if (parallelismLabel) {

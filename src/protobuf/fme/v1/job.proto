@@ -56,6 +56,12 @@ message Task {
     string err = 12;
     int64 bytes_transferred = 13;
     string checksum_algorithm = 14;
+    // Per-file ASC MHL verification outcome: "verified", "mismatch", "unreadable",
+    // "flagged" (writer marked the hash bad), or "unhonored" (the manifest's only
+    // hash algorithms are ones FME cannot compute, e.g. sha1-only); empty when the
+    // file was not listed in a supplied manifest. Lets a report flag exactly which
+    // files failed verify.
+    string asc_mhl_status = 15;
 }
 
 message TaskLocalFile {
@@ -117,6 +123,18 @@ message ResubmitJobResponse {
     bool success = 2;
 }
 
+message ResolveVerificationGateRequest {
+    string job_id = 1;
+    // proceed=true uploads anyway (the job finishes with warnings); proceed=false
+    // stops and cancels the job without uploading.
+    bool proceed = 2;
+}
+
+message ResolveVerificationGateResponse {
+    string job_id = 1;
+    bool success = 2;
+}
+
 message JobProgressEvent {
     string id = 1;
     string name = 2;
@@ -131,6 +149,29 @@ message JobCompleteEvent {
     bool has_task_errors = 4;
     bool has_successful_tasks = 5;
     bool has_all_skipped_tasks = 6;
+    // Terminal job status the daemon settled on (COMPLETED or
+    // COMPLETED_WITH_WARNINGS). The GUI takes the final status from this event,
+    // so it must carry the warnings state or a verify-failed job shows as a
+    // clean COMPLETED.
+    string status = 7;
+    // ASC MHL verification outcome. A nested message so the common case (no
+    // supplied manifest) sends nothing: unset when the job verified no manifest.
+    // Lets the GUI's jobs-table column and Advanced-details counts appear live on
+    // completion instead of only after a full job-list refresh.
+    AscMhlResult asc_mhl = 8;
+}
+
+// AscMhlResult is the ASC MHL verification outcome carried on job events. Nested
+// (and left unset when no manifest was verified) so events for the ~95% of jobs
+// without a manifest do not carry these fields at all.
+message AscMhlResult {
+    int32 verified = 1;
+    int32 listed = 2;
+    int32 problems = 3;
+    string algorithm = 4;
+    // Per-file integrity problems as "path (reason)", so the pre-upload gate can
+    // list the offending files, not just count them.
+    repeated string failures = 5;
 }
 
 message JobErrorEvent {
@@ -196,6 +237,11 @@ message JobStatusChangeEvent {
     string job_id = 1;
     string status = 2;
     google.protobuf.Timestamp timestamp = 3;
+    // ASC MHL verification outcome. Nested and left unset when no manifest was
+    // verified, so a job paused in NEEDS_REVIEW (which has not completed, so no
+    // JobCompleteEvent yet) can still show real counts and the failing-file list
+    // in the pre-upload gate dialog.
+    AscMhlResult asc_mhl = 4;
 }
 
 message JobChecksumProgressEvent {

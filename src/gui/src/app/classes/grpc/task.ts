@@ -17,6 +17,7 @@ export interface FlattenedTask {
     priority: number,
     error: string,
     bytesTransferred: number,
+    ascMhlStatus: string,
 }
 
 export class Task {
@@ -34,6 +35,7 @@ export class Task {
         public priority: number,
         public error: string,
         public bytesTransferred: number,
+        public ascMhlStatus: string,
     ) {
     }
 
@@ -56,6 +58,7 @@ export class Task {
             task.priority,
             task.err,
             Number(task.bytesTransferred),
+            task.ascMhlStatus,
         );
     }
 
@@ -94,6 +97,7 @@ export class Task {
             priority: task.priority,
             error: task.error,
             bytesTransferred: task.bytesTransferred,
+            ascMhlStatus: task.ascMhlStatus,
         };
     }
 }

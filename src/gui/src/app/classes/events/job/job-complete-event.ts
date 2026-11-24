@@ -2,6 +2,7 @@ import { BaseEvent, EventLogLevel } from '@app/interfaces/events';
 import { timestampDate } from '@bufbuild/protobuf/wkt';
 import { ListEventsResponse } from '@gen/es/fme/v1/fme_service_pb';
 import { JobCompleteEvent as ProtoJobCompleteEvent } from '@gen/es/fme/v1/job_pb';
+import { AscMhlEventData, ascMhlFromProtobuf } from './asc-mhl-event-data';
 
 export class JobCompleteEvent implements BaseEvent {
     logLevel = EventLogLevel.Info;
@@ -13,6 +14,8 @@ export class JobCompleteEvent implements BaseEvent {
         public hasTaskErrors: boolean,
         public hasSuccessfulTasks: boolean,
         public hasAllTasksSkipped: boolean,
+        public status = '',
+        public ascMhl?: AscMhlEventData,
     ) {
     }
 
@@ -28,6 +31,8 @@ export class JobCompleteEvent implements BaseEvent {
             evt.completed ? timestampDate(evt.completed) : new Date(),
             evt.hasTaskErrors,
             evt.hasSuccessfulTasks,
-            evt.hasAllSkippedTasks);
+            evt.hasAllSkippedTasks,
+            evt.status,
+            ascMhlFromProtobuf(evt.ascMhl));
     }
 }

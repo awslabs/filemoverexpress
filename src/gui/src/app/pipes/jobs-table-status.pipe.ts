@@ -61,6 +61,8 @@ export class JobStatusClassPipe implements PipeTransform {
                 return 'status-paused';
             case JobStatus.CompletedWithWarnings:
                 return 'status-completed-with-warnings';
+            case JobStatus.NeedsReview:
+                return 'status-needs-review';
             case JobStatus.Cancelled:
                 return 'status-cancelled';
             case JobStatus.Error:

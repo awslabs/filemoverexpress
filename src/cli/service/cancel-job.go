@@ -39,6 +39,14 @@ func (*FileMoverServer) CancelJob(
 		if status == jobmanagertypes.TaskStatusError || status == jobmanagertypes.TaskStatusCompleted {
 			continue
 		}
+		// Skipped tasks (filtered files, e.g. .DS_Store, and the pre-checksum
+		// AddSkippedTasks set) were never queued for transfer and never added to
+		// the WaitGroup, so they must NOT be Done'd here - doing so panics with a
+		// negative WaitGroup counter. This is reachable at the pre-upload gate,
+		// where a job parks in NEEDS_REVIEW with only skipped tasks registered.
+		if status == jobmanagertypes.TaskStatusSkipped {
+			continue
+		}
 		// In-progress tasks are owned by the transfer worker: it will finish them
 		// (and call Done) once it observes the cancelled context. For tasks that
 		// haven't started, the cancel path owns the Done. MarkFinished guarantees

@@ -27,6 +27,7 @@ const (
 	strUnableToPauseJob              = "unable to pause job with Id %s because status is %s"
 	strUnableToResubmitJob           = "unable to resubmit job with Id %s because status is %s"
 	strUnableToResumeJob             = "unable to resume job with Id %s"
+	strJobNotAwaitingReview          = "job with Id %s is not awaiting verification review"
 	strGrpcSendFailed                = "failed sending message: %s"
 	strLocalDeleteNotAllowed         = "Local file delete actions are not allowed by configuration permissions"
 	strRemoteDeleteNotAllowed        = "Remote file delete actions are not allowed by configuration permissions"

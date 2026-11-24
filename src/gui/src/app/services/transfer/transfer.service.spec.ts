@@ -170,6 +170,31 @@ describe('TransferService', () => {
                 lastUpdate: completed,
             });
         });
+
+        it('preserves COMPLETED_WITH_WARNINGS from the daemon instead of flattening to Completed', () => {
+            const completed = new Date('2026-02-02T02:02:02Z');
+            events$.next(new JobCompleteEvent('job-3w', 'Verify failed', completed, false, true, false,
+                JobStatus.CompletedWithWarnings,
+                {verified: 1, listed: 3, problems: 2, algorithm: 'xxhash64', failures: []}));
+
+            const action = dispatchSpy.mock.calls[0][0] as {
+                type: string,
+                job: { id: string, changes: Record<string, unknown> },
+            };
+            expect(action.type).toBe('[Job Service] Complete Job');
+            expect(action.job.id).toBe('job-3w');
+            expect(action.job.changes).toMatchObject({
+                status: JobStatus.CompletedWithWarnings,
+                hasTaskErrors: false,
+                hasSuccessfulTasks: true,
+                timestampCompleted: completed,
+                lastUpdate: completed,
+                ascMhlVerified: 1,
+                ascMhlListed: 3,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -237,6 +262,25 @@ describe('TransferService', () => {
             expect(action.job.id).toBe('job-6');
             expect(action.job.changes['status']).toBe(status);
             expect(action.job.changes[tsField]).toBe(ts);
+        });
+
+        it('carries ASC MHL counts so the gate dialog has real numbers on NEEDS_REVIEW', () => {
+            events$.next(new JobStatusChangeEvent('job-6r', JobStatus.NeedsReview, ts,
+                {verified: 1, listed: 3, problems: 2, algorithm: 'xxhash64', failures: ['clip.mov (hash mismatch)']}));
+
+            const action = dispatchSpy.mock.calls[0][0] as {
+                type: string,
+                job: { id: string, changes: Record<string, unknown> },
+            };
+            expect(action.type).toBe('[Job Service] Update Status');
+            expect(action.job.changes).toMatchObject({
+                status: JobStatus.NeedsReview,
+                ascMhlVerified: 1,
+                ascMhlListed: 3,
+                ascMhlProblems: 2,
+                ascMhlAlgorithm: 'xxhash64',
+                ascMhlFailures: ['clip.mov (hash mismatch)'],
+            });
         });
     });
 

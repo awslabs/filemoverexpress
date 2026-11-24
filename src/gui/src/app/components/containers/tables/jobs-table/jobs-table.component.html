@@ -90,9 +90,9 @@
                     <th mat-header-cell *matHeaderCellDef>ASC MHL</th>
                     <td mat-cell *matCellDef="let job; dataSource: dataSource">
                         @if (ascMhlUsed(job)) {
-                            <span class="job-mhl" [class.clean]="ascMhlClean(job)"
+                            <span class="job-mhl" [class.clean]="ascMhlClean(job)" [class.failed]="ascMhlFailed(job)"
                                   [matTooltip]="ascMhlTooltip(job)" [matTooltipShowDelay]="500">
-                                <mat-icon>verified</mat-icon>
+                                <mat-icon>{{ ascMhlFailed(job) ? 'cancel' : 'verified' }}</mat-icon>
                             </span>
                         }
                     </td>
@@ -169,6 +169,12 @@
             <button mat-menu-item (click)="cancelJob(job)">
                 <mat-icon class="material-icons-outlined">cancel_outline</mat-icon>
                 Cancel
+            </button>
+        }
+        @if (job.status === 'NEEDS_REVIEW') {
+            <button mat-menu-item (click)="openVerificationGate(job)">
+                <mat-icon>rule</mat-icon>
+                Review
             </button>
         }
         <mat-divider></mat-divider>

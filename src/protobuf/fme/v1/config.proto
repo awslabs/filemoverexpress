@@ -143,6 +143,12 @@ message TransferProfile {
     // has_secret_access_key is a read-only hint set by the daemon: true when an encrypted secret
     // exists for this profile. Lets the GUI render a "secret is set" state without ever receiving it.
     bool has_secret_access_key = 22;
+    // block_upload_on_verify_failure pauses a job in NEEDS_REVIEW when a supplied
+    // ASC MHL manifest fails verification, instead of uploading. The GUI then
+    // prompts Stop / Upload-anyway; headless jobs stay parked until resolved via
+    // ResolveVerificationGate. When false, a failed verify proceeds and the job
+    // finishes with warnings (the prior behavior).
+    bool block_upload_on_verify_failure = 23;
 }
 
 message UploadHotFolderSettings {

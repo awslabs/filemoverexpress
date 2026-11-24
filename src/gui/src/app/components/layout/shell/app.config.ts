@@ -15,6 +15,7 @@ import { TransferProfileService } from '@services/transfer-profile/transfer-prof
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { LogsService } from '@services/logs/logs.service';
 import { ShutdownService } from '@services/shutdown/shutdown.service';
+import { VerificationGateService } from '@services/verification-gate/verification-gate.service';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 
 export const appConfig: ApplicationConfig = {
@@ -35,6 +36,7 @@ export const appConfig: ApplicationConfig = {
                 inject(ShutdownService),
                 inject(TransferProfileService),
                 inject(LogsService),
+                inject(VerificationGateService),
             ];
 
             for (const svc of services) {

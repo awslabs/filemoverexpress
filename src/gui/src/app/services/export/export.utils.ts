@@ -39,6 +39,7 @@ function serializeForBinding(data: ExportJobList): WailsExportJobList {
                 priority: t.priority,
                 error: t.error,
                 bytesTransferred: t.bytesTransferred,
+                ascMhlStatus: t.ascMhlStatus,
             })),
         };
     }

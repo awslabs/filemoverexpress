@@ -37,6 +37,7 @@ type TaskData struct {
 	Priority          int          `json:"priority"`
 	Error             string       `json:"error"`
 	BytesTransferred  int64        `json:"bytesTransferred"`
+	ASCMhlStatus      string       `json:"ascMhlStatus"`
 }
 
 // FileInfo represents a local file reference within a task.
@@ -69,6 +70,7 @@ type flatRow struct {
 	Priority          int
 	Error             string
 	BytesTransferred  int64
+	ASCMhlStatus      string
 }
 
 var (
@@ -77,7 +79,7 @@ var (
 		"jobName", "direction", "remoteConfigurationName",
 		"jobId", "taskId", "destination", "source", "size",
 		"lastModified", "status", "statusMessage", "checksum",
-		"priority", "error", "bytesTransferred", "hashType",
+		"priority", "error", "bytesTransferred", "hashType", "mhlStatus",
 	}
 )
 
@@ -146,6 +148,7 @@ func (a *FMEApp) GenerateCsvReport(data ExportJobList) string {
 				csvQuote(r.Error),
 				fmt.Sprintf("%d", r.BytesTransferred),
 				csvQuote(r.ChecksumAlgorithm),
+				csvQuote(r.ASCMhlStatus),
 			}, ","))
 		}
 	}
@@ -183,6 +186,7 @@ func flattenTask(t TaskData, bucket string) flatRow {
 		Priority:          t.Priority,
 		Error:             t.Error,
 		BytesTransferred:  t.BytesTransferred,
+		ASCMhlStatus:      t.ASCMhlStatus,
 	}
 
 	switch strings.ToLower(t.Direction) {
@@ -247,7 +251,7 @@ func writeExcelHeaders(f *excelize.File, sheet string) {
 	headers := []string{
 		"taskId", "destination", "source", "size", "lastModified",
 		"direction", "status", "statusMessage", "jobId",
-		"checksum", "priority", "error", "bytesTransferred", "hashType",
+		"checksum", "priority", "error", "bytesTransferred", "hashType", "mhlStatus",
 	}
 	for col, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
@@ -272,6 +276,7 @@ func writeExcelRows(f *excelize.File, sheet string, rows []flatRow) {
 		f.SetCellValue(sheet, cellName(12, row), r.Error)
 		f.SetCellValue(sheet, cellName(13, row), r.BytesTransferred)
 		f.SetCellValue(sheet, cellName(14, row), r.ChecksumAlgorithm)
+		f.SetCellValue(sheet, cellName(15, row), r.ASCMhlStatus)
 	}
 }
 

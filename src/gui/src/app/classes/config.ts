@@ -336,6 +336,7 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         public accelerated: boolean,
         public fileOrder: string[],
         public enableMetadataFilter: boolean,
+        public blockUploadOnVerifyFailure: boolean,
         public storageClass: string,
         public paths: Paths,
         public chunkSize: number,
@@ -381,6 +382,7 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
             input.accelerated,
             input.fileOrder,
             input.enableMetadataFilter,
+            input.blockUploadOnVerifyFailure,
             input.storageClass,
             input.paths ? Paths.fromProtobuf(input.paths) : Paths.fromJson(DEFAULT_PATHS),
             input.chunkSize,
@@ -412,6 +414,7 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
             input.accelerated,
             input.fileOrder,
             input.enableMetadataFilter,
+            input.blockUploadOnVerifyFailure,
             input.storageClass,
             Paths.fromJson(input.paths),
             input.chunkSize,
@@ -443,6 +446,7 @@ export class TransferProfile implements ConfigInterfaces.ConfigTransferProfile {
         transferProfile.accelerated = input.accelerated;
         transferProfile.fileOrder = input.fileOrder;
         transferProfile.enableMetadataFilter = input.enableMetadataFilter;
+        transferProfile.blockUploadOnVerifyFailure = input.blockUploadOnVerifyFailure;
         transferProfile.storageClass = input.storageClass;
         transferProfile.paths = Paths.jsonToProtobuf(input.paths);
         transferProfile.chunkSize = input.chunkSize;

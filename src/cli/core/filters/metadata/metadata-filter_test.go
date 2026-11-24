@@ -133,3 +133,67 @@ func TestNewMetadataFilter(t *testing.T) {
 		})
 	}
 }
+
+// Regression: the patterns are anchored, so matching them against a full path
+// never caught a metadata file in a subfolder. Match on the base name instead.
+func TestMetadataFilter_NestedPaths(t *testing.T) {
+	filter, _ := NewMetadataFilter()
+
+	cases := []struct {
+		name      string
+		direction jobmanagertypes.TaskDirection
+		upload    string
+		s3key     string
+		want      bool
+	}{
+		{"[Upload] nested .DS_Store excluded", jobmanagertypes.TaskDirectionUpload, "/media/F003MN99/.DS_Store", "", true},
+		{"[Upload] nested ._ fork excluded", jobmanagertypes.TaskDirectionUpload, "/media/F003MN99/._clip.mxf", "", true},
+		{"[Upload] nested Thumbs.db excluded", jobmanagertypes.TaskDirectionUpload, "/media/F003MN99/Thumbs.db", "", true},
+		{"[Upload] real media kept", jobmanagertypes.TaskDirectionUpload, "/media/F003MN99/clip.mxf", "", false},
+		{"[Download] nested .DS_Store excluded", jobmanagertypes.TaskDirectionDownload, "", "offload/F003MN99/.DS_Store", true},
+		{"[Download] real media kept", jobmanagertypes.TaskDirectionDownload, "", "offload/F003MN99/clip.mxf", false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := jobmanagertypes.TaskConfig{TaskDirection: c.direction, JobId: "test-id"}
+			if c.direction == jobmanagertypes.TaskDirectionUpload {
+				cfg.LocalFile = jobmanagertypes.LocalFile{Path: c.upload, Size: 1}
+			} else {
+				cfg.S3Object = jobmanagertypes.S3Object{Key: c.s3key, Size: 1, LastModified: time.Now()}
+			}
+			task, err := jobmanagertypes.NewTask(cfg)
+			if err != nil {
+				t.Fatalf("NewTask: %v", err)
+			}
+			got, err := filter.IsFiltered(task)
+			if err != nil {
+				t.Fatalf("IsFiltered: %v", err)
+			}
+			if got != c.want {
+				t.Errorf("IsFiltered(%q%q) = %v, want %v", c.upload, c.s3key, got, c.want)
+			}
+		})
+	}
+}
+
+// IsMetadataFileName matches OS sidecar base names. Shared with the ASC MHL
+// verifier so both skip the same set without a duplicate pattern list.
+func TestIsMetadataFileName(t *testing.T) {
+	cases := []struct {
+		base string
+		want bool
+	}{
+		{".DS_Store", true},
+		{"._F003C003.mxf", true},
+		{"Thumbs.db", true},
+		{"F003C003_190925_MN99.mxf", false},
+		{"notes.DS_Store.txt", false},
+		{"0001_F003.mhl", false},
+	}
+	for _, c := range cases {
+		if got := IsMetadataFileName(c.base); got != c.want {
+			t.Errorf("IsMetadataFileName(%q) = %v, want %v", c.base, got, c.want)
+		}
+	}
+}

@@ -462,6 +462,11 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
             && (this.jobDetails.ascMhlVerified ?? 0) === (this.jobDetails.ascMhlListed ?? 0);
     }
 
+    /** True when the ASC MHL verification had integrity problems (mismatch/missing). */
+    get ascMhlFailed(): boolean {
+        return this.ascMhlUsed && (this.jobDetails.ascMhlProblems ?? 0) > 0;
+    }
+
     /** Advanced-details summary for the ASC MHL verification, e.g. "Verified 3 of 3 - xxhash64". */
     get ascMhlSummaryLabel(): string {
         const verified = this.jobDetails.ascMhlVerified ?? 0;

@@ -34,6 +34,7 @@ service FmeService {
     rpc ResumeJob (fme.v1.ResumeJobRequest) returns (fme.v1.ResumeJobResponse) {}
     rpc RenameJob (fme.v1.RenameJobRequest) returns (fme.v1.RenameJobResponse) {}
     rpc ResubmitJob (fme.v1.ResubmitJobRequest) returns (fme.v1.ResubmitJobResponse) {}
+    rpc ResolveVerificationGate (fme.v1.ResolveVerificationGateRequest) returns (fme.v1.ResolveVerificationGateResponse) {}
     rpc ListJobs (fme.v1.ListJobsRequest) returns (fme.v1.ListJobsResponse) {}
     rpc ListTasksForJob (fme.v1.ListTasksForJobRequest) returns (fme.v1.ListTasksForJobResponse) {}
     rpc ListTasksForJobStream (fme.v1.ListTasksForJobRequest) returns (stream fme.v1.Task) {}

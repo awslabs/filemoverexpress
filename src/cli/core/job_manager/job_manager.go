@@ -334,6 +334,15 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 	} else {
 		forcedFilterList = append(forcedFilterList, blockedPathsFilter)
 	}
+	// Metadata files (.DS_Store, AppleDouble ._*, Thumbs.db) are never intended
+	// payload, so when the profile enables the metadata filter they are excluded
+	// unconditionally - even under Force (overwrite), which bypasses the optional
+	// filters below.
+	if mdFilter, mdErr := metadata.NewMetadataFilter(); mdErr != nil {
+		events.Events.Warn("Error while parsing metadata filter: %s", mdErr)
+	} else if mdFilter != nil && transferProfile.EnableMetadataFilter {
+		forcedFilterList = append(forcedFilterList, mdFilter)
+	}
 	filteredTasks = filterTasks(forcedFilterList, filteredTasks)
 
 	var filterList []filters.FileMoverFilter
@@ -348,12 +357,6 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 		events.Events.Warn("Error while parsing inclusion filter: %s", err)
 	} else if inclusionFilter != nil {
 		filterList = append(filterList, inclusionFilter)
-	}
-	metadataFilter, err := metadata.NewMetadataFilter()
-	if err != nil {
-		events.Events.Warn("Error while parsing metadata filter: %s", err)
-	} else if metadataFilter != nil && transferProfile.EnableMetadataFilter {
-		filterList = append(filterList, metadataFilter)
 	}
 	fileExistsFilter, err := fileAlreadyExists.NewFileAlreadyExistsFilter(job)
 	if err != nil {
@@ -383,7 +386,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		job.SetStatus(completionStatus(job))
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
 		// even though the skip event is sent first. Need to investigate order of events for event bus
 		time.Sleep(constants.SleepDuration)
@@ -396,6 +399,8 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 				HasAllSkippedTasks: true,
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
+				Status:             string(job.Status()),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -426,7 +431,7 @@ func (jm *JobManager) DownloadJob(job *jobmanagertypes.Job) {
 
 //revive:enable:function-length,flag-parameter
 
-//revive:disable:function-length,flag-parameter
+//revive:disable:function-length,flag-parameter,cyclomatic
 func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	transferProfile := job.TransferProfile()
 	jobId := job.JobId()
@@ -455,6 +460,15 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	} else {
 		forcedFilterList = append(forcedFilterList, blockedPathsFilter)
 	}
+	// Metadata files (.DS_Store, AppleDouble ._*, Thumbs.db) are never intended
+	// payload, so when the profile enables the metadata filter they are excluded
+	// unconditionally - even under Force (overwrite), which bypasses the optional
+	// filters below.
+	if mdFilter, mdErr := metadata.NewMetadataFilter(); mdErr != nil {
+		events.Events.Warn("Error while parsing metadata filter: %s", mdErr)
+	} else if mdFilter != nil && transferProfile.EnableMetadataFilter {
+		forcedFilterList = append(forcedFilterList, mdFilter)
+	}
 	filteredTasks = filterTasks(forcedFilterList, filteredTasks)
 
 	var filterList []filters.FileMoverFilter
@@ -470,12 +484,6 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	} else if inclusionFilter != nil {
 		filterList = append(filterList, inclusionFilter)
 	}
-	metadataFilter, err := metadata.NewMetadataFilter()
-	if err != nil {
-		events.Events.Warn("Error while parsing metadata filter: %s", err)
-	} else if metadataFilter != nil && transferProfile.EnableMetadataFilter {
-		filterList = append(filterList, metadataFilter)
-	}
 
 	if !job.Force() {
 		filteredTasks = filterTasks(filterList, filteredTasks)
@@ -486,7 +494,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		job.SetStatus(completionStatus(job))
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
 		// even though the skip event is sent first. Need to investigate order of events for event bus
 		time.Sleep(constants.SleepDuration)
@@ -499,6 +507,8 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasAllSkippedTasks: true,
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
+				Status:             string(job.Status()),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -541,6 +551,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	// problem count, and the algorithm) so the GUI can show it even on a clean run.
 	job.SetASCMHLResult(verificationResult.Verified, verificationResult.Listed,
 		verificationResult.Problems, verificationResult.Algorithm)
+	job.SetASCMHLFailures(verificationResult.Failures)
 	if verificationResult.Problems > 0 {
 		// At least one file failed its supplied ASC MHL verification (hash
 		// mismatch or missing on disk). The transfer still proceeds, but the job
@@ -548,6 +559,18 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 		// clean success. The per-file detail was already emitted as job-scoped
 		// error log lines.
 		job.SetHasVerificationWarnings(true)
+	}
+	//endregion
+
+	// region Verification Gate
+	// A supplied ASC MHL manifest failed verification. If the profile blocks on
+	// failure, pause here - nothing has uploaded yet - in NEEDS_REVIEW until the
+	// operator resolves the gate (ResolveVerificationGate). Stop cancels the job;
+	// proceeding logs an override and the upload runs, finishing with warnings.
+	if verificationResult.Problems > 0 && transferProfile.BlockUploadOnVerifyFailure {
+		if !awaitVerificationGate(job, verificationResult.Problems) {
+			return
+		}
 	}
 	//endregion
 
@@ -592,7 +615,7 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 	jm.AddSkippedTasks(discoveredTasks, job)
 
 	if len(filteredTasks) == 0 {
-		job.SetStatus(jobmanagertypes.JobStatusCompleted)
+		job.SetStatus(completionStatus(job))
 		// TODO: Sleep needed here because the job complete event comes before the skip event,
 		// even though the skip event is sent first. Need to investigate order of events for event bus
 		time.Sleep(constants.SleepDuration)
@@ -605,6 +628,8 @@ func (jm *JobManager) UploadJob(job *jobmanagertypes.Job) {
 				HasAllSkippedTasks: true,
 				HasSuccessfulTasks: false,
 				HasTaskErrors:      false,
+				Status:             string(job.Status()),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)
@@ -717,7 +742,7 @@ func sendJobProgress(job *jobmanagertypes.Job, cancelChan chan bool) {
 	}
 }
 
-//revive:enable:function-length,flag-parameter
+//revive:enable:function-length,flag-parameter,cyclomatic
 
 func sortTasks(tasks []*jobmanagertypes.Task, sortList []sorting.FileMoverSorter) []*jobmanagertypes.Task {
 	sortedTasks := tasks
@@ -731,6 +756,36 @@ func sortTasks(tasks []*jobmanagertypes.Task, sortList []sorting.FileMoverSorter
 	return sortedTasks
 }
 
+// awaitVerificationGate parks a job in NEEDS_REVIEW after a supplied ASC MHL
+// manifest fails verification and waits for the operator's decision via
+// ResolveVerificationGate. Returns true to continue the upload (the job finishes
+// with warnings), or false to stop - in which case the gate resolver (or a
+// cancel) has already moved the job to a terminal state, so the caller returns.
+func awaitVerificationGate(job *jobmanagertypes.Job, problems int) bool {
+	job.SetStatus(jobmanagertypes.JobStatusNeedsReview)
+	events.Events.InfoForJob(job.JobId(),
+		"MHL verification found %d integrity problem(s); upload paused for review", problems)
+	if job.AwaitGateResolution() {
+		events.Events.WarnForJob(job.JobId(),
+			"Upload-anyway override: proceeding with %d acknowledged MHL integrity problem(s)", problems)
+		return true
+	}
+	return false
+}
+
+// completionStatus is the terminal status for a finished job: amber
+// COMPLETED_WITH_WARNINGS when a supplied ASC MHL manifest failed verification
+// (a hash mismatch or a listed file missing on disk), otherwise COMPLETED.
+// Centralized so every completion path (the all-skipped early exits and the
+// normal transfer finish) agrees, and so the status carried on the
+// JobCompleteEvent always matches the job's own status.
+func completionStatus(job *jobmanagertypes.Job) jobmanagertypes.JobStatus {
+	if job.HasVerificationWarnings() {
+		return jobmanagertypes.JobStatusCompletedWithWarnings
+	}
+	return jobmanagertypes.JobStatusCompleted
+}
+
 // SendEventWhenJobComplete waits for the job's waitGroup to finish, and sends a JobCompleteEvent once it is finished
 func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	job.WaitGroup.Wait()
@@ -742,11 +797,7 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 	// are triggered? For now, sleep is needed to force order of events
 	time.Sleep(constants.SleepDuration)
 	if job.Status() != jobmanagertypes.JobStatusError && job.Status() != jobmanagertypes.JobStatusCancelled {
-		if job.HasVerificationWarnings() {
-			job.SetStatus(jobmanagertypes.JobStatusCompletedWithWarnings)
-		} else {
-			job.SetStatus(jobmanagertypes.JobStatusCompleted)
-		}
+		job.SetStatus(completionStatus(job))
 		events.Events.Send(
 			&eventtypes.JobCompleteEvent{
 				Id:                 job.JobId(),
@@ -755,6 +806,8 @@ func sendEventWhenJobComplete(job *jobmanagertypes.Job, cancelChan chan bool) {
 				HasSuccessfulTasks: job.HasSuccessfulTasks(),
 				HasTaskErrors:      job.HasTaskErrors(),
 				HasAllSkippedTasks: false,
+				Status:             string(job.Status()),
+				ASCMHL:             job.ASCMHLEventData(),
 			},
 		)
 		time.Sleep(constants.SleepDuration)

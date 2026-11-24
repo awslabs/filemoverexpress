@@ -510,6 +510,8 @@ func TestVerifyASCMHLReportsProblems(t *testing.T) {
 	assert.Equal(t, 0, result.Verified)
 	assert.Equal(t, 1, result.Listed)
 	assert.Equal(t, 1, result.Problems, "a hash mismatch is an integrity problem")
+	assert.Equal(t, []string{"clip.mov (hash mismatch)"}, result.Failures,
+		"the gate list should name the mismatched file and reason")
 }
 
 // Even when every file mismatches, the algorithm that was used is still recorded
@@ -612,4 +614,51 @@ func TestVerifyASCMHLCountsLoadFailureAsProblem(t *testing.T) {
 	assert.Equal(t, 1, result.Problems, "a manifest that fails to load is an integrity problem")
 	assert.Equal(t, 0, result.Verified)
 	assert.Equal(t, 0, result.Listed)
+	// The unreadable manifest itself is recorded as a failure, so the gate dialog
+	// and the jobs-table mark have something to show even with no per-file entries.
+	require.Len(t, result.Failures, 1)
+	assert.Contains(t, result.Failures[0], reasonManifestUnreadable)
+	assert.Contains(t, result.Failures[0], "0001_root.mhl")
+}
+
+// The per-file ASC MHL verification outcome is recorded on the task so a report
+// can flag which files failed: "verified" on a match, "mismatch" on a bad hash.
+func TestVerifyManifestSetsTaskASCMHLStatus(t *testing.T) {
+	root := t.TempDir()
+	manifestPath := filepath.Join(root, "ascmhl", "0001_root.mhl")
+	writeFile(t, filepath.Join(root, "good.mov"), "good-bytes")
+	writeFile(t, filepath.Join(root, "bad.mov"), "bad-bytes")
+	goodXX := fmeChecksum(t, filepath.Join(root, "good.mov"), constants.AlgorithmXXHash64)
+
+	mkTask := func(name string) *jobmanagertypes.Task {
+		abs, err := filepath.Abs(filepath.Join(root, name))
+		require.NoError(t, err)
+		task, terr := jobmanagertypes.NewTask(jobmanagertypes.TaskConfig{
+			LocalFile:     jobmanagertypes.LocalFile{Path: abs},
+			TaskDirection: jobmanagertypes.TaskDirectionUpload,
+			JobId:         "job-status",
+		})
+		require.NoError(t, terr)
+		return task
+	}
+	goodTask, badTask := mkTask("good.mov"), mkTask("bad.mov")
+	goodAbs, _ := filepath.Abs(filepath.Join(root, "good.mov"))
+	badAbs, _ := filepath.Abs(filepath.Join(root, "bad.mov"))
+
+	manifest := mhl.ASCManifest{Entries: []mhl.ASCFileEntry{
+		{RelativePath: "good.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: goodXX}},
+		{RelativePath: "bad.mov", Hashes: map[constants.ChecksumAlgorithm]string{constants.AlgorithmXXHash64: "deadbeefdeadbeef"}},
+	}}
+
+	vctx := verifyCtx{
+		ctx:              context.Background(),
+		jobID:            "job-status",
+		jobName:          "status",
+		profileAlgorithm: constants.AlgorithmNone,
+		taskByPath:       map[string]*jobmanagertypes.Task{goodAbs: goodTask, badAbs: badTask},
+	}
+	verifyManifest(vctx, manifestPath, manifest, nil)
+
+	assert.Equal(t, "verified", goodTask.ASCMHLStatus())
+	assert.Equal(t, "mismatch", badTask.ASCMHLStatus())
 }

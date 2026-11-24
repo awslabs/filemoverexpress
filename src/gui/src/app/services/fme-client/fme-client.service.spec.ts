@@ -326,6 +326,14 @@ describe('FmeClientService', function () {
             expect(await firstValueFrom(service.resubmitJob('j'))).toEqual({ok: 1});
         });
 
+        it('resolveVerificationGate forwards id + proceed and returns the response', async () => {
+            const fn = unarySuccess('resolveVerificationGate', {success: true});
+            const res = await firstValueFrom(service.resolveVerificationGate('job-9', true));
+            expect(res).toEqual({success: true});
+            expect(fn.mock.calls[0][0].jobId).toBe('job-9');
+            expect(fn.mock.calls[0][0].proceed).toBe(true);
+        });
+
         it('generateInventoryReport forwards params + response', async () => {
             const fn = unarySuccess('generateInventoryReport', {report: 'x'});
             const res = await firstValueFrom(service.generateInventoryReport('prof', 'json', true, false));
