@@ -351,11 +351,12 @@ export class JobsTableComponent implements AfterViewInit {
     }
 
     /**
-     * Whether a supplied ASC MHL manifest was verified for this job (at least one
-     * listed file). Drives the ASC MHL column indicator.
+     * Whether a supplied ASC MHL manifest was verified for this job. True when at
+     * least one file was listed, OR there were integrity problems with nothing
+     * listed - an unreadable manifest, which must still light the column (red).
      */
     ascMhlUsed(job: Job): boolean {
-        return (job.ascMhlListed ?? 0) > 0;
+        return (job.ascMhlListed ?? 0) > 0 || (job.ascMhlProblems ?? 0) > 0;
     }
 
     /**

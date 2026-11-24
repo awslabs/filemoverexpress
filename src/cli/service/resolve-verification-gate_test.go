@@ -77,3 +77,23 @@ func TestResolveVerificationGate_Stop(t *testing.T) {
 	assert.True(t, resp.Msg.Success)
 	assert.Equal(t, jobmanagertypes.JobStatusCancelled, job.Status())
 }
+
+// A second resolve (e.g. a CLI stop racing a GUI proceed) is rejected rather than
+// overwriting the first decision. Regression for the check-then-act race.
+func TestResolveVerificationGate_DoubleResolveRejected(t *testing.T) {
+	job := newGateTestJob(t)
+	job.SetStatus(jobmanagertypes.JobStatusNeedsReview)
+	srv := &FileMoverServer{}
+
+	first, err := srv.ResolveVerificationGate(context.Background(),
+		connect.NewRequest(&fmev1.ResolveVerificationGateRequest{JobId: job.JobId(), Proceed: true}))
+	require.NoError(t, err)
+	assert.True(t, first.Msg.Success)
+
+	second, err := srv.ResolveVerificationGate(context.Background(),
+		connect.NewRequest(&fmev1.ResolveVerificationGateRequest{JobId: job.JobId(), Proceed: false}))
+	assert.Error(t, err)
+	assert.False(t, second.Msg.Success)
+	// The stop did not overwrite the proceed into Cancelled.
+	assert.NotEqual(t, jobmanagertypes.JobStatusCancelled, job.Status())
+}

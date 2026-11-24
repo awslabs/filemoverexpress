@@ -1,6 +1,6 @@
 import { DestroyRef, inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
 import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
@@ -39,6 +39,13 @@ export class VerificationGateService {
     private readonly pending = new Set<string>();
     private queue: string[] = [];
     private dialogOpen = false;
+    // The job whose gate dialog is currently open, and its dialog ref, so the
+    // prompt can be closed if that job leaves NEEDS_REVIEW out-of-band.
+    private openJobId: string | null = null;
+    private openDialogRef: MatDialogRef<ConfirmationModalComponent, boolean> | null = null;
+    // Jobs whose dialog we closed because the job left NEEDS_REVIEW (not a user
+    // click), so afterClosed skips the now-pointless resolve RPC.
+    private readonly closedByDeparture = new Set<string>();
 
     init() {
         this.store.select(jobSelectAll).pipe(
@@ -77,6 +84,14 @@ export class VerificationGateService {
         // Drop jobs that left NEEDS_REVIEW out-of-band (cancelled/resolved elsewhere).
         for (const id of [...this.pending]) {
             if (!needsReview.has(id)) {
+                if (id === this.openJobId && this.openDialogRef) {
+                    // Its dialog is open: close it so the user is not left clicking a
+                    // prompt whose resolve RPC would now fail. afterClosed does the
+                    // queue/pending cleanup; closedByDeparture suppresses the resolve.
+                    this.closedByDeparture.add(id);
+                    this.openDialogRef.close();
+                    continue;
+                }
                 this.pending.delete(id);
                 this.queue = this.queue.filter((queued) => queued !== id);
             }
@@ -106,7 +121,7 @@ export class VerificationGateService {
         }
 
         this.dialogOpen = true;
-        this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+        const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
             ConfirmationModalComponent,
             verificationGateDialog(
                 job.ascMhlProblems ?? 0,
@@ -115,11 +130,20 @@ export class VerificationGateService {
                 job.ascMhlAlgorithm,
                 job.ascMhlFailures,
             ),
-        ).afterClosed().subscribe((proceed) => {
+        );
+        this.openJobId = jobId;
+        this.openDialogRef = dialogRef;
+        dialogRef.afterClosed().subscribe((proceed) => {
             this.dialogOpen = false;
+            this.openJobId = null;
+            this.openDialogRef = null;
             this.queue.shift();
             this.pending.delete(jobId);
-            this.resolve(jobId, proceed === true);
+            // If we closed the dialog because the job already left NEEDS_REVIEW,
+            // do not send a resolve the daemon would reject.
+            if (!this.closedByDeparture.delete(jobId)) {
+                this.resolve(jobId, proceed === true);
+            }
             this.processQueue();
         });
     }

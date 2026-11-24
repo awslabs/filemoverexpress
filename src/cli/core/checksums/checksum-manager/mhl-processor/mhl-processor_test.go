@@ -614,6 +614,11 @@ func TestVerifyASCMHLCountsLoadFailureAsProblem(t *testing.T) {
 	assert.Equal(t, 1, result.Problems, "a manifest that fails to load is an integrity problem")
 	assert.Equal(t, 0, result.Verified)
 	assert.Equal(t, 0, result.Listed)
+	// The unreadable manifest itself is recorded as a failure, so the gate dialog
+	// and the jobs-table mark have something to show even with no per-file entries.
+	require.Len(t, result.Failures, 1)
+	assert.Contains(t, result.Failures[0], reasonManifestUnreadable)
+	assert.Contains(t, result.Failures[0], "0001_root.mhl")
 }
 
 // The per-file ASC MHL verification outcome is recorded on the task so a report
@@ -657,4 +662,3 @@ func TestVerifyManifestSetsTaskASCMHLStatus(t *testing.T) {
 	assert.Equal(t, "verified", goodTask.ASCMHLStatus())
 	assert.Equal(t, "mismatch", badTask.ASCMHLStatus())
 }
-

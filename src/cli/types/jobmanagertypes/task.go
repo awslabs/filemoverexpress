@@ -278,8 +278,8 @@ func (t *Task) SetChecksumAlgorithm(algorithm string) {
 }
 
 // ASCMHLStatus is the per-file ASC MHL verification outcome ("verified",
-// "mismatch", "unreadable", "flagged"), empty when the file was not listed in a
-// supplied manifest. Lets a report flag which files failed verification.
+// "mismatch", "unreadable", "flagged", "unhonored"), empty when the file was not
+// listed in a supplied manifest. Lets a report flag which files failed verification.
 func (t *Task) ASCMHLStatus() string {
 	t.lock.RLock()
 	defer t.lock.RUnlock()

@@ -108,7 +108,7 @@ export function verificationGateDialog(
     const message = `${problems} of ${listed} file(s) failed MHL verification${algo}, `
         + `${verified} verified. Uploading now sends files that do not match the `
         + 'supplied manifest. Nothing has been uploaded yet.'
-        + buildFailureList(failures);
+        + buildFailureList(failures, problems);
     return {
         width: '520px',
         disableClose: true,
@@ -128,17 +128,19 @@ export function verificationGateDialog(
 }
 
 // buildFailureList renders the failing files as an HTML list for the gate dialog
-// (the message is bound with innerHTML). Each entry is escaped. The list is
-// capped so a large offload does not produce an unusable dialog.
-function buildFailureList(failures?: string[]): string {
+// (the message is bound with innerHTML). Each entry is escaped. The daemon caps
+// the failures list, so the "and N more" count is derived from problems (the true
+// total), not the length of the shown slice.
+function buildFailureList(failures: string[] | undefined, problems: number): string {
     if (!failures || failures.length === 0) {
         return '';
     }
     const cap = 15;
     const shown = failures.slice(0, cap);
     const items = shown.map((f) => `<li>${escapeHtml(f)}</li>`).join('');
-    const more = failures.length > cap
-        ? `<li>and ${failures.length - cap} more</li>`
+    const remaining = Math.max(0, problems - shown.length);
+    const more = remaining > 0
+        ? `<li>and ${remaining} more</li>`
         : '';
     return `<p>Files that failed:</p><ul class="verify-failures">${items}${more}</ul>`;
 }

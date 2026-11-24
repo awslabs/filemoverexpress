@@ -421,6 +421,20 @@ describe('JobsTableComponent', () => {
             const job = makeJob({ascMhlListed: 12, ascMhlVerified: 12, ascMhlProblems: 0});
             expect(component.ascMhlFailed(job)).toBe(false);
         });
+
+        it('flags an unreadable manifest (problems, nothing listed) as used and failed', () => {
+            // A manifest that failed to load bumps problems but lists nothing; the
+            // column must still light red rather than appear as "no manifest".
+            const job = makeJob({
+                status: JobStatus.CompletedWithWarnings,
+                ascMhlListed: 0,
+                ascMhlVerified: 0,
+                ascMhlProblems: 1,
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlFailed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
     });
 
     describe('jobDetails', () => {

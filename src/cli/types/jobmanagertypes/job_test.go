@@ -2,6 +2,7 @@ package jobmanagertypes
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,4 +91,50 @@ func TestJob_GateResolution_StopViaCancel(t *testing.T) {
 	job := newASCMHLTestJob(t)
 	job.CancelFunc(errors.New("cancelled"))
 	assert.False(t, job.AwaitGateResolution())
+}
+
+// TryResolveGate claims the NEEDS_REVIEW decision exactly once: a second resolve
+// is rejected even while the status is still NEEDS_REVIEW (the winning goroutine
+// has not transitioned it yet). This is what stops a GUI proceed and a CLI stop
+// from both winning.
+func TestJob_TryResolveGate_SingleWinner(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	job.SetStatus(JobStatusNeedsReview)
+
+	assert.True(t, job.TryResolveGate(true))
+	assert.False(t, job.TryResolveGate(false))
+	assert.True(t, job.AwaitGateResolution())
+}
+
+// An unreadable manifest produces problems with nothing listed. The event payload
+// must still be sent (so the gate dialog and jobs-table mark have data), not
+// suppressed by the listed==0 guard.
+func TestJob_ASCMHLEventData_ProblemsWithoutListed(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	job.SetASCMHLResult(0, 0, 1, "")
+	job.SetASCMHLFailures([]string{"ascmhl/0001_x.mhl (manifest unreadable)"})
+
+	data := job.ASCMHLEventData()
+	require.NotNil(t, data)
+	assert.Equal(t, int32(1), data.Problems)
+	assert.Equal(t, int32(0), data.Listed)
+	assert.Equal(t, []string{"ascmhl/0001_x.mhl (manifest unreadable)"}, data.Failures)
+}
+
+// A job with no manifest and no problems carries no ASC MHL payload at all.
+func TestJob_ASCMHLEventData_NilWhenEmpty(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	assert.Nil(t, job.ASCMHLEventData())
+}
+
+// The retained failure list is capped so it does not ride unbounded on every
+// event; Problems still carries the true total.
+func TestJob_SetASCMHLFailures_Capped(t *testing.T) {
+	job := newASCMHLTestJob(t)
+	many := make([]string, maxGateFailures+150)
+	for i := range many {
+		many[i] = fmt.Sprintf("file%d (hash mismatch)", i)
+	}
+	job.SetASCMHLFailures(many)
+	assert.Len(t, job.ASCMHLFailures(), maxGateFailures)
 }

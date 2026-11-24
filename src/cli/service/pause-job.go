@@ -28,7 +28,8 @@ func (*FileMoverServer) PauseJob(
 	jobStatus := job.Status()
 	if jobStatus.IsCompleted() ||
 		jobStatus == jobmanagertypes.JobStatusPaused ||
-		jobStatus == jobmanagertypes.JobStatusCancelled {
+		jobStatus == jobmanagertypes.JobStatusCancelled ||
+		jobStatus == jobmanagertypes.JobStatusNeedsReview {
 		return connect.NewResponse(&fmev1.PauseJobResponse{
 			Success: false,
 			JobId:   jobId,

@@ -30,7 +30,7 @@ func (*FileMoverServer) ResolveVerificationGate(
 			JobId:   jobId,
 		}), connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(strJobDoesNotExist, jobId))
 	}
-	if job.Status() != jobmanagertypes.JobStatusNeedsReview {
+	if !job.TryResolveGate(req.Msg.Proceed) {
 		return connect.NewResponse(&fmev1.ResolveVerificationGateResponse{
 			Success: false,
 			JobId:   jobId,
@@ -38,16 +38,14 @@ func (*FileMoverServer) ResolveVerificationGate(
 	}
 
 	if req.Msg.Proceed {
-		// Let the parked UploadJob goroutine continue into the transfer. It logs
-		// the override and the job finishes COMPLETED_WITH_WARNINGS.
-		job.ResolveGate(true)
+		// The claim is delivered; the parked UploadJob goroutine continues into the
+		// transfer, logs the override, and the job finishes COMPLETED_WITH_WARNINGS.
 		events.Events.Info("Resuming job %s after ASC MHL review (upload anyway)", job.Name())
 	} else {
 		// Stop: cancel the job. No transfer tasks have been queued yet at the gate,
-		// so there is no WaitGroup to unwind. ResolveGate also unblocks the waiter.
+		// so there is no WaitGroup to unwind. The claim already unblocked the waiter.
 		job.SetStatus(jobmanagertypes.JobStatusCancelled)
 		job.CancelFunc(fmeErrors.ErrJobCancelled)
-		job.ResolveGate(false)
 		events.Events.Info("Stopped job %s after ASC MHL review", job.Name())
 	}
 

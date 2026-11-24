@@ -41,11 +41,12 @@ const (
 	ascMHLStatusUnhonored  = "unhonored"
 
 	// Short failure reasons shown in the pre-upload gate's per-file list.
-	reasonMismatch   = "hash mismatch"
-	reasonMissing    = "missing on disk"
-	reasonUnreadable = "unreadable"
-	reasonEscape     = "escapes the offload tree"
-	reasonFlagged    = "marked bad by the writer"
+	reasonMismatch           = "hash mismatch"
+	reasonMissing            = "missing on disk"
+	reasonUnreadable         = "unreadable"
+	reasonEscape             = "escapes the offload tree"
+	reasonFlagged            = "marked bad by the writer"
+	reasonManifestUnreadable = "manifest unreadable"
 )
 
 // verifyPriority is the order in which FME-supported algorithms are chosen to
@@ -165,7 +166,11 @@ func VerifyASCMHL(req VerifyRequest) VerifyResult {
 			emitJobError(req.JobID, req.JobName, fmt.Sprintf(strASCLoadFailed, manifestPath, err))
 			// A manifest we cannot read is an integrity problem: the offload cannot
 			// be shown as cleanly verified when one of its manifests did not load.
+			// Record a failure entry for the manifest itself so the gate dialog and
+			// the jobs-table mark have something to show (there are no per-file
+			// entries, since nothing in it could be parsed).
 			result.Problems++
+			result.Failures = append(result.Failures, fmt.Sprintf("%s (%s)", manifestLabel(manifestPath), reasonManifestUnreadable))
 			continue
 		}
 		counts := verifyManifest(vctx, manifestPath, manifest, req.Tasks)
@@ -345,6 +350,16 @@ func setTaskASCMHLStatus(vctx verifyCtx, absPath, status string) {
 // the pre-upload gate's list.
 func (c *verifyCounts) addFailure(relPath, reason string) {
 	c.failures = append(c.failures, fmt.Sprintf("%s (%s)", relPath, reason))
+}
+
+// manifestLabel returns a short, offload-relative label for a manifest path (e.g.
+// "ascmhl/0001_x.mhl"), falling back to the base name, for the gate's failure
+// list when the manifest itself could not be read.
+func manifestLabel(manifestPath string) string {
+	if rel, err := filepath.Rel(ascRoot(manifestPath), manifestPath); err == nil {
+		return rel
+	}
+	return filepath.Base(manifestPath)
 }
 
 // computeOrReuse returns the file's checksum in algo, reusing ONLY a hash the

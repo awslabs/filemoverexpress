@@ -139,4 +139,26 @@ describe('VerificationGateService', () => {
         // Only the first job's dialog is open; the second waits in the queue.
         expect(dialogOpen).toHaveBeenCalledTimes(1);
     });
+
+    it('closes the open dialog and skips resolve when its job leaves NEEDS_REVIEW', () => {
+        const closed = new Subject<boolean | undefined>();
+        const close = vi.fn(() => {
+            closed.next(undefined);
+            closed.complete();
+        });
+        dialogOpen.mockReturnValue({afterClosed: () => closed.asObservable(), close});
+        service.init();
+        store.overrideSelector(jobSelectAll, [makeJob({id: 'a'})]);
+        store.refreshState();
+        expect(dialogOpen).toHaveBeenCalledTimes(1);
+
+        // The job leaves NEEDS_REVIEW out-of-band (e.g. cancelled from the CLI).
+        store.overrideSelector(jobSelectAll, [makeJob({id: 'a', status: JobStatus.Cancelled})]);
+        store.refreshState();
+
+        expect(close).toHaveBeenCalledTimes(1);
+        // The dialog closed because the job departed, not a user click, so no
+        // resolve RPC is sent (it would be rejected by the daemon).
+        expect(resolveGate).not.toHaveBeenCalled();
+    });
 });

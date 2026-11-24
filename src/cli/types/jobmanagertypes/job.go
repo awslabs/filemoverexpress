@@ -18,6 +18,12 @@ import (
 	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
+// maxGateFailures caps how many per-file integrity-problem descriptions the job
+// retains for the pre-upload gate. The list rides on every status-change event
+// and the complete event; the GUI shows only a short slice, and Problems carries
+// the true total, so there is no reason to carry an unbounded list.
+const maxGateFailures = 100
+
 type (
 	Job struct {
 		jobId                   string
@@ -39,7 +45,11 @@ type (
 		// gateResolution delivers the operator's decision when a job is paused in
 		// NEEDS_REVIEW (ASC MHL verify failed and the profile blocks on failure):
 		// true = upload anyway, false = stop. Buffered so ResolveGate never blocks.
-		gateResolution        chan bool
+		gateResolution chan bool
+		// gateResolved is set once a NEEDS_REVIEW decision has been claimed (via
+		// TryResolveGate), so a second concurrent resolve (e.g. a GUI proceed
+		// racing a CLI stop) cannot double-resolve the gate.
+		gateResolved          bool
 		ascMHLVerified        int
 		ascMHLListed          int
 		ascMHLAlgorithm       string
@@ -262,6 +272,25 @@ func (j *Job) ResolveGate(proceed bool) {
 	}
 }
 
+// TryResolveGate atomically claims a NEEDS_REVIEW resolution and delivers the
+// operator's decision to the waiting job goroutine. It returns false if the job
+// is not awaiting review or a decision was already claimed, so two concurrent
+// resolves (e.g. a GUI "upload anyway" racing a CLI "stop") cannot both win -
+// only the first claim delivers, the second is rejected by the caller. The
+// status transition off NEEDS_REVIEW is left to the winner (the parked
+// UploadJob goroutine on proceed, the resolve handler on stop).
+func (j *Job) TryResolveGate(proceed bool) bool {
+	j.lock.Lock()
+	if j.status != JobStatusNeedsReview || j.gateResolved {
+		j.lock.Unlock()
+		return false
+	}
+	j.gateResolved = true
+	j.lock.Unlock()
+	j.ResolveGate(proceed)
+	return true
+}
+
 // SetASCMHLResult records the outcome of ASC MHL verification so the GUI can
 // surface that a supplied manifest was honored, even on a clean run. verified is
 // how many listed files matched, listed is how many the manifest(s) contained,
@@ -308,10 +337,16 @@ func (j *Job) ASCMHLAlgorithm() string {
 }
 
 // SetASCMHLFailures records the per-file integrity problems ("path (reason)") so
-// the pre-upload gate can list the offending files.
+// the pre-upload gate can list the offending files. The list is capped at
+// maxGateFailures: it rides on every status-change event and the complete event,
+// and the GUI only shows a short slice, so an offload with tens of thousands of
+// problems must not bloat every event. The true total is carried by Problems.
 func (j *Job) SetASCMHLFailures(failures []string) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
+	if len(failures) > maxGateFailures {
+		failures = failures[:maxGateFailures]
+	}
 	j.ascMHLFailures = failures
 }
 
@@ -336,9 +371,12 @@ func (j *Job) ASCMHLEventData() *eventtypes.ASCMHLEventData {
 // lock (e.g. SetStatus, which holds the write lock). The int -> int32 conversion
 // lives here, the one place the counts cross into event/protobuf types.
 func (j *Job) ascMHLEventDataLocked() *eventtypes.ASCMHLEventData {
-	if j.ascMHLListed == 0 {
+	if j.ascMHLListed == 0 && j.ascMHLProblems == 0 {
 		return nil
 	}
+	// The counts are bounded by the number of discovered files, so an int32
+	// overflow is not reachable in practice; the conversion errors are
+	// intentionally ignored (a saturated value would still be a sane display).
 	verified, _ := safeconv.IntToInt32(j.ascMHLVerified)
 	listed, _ := safeconv.IntToInt32(j.ascMHLListed)
 	problems, _ := safeconv.IntToInt32(j.ascMHLProblems)

@@ -60,4 +60,12 @@ describe('[confirmation-modal.constants] verificationGateDialog', () => {
         const cfg = verificationGateDialog(20, 0, 20, 'xxhash64', failures).data!;
         expect(cfg.message).toContain('and 5 more');
     });
+
+    it('derives the overflow count from the problem total, not the capped list', () => {
+        // The daemon caps the failures list (here 100), but the true problem count
+        // is larger; the "and N more" must reflect the true total.
+        const failures = Array.from({length: 100}, (_, i) => `file-${i}.mov (hash mismatch)`);
+        const cfg = verificationGateDialog(5000, 0, 5000, 'xxhash64', failures).data!;
+        expect(cfg.message).toContain('and 4985 more');
+    });
 });
