@@ -437,5 +437,5 @@ touch /path/to/hotfolder/test-file.txt
 
 - **[Using the GUI](Using-the-GUI)** - Manage hot folders through the interface
 - **[Using the CLI](Using-the-CLI)** - Configure hot folders via command line
-- **[Performance Optimization](Performance-Optimization)** - Optimize hot folder performance
+- **[Performance Optimization](Best-Practices#performance-parameters)** - Optimize hot folder performance
 - **[Best Practices](Best-Practices)** - Implement hot folder best practices

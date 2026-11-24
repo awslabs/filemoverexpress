@@ -288,7 +288,7 @@ protocols:
 
 ## Next Steps
 
-- **[Performance Optimization](Performance-Optimization)** - Tune checksum performance
+- **[Performance Optimization](Best-Practices#performance-parameters)** - Tune checksum performance
 - **[Best Practices](Best-Practices)** - Implement checksum best practices
 - **[Using the CLI](Using-the-CLI)** - Configure checksums via command line
 - **[Configuration](Configuration)** - Set up checksum algorithms
