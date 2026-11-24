@@ -2,7 +2,7 @@ import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { AfterViewInit, Component, inject, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatInput } from '@angular/material/input';
 import { MatPaginator } from '@angular/material/paginator';
@@ -23,11 +23,14 @@ import {
 } from '@angular/material/table';
 import { MatTooltip } from '@angular/material/tooltip';
 import { Task } from '@app/classes/grpc/task';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { cancelTransferDialog, resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { TaskCounts } from '@app/components/modals/job-details-modal/job-details-modal.interfaces';
 import { TypeSafeMatCellDefDirective } from '@app/directives/type-safe-mat-cell-def.directive';
 import { JobDetailsData, ObjectType, TaskElement, TransferDirection } from '@app/interfaces/jobs-table';
 import { JobStatusClassPipe, JobStatusPipe, TaskTableStatusClassPipe } from '@app/pipes/jobs-table-status.pipe';
 import { TaskStatusPipe } from '@app/pipes/task-status.pipe';
+import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
 import { FormatBytesPipe } from '@app/pipes/format-bytes.pipe';
 import { TextEllipsesPipe } from '@app/pipes/text-ellipses.pipe';
 import { getOSFileBrowserName } from '@app/components/layout/file-browser/file-browser.utils';
@@ -103,6 +106,7 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     private metadata = inject(MetadataService);
     private store = inject(Store);
     private notifications = inject(NotificationsService);
+    private dialog = inject(MatDialog);
     protected readonly TransferDirection = TransferDirection;
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -189,9 +193,10 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
 
         this.loadTasks();
         this.loadProfileDetails();
-        // Open on Logs for a failed job (users look there first to see why it failed),
-        // otherwise show the file list.
-        this.tab = this.isError ? 'logs' : 'files';
+        // Open on the explicitly requested tab (e.g. the "View Logs" row action);
+        // otherwise open on Logs for a failed OR warnings job (users look there
+        // first to see what went wrong), else the file list.
+        this.tab = this.jobDetails.openTab ?? ((this.isError || this.isWarnings) ? 'logs' : 'files');
         // Keep the summary live while the modal is open (progress/speed/status for active jobs).
         this.subscriptions.push(this.store.select(jobSelectAll).subscribe((jobs) => {
             const job = jobs.find((j) => j.id === this.jobDetails.jobId);
@@ -208,6 +213,10 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
                     hasTaskErrors: job.hasTaskErrors,
                     hasSuccessfulTasks: job.hasSuccessfulTasks,
                     force: job.force ?? this.jobDetails.force,
+                    ascMhlVerified: job.ascMhlVerified ?? this.jobDetails.ascMhlVerified,
+                    ascMhlListed: job.ascMhlListed ?? this.jobDetails.ascMhlListed,
+                    ascMhlAlgorithm: job.ascMhlAlgorithm ?? this.jobDetails.ascMhlAlgorithm,
+                    ascMhlProblems: job.ascMhlProblems ?? this.jobDetails.ascMhlProblems,
                 };
             }
         }));
@@ -418,8 +427,48 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
         return d.status === JobStatus.Error || (d.status === JobStatus.Completed && d.hasTaskErrors && !d.hasSuccessfulTasks);
     }
 
+    /**
+     * A job that finished and uploaded, but at least one file failed its supplied
+     * ASC MHL verification (hash mismatch or missing on disk). Amber, not red:
+     * the bytes transferred, but the offload cannot be trusted as delivered.
+     */
+    get isWarnings(): boolean {
+        return this.jobDetails.status === JobStatus.CompletedWithWarnings;
+    }
+
     get isUpload(): boolean {
         return this.jobDetails.direction === TransferDirection.Upload;
+    }
+
+    /**
+     * Whether a supplied ASC MHL manifest was verified for this job (at least one
+     * listed file). Drives the "ASC MHL verified" chip and the Advanced-details row.
+     */
+    get ascMhlUsed(): boolean {
+        return (this.jobDetails.ascMhlListed ?? 0) > 0;
+    }
+
+    /**
+     * True when the ASC MHL verified cleanly: a manifest was honored, every listed
+     * file matched (verified == listed), and there were zero integrity problems.
+     * Keyed off the verification result, not the job status, so an all-mismatch run
+     * reads amber even mid-transfer, a partially-verified run (cancelled, or an
+     * unsupported-algorithm manifest where verified < listed) reads amber, and a
+     * failed or cancelled job does not falsely read green.
+     */
+    get ascMhlClean(): boolean {
+        return this.ascMhlUsed
+            && (this.jobDetails.ascMhlProblems ?? 0) === 0
+            && (this.jobDetails.ascMhlVerified ?? 0) === (this.jobDetails.ascMhlListed ?? 0);
+    }
+
+    /** Advanced-details summary for the ASC MHL verification, e.g. "Verified 3 of 3 - xxhash64". */
+    get ascMhlSummaryLabel(): string {
+        const verified = this.jobDetails.ascMhlVerified ?? 0;
+        const listed = this.jobDetails.ascMhlListed ?? 0;
+        const algorithm = this.jobDetails.ascMhlAlgorithm ?? '';
+        const base = `Verified ${verified} of ${listed}`;
+        return algorithm ? `${base} - ${algorithm}` : base;
     }
 
     get directionLabel(): string {
@@ -731,10 +780,25 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     cancel(): void {
-        this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
+        this.dialog.open(
+            ConfirmationModalComponent,
+            cancelTransferDialog(this.jobDetails.jobName),
+        ).afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.fmeClientService.cancelJob(this.jobDetails.jobId).subscribe();
+            }
+        });
     }
 
     retry(): void {
-        this.fmeClientService.resubmitJob(this.jobDetails.jobId).subscribe();
+        const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+            ConfirmationModalComponent,
+            resubmitJobDialog,
+        );
+        dialogRef.afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.fmeClientService.resubmitJob(this.jobDetails.jobId).subscribe();
+            }
+        });
     }
 }

@@ -26,7 +26,7 @@ func (*FileMoverServer) CancelJob(
 			JobId:   jobId,
 		}), connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(strJobDoesNotExist, jobId))
 	}
-	if job.Status() == jobmanagertypes.JobStatusCompleted || job.Status() == jobmanagertypes.JobStatusCancelled {
+	if job.Status().IsCompleted() || job.Status() == jobmanagertypes.JobStatusCancelled {
 		return connect.NewResponse(&fmev1.CancelJobResponse{
 			Success: false,
 			JobId:   jobId,

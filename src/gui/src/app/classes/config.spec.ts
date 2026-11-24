@@ -6,6 +6,8 @@ import {
     HotFolders,
     HotFoldersTransferConfigurations,
     Logging,
+    NotificationDestination,
+    Notifications,
     Paths,
     Protocols,
     Reports,
@@ -13,6 +15,7 @@ import {
     TransferProfile,
 } from '@classes/config';
 import * as proto from '@gen/es/fme/v1/config_pb';
+import { NotificationPreset } from '@gen/es/fme/v1/notifications_pb';
 
 const txpData: ConfigInterfaces.ConfigTransferProfile = {
     name: 'name',
@@ -431,3 +434,78 @@ function setCommonPbTxpData(pb: proto.TransferProfile, inputConfig: ConfigInterf
     pb.autoTuning = inputConfig.autoTuning;
     pb.endpoint = inputConfig.endpoint;
 }
+
+
+describe('NotificationDestination', () => {
+    const data: ConfigInterfaces.NotificationDestination = {
+        name: 'studio-slack',
+        preset: NotificationPreset.SLACK,
+        notifyOnFinish: true,
+        notifyOnFailure: false,
+        isDefault: true,
+        hasUrl: true,
+        urlHint: '...9f2a',
+    };
+
+    it('should create', () => {
+        const d = new NotificationDestination(
+            data.name, data.preset, data.notifyOnFinish, data.notifyOnFailure,
+            data.isDefault, data.hasUrl, data.urlHint,
+        );
+        expect(d).toBeTruthy();
+        expect(d.name).toEqual('studio-slack');
+        expect(d.preset).toEqual(NotificationPreset.SLACK);
+    });
+
+    it('should round-trip every field through protobuf', () => {
+        const pb = NotificationDestination.jsonToProtobuf(data);
+        const d = NotificationDestination.fromProtobuf(pb);
+        expect(d).toEqual(data);
+    });
+
+    it('should convert from json', () => {
+        const d = NotificationDestination.fromJson(data);
+        expect(d.notifyOnFinish).toBeTruthy();
+        expect(d.notifyOnFailure).toBeFalsy();
+        expect(d.isDefault).toBeTruthy();
+        expect(d.hasUrl).toBeTruthy();
+        expect(d.urlHint).toEqual('...9f2a');
+    });
+});
+
+describe('Notifications', () => {
+    const data: ConfigInterfaces.Notifications = {
+        notifyAllTransfers: true,
+        destinations: [
+            {
+                name: 'studio-teams',
+                preset: NotificationPreset.TEAMS,
+                notifyOnFinish: false,
+                notifyOnFailure: true,
+                isDefault: false,
+                hasUrl: true,
+                urlHint: '...abcd',
+            },
+        ],
+    };
+
+    it('should round-trip destinations and the global toggle through protobuf', () => {
+        const pb = Notifications.jsonToProtobuf(data);
+        const n = Notifications.fromProtobuf(pb);
+        expect(n.notifyAllTransfers).toBeTruthy();
+        expect(n.destinations).toHaveLength(1);
+        expect(n.destinations[0]).toEqual(data.destinations[0]);
+    });
+
+    it('should convert from json', () => {
+        const n = Notifications.fromJson(data);
+        expect(n.destinations).toHaveLength(1);
+        expect(n.destinations[0].preset).toEqual(NotificationPreset.TEAMS);
+    });
+
+    it('should handle an empty destination list', () => {
+        const n = Notifications.fromJson({destinations: [], notifyAllTransfers: false});
+        expect(n.destinations).toHaveLength(0);
+        expect(Notifications.jsonToProtobuf(n).destinations).toHaveLength(0);
+    });
+});

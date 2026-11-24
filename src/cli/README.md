@@ -42,7 +42,7 @@ src/cli/
 ├── events/                     # Event bus for internal messaging
 ├── logger/                     # Structured logging
 ├── utils/                      # Utility functions
-└── e2e-tests/                  # End-to-end integration tests
+└── e2e/                        # End-to-end tests (real daemon + AWS Emulator)
 ```
 
 ## Prerequisites
@@ -101,18 +101,12 @@ go test -v ./...
 
 ### End-to-End Tests
 
-E2E tests require AWS credentials and an S3 bucket:
+The end-to-end suite runs the built daemon against AWS Emulator, so it needs no AWS credentials or
+bucket. See [e2e/README.md](e2e/README.md).
 
 ```bash
-# Set up test configuration
-export AWS_REGION=us-west-2
-export TEST_BUCKET=your-test-bucket
-
-# Run e2e tests
-npm run --prefix src/cli test:e2e
-
-# Or manually
-go test ./e2e-tests/... -v
+task e2e:docker SUITE=daemon   # inside the fme-e2e image, from the repository root
+task cli:e2e      # directly, with aws-emulator on PATH (Linux)
 ```
 
 ## Linting

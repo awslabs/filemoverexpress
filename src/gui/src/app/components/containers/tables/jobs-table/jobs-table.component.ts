@@ -26,6 +26,9 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { handleStreamError } from '@app/classes/rxjs-operators';
 import { calculateTimeToCompletion } from '@app/classes/time-to-completion';
 import { ExportJobModalComponent } from '@app/components/modals/export-job-modal/export-job-modal.component';
+import { ConfirmationModalComponent } from '@app/components/modals/confirmation-modal/confirmation-modal.component';
+import { ConfirmationModalData } from '@app/components/modals/confirmation-modal/confirmation-modal.interfaces';
+import { cancelTransferDialog, resubmitJobDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { JobDetailsModalComponent } from '@app/components/modals/job-details-modal/job-details-modal.component';
 import { JobRenameModalComponent } from '@app/components/modals/job-rename-modal/job-rename-modal.component';
 import { JobRenameModalData } from '@app/components/modals/job-rename-modal/job-rename-modal.interfaces';
@@ -42,6 +45,7 @@ import {
 import { PascalCaseToSpacesPipe } from '@app/pipes/pascal-case-to-spaces.pipe';
 import { buildFilterString, jobsTableFilterPredicate } from '@app/utils/transfer-utils';
 import { stringToJobStatus } from '@app/utils/utils';
+import { isCompletedStatus } from '@app/utils/job-utils';
 import { INITIAL_TRANSFER_SUMMARY_STATS, TransferSummaryStats } from '@containers/tables/jobs-table/jobs-table.interfaces';
 import { Store } from '@ngrx/store';
 import { ExportService } from '@services/export/export.service';
@@ -51,7 +55,7 @@ import * as JobActions from '@state/job/actions/job.actions';
 import { clearCompleted as clearCompletedJobsAction } from '@state/job/actions/job.actions';
 import { selectAll as jobSelectAll } from '@state/job/job.selectors';
 import { ConnectionState } from '@state/models/connection-state-model';
-import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TERMINAL_STATES } from '@state/models/job.model';
+import { Job, JobStatus, PROGRESS_STATES, RESUBMITTABLE_STATES, TERMINAL_STATES, CLEARABLE_STATES } from '@state/models/job.model';
 import { debounceTime, Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
@@ -137,6 +141,7 @@ export class JobsTableComponent implements AfterViewInit {
         'duration',
         'progress',
         'status',
+        'mhl',
         'actions',
     ];
     dataSource: MatTableDataSource<Job>;
@@ -206,7 +211,7 @@ export class JobsTableComponent implements AfterViewInit {
                             transferProgress = 100;
                         }
 
-                        if (j.status === JobStatus.Completed) {
+                        if (isCompletedStatus(stringToJobStatus(j.status))) {
                             transferProgress = 100;
                             eta = 'Completed';
                         }
@@ -239,6 +244,10 @@ export class JobsTableComponent implements AfterViewInit {
                             timestampCompleted: j.timestampCompleted,
                             checksumProgress: null,
                             force: j.force,
+                            ascMhlVerified: j.ascMhlVerified,
+                            ascMhlListed: j.ascMhlListed,
+                            ascMhlAlgorithm: j.ascMhlAlgorithm,
+                            ascMhlProblems: j.ascMhlProblems,
                         });
                     }
 
@@ -340,6 +349,37 @@ export class JobsTableComponent implements AfterViewInit {
     }
 
     /**
+     * Whether a supplied ASC MHL manifest was verified for this job (at least one
+     * listed file). Drives the ASC MHL column indicator.
+     */
+    ascMhlUsed(job: Job): boolean {
+        return (job.ascMhlListed ?? 0) > 0;
+    }
+
+    /**
+     * Whether the ASC MHL verified cleanly: a manifest was honored, every listed
+     * file matched (verified == listed), and there were zero integrity problems.
+     * Keyed off the verification result, not the job status, so an all-mismatch
+     * run shows amber even mid-transfer, a partially-verified run (cancelled, or
+     * an unsupported-algorithm manifest where verified < listed) shows amber, and
+     * a failed or cancelled job does not falsely show green.
+     */
+    ascMhlClean(job: Job): boolean {
+        return this.ascMhlUsed(job)
+            && (job.ascMhlProblems ?? 0) === 0
+            && (job.ascMhlVerified ?? 0) === (job.ascMhlListed ?? 0);
+    }
+
+    /** Tooltip for the ASC MHL column cell, e.g. "ASC MHL verified 3 of 3 (xxhash64)". */
+    ascMhlTooltip(job: Job): string {
+        const verified = job.ascMhlVerified ?? 0;
+        const listed = job.ascMhlListed ?? 0;
+        const algorithm = job.ascMhlAlgorithm ?? '';
+        const base = `ASC MHL verified ${verified} of ${listed}`;
+        return algorithm ? `${base} (${algorithm})` : base;
+    }
+
+    /**
      * Opens the row context menu at the cursor position on right-click.
      */
     rightClickJobRow(event: MouseEvent, job: Job) {
@@ -370,8 +410,9 @@ export class JobsTableComponent implements AfterViewInit {
      * Opens the details modal for the given job
      *
      * @param job {Job} Job to display details modal for
+     * @param openTab Which tab to open on; omitted lets the modal decide.
      */
-    jobDetails(job: Job) {
+    jobDetails(job: Job, openTab?: 'files' | 'logs') {
         this.dialog.open<JobDetailsModalComponent, JobDetailsData>(
             JobDetailsModalComponent, {
                 minWidth: '820px',
@@ -397,9 +438,21 @@ export class JobsTableComponent implements AfterViewInit {
                     hasTaskErrors: job.hasTaskErrors,
                     hasSuccessfulTasks: job.hasSuccessfulTasks,
                     force: job.force ?? false,
+                    openTab,
                 },
             },
         );
+    }
+
+    /**
+     * Opens the details modal straight to the Logs tab for the given job. A quick
+     * path for inspecting what happened (e.g. verification warnings) without first
+     * opening Job Details and switching tabs.
+     *
+     * @param job {Job} Job whose logs to show
+     */
+    viewLogs(job: Job) {
+        this.jobDetails(job, 'logs');
     }
 
     /**
@@ -465,6 +518,23 @@ export class JobsTableComponent implements AfterViewInit {
             this.notifications.error('Unable to cancel job that is not in progress or paused');
             return;
         }
+        this.dialog.open(
+            ConfirmationModalComponent,
+            cancelTransferDialog(job.name),
+        ).afterClosed().subscribe((confirmed) => {
+            if (confirmed) {
+                this.performCancel(job);
+            }
+        });
+    }
+
+    /**
+     * Issue the cancel request after the user confirms.
+     *
+     * @param job {Job} Job to cancel
+     * @private
+     */
+    private performCancel(job: Job) {
         this.fmeClientService.cancelJob(job.id).subscribe((data) => {
             if (!data.success) {
                 this.notifications.error('Unable to cancel job');
@@ -496,10 +566,19 @@ export class JobsTableComponent implements AfterViewInit {
             this.notifications.error('Unable to resubmit, only failed, cancelled, and completed jobs can be resubmitted');
             return;
         }
-        this.fmeClientService.resubmitJob(job.id).subscribe((data) => {
-            if (!data.success) {
-                this.notifications.error('Unable to resubmit job');
+        const dialogRef = this.dialog.open<ConfirmationModalComponent, Partial<ConfirmationModalData>, boolean>(
+            ConfirmationModalComponent,
+            resubmitJobDialog,
+        );
+        dialogRef.afterClosed().subscribe((confirmed) => {
+            if (!confirmed) {
+                return;
             }
+            this.fmeClientService.resubmitJob(job.id).subscribe((data) => {
+                if (!data.success) {
+                    this.notifications.error('Unable to resubmit job');
+                }
+            });
         });
     }
 
@@ -512,6 +591,27 @@ export class JobsTableComponent implements AfterViewInit {
                 this.store.dispatch(clearCompletedJobsAction());
             },
         );
+    }
+
+    /**
+     * Clear a single finished job from the table. Only completed, errored, or cancelled
+     * jobs can be cleared; the daemon rejects anything still in progress.
+     *
+     * @param job {Job} Job to clear
+     */
+    clearJob(job: Job) {
+        if (!CLEARABLE_STATES.includes(job.status)) {
+            this.notifications.error('Only completed, failed, or cancelled jobs can be cleared');
+            return;
+        }
+        this.fmeClientService.clearCompletedJob(job.id).subscribe({
+            next: () => {
+                this.store.dispatch(JobActions.clearJob({jobId: job.id}));
+            },
+            error: () => {
+                this.notifications.error('Unable to clear job');
+            },
+        });
     }
 
     /**

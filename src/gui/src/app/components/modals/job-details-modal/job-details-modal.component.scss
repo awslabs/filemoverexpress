@@ -88,6 +88,11 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         background: color.adjust(variables.$orange-accent, $alpha: -0.88);
     }
 
+    &.status-completed-with-warnings {
+        color: variables.$orange-accent;
+        background: color.adjust(variables.$orange-accent, $alpha: -0.88);
+    }
+
     &.status-error {
         color: variables.$red-500;
         background: color.adjust(variables.$red-500, $alpha: -0.88);
@@ -104,6 +109,32 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
         color: variables.$grey-450;
         background: color.adjust(variables.$grey-450, $alpha: -0.88);
     }
+}
+
+// "ASC MHL verified" chip in the header, shown when a supplied manifest was
+// honored cleanly. Green to read as a positive assurance, next to the status.
+.jd-mhl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    color: variables.$green-500;
+    background: color.adjust(variables.$green-500, $alpha: -0.88);
+
+    mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+    }
+}
+
+// Advanced-details ASC MHL value, green when the verify was clean.
+.jd-mhl-ok {
+    color: variables.$green-500;
 }
 
 .jd-body {

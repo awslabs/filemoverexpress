@@ -24,18 +24,19 @@ type ExportJobData struct {
 
 // TaskData represents a single transfer task as received from the frontend.
 type TaskData struct {
-	TaskID           string       `json:"taskId"`
-	Destination      string       `json:"destination"`
-	LocalFile        FileInfo     `json:"localFile"`
-	S3Object         S3ObjectInfo `json:"s3Object"`
-	Direction        string       `json:"direction"`
-	Status           string       `json:"status"`
-	StatusMessage    string       `json:"statusMessage"`
-	JobID            string       `json:"jobId"`
-	Checksum         string       `json:"checksum"`
-	Priority         int          `json:"priority"`
-	Error            string       `json:"error"`
-	BytesTransferred int64        `json:"bytesTransferred"`
+	TaskID            string       `json:"taskId"`
+	Destination       string       `json:"destination"`
+	LocalFile         FileInfo     `json:"localFile"`
+	S3Object          S3ObjectInfo `json:"s3Object"`
+	Direction         string       `json:"direction"`
+	Status            string       `json:"status"`
+	StatusMessage     string       `json:"statusMessage"`
+	JobID             string       `json:"jobId"`
+	Checksum          string       `json:"checksum"`
+	ChecksumAlgorithm string       `json:"checksumAlgorithm"`
+	Priority          int          `json:"priority"`
+	Error             string       `json:"error"`
+	BytesTransferred  int64        `json:"bytesTransferred"`
 }
 
 // FileInfo represents a local file reference within a task.
@@ -54,19 +55,20 @@ type S3ObjectInfo struct {
 
 // flatRow holds one flattened row ready for export.
 type flatRow struct {
-	TaskID           string
-	Destination      string
-	Source           string
-	Size             int64
-	LastModified     string
-	Direction        string
-	Status           string
-	StatusMessage    string
-	JobID            string
-	Checksum         string
-	Priority         int
-	Error            string
-	BytesTransferred int64
+	TaskID            string
+	Destination       string
+	Source            string
+	Size              int64
+	LastModified      string
+	Direction         string
+	Status            string
+	StatusMessage     string
+	JobID             string
+	Checksum          string
+	ChecksumAlgorithm string
+	Priority          int
+	Error             string
+	BytesTransferred  int64
 }
 
 var (
@@ -75,7 +77,7 @@ var (
 		"jobName", "direction", "remoteConfigurationName",
 		"jobId", "taskId", "destination", "source", "size",
 		"lastModified", "status", "statusMessage", "checksum",
-		"priority", "error", "bytesTransferred",
+		"priority", "error", "bytesTransferred", "hashType",
 	}
 )
 
@@ -143,6 +145,7 @@ func (a *FMEApp) GenerateCsvReport(data ExportJobList) string {
 				fmt.Sprintf("%d", r.Priority),
 				csvQuote(r.Error),
 				fmt.Sprintf("%d", r.BytesTransferred),
+				csvQuote(r.ChecksumAlgorithm),
 			}, ","))
 		}
 	}
@@ -170,15 +173,16 @@ func flattenTasks(job ExportJobData) []flatRow {
 
 func flattenTask(t TaskData, bucket string) flatRow {
 	r := flatRow{
-		TaskID:           t.TaskID,
-		Direction:        t.Direction,
-		Status:           t.Status,
-		StatusMessage:    t.StatusMessage,
-		JobID:            t.JobID,
-		Checksum:         t.Checksum,
-		Priority:         t.Priority,
-		Error:            t.Error,
-		BytesTransferred: t.BytesTransferred,
+		TaskID:            t.TaskID,
+		Direction:         t.Direction,
+		Status:            t.Status,
+		StatusMessage:     t.StatusMessage,
+		JobID:             t.JobID,
+		Checksum:          t.Checksum,
+		ChecksumAlgorithm: t.ChecksumAlgorithm,
+		Priority:          t.Priority,
+		Error:             t.Error,
+		BytesTransferred:  t.BytesTransferred,
 	}
 
 	switch strings.ToLower(t.Direction) {
@@ -243,7 +247,7 @@ func writeExcelHeaders(f *excelize.File, sheet string) {
 	headers := []string{
 		"taskId", "destination", "source", "size", "lastModified",
 		"direction", "status", "statusMessage", "jobId",
-		"checksum", "priority", "error", "bytesTransferred",
+		"checksum", "priority", "error", "bytesTransferred", "hashType",
 	}
 	for col, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
@@ -267,6 +271,7 @@ func writeExcelRows(f *excelize.File, sheet string, rows []flatRow) {
 		f.SetCellValue(sheet, cellName(11, row), r.Priority)
 		f.SetCellValue(sheet, cellName(12, row), r.Error)
 		f.SetCellValue(sheet, cellName(13, row), r.BytesTransferred)
+		f.SetCellValue(sheet, cellName(14, row), r.ChecksumAlgorithm)
 	}
 }
 

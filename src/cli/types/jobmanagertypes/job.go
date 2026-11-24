@@ -15,36 +15,42 @@ import (
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/types/transfertypes"
 	"github.com/awslabs/filemoverexpress/utils"
+	"github.com/awslabs/filemoverexpress/utils/safeconv"
 )
 
 type (
 	Job struct {
-		jobId                 string
-		name                  string
-		transferProfile       *configtypes.TransferProfile
-		status                JobStatus
-		statusMessage         string
-		lock                  *sync.RWMutex
-		WaitGroup             sync.WaitGroup
-		direction             transfertypes.Direction
-		TotalBytes            int64
-		BytesUploaded         int64
-		BytesDownloaded       int64
-		CancelCtx             context.Context
-		CancelFunc            context.CancelCauseFunc
-		hasTaskErrors         bool
-		hasSuccessfulTasks    bool
-		dbObjects             []*databasetypes.DatabaseObject
-		destination           string
-		TimestampCreated      time.Time
-		TimestampDiscovering  time.Time
-		TimestampChecksumming time.Time
-		TimestampTransferring time.Time
-		TimestampCompleted    time.Time
-		sources               []string
-		s3PrefixToTrim        string
-		force                 bool
-		uploadBasePath        string
+		jobId                   string
+		name                    string
+		transferProfile         *configtypes.TransferProfile
+		status                  JobStatus
+		statusMessage           string
+		lock                    *sync.RWMutex
+		WaitGroup               sync.WaitGroup
+		direction               transfertypes.Direction
+		TotalBytes              int64
+		BytesUploaded           int64
+		BytesDownloaded         int64
+		CancelCtx               context.Context
+		CancelFunc              context.CancelCauseFunc
+		hasTaskErrors           bool
+		hasSuccessfulTasks      bool
+		hasVerificationWarnings bool
+		ascMHLVerified          int
+		ascMHLListed            int
+		ascMHLAlgorithm         string
+		ascMHLProblems          int
+		dbObjects               []*databasetypes.DatabaseObject
+		destination             string
+		TimestampCreated        time.Time
+		TimestampDiscovering    time.Time
+		TimestampChecksumming   time.Time
+		TimestampTransferring   time.Time
+		TimestampCompleted      time.Time
+		sources                 []string
+		s3PrefixToTrim          string
+		force                   bool
+		uploadBasePath          string
 	}
 	JobConfig struct {
 		Direction       transfertypes.Direction
@@ -165,6 +171,9 @@ func (j *Job) SetStatus(status JobStatus) {
 
 	case JobStatusCompleted:
 		j.TimestampCompleted = n
+
+	case JobStatusCompletedWithWarnings:
+		j.TimestampCompleted = n
 	}
 
 	go events.Events.SendJobStatusChange(j.jobId, string(j.status), n)
@@ -204,6 +213,67 @@ func (j *Job) SetHasSuccessfulTasks(hasSuccessfulTasks bool) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 	j.hasSuccessfulTasks = hasSuccessfulTasks
+}
+
+// HasVerificationWarnings reports whether supplied-manifest (ASC MHL) verification
+// found at least one integrity problem (a hash mismatch or a listed file missing
+// on disk) during the checksumming phase. A job with this set completes as
+// JobStatusCompletedWithWarnings rather than JobStatusCompleted.
+func (j *Job) HasVerificationWarnings() bool {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.hasVerificationWarnings
+}
+
+func (j *Job) SetHasVerificationWarnings(hasVerificationWarnings bool) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+	j.hasVerificationWarnings = hasVerificationWarnings
+}
+
+// SetASCMHLResult records the outcome of ASC MHL verification so the GUI can
+// surface that a supplied manifest was honored, even on a clean run. verified is
+// how many listed files matched, listed is how many the manifest(s) contained,
+// problems is how many integrity problems were found (the authoritative clean
+// signal), and algorithm is the hash used (e.g. "xxhash64"). All zero / empty
+// when no ASC MHL manifest shipped with the media.
+func (j *Job) SetASCMHLResult(verified, listed, problems int, algorithm string) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+	j.ascMHLVerified = verified
+	j.ascMHLListed = listed
+	j.ascMHLProblems = problems
+	j.ascMHLAlgorithm = algorithm
+}
+
+// ASCMHLVerified returns how many listed files matched their recorded hash.
+func (j *Job) ASCMHLVerified() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLVerified
+}
+
+// ASCMHLListed returns how many files the supplied ASC MHL manifest(s) listed.
+// Zero means no manifest was verified against.
+func (j *Job) ASCMHLListed() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLListed
+}
+
+// ASCMHLProblems returns how many ASC MHL integrity problems were found. Zero on
+// a manifest that verified cleanly; this is what the GUI keys "verified" off of.
+func (j *Job) ASCMHLProblems() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLProblems
+}
+
+// ASCMHLAlgorithm returns the hash algorithm used to verify the supplied ASC MHL.
+func (j *Job) ASCMHLAlgorithm() string {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.ascMHLAlgorithm
 }
 
 func (j *Job) Direction() transfertypes.Direction {
@@ -356,6 +426,10 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
+	ascVerified, _ := safeconv.IntToInt32(j.ascMHLVerified)
+	ascListed, _ := safeconv.IntToInt32(j.ascMHLListed)
+	ascProblems, _ := safeconv.IntToInt32(j.ascMHLProblems)
+
 	return &fmev1.Job{
 		JobId:               j.jobId,
 		Name:                j.name,
@@ -376,5 +450,9 @@ func (j *Job) ToProtobuf() *fmev1.Job {
 		Completed:           timestamppb.New(j.TimestampCompleted),
 		Bucket:              j.transferProfile.Bucket,
 		Force:               j.force,
+		AscMhlVerified:      ascVerified,
+		AscMhlListed:        ascListed,
+		AscMhlAlgorithm:     j.ascMHLAlgorithm,
+		AscMhlProblems:      ascProblems,
 	}
 }

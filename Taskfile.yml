@@ -106,6 +106,18 @@ tasks:
       - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out ./...
       - go tool cover -html coverage.out -o coverage.html
 
+  test:e2e:
+    desc: Run both e2e suites (needs aws-emulator on PATH, Linux; see task e2e:docker)
+    cmds:
+      - task: cli:e2e
+      - task: gui:e2e
+
+  e2e:docker:
+    desc: Run the e2e tests inside the fme-e2e image (needs Docker). SUITE=daemon|gui|all, E2E_IMAGE overrides the image
+    cmds:
+      # Playwright screenshots and traces of failed tests land in src/gui/e2e/out.
+      - docker run --rm -v "{{.ROOT_DIR}}:/src:ro" -v "{{.ROOT_DIR}}/src/gui/e2e/out:/out" {{.E2E_IMAGE | default "fme-e2e:local"}} bash /src/src/cli/e2e/run-in-docker.sh {{.SUITE | default "all"}} {{.CLI_ARGS}}
+
   # ====================
   # Lint
   # ====================

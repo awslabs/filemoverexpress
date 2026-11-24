@@ -19,7 +19,7 @@ import { FileBrowserIconPipe } from '@app/pipes/file-browser-icon.pipe';
 import { EnterSubmitDirective } from '@app/directives/enter-submit.directive';
 import { ButtonComponent } from '@primitives/buttons/button/button.component';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
-import { NotificationDestination } from '@gen/es/fme/v1/notifications_pb';
+import { NotificationDestination } from '@app/interfaces/config';
 
 @Component({
     selector: 'fme-transfer-settings-modal',

@@ -43,6 +43,27 @@ If you want to skip the native checksum process, provide a Media Hash List (MHL)
 
 **Learn more**: [About Media Hash List](https://mediahashlist.org/)
 
+### ASC Media Hash List (ASC MHL)
+
+File Mover Express also reads and verifies the industry-standard **ASC MHL** format produced by on-set tools such as Silverstack, YoYotta, and the `ascmhl` reference tool. This is the manifest created when a camera card is offloaded to a local drive, and it is the authoritative record of what was captured.
+
+**How it works:**
+- File Mover Express detects an `ascmhl/` folder travelling with your media and reads the latest-generation manifest inside it.
+- On ingest, every file the manifest lists is re-read and hashed, and the result is compared to the manifest's recorded hash. File Mover Express never trusts a manifest hash without re-reading the bytes.
+- Verification runs even when the transfer profile's in-app checksum is turned off, so a supplied manifest is always honored. With the in-app checksum on in the same algorithm as the manifest, the hash is computed once and reused for both, so there is no double hashing.
+- The `ascmhl/` folder travels to S3 alongside the media.
+
+**Supported hash algorithms:** xxHash64, XXH3, MD5, and C4. A manifest written in an algorithm File Mover Express cannot compute (for example SHA1) is reported in the logs rather than silently skipped.
+
+**What you see:**
+- A job verified against a supplied ASC MHL shows an "ASC MHL verified" marker on the job, a column in the jobs table (green when every listed file verified, amber otherwise), and a "Verified N of M - <algorithm>" row in the job's Advanced details.
+- The job's Logs tab records the manifest being verified and names any per-file problems.
+- A hash mismatch or a listed file missing on disk completes the job as "Complete w/ Warnings" (amber), with the failing files named, rather than a silent green success.
+
+**Object metadata:** when a file matches its ASC MHL entry, the verified hash and its algorithm are written to the S3 object's metadata, even when the in-app checksum is off. The hash is only written after the bytes are re-read and matched, so it always reflects verified content.
+
+**Learn more**: [ASC MHL specification](https://github.com/ascmitc/mhl)
+
 ## Checksum Algorithms
 
 File Mover Express supports multiple checksum algorithms:
@@ -267,7 +288,7 @@ protocols:
 
 ## Next Steps
 
-- **[Performance Optimization](Performance-Optimization)** - Tune checksum performance
+- **[Performance Optimization](Best-Practices#performance-parameters)** - Tune checksum performance
 - **[Best Practices](Best-Practices)** - Implement checksum best practices
 - **[Using the CLI](Using-the-CLI)** - Configure checksums via command line
 - **[Configuration](Configuration)** - Set up checksum algorithms

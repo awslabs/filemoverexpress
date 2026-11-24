@@ -45,14 +45,14 @@
                     [disabled]="connectionState !== ConnectionState.CONNECTED"
         ></fme-button>
     </div>
-    <div class="file-browser"
-         [class.external-drag-active]="externalDragActive() && selectedBookmark?.name === DEFAULT_BOOKMARK_NAME">
+    <div class="file-browser">
         <fme-file-browser
                 #fileBrowser
                 fileBrowserType="s3"
                 class="dropZone"
                 [fileBrowserID]="fileBrowserID"
                 [allowExternalDragOver]="selectedBookmark?.name === DEFAULT_BOOKMARK_NAME"
+                [externalDragActive]="externalDragActive() && selectedBookmark?.name === DEFAULT_BOOKMARK_NAME"
                 [currentDirectory]="currentDirectory"
                 [isRoot]="isRoot"
                 [filter]="filter"

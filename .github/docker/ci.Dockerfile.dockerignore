@@ -1,0 +1,10 @@
+# Only the dependency manifests are needed (to prime the Go and npm caches).
+*
+!package.json
+!package-lock.json
+!src/gui/package.json
+!src/protobuf/package.json
+!src/cli/go.mod
+!src/cli/go.sum
+!src/wails/go.mod
+!src/wails/go.sum

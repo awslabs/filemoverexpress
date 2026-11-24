@@ -1,18 +1,18 @@
 name: 'Setup Environment'
-description: 'Provision runner with Node.js, Go, Task, and workspace dependencies'
+description: >
+  Provision the job with Node.js, Go, Task, and workspace dependencies. Inside the prebuilt CI
+  image (see .github/docker/ci.Dockerfile) the toolchain is already present, so only the
+  workspace dependencies are installed. Tool versions come from .github/versions.env.
 
 inputs:
   node-version:
-    description: 'Node.js version to install on the runner'
+    description: 'Node.js version to install on the runner (default: NODE_VERSION in .github/versions.env)'
     required: false
-    # Node 24 is the current LTS and satisfies the Angular 22 toolchain engine
-    # range (^22.22.3 || ^24.15.0 || >=26.0.0). Node 25 is an odd/non-LTS release
-    # that is explicitly excluded by that range, so do not use it here.
-    default: '24'
+    default: ''
   go-version:
-    description: 'Go version to install on the runner'
+    description: 'Go version to install on the runner (default: GO_VERSION in .github/versions.env)'
     required: false
-    default: '1.27.3'
+    default: ''
   install-go:
     description: 'Whether to install the Go toolchain'
     required: false
@@ -22,9 +22,9 @@ inputs:
     required: false
     default: 'false'
   wails-version:
-    description: 'Wails v3 version to install'
+    description: 'Wails v3 version to install (default: WAILS_VERSION in .github/versions.env)'
     required: false
-    default: 'v3.1.0'
+    default: ''
   working-directory:
     description: 'Working directory for commands'
     required: false
@@ -38,13 +38,9 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Install Linux Dependencies
-      id: install-linux-dependencies
-      if: runner.os == 'Linux'
+    - name: Load tool versions
+      run: grep -E '^[A-Z_]+=' .github/versions.env >> "$GITHUB_ENV"
       shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential
 
     - name: Check if running in container
       id: container-check
@@ -56,11 +52,32 @@ runs:
         fi
       shell: bash
 
+    # In a container job the checkout belongs to the runner user while the job runs as root, so git
+    # refuses the repository ("dubious ownership", exit 128). That breaks every go build, because Go
+    # stamps VCS information into binaries by asking git.
+    - name: Trust the workspace for git
+      if: steps.container-check.outputs.in-container == 'true'
+      run: git config --global --add safe.directory "${GITHUB_WORKSPACE:-$PWD}"
+      shell: bash
+
+    # Already baked into the CI image, which is also why this step must not run there:
+    # the image has no sudo.
+    - name: Install Linux Dependencies
+      id: install-linux-dependencies
+      if: runner.os == 'Linux' && steps.container-check.outputs.in-container == 'false'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential
+
     - name: Install Node.js
       if: steps.container-check.outputs.in-container == 'false'
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ inputs.node-version }}
+        # Node 24 is the current LTS and satisfies the Angular 22 toolchain engine
+        # range (^22.22.3 || ^24.15.0 || >=26.0.0). Node 25 is an odd/non-LTS release
+        # that is explicitly excluded by that range, so do not use it here.
+        node-version: ${{ inputs.node-version || env.NODE_VERSION }}
         cache: 'npm'
         cache-dependency-path: '**/package-lock.json'
 
@@ -68,14 +85,14 @@ runs:
       if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
       uses: actions/setup-go@v6
       with:
-        go-version: ${{ inputs.go-version }}
+        go-version: ${{ inputs.go-version || env.GO_VERSION }}
         cache-dependency-path: src/cli/go.sum
 
     - name: Install Task
       if: steps.container-check.outputs.in-container == 'false'
       uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611
       with:
-        version: 3.x
+        version: ${{ env.TASK_VERSION }}
         repo-token: ${{ github.token }}
 
     - name: Configure Go build cache path
@@ -90,7 +107,7 @@ runs:
       shell: bash
 
     - name: Install npm dependencies
-      run: npm ci
+      run: npm ci --prefer-offline --no-audit --no-fund
       shell: bash
 
     - name: Add node_modules/.bin to PATH
@@ -98,20 +115,20 @@ runs:
       shell: bash
 
     - name: Install Go protobuf plugins
-      if: inputs.install-go == 'true'
+      if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
       run: |
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-        go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION}
+        go install connectrpc.com/connect/cmd/protoc-gen-connect-go@${PROTOC_GEN_CONNECT_GO_VERSION}
       shell: bash
 
     - name: Install golangci-lint
       if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
-      run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+      run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
       shell: bash
 
     - name: Install Wails v3
-      if: inputs.install-go == 'true'
-      run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ inputs.wails-version }}
+      if: inputs.install-go == 'true' && steps.container-check.outputs.in-container == 'false'
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ inputs.wails-version || env.WAILS_VERSION }}
       shell: bash
 
     # NSIS (makensis) is required to package the Windows installer .exe. Only the

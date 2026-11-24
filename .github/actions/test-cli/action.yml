@@ -14,8 +14,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # The CLI resolves its directory from the account's home (user.Current), not from $HOME. In a
+    # container job they differ ($HOME is /github/home, the account's home is /root), so create both.
     - name: Prepare CLI test environment
-      run: mkdir -p "$HOME/.filemoverexpress"
+      run: |
+        account_home="$(getent passwd "$(id -u)" | cut -d: -f6)"
+        mkdir -p "$HOME/.filemoverexpress" "${account_home:-$HOME}/.filemoverexpress"
       shell: bash
 
     - name: Run CLI tests

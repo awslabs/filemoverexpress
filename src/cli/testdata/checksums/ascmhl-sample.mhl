@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hashlist version="2.0" xmlns="urn:ASC:MHL:v2.0">
+  <creatorinfo>
+    <creationdate>2020-01-17T14:30:00+00:00</creationdate>
+    <hostname>myHost.local</hostname>
+    <tool version="0.3 alpha">ascmhl.py</tool>
+  </creatorinfo>
+  <processinfo>
+    <process>in-place</process>
+    <roothash>
+      <content>
+        <xxh64 hashdate="2020-01-17T14:30:00+00:00">8d02114c32e28cbe</xxh64>
+      </content>
+    </roothash>
+    <ignore>
+      <pattern>.DS_Store</pattern>
+      <pattern>ascmhl</pattern>
+    </ignore>
+  </processinfo>
+  <hashes>
+    <hash>
+      <path size="5" lastmodificationdate="2020-01-15T13:00:00+00:00">Clips/A002C006_141024_R2EC.mov</path>
+      <xxh64 action="original" hashdate="2020-01-17T14:30:00+00:00">0ea03b369a463d9d</xxh64>
+    </hash>
+    <hash>
+      <path size="1024" lastmodificationdate="2020-01-15T13:00:00+00:00">Clips/A002C007_141024_R2EC.mov</path>
+      <md5 action="original" hashdate="2020-01-17T14:30:00+00:00">d41d8cd98f00b204e9800998ecf8427e</md5>
+      <c4 action="original" hashdate="2020-01-17T14:30:00+00:00">c459dsjfscH38cYeXXYogktxf4Cd9ibshE3BHUo6a58hBXmRQdZrAkZzsWcbWtDg5oQstpDuni4Hirj75GEmTc1sFT</c4>
+    </hash>
+    <directoryhash>
+      <path lastmodificationdate="2020-01-15T13:00:00+00:00">Clips</path>
+      <content>
+        <xxh64 hashdate="2020-01-17T14:30:00+00:00">4c226b42e27d7af3</xxh64>
+      </content>
+    </directoryhash>
+    <hash>
+      <path size="58" lastmodificationdate="2020-01-15T13:00:00+00:00">Sidecar.txt</path>
+      <xxh3 action="original" hashdate="2020-01-17T14:30:00+00:00">abc123def4567890</xxh3>
+      <xxh128 action="original" hashdate="2020-01-17T14:30:00+00:00">0123456789abcdef0123456789abcdef</xxh128>
+    </hash>
+    <hash>
+      <path size="200" lastmodificationdate="2020-01-15T13:00:00+00:00">OnlySha/notes.txt</path>
+      <sha1 action="original" hashdate="2020-01-17T14:30:00+00:00">da39a3ee5e6b4b0d3255bfef95601890afd80709</sha1>
+    </hash>
+  </hashes>
+</hashlist>

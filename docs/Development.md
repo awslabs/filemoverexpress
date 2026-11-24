@@ -216,7 +216,7 @@ running separately (`filemoverexpress daemon`) for the GUI to connect to.
 1. Fork the repository
 2. Create a feature branch: `feat/my-feature` or `fix/my-fix`
 3. Make changes and ensure all tests pass
-4. Follow the guidelines in [CONTRIBUTING.md](../CONTRIBUTING.md)
+4. Follow the guidelines in [Contributing](Contributing)
 5. Submit a pull request with a clear description of changes
 
 ---

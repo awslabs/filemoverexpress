@@ -24,7 +24,7 @@ filemoverexpress/
 │   │   ├── types/                  # Go types + generated protobuf types (pbtypes/)
 │   │   ├── utils/                  # Shared utilities
 │   │   ├── vendor/                 # Vendored Go dependencies
-│   │   ├── e2e-tests/              # End-to-end tests (require E2E_TEST=true)
+│   │   ├── e2e/                    # End-to-end tests (build tag e2e; daemon + AWS Emulator)
 │   │   └── testdata/               # Test fixtures
 │   │
 │   ├── gui/                        # Angular GUI application (Wails frontend)

@@ -1,4 +1,5 @@
 <div class="file-browser-container"
+     [class.external-drag-over]="externalDragActive"
      [class.table-dragged-over]="dragOverData.overTable &&
      !(dragOverData.overPreviousDirectory || dragOverData.overRow)">
     <div (dragenter)="onDragEnterTable()"

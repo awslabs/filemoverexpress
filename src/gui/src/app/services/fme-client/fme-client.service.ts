@@ -34,6 +34,7 @@ import {
     CancelJobRequestSchema,
     CancelJobResponse,
     ClearCompletedJobsRequestSchema,
+    ClearCompletedJobRequestSchema,
     ListJobsRequestSchema,
     ListTasksForJobRequestSchema,
     PauseJobRequestSchema,
@@ -582,6 +583,47 @@ export class FmeClientService {
         }
 
         this.connectClient?.clearCompletedJobs(
+            req,
+            (err, result) => {
+                if (err !== undefined) {
+                    sub.error(err);
+                    return;
+                }
+
+                if (!result.success) {
+                    sub.error(result.error);
+                    return;
+                }
+
+                if (result.success) {
+                    sub.next(result.clearedJobIds);
+                    sub.complete();
+                }
+            },
+        );
+
+        return sub.asObservable();
+    }
+
+    /**
+     * Clear a single completed job from the daemon's job list by id. The daemon only
+     * accepts this for a finished job (completed, errored, or cancelled) and returns
+     * a NotFound error otherwise.
+     *
+     * @param jobId {string} Id of the job to clear
+     * @returns {Observable<string[]>} Observable of the cleared job ids (the single id on success)
+     */
+    clearCompletedJob(jobId: string): Observable<string[]> {
+        const sub = new Subject<string[]>();
+        const req = create(ClearCompletedJobRequestSchema);
+        req.jobId = jobId;
+
+        if (!this.connectClient) {
+            sub.error(new StreamingClientError(StreamingClientErrorType.StreamingClientNull));
+            return sub.asObservable();
+        }
+
+        this.connectClient?.clearCompletedJob(
             req,
             (err, result) => {
                 if (err !== undefined) {

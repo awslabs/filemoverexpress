@@ -225,30 +225,40 @@ $row-icon-weight: 600;
         }
     }
 
-    // add border to row when dragging over
+    // add dashed border to row when dragging over a folder (same cue as the panel frame, row scale)
     .row-dragged-over {
         .mdc-data-table__cell:first-child {
             border-bottom-left-radius: 6px !important;
             border-top-left-radius: 6px !important;
-            border-left: 2px solid $drag-over-border-color !important;
+            border-left: 2px dashed $drag-over-border-color !important;
         }
 
         .mdc-data-table__cell:last-child {
             border-bottom-right-radius: 6px !important;
             border-top-right-radius: 6px !important;
-            border-right: 2px solid $drag-over-border-color !important;
+            border-right: 2px dashed $drag-over-border-color !important;
         }
 
         .mdc-data-table__cell {
-            border-bottom: 2px solid $drag-over-border-color !important;
-            border-top: 2px solid $drag-over-border-color !important;
+            border-bottom: 2px dashed $drag-over-border-color !important;
+            border-top: 2px dashed $drag-over-border-color !important;
         }
     }
 }
 
-// add border to table when dragging over
-.table-dragged-over {
-    border: 2px solid $drag-over-border-color !important;
+// Dashed drop-zone frame while files are dragged over this panel. Shared by the
+// panel-to-panel drag (.table-dragged-over) and the OS/Finder drag (.external-drag-over)
+// so both read as the same cue, aligned to the file-list scroll container. The folder-row
+// variant (.row-dragged-over) above uses the same dashed stroke at row scale.
+.table-dragged-over,
+.external-drag-over {
+    border: 2px dashed $drag-over-border-color !important;
+    border-radius: 8px;
+}
+
+// OS/Finder drag also lays down a faint fill so the whole panel reads as the drop target.
+.external-drag-over {
+    box-shadow: inset 0 0 0 9999px rgba(66, 180, 255, 0.06);
 }
 
 // region icon styles

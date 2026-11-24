@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { JobDetailsModalComponent } from './job-details-modal.component';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -56,6 +56,7 @@ describe('JobDetailsModalComponent', () => {
     };
     let wails: Record<string, ReturnType<typeof vi.fn>>;
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
+    let dialogOpen: ReturnType<typeof vi.fn>;
 
     function build(data: JobDetailsData): {
         fixture: ComponentFixture<JobDetailsModalComponent>;
@@ -75,6 +76,9 @@ describe('JobDetailsModalComponent', () => {
             setClipboardText: vi.fn(() => of(void 0)),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
+        // Confirmation dialog: default to confirmed (afterClosed -> true). Tests that
+        // need the dismissed path override with dialogOpen.mockReturnValueOnce.
+        dialogOpen = vi.fn(() => ({afterClosed: () => of(true)}));
 
         TestBed.configureTestingModule({
             imports: [
@@ -94,6 +98,7 @@ describe('JobDetailsModalComponent', () => {
             providers: [
                 {provide: MAT_DIALOG_DATA, useValue: data},
                 {provide: MatDialogRef, useValue: {}},
+                {provide: MatDialog, useValue: {open: dialogOpen}},
                 {provide: FmeClientService, useValue: fmeClient},
                 {provide: WailsService, useValue: wails},
                 {provide: NotificationsService, useValue: notifications},
@@ -174,6 +179,73 @@ describe('JobDetailsModalComponent', () => {
             const {component} = build(makeData({progress: 150}));
             expect(component.progressPct).toBe(100);
         });
+
+        it('flags ASC MHL used and clean on a verified completed job', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Completed,
+                ascMhlListed: 3,
+                ascMhlVerified: 3,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlClean).toBe(true);
+            expect(component.ascMhlSummaryLabel).toBe('Verified 3 of 3 - xxhash64');
+        });
+
+        it('does not flag ASC MHL when no manifest shipped', () => {
+            const {component} = build(makeData({}));
+            expect(component.ascMhlUsed).toBe(false);
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('is used but not clean when there are integrity problems', () => {
+            const {component} = build(makeData({
+                status: JobStatus.InProgress,
+                ascMhlListed: 3,
+                ascMhlVerified: 0,
+                ascMhlProblems: 3,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('stays clean for a failed job whose verification had no problems', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Error,
+                ascMhlListed: 2,
+                ascMhlVerified: 2,
+                ascMhlProblems: 0,
+                ascMhlAlgorithm: 'xxhash64',
+            }));
+            expect(component.ascMhlClean).toBe(true);
+        });
+
+        it('is not clean when fewer files verified than listed (unsupported algorithm)', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Completed,
+                ascMhlListed: 5,
+                ascMhlVerified: 0,
+                ascMhlProblems: 0,
+            }));
+            expect(component.ascMhlUsed).toBe(true);
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('is not clean on a partial (cancelled) verify even with no problems', () => {
+            const {component} = build(makeData({
+                status: JobStatus.Cancelled,
+                ascMhlListed: 100,
+                ascMhlVerified: 3,
+                ascMhlProblems: 0,
+            }));
+            expect(component.ascMhlClean).toBe(false);
+        });
+
+        it('omits the algorithm from the ASC MHL summary when unknown', () => {
+            const {component} = build(makeData({ascMhlListed: 2, ascMhlVerified: 2}));
+            expect(component.ascMhlSummaryLabel).toBe('Verified 2 of 2');
+        });
     });
 
     describe('duration + speed labels', () => {
@@ -226,16 +298,39 @@ describe('JobDetailsModalComponent', () => {
             expect(fmeClient.resumeJob).toHaveBeenCalledWith('job-1');
         });
 
-        it('cancels a job', () => {
+        it('cancels a job when confirmed', () => {
             const {component} = build(makeData({status: JobStatus.InProgress}));
             component.cancel();
             expect(fmeClient.cancelJob).toHaveBeenCalledWith('job-1');
         });
 
-        it('retries a job', () => {
+        it('does not cancel when the confirmation is dismissed', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(undefined)});
+            component.cancel();
+            expect(fmeClient.cancelJob).not.toHaveBeenCalled();
+        });
+
+        it('escapes a malicious job name in the confirmation message', () => {
+            const {component} = build(makeData({status: JobStatus.InProgress, jobName: "<script>alert('x')</script>"}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.cancel();
+            const message = dialogOpen.mock.calls[dialogOpen.mock.calls.length - 1][1].data.message as string;
+            expect(message).not.toContain('<script>');
+            expect(message).toContain('&lt;script&gt;');
+        });
+
+        it('retries a job after the user confirms', () => {
             const {component} = build(makeData({status: JobStatus.Completed}));
             component.retry();
             expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not retry when the confirmation is dismissed', () => {
+            const {component} = build(makeData({status: JobStatus.Completed}));
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(false)});
+            component.retry();
+            expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
         });
 
         it('copies the error to the clipboard and notifies', () => {

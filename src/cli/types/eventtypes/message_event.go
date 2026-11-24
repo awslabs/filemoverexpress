@@ -8,6 +8,9 @@ import (
 type MessageEvent struct {
 	Msg           string
 	EventPriority logger.LogLevel
+	// JobID, when non-empty, scopes this message to a job so the GUI files it
+	// under that job's Logs tab. Empty for global daemon messages.
+	JobID string
 }
 
 func (e *MessageEvent) String() string {
@@ -23,7 +26,7 @@ func (e *MessageEvent) Priority() logger.LogLevel {
 }
 
 func (e *MessageEvent) ToProtobuf() (fmev1.PbEvent, fmev1.EventType) {
-	pbEvent := &fmev1.MessageEvent{Msg: e.String(), LogLevel: string(e.Priority())}
+	pbEvent := &fmev1.MessageEvent{Msg: e.String(), LogLevel: string(e.Priority()), JobId: e.JobID}
 	msgEvent := fmev1.ListEventsResponse_MessageEvent{MessageEvent: pbEvent}
 	return &msgEvent, fmev1.EventType_EVENT_TYPE_MESSAGE_EVENT_TYPE
 }

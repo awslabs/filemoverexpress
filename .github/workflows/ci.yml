@@ -15,66 +15,143 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  generate-protobuf:
+  # Finds the prebuilt CI image that matches this checkout (see .github/docker/ and
+  # build-containers.yml). When it has not been published yet, for example in a pull request
+  # that changes the image inputs, `ci-image` is empty: the jobs below then run directly on the
+  # runner and install the toolchain with setup-environment, exactly as they did before.
+  resolve-image:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      ci-image: ${{ steps.resolve.outputs.ci-image }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - id: resolve
+        uses: ./.github/actions/resolve-image
+
+  lint:
+    needs: [resolve-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
         with:
-          working-directory: src/protobuf
-      - uses: ./.github/actions/generate-protobuf
-
-  generate-bindings:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/generate-bindings
-
-  lint:
-    needs: [generate-protobuf, generate-bindings]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf and Wails bindings
+        run: task generate
+        shell: bash
       - uses: ./.github/actions/lint-gui
       - uses: ./.github/actions/lint-cli
       - uses: ./.github/actions/lint-protobuf
 
   test-cli:
-    needs: [generate-protobuf, generate-bindings]
+    needs: [resolve-image]
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # v4
-      - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
-      - uses: ./.github/actions/test-cli
-
-  test-gui:
-    needs: [generate-protobuf, generate-bindings]
-    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
         with:
-          install-go: 'false'
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
-      - uses: ./.github/actions/test-gui
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf code
+        run: task proto:generate
+        shell: bash
+      - uses: ./.github/actions/test-cli
 
-  test-wails:
-    needs: [generate-protobuf, generate-bindings]
+  test-gui:
+    needs: [resolve-image]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
     steps:
       - uses: actions/checkout@v4 # v4
       - uses: ./.github/actions/setup-environment
-      - uses: ./.github/actions/download-protobuf
-      - uses: ./.github/actions/download-bindings
+        with:
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf and Wails bindings
+        run: task generate
+        shell: bash
+      - uses: ./.github/actions/test-gui
+
+  test-wails:
+    needs: [resolve-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    # The images are private, so the pull needs credentials. They are added here and not in the
+    # resolve-image output because GitHub drops job outputs that contain a secret.
+    container: ${{ needs.resolve-image.outputs.ci-image != '' && fromJSON(format('{{"image":"{0}","credentials":{{"username":"{1}","password":"{2}"}}}}', needs.resolve-image.outputs.ci-image, github.actor, github.token)) || null }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+      - uses: ./.github/actions/setup-environment
+        with:
+          force-container-mode: ${{ needs.resolve-image.outputs.ci-image != '' }}
+      - name: Generate protobuf code
+        run: task proto:generate
+        shell: bash
       - name: Create dummy frontend dist for embedFS
         run: mkdir -p src/wails/frontend/dist/browser && touch src/wails/frontend/dist/browser/.gitkeep
         shell: bash
       - name: Run Wails tests
         run: task wails:test
+        shell: bash
+
+  # Decides whether the end-to-end suites run: always on a push to main, and on a pull request only
+  # when it changes something the suites exercise. Docs, website and other unrelated changes skip
+  # them. A skipped job still satisfies a required status check.
+  e2e-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4 # v4
+        with:
+          fetch-depth: 0
+      - id: decide
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Paths the suites depend on. Keep in step with what src/cli/e2e and src/gui/e2e build.
+          pattern='^(src/(cli|gui|wails|protobuf)/|\.github/(docker|actions|scripts)/|\.github/versions\.env$|\.github/workflows/(ci|e2e)\.yml$|package(-lock)?\.json$|Taskfile\.yml$)'
+          changed="$(git diff --name-only "$BASE...$HEAD")"
+          if grep -Eq "$pattern" <<<"$changed"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No change under the paths the end-to-end suites cover; skipping them." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  e2e:
+    needs: [e2e-changes]
+    if: needs.e2e-changes.outputs.run == 'true'
+    uses: ./.github/workflows/e2e.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      require-image: false

@@ -10,7 +10,7 @@ import { ConfirmationModalComponent } from '@app/components/modals/confirmation-
 import { discardUnsavedChangesDialog } from '@app/components/modals/confirmation-modal/confirmation-modal.constants';
 import { HintPopoverService } from '@services/hint-popover/hint-popover.service';
 import { formErrorMessages, NotificationMessages, sectionTitles } from '@app/constants/common.constants';
-import { FmeConfig as IFmeConfig } from '@app/interfaces/config';
+import { FmeConfig as IFmeConfig, NotificationDestination } from '@app/interfaces/config';
 import { DEFAULT_GENERAL_SETTINGS } from '@app/constants/config';
 import { FmeConfig, TransferProfile } from '@classes/config';
 import { isIntegerValidator, maxActiveChecksumsValidator, oneOfValidator } from '@classes/form-validators';
@@ -23,7 +23,6 @@ import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { WebhookNotificationsService } from '@services/webhook-notifications/webhook-notifications.service';
 import { create } from '@bufbuild/protobuf';
 import {
-    NotificationDestination,
     NotificationDestinationSchema,
     NotificationPreset,
 } from '@gen/es/fme/v1/notifications_pb';
@@ -321,7 +320,7 @@ export class ConfigComponent implements OnInit {
                 settings.notifications = {
                     destinations: [],
                     notifyAllTransfers: this.notifyAllTransfers.value,
-                } as unknown as typeof settings.notifications;
+                };
             }
             const input = FmeConfig.fromJson(settings);
 
@@ -346,10 +345,10 @@ export class ConfigComponent implements OnInit {
             if (this.dialogRef && this.configForm.dirty) {
                 this.dialog.open(ConfirmationModalComponent, discardUnsavedChangesDialog)
                     .afterClosed().subscribe((discard) => {
-                        if (discard) {
-                            this.closeSettings();
-                        }
-                    });
+                    if (discard) {
+                        this.closeSettings();
+                    }
+                });
                 return;
             }
             this.closeSettings();

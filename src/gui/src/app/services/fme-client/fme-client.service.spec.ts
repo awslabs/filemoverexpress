@@ -134,7 +134,14 @@ function expectStreamingNullError(err: unknown) {
     expect((err as StreamingClientError).errorType).toBe(StreamingClientErrorType.StreamingClientNull);
 }
 
-describe('FmeClientService', () => {
+// The outer callback MUST be a `function`, not an arrow. Zone.js builds lower
+// async/await, so esbuild rewrites each `async () => {}` test to
+// `__async(this, ...)`. With arrows all the way up, that `this` is the module's
+// top-level `this`, which esbuild treats as a CommonJS marker and wraps the whole
+// file in __commonJS(). That nests the vi.hoisted/vi.mock calls above inside a
+// function, and Vitest 5 rejects them as "outside of the module's top level
+// scope". A `function` here gives the inner arrows their own `this`.
+describe('FmeClientService', function () {
     let service: FmeClientService;
     let store: MockStore<AppState>;
     let bookmarks: BookmarksService;
@@ -445,6 +452,16 @@ describe('FmeClientService', () => {
         it('clearCompletedJobs errors when result.success is false', async () => {
             unarySuccess('clearCompletedJobs', {success: false, error: 'cannot clear'});
             await expect(firstValueFrom(service.clearCompletedJobs())).rejects.toBe('cannot clear');
+        });
+
+        it('clearCompletedJob returns the cleared id on success', async () => {
+            unarySuccess('clearCompletedJob', {success: true, clearedJobIds: ['job-1']});
+            expect(await firstValueFrom(service.clearCompletedJob('job-1'))).toEqual(['job-1']);
+        });
+
+        it('clearCompletedJob errors when result.success is false', async () => {
+            unarySuccess('clearCompletedJob', {success: false, error: 'cannot clear active job'});
+            await expect(firstValueFrom(service.clearCompletedJob('job-1'))).rejects.toBe('cannot clear active job');
         });
 
         it('listJobNames maps job ids to names', async () => {

@@ -15,7 +15,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { AppState } from '@app/state';
 import { initialTestState } from '@state/test.state';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { FmeClientService } from '@services/fme-client/fme-client.service';
 import { NotificationsService } from '@services/notifications/notifications.service';
 import { ExportService } from '@services/export/export.service';
@@ -67,6 +67,7 @@ describe('JobsTableComponent', () => {
         cancelJob: ReturnType<typeof vi.fn>;
         resubmitJob: ReturnType<typeof vi.fn>;
         clearCompletedJobs: ReturnType<typeof vi.fn>;
+        clearCompletedJob: ReturnType<typeof vi.fn>;
         renameJob: ReturnType<typeof vi.fn>;
     };
     let notifications: Record<string, ReturnType<typeof vi.fn>>;
@@ -83,6 +84,7 @@ describe('JobsTableComponent', () => {
             cancelJob: vi.fn(() => of({success: true})),
             resubmitJob: vi.fn(() => of({success: true})),
             clearCompletedJobs: vi.fn(() => of({})),
+            clearCompletedJob: vi.fn(() => of(['job-1'])),
             renameJob: vi.fn(() => of({success: true})),
         };
         notifications = {success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn()};
@@ -210,10 +212,26 @@ describe('JobsTableComponent', () => {
             expect(fmeClient.cancelJob).not.toHaveBeenCalled();
         });
 
-        it('cancels and dispatches when in progress', () => {
+        it('cancels and dispatches when confirmed', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
             component.cancelJob(makeJob({status: JobStatus.InProgress}));
             expect(fmeClient.cancelJob).toHaveBeenCalledWith('job-1');
             expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({type: JobActions.cancel.type}));
+        });
+
+        it('does not cancel when the confirmation is dismissed', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(undefined)});
+            component.cancelJob(makeJob({status: JobStatus.InProgress}));
+            expect(dialogOpen).toHaveBeenCalled();
+            expect(fmeClient.cancelJob).not.toHaveBeenCalled();
+        });
+
+        it('escapes a malicious job name in the confirmation message', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.cancelJob(makeJob({status: JobStatus.InProgress, name: "<script>alert('x')</script>"}));
+            const message = dialogOpen.mock.calls[0][1].data.message as string;
+            expect(message).not.toContain('<script>');
+            expect(message).toContain('&lt;script&gt;');
         });
     });
 
@@ -224,8 +242,21 @@ describe('JobsTableComponent', () => {
             expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
         });
 
-        it('resubmits a completed job', () => {
+        it('resubmits a completed job after the user confirms', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
             component.resubmitJob(makeJob({status: JobStatus.Completed}));
+            expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('does not resubmit when the confirmation is dismissed', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(false)});
+            component.resubmitJob(makeJob({status: JobStatus.Completed}));
+            expect(fmeClient.resubmitJob).not.toHaveBeenCalled();
+        });
+
+        it('resubmits a completed-with-warnings job after confirm', () => {
+            dialogOpen.mockReturnValueOnce({afterClosed: () => of(true)});
+            component.resubmitJob(makeJob({status: JobStatus.CompletedWithWarnings}));
             expect(fmeClient.resubmitJob).toHaveBeenCalledWith('job-1');
         });
     });
@@ -235,6 +266,37 @@ describe('JobsTableComponent', () => {
             component.clearJobs();
             expect(fmeClient.clearCompletedJobs).toHaveBeenCalled();
             expect(store.dispatch).toHaveBeenCalledWith(JobActions.clearCompleted());
+        });
+    });
+
+    describe('clearJob', () => {
+        it('clears a completed job and dispatches the single-job clear action', () => {
+            component.clearJob(makeJob({status: JobStatus.Completed}));
+            expect(fmeClient.clearCompletedJob).toHaveBeenCalledWith('job-1');
+            expect(store.dispatch).toHaveBeenCalledWith(JobActions.clearJob({jobId: 'job-1'}));
+        });
+
+        it('clears a cancelled job', () => {
+            component.clearJob(makeJob({status: JobStatus.Cancelled}));
+            expect(fmeClient.clearCompletedJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('clears an errored job', () => {
+            component.clearJob(makeJob({status: JobStatus.Error}));
+            expect(fmeClient.clearCompletedJob).toHaveBeenCalledWith('job-1');
+        });
+
+        it('refuses to clear a job that is still in progress', () => {
+            component.clearJob(makeJob({status: JobStatus.InProgress}));
+            expect(fmeClient.clearCompletedJob).not.toHaveBeenCalled();
+            expect(notifications.error).toHaveBeenCalledWith('Only completed, failed, or cancelled jobs can be cleared');
+        });
+
+        it('notifies on a service error', () => {
+            fmeClient.clearCompletedJob.mockReturnValueOnce(throwError(() => 'boom'));
+            component.clearJob(makeJob({status: JobStatus.Completed}));
+            expect(notifications.error).toHaveBeenCalledWith('Unable to clear job');
+            expect(store.dispatch).not.toHaveBeenCalledWith(JobActions.clearJob({jobId: 'job-1'}));
         });
     });
 
@@ -258,6 +320,82 @@ describe('JobsTableComponent', () => {
             component.renameJob(makeJob({name: 'Old Name'}));
             expect(fmeClient.renameJob).toHaveBeenCalledWith('job-1', 'New Name');
             expect(notifications.info).toHaveBeenCalledWith('Renamed job Old Name to New Name');
+        });
+    });
+
+    describe('ASC MHL column', () => {
+        it('flags a job verified against a manifest with no problems as used and clean', () => {
+            const job = makeJob({
+                status: JobStatus.Completed,
+                ascMhlListed: 3,
+                ascMhlVerified: 3,
+                ascMhlProblems: 0,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(true);
+            expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 3 of 3 (xxhash64)');
+        });
+
+        it('does not flag a job that shipped no manifest', () => {
+            const job = makeJob({status: JobStatus.Completed});
+            expect(component.ascMhlUsed(job)).toBe(false);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('is used but not clean when there are integrity problems, regardless of status', () => {
+            // All-mismatch run still mid-transfer: problems > 0 reads amber even
+            // though the status has not yet flipped to CompletedWithWarnings.
+            const job = makeJob({
+                status: JobStatus.InProgress,
+                ascMhlListed: 3,
+                ascMhlVerified: 0,
+                ascMhlProblems: 3,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('stays clean for a failed job whose verification had no problems', () => {
+            // A clean verify followed by a transfer failure is still a clean verify;
+            // the indicator reflects verification, not transfer outcome.
+            const job = makeJob({
+                status: JobStatus.Error,
+                ascMhlListed: 2,
+                ascMhlVerified: 2,
+                ascMhlProblems: 0,
+                ascMhlAlgorithm: 'xxhash64',
+            });
+            expect(component.ascMhlClean(job)).toBe(true);
+        });
+
+        it('is not clean when fewer files verified than listed (unsupported algorithm)', () => {
+            // sha1-only manifest: verified 0 of 5, no integrity problems, but nothing
+            // was actually verified - must not read green.
+            const job = makeJob({
+                status: JobStatus.Completed,
+                ascMhlListed: 5,
+                ascMhlVerified: 0,
+                ascMhlProblems: 0,
+            });
+            expect(component.ascMhlUsed(job)).toBe(true);
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('is not clean on a partial (cancelled) verify even with no problems', () => {
+            const job = makeJob({
+                status: JobStatus.Cancelled,
+                ascMhlListed: 100,
+                ascMhlVerified: 3,
+                ascMhlProblems: 0,
+            });
+            expect(component.ascMhlClean(job)).toBe(false);
+        });
+
+        it('omits the algorithm from the tooltip when unknown', () => {
+            const job = makeJob({ascMhlListed: 2, ascMhlVerified: 2});
+            expect(component.ascMhlTooltip(job)).toBe('ASC MHL verified 2 of 2');
         });
     });
 

@@ -287,5 +287,5 @@ Connect to File Mover Express running on other machines:
 
 - **[Using the CLI](Using-the-CLI)** - Learn command-line operations
 - **[Hot Folders](Hot-Folders)** - Detailed hot folder configuration
-- **[Remote Daemon](Remote-Daemon)** - Set up multi-user environments
-- **[Performance Optimization](Performance-Optimization)** - Tune for your workload
+- **[Remote Daemon](Configuration#remote-daemon-configuration)** - Set up multi-user environments
+- **[Performance Optimization](Best-Practices#performance-parameters)** - Tune for your workload

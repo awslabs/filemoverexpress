@@ -61,6 +61,22 @@ describe('FileBrowserComponent', () => {
         expect(component).toBeTruthy();
     });
 
+    describe('externalDragActive cue', () => {
+        it('adds the external-drag-over class when active', () => {
+            component.externalDragActive = true;
+            fixture.detectChanges();
+            const el = fixture.nativeElement as HTMLElement;
+            expect(el.querySelector('.file-browser-container')?.classList.contains('external-drag-over')).toBe(true);
+        });
+
+        it('does not add the external-drag-over class when inactive', () => {
+            component.externalDragActive = false;
+            fixture.detectChanges();
+            const el = fixture.nativeElement as HTMLElement;
+            expect(el.querySelector('.file-browser-container')?.classList.contains('external-drag-over')).toBe(false);
+        });
+    });
+
     describe('isPreviousDirectoryRow', () => {
         it('identifies the parent-directory row', () => {
             const parent = makeObject(PREVIOUS_FOLDER_NAME, FileBrowserObjectType.FOLDER);

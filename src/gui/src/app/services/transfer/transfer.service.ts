@@ -208,6 +208,7 @@ export class TransferService {
                 break;
 
             case JobStatus.Completed:
+            case JobStatus.CompletedWithWarnings:
                 update.changes.timestampCompleted = evt.timestamp;
         }
 

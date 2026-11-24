@@ -139,7 +139,7 @@ const PRIMARY = {
   mac: {label: 'Download for macOS', href: `${DL}/filemoverexpress-macos-arm64.dmg`},
   win: {label: 'Download for Windows', href: `${DL}/filemoverexpress-windows-amd64-installer.exe`},
   linux: {label: 'Download for Linux', href: `${DL}/filemoverexpress-linux-amd64`},
-  other: {label: 'Download', href: '#downloads'},
+  other: {label: 'Download', href: RELEASES_URL},
 };
 
 function detectOs() {
@@ -235,8 +235,6 @@ function Hero({os, version}) {
           ) : (
             'Free and open source'
           )}
-          {' \u00b7 '}
-          <a href="#downloads">All platforms</a>
         </div>
       </div>
     </header>
