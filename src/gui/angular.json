@@ -96,7 +96,8 @@
                     "builder": "@angular/build:unit-test",
                     "options": {
                         "tsConfig": "tsconfig.spec.json",
-                        "runnerConfig": "vitest.config.mts"
+                        "runnerConfig": "vitest.config.mts",
+                        "isolate": true
                     }
                 },
                 "lint": {
