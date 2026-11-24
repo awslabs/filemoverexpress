@@ -168,10 +168,15 @@ $table-row-selected-color: variables.$table-selected-row-background-color;
 // region name
 .job-name {
     color: variables.$text;
-    display: flex;
-    align-items: center;
-    gap: 10px;
     overflow: hidden;
+
+    .job-name-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        overflow: hidden;
+    }
 
     .job-name-text {
         min-width: 0;
