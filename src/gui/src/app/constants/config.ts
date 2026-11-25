@@ -29,8 +29,10 @@ export const DEFAULT_GENERAL_SETTINGS: ConfigGeneral = {
     maxActiveTransfers: 100,
     autoMaxActiveTransfers: false,
     targetBandwidth: 0,
-    // Match the daemon's defaults (src/cli/constants/config.go). Only used when the daemon
-    // sends no general settings at all.
+    // Only used when the daemon sends no general settings at all. These match the daemon's
+    // defaults (buildDefaultsMap in src/cli/config/config.go), except sendBufferBytes: the
+    // daemon uses 2 MB on macOS, but the GUI can't know which OS the daemon runs on (it may
+    // be remote), so it falls back to 0, meaning the OS default.
     maxConnectionsPerHost: 0,
     sendBufferBytes: 0,
     adaptiveConcurrency: true,
