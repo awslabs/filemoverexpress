@@ -39,6 +39,11 @@ const FORM_DATA = FmeConfig.fromJson({
         maxActiveTransfers: 10,
         autoMaxActiveTransfers: false,
         targetBandwidth: 0,
+        // No form controls for these. Values differ from zero and from
+        // DEFAULT_GENERAL_SETTINGS so a test can tell "carried through" from "defaulted".
+        maxConnectionsPerHost: 64,
+        sendBufferBytes: 2 * 1024 * 1024,
+        adaptiveConcurrency: false,
     },
     logging: {
         maxSize: 50,
@@ -139,6 +144,7 @@ describe('ConfigComponent', () => {
     let fixture: ComponentFixture<ConfigComponent>;
     let redirectSpy: ReturnType<typeof vi.spyOn>;
     let submitSpy: ReturnType<typeof vi.spyOn>;
+    let setConfigurationSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -210,7 +216,7 @@ describe('ConfigComponent', () => {
         const setConfigurationResponse = create(SetConfigurationResponseSchema);
         setConfigurationResponse.success = true;
         setConfigurationResponse.message = '';
-        vi.spyOn(fmeClientService, 'setConfiguration')
+        setConfigurationSpy = vi.spyOn(fmeClientService, 'setConfiguration')
             .mockReturnValue(new BehaviorSubject<SetConfigurationResponse>(setConfigurationResponse).asObservable());
 
         // Fake the redirect call from history service, to not trigger any navigation events
@@ -239,6 +245,21 @@ describe('ConfigComponent', () => {
         await fixture.whenStable();
         component.onCancel();
         expect(redirectSpy).toHaveBeenCalled();
+    });
+
+    it('save carries general settings the form has no controls for', async () => {
+        await fixture.whenStable();
+        // Set directly: in this harness the version check closes the form before it loads.
+        component.originalConfig = FORM_DATA;
+        component.configForm.controls.general.controls.retryCount.setValue(7);
+
+        component.onSubmit()();
+
+        const saved = setConfigurationSpy.mock.calls.at(-1)?.[0] as FmeConfig;
+        expect(saved.general.retryCount).toBe(7); // edited in the form: form wins
+        expect(saved.general.maxConnectionsPerHost).toBe(64);
+        expect(saved.general.sendBufferBytes).toBe(2 * 1024 * 1024);
+        expect(saved.general.adaptiveConcurrency).toBe(false);
     });
 }, 15000);
 

@@ -305,6 +305,13 @@ export class ConfigComponent implements OnInit {
     onSubmit() {
         return () => {
             const settings: IFmeConfig = this.configForm.getRawValue() as unknown as IFmeConfig;
+            // The form has controls for only some general settings. Start from the loaded
+            // ones so the rest (adaptiveConcurrency, maxConnectionsPerHost, sendBufferBytes,
+            // set in the config file) are carried through instead of reset by this save.
+            settings.general = {
+                ...(this.originalConfig?.general ?? DEFAULT_GENERAL_SETTINGS),
+                ...settings.general,
+            };
             // Hot folders are edited in their own Configure Hot Folders dialog, not here.
             // The config save writes the whole config, so carry the loaded hot folders
             // through unchanged — otherwise saving Settings would wipe them.

@@ -95,6 +95,9 @@ export class General implements ConfigInterfaces.ConfigGeneral {
         public autoMaxActiveTransfers: boolean,
         public maxActiveChecksums: number,
         public targetBandwidth: number,
+        public maxConnectionsPerHost: number,
+        public sendBufferBytes: number,
+        public adaptiveConcurrency: boolean,
     ) {
     }
 
@@ -106,6 +109,9 @@ export class General implements ConfigInterfaces.ConfigGeneral {
             input.autoMaxActiveTransfers,
             input.maxActiveChecksums,
             input.targetBandwidth,
+            input.maxConnectionsPerHost,
+            input.sendBufferBytes,
+            input.adaptiveConcurrency,
         );
     }
 
@@ -117,6 +123,9 @@ export class General implements ConfigInterfaces.ConfigGeneral {
             input.autoMaxActiveTransfers,
             input.maxActiveChecksums,
             input.targetBandwidth,
+            input.maxConnectionsPerHost,
+            input.sendBufferBytes,
+            input.adaptiveConcurrency,
         );
     }
 
@@ -128,6 +137,9 @@ export class General implements ConfigInterfaces.ConfigGeneral {
         generateSettings.autoMaxActiveTransfers = input.autoMaxActiveTransfers;
         generateSettings.maxActiveChecksums = input.maxActiveChecksums;
         generateSettings.targetBandwidth = input.targetBandwidth;
+        generateSettings.maxConnectionsPerHost = input.maxConnectionsPerHost;
+        generateSettings.sendBufferBytes = input.sendBufferBytes;
+        generateSettings.adaptiveConcurrency = input.adaptiveConcurrency;
         return generateSettings;
     }
 }
@@ -138,6 +150,7 @@ export class HotFolders implements ConfigInterfaces.ConfigHotFolders {
         public enabled: boolean,
         public localSourceFolder: string,
         public remoteConfigurations: HotFoldersTransferConfigurations[],
+        public forceInitialUpload: boolean,
     ) {
     }
 
@@ -151,6 +164,7 @@ export class HotFolders implements ConfigInterfaces.ConfigHotFolders {
             input.enabled,
             input.localSourceFolder,
             transferConfigurations,
+            input.forceInitialUpload,
         );
     }
 
@@ -164,6 +178,7 @@ export class HotFolders implements ConfigInterfaces.ConfigHotFolders {
             input.enabled,
             input.localSourceFolder,
             transferConfigurations,
+            input.forceInitialUpload,
         );
     }
 
@@ -175,6 +190,7 @@ export class HotFolders implements ConfigInterfaces.ConfigHotFolders {
         uploadHotFolderSettings.remoteConfigurations = input.remoteConfigurations.map(
             (itm) => HotFoldersTransferConfigurations.jsonToProtobuf(itm),
         );
+        uploadHotFolderSettings.forceInitialUpload = input.forceInitialUpload;
         return uploadHotFolderSettings;
     }
 }
