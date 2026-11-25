@@ -1,6 +1,6 @@
 # File Mover Express CLI
 
-[![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.27.3+-blue.svg)](https://golang.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The CLI component is the core backend daemon of File Mover Express, written in Go. It provides high-performance file
