@@ -66,48 +66,47 @@ git checkout -b performance/transfer-speed-optimization
 ### 1. Setting Up Your Environment
 
 Follow the [Installation](Installation) guide to set up your development environment with:
-- Go ≥ 1.25
-- Node.js ≥ 22 and npm
+- **Go**: the version in `src/cli/go.mod`
+- **Node.js** and npm: the version CI uses is `NODE_VERSION` in
+  `.github/versions.env`
 - Angular CLI
 - Git
 
 ### 2. Making Changes
 
-1. **Create a feature branch** from `main`:
+1. Create a feature branch from an up-to-date `main` of the upstream
+   repository (`awslabs/filemoverexpress`), named as described above:
    ```bash
-   git checkout main
-   git pull origin main
-   git checkout -b feature/your-feature-name
+   git fetch upstream
+   git checkout -b feature/your-feature-name upstream/main
    ```
-
-2. **Make your changes** following our coding standards
-3. **Test your changes** thoroughly
-4. **Update documentation** if needed
+2. Make your changes, following the existing code patterns.
+3. Run the full checks (see Testing).
+4. Update documentation if needed.
+5. Commit following the commit guidelines below.
 
 ### 3. Testing
 
-Before submitting your changes:
+The project uses [Task](https://taskfile.dev) as its build runner. Before
+committing, run the full lint, test, and build suites:
 
-The project uses [Task](https://taskfile.dev) as its build runner. Most targets also have a
-matching `npm run` wrapper, but the `task` commands are the primary interface.
-
-**Backend (Go) Testing:**
 ```bash
-task cli:test               # Go CLI tests
-task cli:lint               # Go linter
+task lint
+task test
+task build
 ```
 
-**Frontend (Angular) Testing:**
-```bash
-task gui:test               # GUI unit tests (Vitest)
-task gui:lint               # ESLint
-```
+Also run these when they apply:
 
-**Everything at once:**
-```bash
-task test                   # all tests (CLI, Wails, GUI)
-task lint                   # all linters
-```
+- If you changed a `.proto` file, run `buf lint` in `src/protobuf`. CI runs it,
+  but `task lint` does not.
+- If your change touches the daemon, the GUI, the desktop app, the protobuf
+  definitions, the CI images, or the build, run the end-to-end suites with
+  `task e2e:docker` (needs Docker). The exact paths are listed in
+  `.github/workflows/ci.yml`.
+
+Narrower targets such as `task cli:test` or `task gui:test` are faster while
+you work, but they do not replace the full run before committing.
 
 ### 4. Committing Changes
 
@@ -128,18 +127,31 @@ git commit -m "fix(gui): resolve drag-and-drop issue on Windows"
 git commit -m "docs: update installation instructions for macOS"
 ```
 
+- Every commit follows Conventional Commits. The changelog will be generated
+  from commit messages, so the type and summary must describe the change
+  accurately.
+- Mark breaking changes with `!` after the type or scope, or with a
+  `BREAKING CHANGE:` footer.
+- Each commit addresses one concern.
+- Keep the number of commits small: squash fixups and review follow-ups into
+  the commit they belong to.
+
 ### 5. Submitting Pull Requests
 
-1. **Push your branch** to your fork:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+1. Push your branch to your fork.
+2. Open a pull request against `main` in `awslabs/filemoverexpress` with:
+   - a title in Conventional Commits form, for example
+     `feat(gui): show MHL verification as an inline job-name tag`.
+     Maintainers merge by squash or by merge commit depending on the PR; on a
+     squash merge the title becomes the commit message
+   - what changed and why, related issues, and what you tested
+   - screenshots for UI changes
+3. CI must pass: lint, CLI tests, GUI tests, Wails tests, and the end-to-end
+   suites when they apply.
 
-2. **Create a Pull Request** on GitHub with:
-   - Clear title and description
-   - Reference any related issues
-   - Include screenshots for UI changes
-   - Ensure all tests pass
+Keep each pull request to one concern. This is a public repository: never
+include AWS account numbers, credentials, or company-internal information in
+code, commits, pull requests, issues, or comments.
 
 ## Code Style Guidelines
 
@@ -206,8 +218,8 @@ Code contributions should:
 ### Prerequisites
 
 Ensure you have the required tools installed:
-- **Go**: Version 1.25 or higher
-- **Node.js**: Version 22 or higher, plus **npm**
+- **Go**: the version in `src/cli/go.mod`
+- **Node.js**: a release Angular supports (see the [Development guide](Development.md)), plus **npm**
 - **Task**: The build runner ([install guide](https://taskfile.dev/installation/))
 - **Wails CLI** (`wails3`): For building the desktop app (`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`)
 - **Git**: Latest version
