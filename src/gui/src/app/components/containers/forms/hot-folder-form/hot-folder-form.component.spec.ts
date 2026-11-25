@@ -20,6 +20,9 @@ describe('HotFolderFormComponent', () => {
     let fixture: ComponentFixture<HotFolderFormComponent>;
 
     beforeEach(() => {
+        // Rendering a hot folder's destinations reads transferProfiles, which throws until
+        // metadata has loaded. Same stub as configure-hot-folder-modal's spec.
+        const metadataStub = {onUpdate: of(false), transferProfiles: {}};
         TestBed.configureTestingModule({
             imports: [
                 MatSnackBarModule,
@@ -29,18 +32,7 @@ describe('HotFolderFormComponent', () => {
                 MatBadgeModule,
                 MatTooltipModule,
             ],
-            providers: [
-                provideMockStore<AppState>({initialState: initialTestState}),
-                // Rendering a hot folder's destinations reads transferProfiles, which throws
-                // until metadata has loaded. Same stub as configure-hot-folder-modal's spec.
-                {
-                    provide: MetadataService,
-                    useValue: {
-                        onUpdate: of(false),
-                        transferProfiles: {},
-                    },
-                },
-            ],
+            providers: [provideMockStore<AppState>({initialState: initialTestState}), {provide: MetadataService, useValue: metadataStub}],
         });
         fixture = TestBed.createComponent(HotFolderFormComponent);
         component = fixture.componentInstance;
