@@ -12,4 +12,4 @@ If you are a human browsing the repo: nothing of record lives here. Anything an
 agent needs to keep belongs in real project files (source, `docs/`, a PR
 description, or an issue), not here.
 
-See `AGENT.md` at the repo root for the full policy.
+See `AGENTS.md` and `.agents/workspace-hygiene.md` for the full policy.
