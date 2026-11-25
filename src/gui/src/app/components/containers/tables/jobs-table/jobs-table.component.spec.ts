@@ -341,6 +341,33 @@ describe('JobsTableComponent', () => {
             expect(component.ascMhlTooltip(job)).toContain('ASC MHL');
         });
 
+        it('renders the tag in the name cell only when a manifest was verified', () => {
+            const withManifest = makeJob({id: 'with', name: 'has-mhl', ascMhlListed: 2, ascMhlVerified: 2, ascMhlProblems: 0});
+            const withoutManifest = makeJob({id: 'without', name: 'no-mhl'});
+            store.overrideSelector(jobSelectAll, [withManifest, withoutManifest]);
+            store.refreshState();
+            fixture.detectChanges();
+
+            const nameCells = Array.from(
+                fixture.nativeElement.querySelectorAll('td.job-name'),
+            ) as HTMLElement[];
+            const cellFor = (name: string) => nameCells.find((c) => c.textContent?.includes(name));
+            expect(cellFor('has-mhl')?.querySelector('.job-mhl')).toBeTruthy();
+            expect(cellFor('no-mhl')?.querySelector('.job-mhl')).toBeNull();
+        });
+
+        it('uses a distinct icon and aria-label per state so colour is not the only cue', () => {
+            const clean = makeJob({ascMhlListed: 2, ascMhlVerified: 2, ascMhlProblems: 0});
+            const partial = makeJob({ascMhlListed: 2, ascMhlVerified: 0, ascMhlProblems: 0});
+            const failed = makeJob({ascMhlListed: 2, ascMhlVerified: 1, ascMhlProblems: 1});
+            expect(component.mhlIcon(clean)).toBe('verified');
+            expect(component.mhlIcon(partial)).toBe('error_outline');
+            expect(component.mhlIcon(failed)).toBe('cancel');
+            expect(component.mhlStateLabel(clean)).toBe('ASC MHL verified');
+            expect(component.mhlStateLabel(partial)).toBe('ASC MHL partially verified');
+            expect(component.mhlStateLabel(failed)).toBe('ASC MHL verification failed');
+        });
+
         it('flags a job verified against a manifest with no problems as used and clean', () => {
             const job = makeJob({
                 status: JobStatus.Completed,
