@@ -143,7 +143,6 @@ export class JobsTableComponent implements AfterViewInit {
         'duration',
         'progress',
         'status',
-        'mhl',
         'actions',
     ];
     dataSource: MatTableDataSource<Job>;
@@ -353,7 +352,7 @@ export class JobsTableComponent implements AfterViewInit {
     /**
      * Whether a supplied ASC MHL manifest was verified for this job. True when at
      * least one file was listed, OR there were integrity problems with nothing
-     * listed - an unreadable manifest, which must still light the column (red).
+     * listed - an unreadable manifest, which must still light the tag (red).
      */
     ascMhlUsed(job: Job): boolean {
         return (job.ascMhlListed ?? 0) > 0 || (job.ascMhlProblems ?? 0) > 0;
@@ -375,26 +374,65 @@ export class JobsTableComponent implements AfterViewInit {
 
     /**
      * Whether the ASC MHL verification had integrity problems (a hash mismatch,
-     * a missing or unreadable listed file). Drives the red X in the column, so a
+     * a missing or unreadable listed file). Drives the red tag, so a
      * failed verify is a loud signal rather than an amber one.
      */
     ascMhlFailed(job: Job): boolean {
         return this.ascMhlUsed(job) && (job.ascMhlProblems ?? 0) > 0;
     }
 
-    /** Tooltip for the ASC MHL column cell, reflecting clean / failed / partial. */
+    /**
+     * The manifest-kind label shown on the inline tag. Legacy MHL (v1) is
+     * currently import-only - it produces no verification counts - so the only
+     * manifest that drives a tag today is ASC MHL (v2), and the label is "ASC MHL".
+     * When legacy verification lands, this returns "MHL" for a legacy manifest.
+     */
+    mhlLabel(): string {
+        return 'ASC MHL';
+    }
+
+    /**
+     * Material icon for the tag, distinct per state so color is not the only
+     * signal (color-blind users, screen readers): a check when clean, a warning
+     * outline when partial, a cancel mark when failed.
+     */
+    mhlIcon(job: Job): string {
+        if (this.ascMhlFailed(job)) {
+            return 'cancel';
+        }
+        return this.ascMhlClean(job) ? 'verified' : 'error_outline';
+    }
+
+    /**
+     * Accessible label naming the verification state for the tag, so a screen
+     * reader announces clean / partial / failed rather than just an icon + color.
+     */
+    mhlStateLabel(job: Job): string {
+        if (this.ascMhlFailed(job)) {
+            return `${this.mhlLabel()} verification failed`;
+        }
+        return this.ascMhlClean(job) ? `${this.mhlLabel()} verified` : `${this.mhlLabel()} partially verified`;
+    }
+
+    /** Tooltip for the inline MHL tag, reflecting clean / failed / partial. */
     ascMhlTooltip(job: Job): string {
         const verified = job.ascMhlVerified ?? 0;
         const listed = job.ascMhlListed ?? 0;
         const algorithm = job.ascMhlAlgorithm ?? '';
         const suffix = algorithm ? ` (${algorithm})` : '';
+        const label = this.mhlLabel();
         if (this.ascMhlFailed(job)) {
-            return `ASC MHL verification failed: ${verified} of ${listed} verified, ${job.ascMhlProblems ?? 0} with problems${suffix}`;
+            return `${label} verification failed: ${verified} of ${listed} verified, ${job.ascMhlProblems ?? 0} with problems${suffix}`;
         }
         if (this.ascMhlClean(job)) {
-            return `ASC MHL verified ${verified} of ${listed}${suffix}`;
+            return `${label} verified ${verified} of ${listed}${suffix}`;
         }
-        return `ASC MHL: ${verified} of ${listed} verified${suffix}`;
+        // Partial: a manifest was honored but not every listed file was verified
+        // (e.g. an algorithm FME cannot compute, or a cancelled run). No hard
+        // integrity problem, so the job status may still read green - the tooltip points
+        // the user at the Logs, which carry the exact reason (the not-honored count).
+        const unverified = listed - verified;
+        return `${label}: verified ${verified} of ${listed}${suffix}. ${unverified} not verified - see the job Logs for details.`;
     }
 
     /**
