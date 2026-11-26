@@ -32,6 +32,31 @@ func (m *mockUploadDeps) Uploader(job *jobmanagertypes.Job) {
 	m.Called(job)
 }
 
+func (m *mockUploadDeps) JobState(jobId string) (jobmanagertypes.JobStatus, bool) {
+	args := m.Called(jobId)
+	return args.Get(0).(jobmanagertypes.JobStatus), args.Bool(1)
+}
+
+func (m *mockUploadDeps) UploadTaskOutcomes(jobId string) []TaskOutcome {
+	args := m.Called(jobId)
+	return args.Get(0).([]TaskOutcome)
+}
+
+// newTestJob builds a real Job so callers that read job.JobId() (e.g.
+// StartHotFolderUpload) work against a fully-initialized value rather than a
+// zero struct with a nil lock.
+func newTestJob(t *testing.T) *jobmanagertypes.Job {
+	t.Helper()
+	job, err := jobmanagertypes.NewJob(jobmanagertypes.JobConfig{
+		Name:            "hf",
+		TransferProfile: &configtypes.TransferProfile{Name: "profile", Bucket: "bucket"},
+	})
+	if err != nil {
+		t.Fatalf("NewJob: %v", err)
+	}
+	return job
+}
+
 func Test_keysForHotFolder(t *testing.T) {
 	sourceFolder := filepath.Join("tmp", "hot", "folderab")
 	nested := filepath.Join(sourceFolder, "sub", "clip.mov")
@@ -196,7 +221,7 @@ func Test_HotFolderUploadSourceDirectory_ForcePropagation(t *testing.T) {
 			fake.On("NewJob", mock.MatchedBy(func(cfg jobmanagertypes.JobConfig) bool {
 				capturedForce = cfg.Force
 				return cfg.Force == tt.forceInitialUpload
-			})).Return(&jobmanagertypes.Job{}, nil)
+			})).Return(newTestJob(t), nil)
 
 			fake.On("Uploader", mock.Anything).Return()
 

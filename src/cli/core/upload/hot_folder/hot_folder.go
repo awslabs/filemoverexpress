@@ -12,6 +12,7 @@ import (
 	"github.com/radovskyb/watcher"
 
 	"github.com/awslabs/filemoverexpress/config"
+	"github.com/awslabs/filemoverexpress/core/job_manager"
 	"github.com/awslabs/filemoverexpress/core/upload"
 	"github.com/awslabs/filemoverexpress/events"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
@@ -31,6 +32,29 @@ var (
 	// deps is the injectable seam for StartHotFolderUpload's collaborators. Production uses
 	// realUploadDeps; tests swap in a testify/mock fake and restore this via t.Cleanup.
 	deps uploadDeps = realUploadDeps{}
+
+	// watchedJobs holds the ids of live-watcher hot folder upload jobs that have
+	// been started and not yet resolved. Each cycle they are checked for a terminal
+	// outcome so a file that failed transiently (a brief credential or network
+	// outage) can be re-queued without a daemon restart. Guarded by mtx.
+	watchedJobs = map[string]struct{}{}
+	// fileRetries tracks files awaiting a backoff before their next hot folder
+	// upload attempt after a transient failure, keyed by absolute path. Guarded by
+	// mtx. An entry with a zero readyAt is queued/in-flight (not waiting); the
+	// attempts count persists across re-queues so the backoff and the attempt cap
+	// are honored. Cleared when the file finally succeeds, is given up on, or a
+	// fresh filesystem event supersedes it.
+	fileRetries = map[string]*fileRetry{}
+
+	// Retry tuning. Vars (not consts) so tests can shorten them. maxRetryAttempts
+	// bounds how many times a transiently-failed file is re-queued before the
+	// daemon gives up and leaves the job in its terminal error state (visible to
+	// monitoring, and recoverable by the operator via Resubmit). The backoff is
+	// exponential from retryBaseDelay, capped at retryMaxDelay:
+	// 30s, 1m, 2m, 4m, 5m(cap) across the default 5 attempts (~12 minute window).
+	maxRetryAttempts = 5
+	retryBaseDelay   = 30 * time.Second
+	retryMaxDelay    = 5 * time.Minute
 )
 
 type (
@@ -54,6 +78,30 @@ type (
 		NewJob(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Job, error)
 		// Uploader enqueues the job for transfer.
 		Uploader(job *jobmanagertypes.Job)
+		// JobState returns a launched job's current status and whether the job is
+		// still known to the job manager (false once it has been cleared). Used to
+		// detect that a watched hot folder upload has reached a terminal state.
+		JobState(jobId string) (status jobmanagertypes.JobStatus, known bool)
+		// UploadTaskOutcomes returns the per-file outcome of a job's upload tasks:
+		// the absolute local path, whether the task errored, and the error (for
+		// transient-vs-permanent retry classification).
+		UploadTaskOutcomes(jobId string) []TaskOutcome
+	}
+
+	// TaskOutcome is the resolved outcome of a single upload task, used to decide
+	// whether its file should be re-queued for a transient-failure retry.
+	TaskOutcome struct {
+		Path    string
+		Errored bool
+		Err     error
+	}
+
+	// fileRetry is the backoff bookkeeping for one file awaiting re-upload after a
+	// transient failure. readyAt is the earliest time to re-queue it; a zero readyAt
+	// means the file is already queued or in flight (not waiting).
+	fileRetry struct {
+		attempts int
+		readyAt  time.Time
 	}
 
 	// realUploadDeps is the production uploadDeps implementation, delegating to the real
@@ -71,6 +119,30 @@ func (realUploadDeps) NewJob(cfg jobmanagertypes.JobConfig) (*jobmanagertypes.Jo
 
 func (realUploadDeps) Uploader(job *jobmanagertypes.Job) {
 	upload.Uploader(job)
+}
+
+func (realUploadDeps) JobState(jobId string) (jobmanagertypes.JobStatus, bool) {
+	job := job_manager.GetInstance().GetJob(jobId)
+	if job == nil {
+		return jobmanagertypes.JobStatusUnknown, false
+	}
+	return job.Status(), true
+}
+
+func (realUploadDeps) UploadTaskOutcomes(jobId string) []TaskOutcome {
+	tasks := job_manager.GetInstance().GetTasks(jobId)
+	outcomes := make([]TaskOutcome, 0, len(tasks))
+	for _, task := range tasks {
+		if task.TaskDirection() != jobmanagertypes.TaskDirectionUpload {
+			continue
+		}
+		outcomes = append(outcomes, TaskOutcome{
+			Path:    task.LocalFile().Path,
+			Errored: task.Status() == jobmanagertypes.TaskStatusError,
+			Err:     task.Err(),
+		})
+	}
+	return outcomes
 }
 
 // Init creates a new Watcher, initializes its hotFolders map, and starts goroutines that process filesystem events
@@ -203,6 +275,11 @@ func recordFileEvent(path string) {
 	if !slices.Contains(pendingUploads, path) {
 		pendingUploads = append(pendingUploads, path)
 	}
+	// A fresh filesystem event means the file was (re)written, e.g. the operator
+	// replaced a corrupt or half-copied file. Clear any pending retry backoff so
+	// the new contents are treated as a first attempt rather than waiting out a
+	// stale backoff from the previous version.
+	delete(fileRetries, path)
 }
 
 // processFileUpdates periodically checks whether there are any pending hot folder uploads.
@@ -212,6 +289,10 @@ func recordFileEvent(path string) {
 // while it (or any other file in the same hot folder) is still being written.
 func processFileUpdates() {
 	for {
+		// Resolve any watched jobs and promote retries whose backoff has elapsed
+		// back onto the pending queue. Manages its own locking.
+		processRetries(time.Now())
+
 		mtx.Lock()
 		if len(pendingUploads) > 0 {
 			processPendingUploadsLocked()
@@ -242,7 +323,12 @@ func processPendingUploadsLocked() {
 		// Files here were just detected by the live watcher, so always force the upload
 		// regardless of the hot folder's ForceInitialUpload setting (that flag only governs
 		// the startup/reload full-folder sweep, not newly-arrived files).
-		StartHotFolderUpload(hotFolder, keys, buildJobName(keys), true)
+		jobIds := StartHotFolderUpload(hotFolder, keys, buildJobName(keys), true)
+		// Watch each launched job so a transient failure can be re-queued without a
+		// daemon restart (see processRetries).
+		for _, jobId := range jobIds {
+			watchedJobs[jobId] = struct{}{}
+		}
 		for _, file := range matched {
 			consumed[file] = struct{}{}
 		}
@@ -302,7 +388,11 @@ func buildJobName(filesToUpload []string) string {
 
 // StartHotFolderUpload Creates a job and starts an Upload for each transfer profile in the hot folder.
 // When force is true the upload ignores the already-exists filters and re-uploads every file.
-func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, force bool) {
+// It returns the ids of the jobs it created so the caller can watch them for transient-failure
+// retry (see processRetries); a profile that fails to resolve or build a job is skipped and
+// contributes no id.
+func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, force bool) []string {
+	var jobIds []string
 	for transferProfileName, destinationFolder := range hotFolder.TransferProfilesAndDestinationFolders {
 		transferProfile, err := deps.GetTransferProfile(transferProfileName)
 		if err != nil {
@@ -324,7 +414,9 @@ func StartHotFolderUpload(hotFolder *HotFolder, keys []string, jobName string, f
 			continue
 		}
 		deps.Uploader(job)
+		jobIds = append(jobIds, job.JobId())
 	}
+	return jobIds
 }
 
 // HotFolderUploadSourceDirectory Starts an upload for the entire source directory of a hot folder.
