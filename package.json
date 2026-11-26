@@ -26,6 +26,7 @@
         "test:wails": "task test:wails",
         "lint": "task lint",
         "lint:cli": "task cli:lint",
+        "lint:wails": "task wails:lint",
         "lint:gui": "task gui:lint"
     },
     "devDependencies": {

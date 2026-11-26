@@ -47,7 +47,7 @@ bindings. Run `task generate` on a fresh checkout, and again after changing a
 | Everything | `task build` | `task test` | `task lint` |
 | Go CLI and daemon (`src/cli`) | `task cli:build` | `task cli:test` | `task cli:lint` |
 | Angular GUI (`src/gui`) | `task gui:build` | `task gui:test` | `task gui:lint` |
-| Wails app (`src/wails`) | `task wails:build` | `task test:wails` | none (not linted by `task lint` or CI) |
+| Wails app (`src/wails`) | `task wails:build` | `task test:wails` | `task wails:lint` |
 | Protobuf (`src/protobuf`) | `task proto:generate` | none | `buf lint` (no task) |
 
 Extra arguments after `--` go to the underlying tool for `cli:test`,
@@ -74,6 +74,9 @@ Other targets:
   beside another daemon or a running File Mover Express.
 - **No AWS account is needed** for any test. S3 is AWS Emulator in the e2e
   suites and mocked in unit tests.
+- One `.golangci.yml` at the repository root configures `golangci-lint` for both
+  Go modules (`src/cli` and `src/wails`). Change it there; do not add a
+  per-module copy.
 - Go tests, ESLint, and `golangci-lint` thresholds are described in
   `src/cli/AGENTS.md` and `src/gui/AGENTS.md`.
 

@@ -35,6 +35,7 @@ target.
 | You are... | Read |
 |---|---|
 | Editing Go code in `src/cli/` | `src/cli/AGENTS.md` |
+| Editing Go code in `src/wails/` | `src/wails/AGENTS.md` |
 | Editing Angular code in `src/gui/` | `src/gui/AGENTS.md` |
 | Changing `.proto` files or bindings | `.agents/codegen.md` |
 | Building, testing, linting, or running e2e suites | `.agents/build-test-lint.md` |

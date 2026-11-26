@@ -1,0 +1,10 @@
+name: 'Lint Wails'
+description: 'Runs golangci-lint for the Wails desktop app, using the repository .golangci.yml'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Wails lint
+      run: task lint
+      working-directory: src/wails
+      shell: bash

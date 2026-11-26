@@ -24,14 +24,14 @@ API changes, `.agents/codegen.md`.
   `_windows.go` and `_unix.go` for new files.
 - **Imports:** three groups in this order: standard library, third-party, then
   `github.com/awslabs/filemoverexpress/...`. The `gci` formatter enforces it.
-- **Declaration order in a file:** `const`, `var`, `type`, then `func`
-  (`decorder`).
+- **Declaration order in a file:** one `const` block, one `var` block, and one
+  `type` block, in that order, then `func` (`decorder`).
 - **Identifiers are ASCII only** (`asciicheck`).
 
 ## Lint limits
 
-`task cli:lint` runs `golangci-lint` with `.golangci.yml`; any finding fails
-it. The limits most likely to bite:
+`task cli:lint` runs `golangci-lint` with the repository's root `.golangci.yml`
+(shared with `src/wails`); any finding fails it. The limits most likely to bite:
 
 | Rule | Limit |
 |---|---|
