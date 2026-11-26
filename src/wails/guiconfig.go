@@ -9,38 +9,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// guiConfigFileName is the single file holding GUI application preferences,
-// written in the reused config directory alongside the first-launch marker.
-//
-// Today it carries only the window section. It is deliberately a general
-// preferences file (not a window-only file) so future GUI settings - which are
-// currently persisted in the browser's localStorage - can migrate here as
-// sibling sections without a format change or a second file.
-const guiConfigFileName = "gui.json"
+const (
+	// guiConfigFileName is the single file holding GUI application preferences,
+	// written in the reused config directory alongside the first-launch marker.
+	//
+	// Today it carries only the window section. It is deliberately a general
+	// preferences file (not a window-only file) so future GUI settings - which are
+	// currently persisted in the browser's localStorage - can migrate here as
+	// sibling sections without a format change or a second file.
+	guiConfigFileName = "gui.json"
 
-// guiConfigVersion is the schema version of the gui.json envelope. It is
-// distinct from the per-section version (e.g. persistedWindowState.Version) so
-// the file and an individual section can evolve independently.
-const guiConfigVersion = 1
-
-// guiConfigFile is the on-disk shape of gui.json.
-//
-// Window is a pointer so an absent section marshals to null / is omitted rather
-// than writing a zero-valued window block, and so Load can distinguish "no
-// window saved yet" from "window saved with zero geometry". Future preference
-// sections (notifications, file browser, etc.) are added here as additional
-// omitempty pointer fields when the localStorage migration happens.
-//
-// extra captures any top-level keys this build does not know about (a section
-// written by a newer version, or hand-added) so a read-modify-write save
-// preserves them instead of silently dropping them. It is populated and
-// re-emitted via custom (Un)MarshalJSON below.
-type guiConfigFile struct {
-	Version int                   `json:"version"`
-	Window  *persistedWindowState `json:"window,omitempty"`
-
-	extra map[string]json.RawMessage
-}
+	// guiConfigVersion is the schema version of the gui.json envelope. It is
+	// distinct from the per-section version (e.g. persistedWindowState.Version) so
+	// the file and an individual section can evolve independently.
+	guiConfigVersion = 1
+)
 
 // knownGUIConfigKeys are the top-level keys this build manages directly; every
 // other key is round-tripped through guiConfigFile.extra.
@@ -48,6 +31,47 @@ var knownGUIConfigKeys = map[string]struct{}{
 	"version": {},
 	"window":  {},
 }
+
+type (
+	// guiConfigFile is the on-disk shape of gui.json.
+	//
+	// Window is a pointer so an absent section marshals to null / is omitted rather
+	// than writing a zero-valued window block, and so Load can distinguish "no
+	// window saved yet" from "window saved with zero geometry". Future preference
+	// sections (notifications, file browser, etc.) are added here as additional
+	// omitempty pointer fields when the localStorage migration happens.
+	//
+	// extra captures any top-level keys this build does not know about (a section
+	// written by a newer version, or hand-added) so a read-modify-write save
+	// preserves them instead of silently dropping them. It is populated and
+	// re-emitted via custom (Un)MarshalJSON below.
+	guiConfigFile struct {
+		Version int                   `json:"version"`
+		Window  *persistedWindowState `json:"window,omitempty"`
+
+		extra map[string]json.RawMessage
+	}
+
+	// GUIConfig is the single owner (reader and writer) of gui.json. All persistence
+	// goes through it so the whole-file atomic replace can never drop a section
+	// written by another concern: each save is a read-modify-write under the lock
+	// that preserves every section it did not touch. Errors are logged and
+	// non-fatal - failing to persist a preference must never block the app.
+	//
+	// The filesystem and marshal calls are indirected through function fields so
+	// their (otherwise unreachable) error branches can be exercised in tests. They
+	// default to the real stdlib functions in NewGUIConfig.
+	GUIConfig struct {
+		filePath string
+		mu       sync.Mutex
+
+		readFile  func(name string) ([]byte, error)
+		mkdirAll  func(path string, perm os.FileMode) error
+		writeFile func(name string, data []byte, perm os.FileMode) error
+		rename    func(oldpath, newpath string) error
+		marshal   func(v any) ([]byte, error)
+	}
+)
 
 // UnmarshalJSON decodes the known fields and stashes every other top-level key
 // in extra, so unknown sections survive a later re-marshal.
@@ -100,26 +124,6 @@ func (c guiConfigFile) MarshalJSON() ([]byte, error) {
 	return json.Marshal(merged)
 }
 
-// GUIConfig is the single owner (reader and writer) of gui.json. All persistence
-// goes through it so the whole-file atomic replace can never drop a section
-// written by another concern: each save is a read-modify-write under the lock
-// that preserves every section it did not touch. Errors are logged and
-// non-fatal - failing to persist a preference must never block the app.
-//
-// The filesystem and marshal calls are indirected through function fields so
-// their (otherwise unreachable) error branches can be exercised in tests. They
-// default to the real stdlib functions in NewGUIConfig.
-type GUIConfig struct {
-	filePath string
-	mu       sync.Mutex
-
-	readFile  func(name string) ([]byte, error)
-	mkdirAll  func(path string, perm os.FileMode) error
-	writeFile func(name string, data []byte, perm os.FileMode) error
-	rename    func(oldpath, newpath string) error
-	marshal   func(v any) ([]byte, error)
-}
-
 // NewGUIConfig creates a GUIConfig backed by gui.json inside the given
 // userDataDir (the same config dir used for the first-launch marker).
 func NewGUIConfig(userDataDir string) *GUIConfig {
@@ -162,7 +166,7 @@ func (c *GUIConfig) write(cfg guiConfigFile) {
 	cfg.Version = guiConfigVersion
 
 	dir := filepath.Dir(c.filePath)
-	if err := c.mkdirAll(dir, 0o755); err != nil {
+	if err := c.mkdirAll(dir, dirPermissions); err != nil {
 		log.Errorf("Failed to create directory for %s: %v", guiConfigFileName, err)
 		return
 	}
@@ -174,7 +178,7 @@ func (c *GUIConfig) write(cfg guiConfigFile) {
 	}
 
 	tmp := c.filePath + ".tmp"
-	if err := c.writeFile(tmp, data, 0o600); err != nil {
+	if err := c.writeFile(tmp, data, filePermissions); err != nil {
 		log.Errorf("Failed to write %s temp file: %v", guiConfigFileName, err)
 		return
 	}

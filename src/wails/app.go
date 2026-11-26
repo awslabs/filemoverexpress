@@ -53,10 +53,14 @@ func NewFMEApp(version string) *FMEApp {
 // ServiceStartup is called by Wails v3 when the service is initialized.
 // It stores the app reference, checks for an existing daemon, detects first
 // launch, configures PATH (macOS), and initializes logging.
-func (a *FMEApp) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
+func (a *FMEApp) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
 	a.app = application.Get()
 
-	initLogger(a.devMode)
+	level := log.InfoLevel
+	if a.devMode {
+		level = log.DebugLevel
+	}
+	initLogger(level)
 	log.Infof("Starting %s", ProductName)
 
 	configurePATH()
@@ -77,13 +81,13 @@ func (a *FMEApp) StartDaemon() error {
 
 // SystemOpen opens the given file path using the operating system's default
 // application.
-func (a *FMEApp) SystemOpen(path string) error {
+func (*FMEApp) SystemOpen(path string) error {
 	return systemOpen(path)
 }
 
 // SystemShowItemInFolder reveals the given file path in the operating system's
 // file explorer.
-func (a *FMEApp) SystemShowItemInFolder(path string) error {
+func (*FMEApp) SystemShowItemInFolder(path string) error {
 	return systemShowItemInFolder(path)
 }
 
@@ -115,7 +119,7 @@ func (a *FMEApp) SaveFile(defaultFilename string, base64Data string) (string, er
 	}
 
 	// 0o600 (owner-only) since exported reports can contain job metadata.
-	if err = os.WriteFile(path, data, 0o600); err != nil {
+	if err = os.WriteFile(path, data, filePermissions); err != nil {
 		return "", err
 	}
 
@@ -161,7 +165,7 @@ func (a *FMEApp) OpenFile(title string, defaultPath string, filterName string, f
 }
 
 // ExternalLink opens the given URL in the system's default web browser.
-func (a *FMEApp) ExternalLink(url string) error {
+func (*FMEApp) ExternalLink(url string) error {
 	return browser.OpenURL(url)
 }
 
@@ -244,15 +248,17 @@ func (a *FMEApp) emitAppClose() {
 
 // systemOpen opens a file path using the platform-specific open command.
 func systemOpen(path string) error {
+	// The launched program outlives this call, so it is not tied to a cancellable context.
+	ctx := context.Background()
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", path)
+		cmd = exec.CommandContext(ctx, "open", path)
 	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", "", path)
+		cmd = exec.CommandContext(ctx, "cmd", "/c", "start", "", path)
 	default:
-		cmd = exec.Command("xdg-open", path)
+		cmd = exec.CommandContext(ctx, "xdg-open", path)
 	}
 
 	return cmd.Start()
@@ -260,16 +266,18 @@ func systemOpen(path string) error {
 
 // systemShowItemInFolder reveals a file in the platform-specific file explorer.
 func systemShowItemInFolder(path string) error {
+	// The launched program outlives this call, so it is not tied to a cancellable context.
+	ctx := context.Background()
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", "-R", path)
+		cmd = exec.CommandContext(ctx, "open", "-R", path)
 	case "windows":
-		cmd = exec.Command("explorer", "/select,"+path)
+		cmd = exec.CommandContext(ctx, "explorer", "/select,"+path)
 	default:
 		// On Linux, open the parent directory
-		cmd = exec.Command("xdg-open", filepath.Dir(path))
+		cmd = exec.CommandContext(ctx, "xdg-open", filepath.Dir(path))
 	}
 
 	return cmd.Start()

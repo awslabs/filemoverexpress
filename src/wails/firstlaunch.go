@@ -37,7 +37,7 @@ func (f *FirstLaunchDetector) Detect() error {
 
 	// Ensure the parent directory exists
 	dir := filepath.Dir(f.filePath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, dirPermissions); err != nil {
 		log.Errorf("Failed to create directory for first-launch file: %v", err)
 		return err
 	}
@@ -48,7 +48,9 @@ func (f *FirstLaunchDetector) Detect() error {
 		log.Errorf("Failed to create first-launch file: %v", err)
 		return err
 	}
-	file.Close()
+	if err := file.Close(); err != nil {
+		log.Warnf("Failed to close first-launch file: %v", err)
+	}
 
 	// Attempt to hide the file (platform-specific)
 	if err := hideFile(f.filePath); err != nil {

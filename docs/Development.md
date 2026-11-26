@@ -134,8 +134,9 @@ invokes `ng test --watch=false --coverage`.
 ### Linting
 
 ```bash
-task lint                   # Lint all code (CLI + GUI)
-task cli:lint               # golangci-lint on Go code
+task lint                   # Lint all code (CLI, Wails, GUI)
+task cli:lint               # golangci-lint on the CLI Go code
+task wails:lint             # golangci-lint on the desktop app Go code (same config as the CLI)
 task gui:lint               # ESLint on TypeScript/Angular code
 ```
 
@@ -161,14 +162,12 @@ Task is the primary interface; most targets have a matching `npm run` wrapper.
 | `task wails:build` | `npm run build:wails` | Build the Wails desktop app |
 | `task test` | `npm run test` | Run all tests |
 | `task cli:test` | `npm run test:cli` | Run CLI unit and integration tests |
-| `task test:wails` | `npm run test:wails`* | Run Wails (Go) tests |
+| `task test:wails` | `npm run test:wails` | Run Wails (Go) tests |
 | `task gui:test` | `npm run test:gui` | Run GUI unit tests via Vitest |
 | `task lint` | `npm run lint` | Lint all code |
+| `task wails:lint` | `npm run lint:wails` | Lint the Wails desktop app Go code |
 | `task dev` | — | Run the desktop app in hot-reload dev mode (`wails3 dev`) |
 | `task clean` | — | Remove all build artifacts and generated code |
-
-<sub>* `npm run test:wails` currently maps to a non-existent `task wails:test` in `package.json`;
-use `task test:wails` until that wrapper is fixed.</sub>
 
 Run `task --list` to see every available target.
 

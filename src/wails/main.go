@@ -135,7 +135,7 @@ func main() {
 	})
 
 	// Listen for the 'closed' event from frontend to quit the app.
-	app.Event.On(EventClosed, func(e *application.CustomEvent) {
+	app.Event.On(EventClosed, func(_ *application.CustomEvent) {
 		app.Quit()
 	})
 

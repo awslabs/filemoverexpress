@@ -50,6 +50,7 @@ jobs:
         shell: bash
       - uses: ./.github/actions/lint-gui
       - uses: ./.github/actions/lint-cli
+      - uses: ./.github/actions/lint-wails
       - uses: ./.github/actions/lint-protobuf
 
   test-cli:

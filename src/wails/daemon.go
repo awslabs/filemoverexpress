@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,7 +37,8 @@ func (d *DaemonManager) Start() error {
 	}
 
 	args := getDaemonArgs()
-	cmd := exec.Command(d.binaryPath, args...)
+	// The daemon outlives this call, so it is not tied to a cancellable context.
+	cmd := exec.CommandContext(context.Background(), d.binaryPath, args...)
 	cmd.Env = append(os.Environ(), EnvGUIDaemon+"=true")
 	cmd.SysProcAttr = detachedProcAttr()
 	cmd.Stdout = nil

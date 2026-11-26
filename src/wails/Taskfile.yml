@@ -47,3 +47,19 @@ tasks:
     cmds:
       - go test -gcflags="all=-N -l" -short -v -cover -coverprofile coverage.out ./...
       - go tool cover -html coverage.out -o coverage.html
+
+  # Uses the repository's .golangci.yml, which golangci-lint finds by walking up from this
+  # directory, so this module and src/cli follow one set of rules. The server tag builds the app
+  # without the native window (no CGO or GTK needed), so the same command lints on any host. It
+  # runs once per target OS so the platform-specific files (_darwin.go, _windows.go, _unix.go) are
+  # all checked. main.go embeds the GUI build; an empty placeholder keeps the package compiling
+  # before the GUI has been built.
+  lint:
+    desc: Run golangci-lint for Linux, macOS, and Windows
+    cmds:
+      - mkdir -p frontend/dist/browser
+      - touch frontend/dist/browser/.gitkeep
+      - for: [linux, darwin, windows]
+        cmd: GOOS={{.ITEM}} golangci-lint run --build-tags server,production {{.CLI_ARGS}}
+    env:
+      CGO_ENABLED: '0'
