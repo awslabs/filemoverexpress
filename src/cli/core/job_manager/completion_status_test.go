@@ -45,6 +45,44 @@ func TestCompletionStatus_VerificationWarningsIsCompletedWithWarnings(t *testing
 	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
 }
 
+// A job in which every file failed to transfer (errors, no successes) must be
+// reported as ERROR, never COMPLETED. Regression test for issue #202/#111: a
+// hot-folder batch that fails entirely (e.g. a credential outage) used to report
+// a clean COMPLETED, hiding silent data loss from unattended monitoring.
+func TestCompletionStatus_AllTasksFailedIsError(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	assert.Equal(t, jobmanagertypes.JobStatusError, completionStatus(job))
+}
+
+// A job in which some files failed and some succeeded is a partial failure and
+// must complete amber (COMPLETED_WITH_WARNINGS) so monitoring can detect it,
+// rather than a clean COMPLETED.
+func TestCompletionStatus_PartialFailureIsCompletedWithWarnings(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	job.SetHasSuccessfulTasks(true)
+	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
+}
+
+// Transfer failures dominate the terminal status: an all-failed job is ERROR
+// even if a supplied ASC MHL manifest also reported verification warnings.
+func TestCompletionStatus_AllTasksFailedWithVerificationWarningsIsError(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	job.SetHasVerificationWarnings(true)
+	assert.Equal(t, jobmanagertypes.JobStatusError, completionStatus(job))
+}
+
+// A job in which every file was cleanly skipped (nothing failed, nothing newly
+// transferred) still completes cleanly.
+func TestCompletionStatus_AllSkippedIsCompleted(t *testing.T) {
+	job := newCompletionTestJob(t)
+	assert.False(t, job.HasTaskErrors())
+	assert.False(t, job.HasSuccessfulTasks())
+	assert.Equal(t, jobmanagertypes.JobStatusCompleted, completionStatus(job))
+}
+
 // Proceeding at the verification gate parks the job in NEEDS_REVIEW and returns
 // true once the operator resolves it.
 func TestAwaitVerificationGate_Proceed(t *testing.T) {

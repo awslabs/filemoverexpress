@@ -14,8 +14,10 @@ const (
 	JobStatusNeedsReview JobStatus = "NEEDS_REVIEW"
 	JobStatusCompleted   JobStatus = "COMPLETED"
 	// JobStatusCompletedWithWarnings is a terminal state: the transfer finished
-	// and the bytes were uploaded, but at least one file failed its supplied
-	// ASC MHL verification (hash mismatch or a listed file missing on disk).
+	// but something needs attention. Either some files failed to transfer while
+	// others succeeded (a partial failure), or a supplied ASC MHL manifest failed
+	// verification (a hash mismatch or a listed file missing on disk). A job in
+	// which every file failed is JobStatusError, not this.
 	JobStatusCompletedWithWarnings JobStatus = "COMPLETED_WITH_WARNINGS"
 	JobStatusError                 JobStatus = "ERROR"
 	JobStatusUnknown               JobStatus = "UNKNOWN"
