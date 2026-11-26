@@ -55,38 +55,67 @@ git checkout -b docs/installation-guide-update
 
 ### Making Changes
 
-1. Create a feature branch from `main`
-2. Make your changes following coding standards
-3. Test your changes thoroughly
-4. Update documentation if needed
-5. Commit with clear messages following [Conventional Commits](https://www.conventionalcommits.org/)
+1. Create a feature branch from an up-to-date `main` of the upstream
+   repository (`awslabs/filemoverexpress`), named as described above:
+   ```bash
+   git fetch upstream
+   git checkout -b feature/your-feature-name upstream/main
+   ```
+2. Make your changes, following the existing code patterns.
+3. Run the full checks (see Testing).
+4. Update documentation if needed.
+5. Commit following the commit guidelines below.
 
 ### Testing
 
-Before submitting changes:
+The project uses [Task](https://taskfile.dev) as its build runner. Before
+committing, run the full lint, test, and build suites:
 
-**Backend (Go):**
 ```bash
-cd src/cli
-make test
-make lint
+task lint
+task test
+task build
 ```
 
-**Frontend (Angular):**
-```bash
-cd src/gui
-npm test
-npm run lint
-```
+Also run these when they apply:
+
+- If you changed a `.proto` file, run `buf lint` in `src/protobuf`. CI runs it,
+  but `task lint` does not.
+- If your change touches the daemon, the GUI, the desktop app, the protobuf
+  definitions, the CI images, or the build, run the end-to-end suites with
+  `task e2e:docker` (needs Docker). The exact paths are listed in
+  `.github/workflows/ci.yml`.
+
+Narrower targets such as `task cli:test` or `task gui:test` are faster while
+you work, but they do not replace the full run before committing.
+
+### Committing Changes
+
+- Every commit follows [Conventional Commits](https://www.conventionalcommits.org/).
+  The changelog will be generated from commit messages, so the type and summary
+  must describe the change accurately.
+- Mark breaking changes with `!` after the type or scope, or with a
+  `BREAKING CHANGE:` footer.
+- Each commit addresses one concern.
+- Keep the number of commits small: squash fixups and review follow-ups into
+  the commit they belong to.
 
 ### Submitting Pull Requests
 
-1. Push your branch to your fork
-2. Create a Pull Request with:
-   - Clear title and description
-   - Reference any related issues
-   - Include screenshots for UI changes
-   - Ensure all tests pass
+1. Push your branch to your fork.
+2. Open a pull request against `main` in `awslabs/filemoverexpress` with:
+   - a title in Conventional Commits form, for example
+     `feat(gui): show MHL verification as an inline job-name tag`.
+     Maintainers merge by squash or by merge commit depending on the PR; on a
+     squash merge the title becomes the commit message
+   - what changed and why, related issues, and what you tested
+   - screenshots for UI changes
+3. CI must pass: lint, CLI tests, GUI tests, Wails tests, and the end-to-end
+   suites when they apply.
+
+Keep each pull request to one concern. This is a public repository: never
+include AWS account numbers, credentials, or company-internal information in
+code, commits, pull requests, issues, or comments.
 
 ## Code Style
 

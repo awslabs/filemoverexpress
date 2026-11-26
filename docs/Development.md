@@ -6,12 +6,12 @@ This guide covers setting up a development environment, building from source, an
 
 | Tool | Minimum Version | Notes |
 |------|----------------|-------|
-| [Go](https://go.dev/dl/) | 1.25 | CLI daemon and the Wails desktop app |
-| [Node.js](https://nodejs.org/) | 22 | GUI (Angular) and workspace tooling |
+| [Go](https://go.dev/dl/) | 1.27.3 | CLI daemon and the Wails desktop app; the pinned version is in `src/cli/go.mod` |
+| [Node.js](https://nodejs.org/) | 22.22.3+, 24.15.0+, or 26+ | GUI (Angular) and workspace tooling; CI uses `NODE_VERSION` in `.github/versions.env` |
 | [Git](https://git-scm.com/) | Any | Source control |
 | [Task](https://taskfile.dev/installation/) | 3 | Build runner — every build/test/lint target is a Task |
-| [Wails CLI](https://v3alpha.wails.io/getting-started/installation/) (`wails3`) | v3 (alpha) | Builds the desktop app and generates frontend bindings |
-| [golangci-lint](https://golangci-lint.run/usage/install/) | Latest | Go linter |
+| [Wails CLI](https://v3alpha.wails.io/getting-started/installation/) (`wails3`) | v3.1.0 | Builds the desktop app and generates frontend bindings |
+| [golangci-lint](https://golangci-lint.run/usage/install/) | v2 | Go linter; CI uses `GOLANGCI_LINT_VERSION` in `.github/versions.env` |
 
 The build is driven by [Task](https://taskfile.dev) (`Taskfile.yml` at the repo root plus a
 `Taskfile.yml` in each `src/*` package). The `npm run *` scripts are thin wrappers that call
@@ -233,7 +233,7 @@ task generate          # or: task proto:generate for protobuf only
 
 **`protoc-gen-go` or `wails3` not found**
 The proto step installs the protobuf plugins automatically. If it still fails, ensure `go` is on
-your PATH and your Go version is 1.25 or higher (`go version`), and that `$(go env GOPATH)/bin` is
+your PATH and your Go version is at least the one in `src/cli/go.mod` (`go version`), and that `$(go env GOPATH)/bin` is
 on your PATH so the generated-code plugins and the `wails3` CLI are found.
 
 **Go version too old (Linux)**

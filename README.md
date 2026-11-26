@@ -1,8 +1,8 @@
 # File Mover Express for AWS
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
-[![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.27.3+-blue.svg)](https://golang.org/)
+[![Node Version](https://img.shields.io/badge/Node-22.22.3+-green.svg)](https://nodejs.org/)
 
 File Mover Express is a high-performance file transfer application designed to accelerate media asset workflows between local systems and Amazon S3. Unlike traditional transfer clients that tie transfers to your desktop session, File Mover Express runs a daemon-based transfer engine that can live on any machine — your workstation, a server in the data center, or an EC2 instance — while you control it from the GUI or CLI over an encrypted connection. Built for digital imaging technicians and content creators, it provides both command-line and graphical interfaces for efficient, reliable file transfers.
 

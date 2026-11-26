@@ -1,7 +1,7 @@
 # File Mover Express GUI
 
 [![Angular Version](https://img.shields.io/badge/Angular-21+-red.svg)](https://angular.io/)
-[![Node Version](https://img.shields.io/badge/Node-22+-green.svg)](https://nodejs.org/)
+[![Node Version](https://img.shields.io/badge/Node-22.22.3+-green.svg)](https://nodejs.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The GUI component is a modern Angular application that provides an intuitive graphical interface for File Mover Express. It communicates
