@@ -1,10 +1,9 @@
 version: "2"
 run:
     concurrency: 4
-    go: "1.24"
     issues-exit-code: 1
     tests: false
-    allow-parallel-runners: false
+    allow-parallel-runners: true
 output:
     path-prefix: ""
 linters:
