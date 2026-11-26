@@ -48,7 +48,9 @@ func (f *FirstLaunchDetector) Detect() error {
 		log.Errorf("Failed to create first-launch file: %v", err)
 		return err
 	}
-	file.Close()
+	if err := file.Close(); err != nil {
+		log.Warnf("Failed to close first-launch file: %v", err)
+	}
 
 	// Attempt to hide the file (platform-specific)
 	if err := hideFile(f.filePath); err != nil {

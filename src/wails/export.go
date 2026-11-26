@@ -130,36 +130,38 @@ func (*FMEApp) GenerateCsvReport(data ExportJobList) string {
 		return ""
 	}
 
-	var sb strings.Builder
-	sb.WriteString(strings.Join(csvHeaders, ","))
+	lines := []string{strings.Join(csvHeaders, ",")}
 
 	for _, job := range data {
-		rows := flattenTasks(job)
-		for _, r := range rows {
-			sb.WriteString("\r\n")
-			sb.WriteString(strings.Join([]string{
-				csvQuote(job.JobName),
-				csvQuote(job.Direction),
-				csvQuote(job.TransferProfileName),
-				csvQuote(r.JobID),
-				csvQuote(r.TaskID),
-				csvQuote(r.Destination),
-				csvQuote(r.Source),
-				fmt.Sprintf("%d", r.Size),
-				csvQuote(r.LastModified),
-				csvQuote(r.Status),
-				csvQuote(r.StatusMessage),
-				csvQuote(r.Checksum),
-				fmt.Sprintf("%d", r.Priority),
-				csvQuote(r.Error),
-				fmt.Sprintf("%d", r.BytesTransferred),
-				csvQuote(r.ChecksumAlgorithm),
-				csvQuote(r.ASCMhlStatus),
-			}, ","))
+		for _, r := range flattenTasks(job) {
+			lines = append(lines, csvRow(job, r))
 		}
 	}
 
-	return base64.StdEncoding.EncodeToString([]byte(sb.String()))
+	return base64.StdEncoding.EncodeToString([]byte(strings.Join(lines, "\r\n")))
+}
+
+// csvRow formats one task of a job as a CSV line, in the order of csvHeaders.
+func csvRow(job ExportJobData, r flatRow) string {
+	return strings.Join([]string{
+		csvQuote(job.JobName),
+		csvQuote(job.Direction),
+		csvQuote(job.TransferProfileName),
+		csvQuote(r.JobID),
+		csvQuote(r.TaskID),
+		csvQuote(r.Destination),
+		csvQuote(r.Source),
+		fmt.Sprintf("%d", r.Size),
+		csvQuote(r.LastModified),
+		csvQuote(r.Status),
+		csvQuote(r.StatusMessage),
+		csvQuote(r.Checksum),
+		fmt.Sprintf("%d", r.Priority),
+		csvQuote(r.Error),
+		fmt.Sprintf("%d", r.BytesTransferred),
+		csvQuote(r.ChecksumAlgorithm),
+		csvQuote(r.ASCMhlStatus),
+	}, ",")
 }
 
 // GenerateJsonReport produces a base64-encoded JSON from the given job data.
