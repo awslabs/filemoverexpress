@@ -9,4 +9,4 @@ tasks:
       - '**/*.proto'
     generates:
       - ../cli/types/pbtypes/**/*.go
-      - ../gui/app/gen/es/**/*.ts
+      - ../gui/src/gen/es/**/*.ts
