@@ -74,6 +74,11 @@ Other targets:
   beside another daemon or a running File Mover Express.
 - **No AWS account is needed** for any test. S3 is AWS Emulator in the e2e
   suites and mocked in unit tests.
+- **Lint results can depend on the Go patch version.** With the same
+  `golangci-lint`, Go 1.27.3 reported four `unhandled-error` findings in
+  `src/wails` that Go 1.27.4 did not. CI uses the `GO_VERSION` in
+  `.github/versions.env`. If CI lint fails where your run passes, lint with that
+  Go version.
 - One `.golangci.yml` at the repository root configures `golangci-lint` for both
   Go modules (`src/cli` and `src/wails`). Change it there; do not add a
   per-module copy.
