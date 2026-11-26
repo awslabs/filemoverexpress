@@ -15,8 +15,9 @@ Run the full suites, not a subset:
 
 Also run these when they apply:
 
-- **Protobuf lint** when a `.proto` file changed. CI runs `buf lint` on
-  `src/protobuf`; `task lint` does not.
+- **Breaking-change check** when a `.proto` file changed: `task proto:breaking`
+  compares the definitions with `origin/main`; pass `BASE=<ref>` to compare with
+  another ref, such as `upstream/main` in a fork. CI does not run it yet.
 - **End-to-end suites** when the change touches `src/cli`, `src/gui`,
   `src/wails`, `src/protobuf`, `.github/docker`, `.github/actions`,
   `.github/scripts`, `.github/versions.env`, the `ci.yml` or `e2e.yml`
@@ -48,7 +49,7 @@ bindings. Run `task generate` on a fresh checkout, and again after changing a
 | Go CLI and daemon (`src/cli`) | `task cli:build` | `task cli:test` | `task cli:lint` |
 | Angular GUI (`src/gui`) | `task gui:build` | `task gui:test` | `task gui:lint` |
 | Wails app (`src/wails`) | `task wails:build` | `task test:wails` | `task wails:lint` |
-| Protobuf (`src/protobuf`) | `task proto:generate` | none | `buf lint` (no task) |
+| Protobuf (`src/protobuf`) | `task proto:generate` | `task proto:test` | `task proto:lint` |
 
 Extra arguments after `--` go to the underlying tool for `cli:test`,
 `cli:e2e`, and `gui:e2e`, for example a single Go test name.

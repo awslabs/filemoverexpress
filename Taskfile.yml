@@ -95,6 +95,7 @@ tasks:
   test:
     desc: Run all tests
     cmds:
+      - task: proto:test
       - task: cli:test
       - task: test:wails
       - task: gui:test
@@ -124,7 +125,7 @@ tasks:
 
   lint:
     desc: Run all linters in parallel
-    deps: [cli:lint, wails:lint, gui:lint]
+    deps: [cli:lint, wails:lint, gui:lint, proto:lint]
 
   # ====================
   # Clean

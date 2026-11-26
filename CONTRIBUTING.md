@@ -79,8 +79,9 @@ task build
 
 Also run these when they apply:
 
-- If you changed a `.proto` file, run `buf lint` in `src/protobuf`. CI runs it,
-  but `task lint` does not.
+- If you changed a `.proto` file, run `task proto:breaking` to check for breaking
+  changes. It compares with `origin/main`; pass `BASE=<ref>` to use another ref,
+  such as `upstream/main` in a fork.
 - If your change touches the daemon, the GUI, the desktop app, the protobuf
   definitions, the CI images, or the build, run the end-to-end suites with
   `task e2e:docker` (needs Docker). The exact paths are listed in

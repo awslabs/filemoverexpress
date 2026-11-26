@@ -134,10 +134,12 @@ invokes `ng test --watch=false --coverage`.
 ### Linting
 
 ```bash
-task lint                   # Lint all code (CLI, Wails, GUI)
+task lint                   # Lint all code (CLI, Wails, GUI, protobuf)
 task cli:lint               # golangci-lint on the CLI Go code
 task wails:lint             # golangci-lint on the desktop app Go code (same config as the CLI)
 task gui:lint               # ESLint on TypeScript/Angular code
+task proto:lint             # buf lint on the protobuf definitions
+task proto:breaking         # check the protobuf definitions for breaking changes (BASE=<ref>, default origin/main)
 ```
 
 ### Cleaning build artifacts
@@ -157,6 +159,9 @@ Task is the primary interface; most targets have a matching `npm run` wrapper.
 | `task build` | `npm run build` | Build CLI, GUI, and the Wails desktop app |
 | `task generate` | — | Generate all code (protobuf + Wails bindings) |
 | `task proto:generate` | `npm run build:proto` | Generate protobuf code only (Go + TypeScript) |
+| `task proto:lint` | `npm run lint:proto` | Run buf lint on the protobuf definitions |
+| `task proto:test` | `npm run test:proto` | Check that the protobuf definitions compile |
+| `task proto:breaking` | - | Check the protobuf definitions for breaking changes |
 | `task cli:build` | `npm run build:cli` | Build CLI for current platform |
 | `task gui:build` | `npm run build:gui` | Build GUI production bundle |
 | `task wails:build` | `npm run build:wails` | Build the Wails desktop app |
