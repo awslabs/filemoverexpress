@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,7 +30,7 @@ type oidcDiscoveryDoc struct {
 //   - "invalidUrl"      – the URL is not a valid HTTPS URL
 //   - "oidcUnreachable" – network error, timeout, or non-2xx response
 //   - "oidcInvalidDoc"  – response is not valid JSON or missing required fields
-func (a *FMEApp) ValidateOIDCIssuer(issuerUrl string) string {
+func (*FMEApp) ValidateOIDCIssuer(issuerUrl string) string {
 	issuerUrl = strings.TrimSpace(issuerUrl)
 	if issuerUrl == "" {
 		return ""
@@ -42,9 +43,15 @@ func (a *FMEApp) ValidateOIDCIssuer(issuerUrl string) string {
 
 	discoveryURL := strings.TrimRight(issuerUrl, "/") + "/.well-known/openid-configuration"
 
-	client := &http.Client{Timeout: 8 * time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
 
-	resp, err := client.Get(discoveryURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, discoveryURL, nil)
+	if err != nil {
+		return "invalidUrl"
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "oidcUnreachable"
 	}
@@ -54,7 +61,7 @@ func (a *FMEApp) ValidateOIDCIssuer(issuerUrl string) string {
 		return "oidcUnreachable"
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1 MiB cap
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxDiscoveryDocBytes))
 	if err != nil {
 		return "oidcUnreachable"
 	}

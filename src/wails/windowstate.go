@@ -8,65 +8,81 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// windowStateVersion is the schema version of the window section inside
-// gui.json. It lets a future format change discard an incompatible older
-// section instead of misinterpreting it, independently of the file envelope
-// version (guiConfigVersion).
-const windowStateVersion = 1
+const (
+	// windowStateVersion is the schema version of the window section inside
+	// gui.json. It lets a future format change discard an incompatible older
+	// section instead of misinterpreting it, independently of the file envelope
+	// version (guiConfigVersion).
+	windowStateVersion = 1
 
-// windowStateSaveDebounce is how long move/resize events are coalesced before a
-// write. Dragging a window fires many events; this batches them into one write.
-const windowStateSaveDebounce = 500 * time.Millisecond
+	// windowStateSaveDebounce is how long move/resize events are coalesced before a
+	// write. Dragging a window fires many events; this batches them into one write.
+	windowStateSaveDebounce = 500 * time.Millisecond
 
-// persistedWindowState is the on-disk shape of the "window" section of gui.json.
-//
-// X/Y/Width/Height always describe the last NON-maximized geometry. When the
-// window is closed while maximized, Maximised is true but the geometry still
-// holds the last normal rectangle, so a restore maximizes the window yet
-// un-maximizing returns it to a sane size and position.
-type persistedWindowState struct {
-	Version   int  `json:"version"`
-	X         int  `json:"x"`
-	Y         int  `json:"y"`
-	Width     int  `json:"width"`
-	Height    int  `json:"height"`
-	Maximised bool `json:"maximised"`
-}
+	// titleBarHeight is the height of the top strip of the window treated as the
+	// draggable title-bar / app top-bar region for the on-screen check. The window
+	// is frameless (no OS title bar), so this is the app's own top bar; it only has
+	// to be a band tall enough to represent "the top of the window is visible".
+	titleBarHeight = 32
 
-// windowAccessor abstracts the subset of application.Window that WindowState
-// needs. The chained methods return application.Window to match the real
-// interface exactly so *application.WebviewWindow satisfies it; the returned
-// value is unused here and a fake may return nil.
-type windowAccessor interface {
-	Position() (int, int)
-	Size() (width, height int)
-	SetPosition(x, y int)
-	SetSize(width, height int) application.Window
-	Maximise() application.Window
-	IsMaximised() bool
-}
+	// minVisibleTitleBarWidth is how much of the title-bar strip must land inside a
+	// single display's work area for a restore to be accepted. It guarantees the
+	// user can always see and grab the window to move it, even if the rest of the
+	// window spills past the screen edge.
+	minVisibleTitleBarWidth = 100
+)
 
-// screenProvider returns the work areas of all currently connected displays,
-// used to validate that a saved position is still on-screen. It is a function
-// field so tests can supply fixed screen geometry.
-type screenProvider func() []application.Rect
+type (
+	// persistedWindowState is the on-disk shape of the "window" section of gui.json.
+	//
+	// X/Y/Width/Height always describe the last NON-maximized geometry. When the
+	// window is closed while maximized, Maximised is true but the geometry still
+	// holds the last normal rectangle, so a restore maximizes the window yet
+	// un-maximizing returns it to a sane size and position.
+	persistedWindowState struct {
+		Version   int  `json:"version"`
+		X         int  `json:"x"`
+		Y         int  `json:"y"`
+		Width     int  `json:"width"`
+		Height    int  `json:"height"`
+		Maximised bool `json:"maximised"`
+	}
 
-// WindowState persists and restores the application window's size, position and
-// maximized flag across launches. The geometry logic (capture, debounce,
-// sanitation, restore) lives here; the actual bytes are read and written
-// through GUIConfig, which owns gui.json and keeps the window section beside
-// any other GUI preferences. All errors are logged and non-fatal - a failure to
-// persist geometry must never block the app.
-type WindowState struct {
-	config  *GUIConfig
-	screens screenProvider
+	// windowAccessor abstracts the subset of application.Window that WindowState
+	// needs. The chained methods return application.Window to match the real
+	// interface exactly so *application.WebviewWindow satisfies it; the returned
+	// value is unused here and a fake may return nil.
+	windowAccessor interface {
+		Position() (int, int)
+		Size() (width, height int)
+		SetPosition(x, y int)
+		SetSize(width, height int) application.Window
+		Maximise() application.Window
+		IsMaximised() bool
+	}
 
-	mu      sync.Mutex
-	current persistedWindowState
-	loaded  bool
+	// screenProvider returns the work areas of all currently connected displays,
+	// used to validate that a saved position is still on-screen. It is a function
+	// field so tests can supply fixed screen geometry.
+	screenProvider func() []application.Rect
 
-	timer *time.Timer
-}
+	// WindowState persists and restores the application window's size, position and
+	// maximized flag across launches. The geometry logic (capture, debounce,
+	// sanitation, restore) lives here; the actual bytes are read and written
+	// through GUIConfig, which owns gui.json and keeps the window section beside
+	// any other GUI preferences. All errors are logged and non-fatal - a failure to
+	// persist geometry must never block the app.
+	WindowState struct {
+		config  *GUIConfig
+		screens screenProvider
+
+		mu      sync.Mutex
+		current persistedWindowState
+		loaded  bool
+
+		timer *time.Timer
+	}
+)
 
 // NewWindowState creates a WindowState that persists through the given
 // GUIConfig (which owns gui.json in the reused config directory).
@@ -186,18 +202,6 @@ func (ws *WindowState) Restore(w windowAccessor) bool {
 	}
 	return true
 }
-
-// titleBarHeight is the height of the top strip of the window treated as the
-// draggable title-bar / app top-bar region for the on-screen check. The window
-// is frameless (no OS title bar), so this is the app's own top bar; it only has
-// to be a band tall enough to represent "the top of the window is visible".
-const titleBarHeight = 32
-
-// minVisibleTitleBarWidth is how much of the title-bar strip must land inside a
-// single display's work area for a restore to be accepted. It guarantees the
-// user can always see and grab the window to move it, even if the rest of the
-// window spills past the screen edge.
-const minVisibleTitleBarWidth = 100
 
 // fitsAnyScreen reports whether the saved window can be restored with its title
 // bar reachable. Rather than any-overlap, it requires that at least

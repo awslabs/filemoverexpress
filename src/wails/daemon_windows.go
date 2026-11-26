@@ -7,9 +7,21 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
-	"unsafe"
 
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	processQueryLimitedInfo = 0x1000
+
+	// createNoWindow is the CREATE_NO_WINDOW process creation flag.
+	createNoWindow = 0x00000008
+)
+
+var (
+	modkernel32     = syscall.NewLazyDLL("kernel32.dll")
+	procOpenProcess = modkernel32.NewProc("OpenProcess")
+	procCloseHandle = modkernel32.NewProc("CloseHandle")
 )
 
 // getBinaryPath returns the path to the daemon launcher binary on Windows.
@@ -22,14 +34,6 @@ func getBinaryPath() string {
 	return filepath.Join(filepath.Dir(execPath), DaemonLauncherWindows)
 }
 
-var (
-	modkernel32     = syscall.NewLazyDLL("kernel32.dll")
-	procOpenProcess = modkernel32.NewProc("OpenProcess")
-	procCloseHandle = modkernel32.NewProc("CloseHandle")
-)
-
-const processQueryLimitedInfo = 0x1000
-
 // getDaemonArgs returns the command-line arguments for spawning the daemon on Windows.
 // On Windows, the launcher binary handles daemon mode, so no extra args are needed.
 func getDaemonArgs() []string {
@@ -39,7 +43,7 @@ func getDaemonArgs() []string {
 // detachedProcAttr returns SysProcAttr for spawning a detached process on Windows.
 func detachedProcAttr() *syscall.SysProcAttr {
 	return &syscall.SysProcAttr{
-		CreationFlags: 0x00000008, // CREATE_NO_WINDOW
+		CreationFlags: createNoWindow,
 	}
 }
 
@@ -55,16 +59,4 @@ func isProcessAlive(pid int) (bool, error) {
 		log.Warnf("failed to close process handle for pid %d: %v", pid, closeErr)
 	}
 	return true, nil
-}
-
-// getExitCodeProcess retrieves the exit code of a process by handle.
-// Returns (exitCode, error). If the process is still running, exitCode is 259 (STILL_ACTIVE).
-func getExitCodeProcess(handle uintptr) (uint32, error) {
-	var exitCode uint32
-	procGetExitCodeProcess := modkernel32.NewProc("GetExitCodeProcess")
-	r1, _, err := procGetExitCodeProcess.Call(handle, uintptr(unsafe.Pointer(&exitCode)))
-	if r1 == 0 {
-		return 0, err
-	}
-	return exitCode, nil
 }

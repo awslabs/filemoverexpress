@@ -37,12 +37,24 @@ import (
 // the Win32 version API.
 const langEnUS = 0x0409
 
-// infoFile mirrors the subset of build/windows/info.json this helper consumes.
-// Only the string table under info."<lang>" is read for its values; the block
-// key itself is ignored because this helper re-keys everything under en-US.
-type infoFile struct {
-	Info map[string]map[string]string `json:"info"`
-}
+type (
+	// infoFile mirrors the subset of build/windows/info.json this helper consumes.
+	// Only the string table under info."<lang>" is read for its values; the block
+	// key itself is ignored because this helper re-keys everything under en-US.
+	infoFile struct {
+		Info map[string]map[string]string `json:"info"`
+	}
+
+	// options holds the command-line settings.
+	options struct {
+		infoPath     string
+		iconPath     string
+		manifestPath string
+		outPath      string
+		arch         string
+		ver          string
+	}
+)
 
 func main() {
 	var (
@@ -55,37 +67,45 @@ func main() {
 	)
 	flag.Parse()
 
-	if err := run(*infoPath, *iconPath, *manifestPath, *outPath, *arch, *ver); err != nil {
+	opts := options{
+		infoPath:     *infoPath,
+		iconPath:     *iconPath,
+		manifestPath: *manifestPath,
+		outPath:      *outPath,
+		arch:         *arch,
+		ver:          *ver,
+	}
+	if err := run(opts); err != nil {
 		fmt.Fprintln(os.Stderr, "gen-syso:", err)
 		os.Exit(1)
 	}
 }
 
-func run(infoPath, iconPath, manifestPath, outPath, arch, ver string) error {
-	if infoPath == "" || iconPath == "" || manifestPath == "" || outPath == "" {
+func run(opts options) error {
+	if opts.infoPath == "" || opts.iconPath == "" || opts.manifestPath == "" || opts.outPath == "" {
 		return fmt.Errorf("-info, -icon, -manifest and -out are all required")
 	}
 
-	targetArch, err := archOf(arch)
+	targetArch, err := archOf(opts.arch)
 	if err != nil {
 		return err
 	}
 
-	vi, err := versionInfoFrom(infoPath, ver)
+	vi, err := versionInfoFrom(opts.infoPath, opts.ver)
 	if err != nil {
 		return err
 	}
 
 	rs := winres.ResourceSet{}
-	if err := setIcon(&rs, iconPath); err != nil {
+	if err := setIcon(&rs, opts.iconPath); err != nil {
 		return err
 	}
-	if err := setManifest(&rs, manifestPath); err != nil {
+	if err := setManifest(&rs, opts.manifestPath); err != nil {
 		return err
 	}
 	rs.SetVersionInfo(*vi)
 
-	return writeSyso(&rs, outPath, targetArch)
+	return writeSyso(&rs, opts.outPath, targetArch)
 }
 
 func archOf(arch string) (winres.Arch, error) {
