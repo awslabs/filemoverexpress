@@ -1,5 +1,10 @@
 version: '3'
 
+vars:
+  # The git ref the definitions are compared with by `task breaking`. In a fork, pass the ref of
+  # the upstream repository, for example `task breaking BASE=upstream/main`.
+  BASE: '{{.BASE | default "origin/main"}}'
+
 tasks:
   generate:
     desc: Generate protobuf code (Go + TypeScript)
@@ -9,4 +14,29 @@ tasks:
       - '**/*.proto'
     generates:
       - ../cli/types/pbtypes/**/*.go
-      - ../gui/app/gen/es/**/*.ts
+      - ../gui/src/gen/es/**/*.ts
+
+  lint:
+    desc: Run buf lint (the STANDARD rules in buf.yaml)
+    cmds:
+      - npx buf lint
+
+  test:
+    desc: Check that the definitions compile
+    cmds:
+      - npx buf build -o /dev/null
+
+  breaking:
+    desc: Check the definitions for breaking changes against BASE (default origin/main)
+    cmds:
+      - npx buf breaking --against '../../.git#ref={{.BASE}},subdir=src/protobuf'
+
+  format:
+    desc: Rewrite the .proto files in buf's canonical format
+    cmds:
+      - npx buf format -w
+
+  format:check:
+    desc: Show what buf format would change, and fail if anything would
+    cmds:
+      - npx buf format -d --exit-code

@@ -22,11 +22,13 @@
         "build:wails": "task wails:build",
         "test": "task test",
         "test:cli": "task cli:test",
+        "test:proto": "task proto:test",
         "test:gui": "task gui:test",
         "test:wails": "task test:wails",
         "lint": "task lint",
         "lint:cli": "task cli:lint",
         "lint:wails": "task wails:lint",
+        "lint:proto": "task proto:lint",
         "lint:gui": "task gui:lint"
     },
     "devDependencies": {

@@ -13,7 +13,10 @@
     "license": "Apache-2.0",
     "scripts": {
         "generate": "task generate",
-        "lint": "task lint"
+        "lint": "task lint",
+        "test": "task test",
+        "breaking": "task breaking",
+        "format": "task format"
     },
     "devDependencies": {
         "@bufbuild/buf": "1.75.0",

@@ -33,9 +33,9 @@ protobuf output only.
 
 Definitions live in `src/protobuf/fme/v1/` (the `FmeService` and its messages)
 and `src/protobuf/s3_shared/v1/` (shared S3 types). Go package paths are set by
-`buf.gen.yaml`; do not add `go_package` options. Follow the
-[Protobuf best practices](https://protobuf.dev/best-practices/dos-donts/); the
-rules that matter most here are below.
+`buf.gen.yaml`, whose managed mode overrides the `go_package` option in each
+file. Follow the [Protobuf best practices](https://protobuf.dev/best-practices/dos-donts/);
+the rules that matter most here are below.
 
 **Stay compatible.** The daemon and its clients (GUI, MCP server, CLI scripts)
 are never updated at the same moment, and a client may talk to a daemon built
@@ -63,12 +63,16 @@ read.
 - Put a new message or enum meant for reuse in its own file. Do not reuse
   another message's nested types from elsewhere.
 
-**Follow the lint rules.** The `STANDARD` rules in `src/protobuf/buf.yaml`
-apply. Its existing `ignore_only` entries cover legacy RPCs in
-`fme_service.proto`; new RPCs use the standard naming (`FooRequest`,
-`FooResponse`, one pair per RPC) instead of adding exceptions. `buf.yaml` also
-configures the `FILE` breaking-change rules, but CI does not run them, so the
-compatibility rules above are yours to keep.
+**Run the checks.** `task proto:lint` applies the `STANDARD` rules in
+`src/protobuf/buf.yaml` and runs as part of `task lint`. Its existing
+`ignore_only` entries cover legacy RPCs in `fme_service.proto`; new RPCs use the
+standard naming (`FooRequest`, `FooResponse`, one pair per RPC) instead of adding
+exceptions. `task proto:test` checks that the definitions compile, and runs as
+part of `task test`. `task proto:breaking` checks the `FILE` breaking-change rules
+against `origin/main` (pass `BASE=<ref>` to use another ref); CI does not run it
+yet, so the compatibility rules above are yours to keep. `task proto:format:check`
+shows what `buf format` would change; the existing files are not formatted yet, so
+nothing enforces it.
 
 **Expect four touch points.** An RPC change usually spans the `.proto`, a
 handler file in `src/cli/service/` (one file per RPC), a GUI service in

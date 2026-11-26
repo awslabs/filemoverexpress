@@ -5,6 +5,6 @@ runs:
   using: 'composite'
   steps:
     - name: Run buf lint
-      run: npx buf lint
+      run: task lint
       shell: bash
       working-directory: src/protobuf/
