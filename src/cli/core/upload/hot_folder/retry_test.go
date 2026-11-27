@@ -5,47 +5,74 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/aws/smithy-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
+	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
+
+// apiErr is a minimal smithy.APIError for classifying S3 service errors.
+type apiErr struct{ code string }
+
+func (e apiErr) Error() string                 { return e.code }
+func (e apiErr) ErrorCode() string             { return e.code }
+func (e apiErr) ErrorMessage() string          { return e.code }
+func (e apiErr) ErrorFault() smithy.ErrorFault { return smithy.FaultClient }
 
 // resetRetryState initializes the package globals the retry logic touches and
 // restores the retry tuning afterwards, so each test starts from a clean slate.
 func resetRetryState(t *testing.T) {
 	t.Helper()
 	mtx = &sync.Mutex{}
-	watchedJobs = map[string]struct{}{}
-	fileRetries = map[string]*fileRetry{}
+	watchedJobs = map[string]*jobWatch{}
+	fileRetries = map[retryKey]*fileRetry{}
 	pendingUploads = nil
 
-	origAttempts, origBase, origMax := maxRetryAttempts, retryBaseDelay, retryMaxDelay
+	origAttempts, origBase, origMax, origTTL := maxRetryAttempts, retryBaseDelay, retryMaxDelay, retryInFlightTTL
 	t.Cleanup(func() {
-		maxRetryAttempts, retryBaseDelay, retryMaxDelay = origAttempts, origBase, origMax
+		maxRetryAttempts, retryBaseDelay, retryMaxDelay, retryInFlightTTL = origAttempts, origBase, origMax, origTTL
 	})
 }
 
-func TestIsTransientError(t *testing.T) {
+func withFakeDeps(t *testing.T) *mockUploadDeps {
+	t.Helper()
+	original := deps
+	t.Cleanup(func() { deps = original })
+	fake := &mockUploadDeps{}
+	deps = fake
+	return fake
+}
+
+func watch(hotFolder, sourceFolder, profile string, keys ...string) *jobWatch {
+	return &jobWatch{hotFolderName: hotFolder, sourceFolder: sourceFolder, profileName: profile, keys: keys}
+}
+
+func TestIsPermanentError(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
 		want bool
 	}{
-		{name: "nil is not transient", err: nil, want: false},
-		{name: "context canceled is not transient", err: context.Canceled, want: false},
-		{name: "missing source file is permanent", err: fmt.Errorf("open: %w", os.ErrNotExist), want: false},
-		{name: "permission denied is permanent", err: fmt.Errorf("open: %w", os.ErrPermission), want: false},
-		{name: "PathError not-exist is permanent", err: &os.PathError{Op: "open", Path: "/x", Err: os.ErrNotExist}, want: false},
-		{name: "network error is transient", err: errors.New("connection reset by peer"), want: true},
-		{name: "credential error is transient", err: errors.New("failed to retrieve credentials"), want: true},
+		{name: "nil (job-level failure) is transient", err: nil, want: false},
+		{name: "context canceled is permanent", err: context.Canceled, want: true},
+		{name: "missing source file is permanent", err: fmt.Errorf("open: %w", os.ErrNotExist), want: true},
+		{name: "permission denied is permanent", err: fmt.Errorf("open: %w", os.ErrPermission), want: true},
+		{name: "access denied (S3) is permanent", err: apiErr{code: "AccessDenied"}, want: true},
+		{name: "no such bucket is permanent", err: apiErr{code: "NoSuchBucket"}, want: true},
+		{name: "throttling (S3) is transient", err: apiErr{code: "SlowDown"}, want: false},
+		{name: "expired token is transient", err: apiErr{code: "ExpiredToken"}, want: false},
+		{name: "network error is transient", err: errors.New("connection reset by peer"), want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, isTransientError(tt.err))
+			assert.Equal(t, tt.want, isPermanentError(tt.err))
 		})
 	}
 }
@@ -59,173 +86,269 @@ func TestRetryDelay(t *testing.T) {
 	assert.Equal(t, 1*time.Minute, retryDelay(2))
 	assert.Equal(t, 2*time.Minute, retryDelay(3))
 	assert.Equal(t, 4*time.Minute, retryDelay(4))
-	// Capped from attempt 5 on.
 	assert.Equal(t, 5*time.Minute, retryDelay(5))
 	assert.Equal(t, 5*time.Minute, retryDelay(9))
 }
 
 // A transient failure schedules a backed-off retry and increments the attempt
-// count each time, until the cap is reached and the file is given up on.
+// count each time, until the cap is reached and the (file, profile) is given up.
 func TestHandleFailedFile_TransientSchedulesThenGivesUp(t *testing.T) {
 	resetRetryState(t)
 	maxRetryAttempts = 2
 	retryBaseDelay = 10 * time.Millisecond
 	retryMaxDelay = time.Second
 	now := time.Now()
-	path := "/src/clip.mov"
-	transient := errors.New("network drop")
+	w := watch("hf", "/src", "profA", "clip.mov")
+	key := retryKey{path: "/src/clip.mov", hotFolderName: "hf", profileName: "profA"}
 
-	handleFailedFileLocked(path, transient, now)
-	require := assert.New(t)
-	require.Equal(1, fileRetries[path].attempts)
-	require.False(fileRetries[path].readyAt.IsZero())
+	handleFailedFileLocked(key, w, errors.New("network drop"), now)
+	assert.Equal(t, 1, fileRetries[key].attempts)
+	assert.False(t, fileRetries[key].readyAt.IsZero())
 
-	handleFailedFileLocked(path, transient, now)
-	require.Equal(2, fileRetries[path].attempts)
+	handleFailedFileLocked(key, w, errors.New("network drop"), now)
+	assert.Equal(t, 2, fileRetries[key].attempts)
 
-	// Third failure is at the cap: give up and drop the bookkeeping.
-	handleFailedFileLocked(path, transient, now)
-	_, stillTracked := fileRetries[path]
-	require.False(stillTracked)
+	handleFailedFileLocked(key, w, errors.New("network drop"), now)
+	_, tracked := fileRetries[key]
+	assert.False(t, tracked, "at the cap the entry is dropped")
 }
 
 // A permanent failure (missing/unreadable source) is never scheduled for retry.
 func TestHandleFailedFile_PermanentNotRetried(t *testing.T) {
 	resetRetryState(t)
-	fileRetries["/src/gone.mov"] = &fileRetry{attempts: 1, readyAt: time.Now()}
-	handleFailedFileLocked("/src/gone.mov", fmt.Errorf("stat: %w", os.ErrNotExist), time.Now())
-	_, tracked := fileRetries["/src/gone.mov"]
+	w := watch("hf", "/src", "profA", "gone.mov")
+	key := retryKey{path: "/src/gone.mov", hotFolderName: "hf", profileName: "profA"}
+	fileRetries[key] = &fileRetry{attempts: 1, readyAt: time.Now()}
+
+	handleFailedFileLocked(key, w, fmt.Errorf("stat: %w", os.ErrNotExist), time.Now())
+	_, tracked := fileRetries[key]
 	assert.False(t, tracked)
 }
 
-// A file whose backoff has elapsed is promoted back onto the pending queue and
-// marked in-flight (zero readyAt); one still waiting is left alone; no dupes.
-func TestPromoteReadyRetries(t *testing.T) {
+// A job-level failure (nil per-file error) is treated as transient and scheduled.
+func TestHandleFailedFile_NilErrorIsTransient(t *testing.T) {
 	resetRetryState(t)
-	now := time.Now()
-	fileRetries["/ready.mov"] = &fileRetry{attempts: 1, readyAt: now.Add(-time.Second)}
-	fileRetries["/waiting.mov"] = &fileRetry{attempts: 1, readyAt: now.Add(time.Minute)}
-	fileRetries["/inflight.mov"] = &fileRetry{attempts: 1} // zero readyAt
+	retryBaseDelay = 10 * time.Millisecond
+	w := watch("hf", "/src", "profA", "clip.mov")
+	key := retryKey{path: "/src/clip.mov", hotFolderName: "hf", profileName: "profA"}
 
-	promoteReadyRetriesLocked(now)
-
-	assert.Contains(t, pendingUploads, "/ready.mov")
-	assert.NotContains(t, pendingUploads, "/waiting.mov")
-	assert.True(t, fileRetries["/ready.mov"].readyAt.IsZero(), "promoted file is marked in-flight")
-
-	// Idempotent: promoting again does not duplicate the queued file.
-	promoteReadyRetriesLocked(now)
-	count := 0
-	for _, p := range pendingUploads {
-		if p == "/ready.mov" {
-			count++
-		}
-	}
-	assert.Equal(t, 1, count)
-}
-
-func withFakeDeps(t *testing.T) *mockUploadDeps {
-	t.Helper()
-	original := deps
-	t.Cleanup(func() { deps = original })
-	fake := &mockUploadDeps{}
-	deps = fake
-	return fake
+	handleFailedFileLocked(key, w, nil, time.Now())
+	assert.NotNil(t, fileRetries[key])
+	assert.Equal(t, 1, fileRetries[key].attempts)
 }
 
 // A watched job that terminates with a transient per-file error schedules that
-// file for retry and stops watching the job.
+// (file, profile) for retry and stops watching the job.
 func TestProcessRetries_TerminalTransientSchedulesRetry(t *testing.T) {
 	resetRetryState(t)
 	retryBaseDelay = 10 * time.Millisecond
-	retryMaxDelay = time.Second
-	watchedJobs["job1"] = struct{}{}
+	watchedJobs["job1"] = watch("hf", "/src", "profA", "a.mov")
 
 	fake := withFakeDeps(t)
 	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusError, true)
 	fake.On("UploadTaskOutcomes", "job1").Return([]TaskOutcome{
-		{Path: "/src/a.mov", Errored: true, Err: errors.New("network drop")},
+		{Path: "/src/a.mov", Status: jobmanagertypes.TaskStatusError, Err: errors.New("network drop")},
 	})
 
-	now := time.Now()
-	processRetries(now)
+	processRetries(time.Now())
 
 	_, stillWatched := watchedJobs["job1"]
-	assert.False(t, stillWatched, "terminal job is no longer watched")
-	require := assert.New(t)
-	require.NotNil(fileRetries["/src/a.mov"])
-	require.Equal(1, fileRetries["/src/a.mov"].attempts)
-	// Not yet promoted (backoff has not elapsed).
-	require.NotContains(pendingUploads, "/src/a.mov")
-
-	// Once the backoff elapses, the next cycle promotes it onto the queue.
-	processRetries(now.Add(time.Second))
-	assert.Contains(t, pendingUploads, "/src/a.mov")
+	assert.False(t, stillWatched)
+	assert.NotNil(t, fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profA"}])
 }
 
-// A job that is still running is left on the watch list for the next cycle.
+// Regression for the credential-outage case: a task left Queued because its job
+// errored before it ran must be retried, not counted as a success.
+func TestProcessRetries_NeverRanTaskIsRetried(t *testing.T) {
+	resetRetryState(t)
+	retryBaseDelay = 10 * time.Millisecond
+	watchedJobs["job1"] = watch("hf", "/src", "profA", "a.mov")
+
+	fake := withFakeDeps(t)
+	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusError, true)
+	fake.On("UploadTaskOutcomes", "job1").Return([]TaskOutcome{
+		{Path: "/src/a.mov", Status: jobmanagertypes.TaskStatusQueued, Err: nil},
+	})
+
+	processRetries(time.Now())
+
+	assert.NotNil(t, fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profA"}],
+		"a Queued task in an errored job must be retried")
+}
+
+// Regression for the multi-profile race: a failure on one profile and a success
+// on another for the same file must not clobber each other.
+func TestProcessRetries_MultiProfileIndependent(t *testing.T) {
+	resetRetryState(t)
+	retryBaseDelay = 10 * time.Millisecond
+	watchedJobs["jobA"] = watch("hf", "/src", "profA", "a.mov")
+	watchedJobs["jobB"] = watch("hf", "/src", "profB", "a.mov")
+
+	fake := withFakeDeps(t)
+	fake.On("JobState", "jobA").Return(jobmanagertypes.JobStatusError, true)
+	fake.On("UploadTaskOutcomes", "jobA").Return([]TaskOutcome{
+		{Path: "/src/a.mov", Status: jobmanagertypes.TaskStatusError, Err: errors.New("network drop")},
+	})
+	fake.On("JobState", "jobB").Return(jobmanagertypes.JobStatusCompleted, true)
+	fake.On("UploadTaskOutcomes", "jobB").Return([]TaskOutcome{
+		{Path: "/src/a.mov", Status: jobmanagertypes.TaskStatusCompleted},
+	})
+
+	processRetries(time.Now())
+
+	assert.NotNil(t, fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profA"}],
+		"profA failure retry must survive")
+	_, profBTracked := fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profB"}]
+	assert.False(t, profBTracked, "profB success must not create or clobber a retry")
+}
+
+// A job still running is left on the watch list and marked everKnown.
 func TestProcessRetries_NonTerminalKeepsWatching(t *testing.T) {
 	resetRetryState(t)
-	watchedJobs["job1"] = struct{}{}
+	watchedJobs["job1"] = watch("hf", "/src", "profA", "a.mov")
 
 	fake := withFakeDeps(t)
 	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusInProgress, true)
 
 	processRetries(time.Now())
 
-	_, stillWatched := watchedJobs["job1"]
+	w, stillWatched := watchedJobs["job1"]
 	assert.True(t, stillWatched)
+	assert.True(t, w.everKnown)
 	fake.AssertNotCalled(t, "UploadTaskOutcomes", "job1")
 }
 
-// A clean terminal job clears any lingering retry bookkeeping for its files.
+// A clean completion clears any lingering retry for its (file, profile).
 func TestProcessRetries_CleanCompletionClearsRetry(t *testing.T) {
 	resetRetryState(t)
-	watchedJobs["job1"] = struct{}{}
-	fileRetries["/src/b.mov"] = &fileRetry{attempts: 2}
+	watchedJobs["job1"] = watch("hf", "/src", "profA", "b.mov")
+	fileRetries[retryKey{path: "/src/b.mov", hotFolderName: "hf", profileName: "profA"}] = &fileRetry{attempts: 2}
 
 	fake := withFakeDeps(t)
 	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusCompleted, true)
 	fake.On("UploadTaskOutcomes", "job1").Return([]TaskOutcome{
-		{Path: "/src/b.mov", Errored: false},
+		{Path: "/src/b.mov", Status: jobmanagertypes.TaskStatusCompleted},
 	})
 
 	processRetries(time.Now())
 
-	_, tracked := fileRetries["/src/b.mov"]
+	_, tracked := fileRetries[retryKey{path: "/src/b.mov", hotFolderName: "hf", profileName: "profA"}]
 	assert.False(t, tracked)
-	_, stillWatched := watchedJobs["job1"]
-	assert.False(t, stillWatched)
 }
 
-// A job the manager no longer knows about (already cleared) is dropped from the
-// watch list without scheduling anything.
-func TestProcessRetries_UnknownJobDropped(t *testing.T) {
+// A cancelled job is an operator action and must not be retried.
+func TestProcessRetries_CancelledNotRetried(t *testing.T) {
 	resetRetryState(t)
-	watchedJobs["job1"] = struct{}{}
+	watchedJobs["job1"] = watch("hf", "/src", "profA", "a.mov")
+
+	fake := withFakeDeps(t)
+	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusCancelled, true)
+	fake.On("UploadTaskOutcomes", "job1").Return([]TaskOutcome{
+		{Path: "/src/a.mov", Status: jobmanagertypes.TaskStatusCancelled},
+	})
+
+	processRetries(time.Now())
+
+	assert.Empty(t, fileRetries)
+}
+
+// A job that was never registered (Uploader returned early) and was never seen
+// known is treated as a transient failure and its launched files are retried.
+func TestProcessRetries_UnknownNeverSeenRetriesLaunchedFiles(t *testing.T) {
+	resetRetryState(t)
+	retryBaseDelay = 10 * time.Millisecond
+	watchedJobs["job1"] = watch("hf", "/src", "profA", "a.mov")
 
 	fake := withFakeDeps(t)
 	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusUnknown, false)
 
 	processRetries(time.Now())
 
-	_, stillWatched := watchedJobs["job1"]
-	assert.False(t, stillWatched)
+	assert.NotNil(t, fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profA"}])
 	fake.AssertNotCalled(t, "UploadTaskOutcomes", "job1")
 }
 
-// A fresh filesystem event for a file clears its pending retry backoff so the
+// A job that was seen known earlier and is now gone (completed then cleared) is
+// not retried.
+func TestProcessRetries_UnknownSeenBeforeNotRetried(t *testing.T) {
+	resetRetryState(t)
+	w := watch("hf", "/src", "profA", "a.mov")
+	w.everKnown = true
+	watchedJobs["job1"] = w
+
+	fake := withFakeDeps(t)
+	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusUnknown, false)
+
+	processRetries(time.Now())
+
+	assert.Empty(t, fileRetries)
+}
+
+// A ready retry is promoted by starting a fresh single-profile upload for the
+// file, which is then watched.
+func TestPromoteReadyRetries_StartsSingleProfileJob(t *testing.T) {
+	resetRetryState(t)
+	now := time.Now()
+	key := retryKey{path: filepath.Join("/src", "a.mov"), hotFolderName: "hf", profileName: "profA"}
+	fileRetries[key] = &fileRetry{attempts: 1, readyAt: now.Add(-time.Second), sourceFolder: "/src", destination: "dest"}
+
+	fake := withFakeDeps(t)
+	fake.On("GetTransferProfile", "profA").Return(configtypes.TransferProfile{Name: "profA", Bucket: "bucket"}, nil)
+	fake.On("NewJob", mock.Anything).Return(newTestJob(t), nil)
+	fake.On("Uploader", mock.Anything).Return()
+
+	promoteReadyRetriesLocked(now)
+
+	assert.True(t, fileRetries[key].readyAt.IsZero(), "promoted entry is marked in-flight")
+	assert.False(t, fileRetries[key].promotedAt.IsZero())
+	assert.Len(t, watchedJobs, 1, "the promoted retry job is watched")
+	fake.AssertCalled(t, "Uploader", mock.Anything)
+}
+
+// An in-flight entry no job ever reports on is aged out after the TTL.
+func TestSweepStaleRetries(t *testing.T) {
+	resetRetryState(t)
+	retryInFlightTTL = time.Minute
+	now := time.Now()
+	stale := retryKey{path: "/src/stale.mov", hotFolderName: "hf", profileName: "profA"}
+	fresh := retryKey{path: "/src/fresh.mov", hotFolderName: "hf", profileName: "profA"}
+	fileRetries[stale] = &fileRetry{promotedAt: now.Add(-2 * time.Minute)}
+	fileRetries[fresh] = &fileRetry{promotedAt: now.Add(-10 * time.Second)}
+
+	sweepStaleRetriesLocked(now)
+
+	_, staleTracked := fileRetries[stale]
+	_, freshTracked := fileRetries[fresh]
+	assert.False(t, staleTracked, "a leaked in-flight entry is aged out")
+	assert.True(t, freshTracked, "a recent in-flight entry is kept")
+}
+
+// ClearRetries drops retries for the given paths across every profile, so a
+// manual Resubmit does not double-upload with a pending automatic retry.
+func TestClearRetries(t *testing.T) {
+	resetRetryState(t)
+	fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profA"}] = &fileRetry{attempts: 1}
+	fileRetries[retryKey{path: "/src/a.mov", hotFolderName: "hf", profileName: "profB"}] = &fileRetry{attempts: 1}
+	fileRetries[retryKey{path: "/src/b.mov", hotFolderName: "hf", profileName: "profA"}] = &fileRetry{attempts: 1}
+
+	ClearRetries([]string{"/src/a.mov"})
+
+	assert.Len(t, fileRetries, 1)
+	assert.NotNil(t, fileRetries[retryKey{path: "/src/b.mov", hotFolderName: "hf", profileName: "profA"}])
+}
+
+// A fresh filesystem event clears every pending retry for that path so the
 // replaced contents upload immediately as a first attempt.
 func TestRecordFileEvent_ResetsRetry(t *testing.T) {
 	resetRetryState(t)
 	hotFolders = map[string]*HotFolder{}
 	lastUpdated = map[string]time.Time{}
 	path := "/src/replaced.mov"
-	fileRetries[path] = &fileRetry{attempts: 3, readyAt: time.Now().Add(time.Hour)}
+	fileRetries[retryKey{path: path, hotFolderName: "hf", profileName: "profA"}] = &fileRetry{attempts: 3, readyAt: time.Now().Add(time.Hour)}
+	fileRetries[retryKey{path: path, hotFolderName: "hf", profileName: "profB"}] = &fileRetry{attempts: 3, readyAt: time.Now().Add(time.Hour)}
 
 	recordFileEvent(path)
 
-	_, tracked := fileRetries[path]
-	assert.False(t, tracked, "a fresh write clears the stale backoff")
+	assert.Empty(t, fileRetries, "a fresh write clears the stale backoff across profiles")
 	assert.Contains(t, pendingUploads, path)
 }
