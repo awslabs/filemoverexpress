@@ -12,6 +12,7 @@ import (
 	"github.com/awslabs/filemoverexpress/logger"
 	"github.com/awslabs/filemoverexpress/types/configtypes"
 	"github.com/awslabs/filemoverexpress/types/eventtypes"
+	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 )
 
 const (
@@ -270,6 +271,15 @@ func (m *Manager) HasURL(name string) bool {
 }
 
 func completionOutcome(e *eventtypes.JobCompleteEvent) Outcome {
+	// A job the daemon marked ERROR (no file transferred and at least one failed,
+	// or a job-level error) is a failure, so destinations set to notify only on
+	// failure still fire. Some files failing while others succeed is a partial
+	// success. This mirrors the job's own terminal status (see completionStatus
+	// in the job_manager package) so the webhook never reports an all-failed job
+	// as a success.
+	if e.Status == string(jobmanagertypes.JobStatusError) {
+		return OutcomeFailed
+	}
 	if e.HasTaskErrors {
 		return OutcomePartial
 	}

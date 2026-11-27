@@ -17,9 +17,10 @@ type JobCompleteEvent struct {
 	HasTaskErrors      bool
 	HasSuccessfulTasks bool
 	HasAllSkippedTasks bool
-	// Status is the terminal job status (COMPLETED or COMPLETED_WITH_WARNINGS).
-	// The GUI takes the final status from this event, so it must be populated or
-	// a verify-failed job renders as a clean COMPLETED.
+	// Status is the terminal job status (COMPLETED, COMPLETED_WITH_WARNINGS, or
+	// ERROR when no file transferred and at least one failed). The GUI takes the
+	// final status from this event, so it must be populated or a verify-failed or
+	// all-failed job renders as a clean COMPLETED.
 	Status string
 	// ASCMHL is the ASC MHL verification outcome, or nil when no supplied manifest
 	// was verified. Carried so the GUI's jobs-table column and the Advanced-details

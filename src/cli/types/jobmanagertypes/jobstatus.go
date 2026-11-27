@@ -87,10 +87,14 @@ func (j JobStatus) Is(other string) bool {
 	return other == string(j)
 }
 
-// IsCompleted reports whether a status is a successful terminal completion:
-// a clean COMPLETED or COMPLETED_WITH_WARNINGS (the transfer finished and the
-// bytes were written). Every place that used to test only for JobStatusCompleted
-// should use this so a new completion state is handled everywhere at once.
+// IsCompleted reports whether a status is a terminal completion that the
+// transfer reached under its own steam: a clean COMPLETED or
+// COMPLETED_WITH_WARNINGS. The latter now also covers a partial transfer failure
+// (some files failed while others succeeded), not only an ASC MHL verification
+// warning, so "completed" here means the job finished rather than that every
+// byte was written. It deliberately excludes ERROR. Every place that used to
+// test only for JobStatusCompleted should use this so a new completion state is
+// handled everywhere at once.
 func (j JobStatus) IsCompleted() bool {
 	return j == JobStatusCompleted || j == JobStatusCompletedWithWarnings
 }

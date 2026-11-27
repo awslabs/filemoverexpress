@@ -428,9 +428,10 @@ export class JobDetailsModalComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
-     * A job that finished and uploaded, but at least one file failed its supplied
-     * ASC MHL verification (hash mismatch or missing on disk). Amber, not red:
-     * the bytes transferred, but the offload cannot be trusted as delivered.
+     * A job that finished but needs attention (amber, not red): either some files
+     * failed to transfer while others succeeded (a partial failure), or at least
+     * one file failed its supplied ASC MHL verification (hash mismatch or missing
+     * on disk). A job in which every file failed is isError, not this.
      */
     get isWarnings(): boolean {
         return this.jobDetails.status === JobStatus.CompletedWithWarnings;

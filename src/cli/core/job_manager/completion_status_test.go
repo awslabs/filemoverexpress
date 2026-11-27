@@ -74,9 +74,23 @@ func TestCompletionStatus_AllTasksFailedWithVerificationWarningsIsError(t *testi
 	assert.Equal(t, jobmanagertypes.JobStatusError, completionStatus(job))
 }
 
-// A job in which every file was cleanly skipped (nothing failed, nothing newly
-// transferred) still completes cleanly.
-func TestCompletionStatus_AllSkippedIsCompleted(t *testing.T) {
+// A partial failure (some succeeded, some failed) combined with a verification
+// warning is COMPLETED_WITH_WARNINGS: both warning causes map to the same amber
+// terminal status, so their precedence does not matter once a file succeeded.
+func TestCompletionStatus_PartialFailureWithVerificationWarningsIsCompletedWithWarnings(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	job.SetHasSuccessfulTasks(true)
+	job.SetHasVerificationWarnings(true)
+	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
+}
+
+// With no task errors and no successful tasks (the state completionStatus sees
+// for a job whose files were all skipped), the terminal status is a clean
+// COMPLETED. This pins the function's behavior on that input; the integration
+// path that registers skipped tasks and takes the no-filtered-tasks early exit
+// is exercised in the job_manager completion flow, not here.
+func TestCompletionStatus_NoErrorsNoSuccessesIsCompleted(t *testing.T) {
 	job := newCompletionTestJob(t)
 	assert.False(t, job.HasTaskErrors())
 	assert.False(t, job.HasSuccessfulTasks())
