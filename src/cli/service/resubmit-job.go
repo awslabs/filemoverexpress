@@ -10,6 +10,7 @@ import (
 	"github.com/awslabs/filemoverexpress/core/download"
 	"github.com/awslabs/filemoverexpress/core/job_manager"
 	"github.com/awslabs/filemoverexpress/core/upload"
+	"github.com/awslabs/filemoverexpress/core/upload/hot_folder"
 	"github.com/awslabs/filemoverexpress/types/jobmanagertypes"
 	"github.com/awslabs/filemoverexpress/types/pbtypes/fme/v1"
 	"github.com/awslabs/filemoverexpress/types/transfertypes"
@@ -56,6 +57,9 @@ func (*FileMoverServer) ResubmitJob(
 	}
 
 	if job.Direction() == transfertypes.Upload {
+		// A manual Resubmit re-uploads these files now, so drop any pending
+		// automatic hot folder retry for them to avoid a double upload.
+		hot_folder.ClearRetries(job.Sources())
 		upload.Uploader(newJob)
 	} else {
 		download.Downloader(newJob)

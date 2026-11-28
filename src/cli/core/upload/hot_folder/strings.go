@@ -12,4 +12,7 @@ const (
 	strErrorRunningHotFolder       = "error running hot folder: %s"
 	strErrorGenericUpload          = "Upload for hot folder %s failed: %s"
 	strErrorUploadWithRemoteConfig = "Upload to transfer profile %s failed for hot folder %s: %s"
+	strRetryScheduled              = "Hot folder upload of %s failed transiently; retrying (attempt %d of %d) in %s"
+	strRetryExhausted              = "Hot folder upload of %s failed after %d retries; giving up. Fix the cause and resubmit."
+	strRetryPermanent              = "Hot folder upload of %s failed and will not be retried (not a transient error): %s"
 )
