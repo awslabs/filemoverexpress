@@ -117,9 +117,11 @@ type (
 		// tasks were never created, e.g. session setup failed). The whole-folder
 		// sweep key "." is skipped since it names no single file.
 		keys []string
-		// everKnown is set once the job manager has reported this job. It lets an
-		// "unknown" result be read as a never-registered early-return failure (not
-		// yet seen) versus a completed-then-cleared job (seen earlier).
+		// everKnown records whether the job manager knew this job. It is set at
+		// launch (right after Uploader returns, see startProfileUpload) and again on
+		// any poll that sees the job, so an "unknown" result is read as a
+		// never-registered early-return failure only when the job never registered -
+		// not merely because it finished and was cleared before the first poll.
 		everKnown bool
 	}
 
@@ -496,14 +498,24 @@ func startProfileUpload(req profileUpload) (jobLaunch, bool) {
 		return jobLaunch{}, false
 	}
 	deps.Uploader(job)
+	jobId := job.JobId()
+	// Decide everKnown at launch, not at poll time. Uploader is synchronous, so by
+	// the time the first poll runs the job may already have finished and been
+	// cleared ("Clear completed"), which a poll would misread as a never-registered
+	// early-return failure and re-upload files that already succeeded. Checking
+	// JobState right after Uploader returns tells us truthfully whether the job
+	// registered: unknown here means it never did (the session/credentials failed
+	// before AddJob), which is the only case resolveUnregisteredJobLocked retries.
+	_, known := deps.JobState(jobId)
 	return jobLaunch{
-		jobId: job.JobId(),
+		jobId: jobId,
 		watch: &jobWatch{
 			hotFolderName: req.hotFolderName,
 			sourceFolder:  req.sourceFolder,
 			profileName:   req.profileName,
 			destination:   req.destinationFolder,
 			keys:          append([]string(nil), req.keys...),
+			everKnown:     known,
 		},
 	}, true
 }

@@ -296,6 +296,7 @@ func TestPromoteReadyRetries_StartsSingleProfileJob(t *testing.T) {
 	fake.On("GetTransferProfile", "profA").Return(configtypes.TransferProfile{Name: "profA", Bucket: "bucket"}, nil)
 	fake.On("NewJob", mock.Anything).Return(newTestJob(t), nil)
 	fake.On("Uploader", mock.Anything).Return()
+	fake.On("JobState", mock.Anything).Return(jobmanagertypes.JobStatusInProgress, true)
 
 	promoteReadyRetriesLocked(now)
 
@@ -351,4 +352,41 @@ func TestRecordFileEvent_ResetsRetry(t *testing.T) {
 
 	assert.Empty(t, fileRetries, "a fresh write clears the stale backoff across profiles")
 	assert.Contains(t, pendingUploads, path)
+}
+
+
+// startProfileUpload records everKnown from JobState at launch, so a job that
+// registered is never re-uploaded even if it finishes and is cleared before the
+// first poll. Regression for the synchronous-Uploader clear-completed race.
+func TestStartProfileUpload_SetsEverKnownAtLaunch(t *testing.T) {
+	resetRetryState(t)
+	fake := withFakeDeps(t)
+	fake.On("GetTransferProfile", "profA").Return(configtypes.TransferProfile{Name: "profA", Bucket: "bucket"}, nil)
+	fake.On("NewJob", mock.Anything).Return(newTestJob(t), nil)
+	fake.On("Uploader", mock.Anything).Return()
+	fake.On("JobState", mock.Anything).Return(jobmanagertypes.JobStatusCompleted, true)
+
+	launch, ok := startProfileUpload(profileUpload{
+		hotFolderName: "hf", sourceFolder: "/src", profileName: "profA",
+		destinationFolder: "dest", jobName: "job", keys: []string{"a.mov"}, force: true,
+	})
+
+	assert.True(t, ok)
+	assert.True(t, launch.watch.everKnown, "a job that registered at launch is marked everKnown")
+}
+
+// A job that registered at launch (everKnown true) but is unknown by the first
+// poll (it finished and was cleared) is NOT retried.
+func TestProcessRetries_RegisteredThenClearedNotRetried(t *testing.T) {
+	resetRetryState(t)
+	w := watch("hf", "/src", "profA", "a.mov")
+	w.everKnown = true // set at launch because the job registered
+	watchedJobs["job1"] = w
+
+	fake := withFakeDeps(t)
+	fake.On("JobState", "job1").Return(jobmanagertypes.JobStatusUnknown, false)
+
+	processRetries(time.Now())
+
+	assert.Empty(t, fileRetries, "a registered-then-cleared job must not be re-uploaded")
 }

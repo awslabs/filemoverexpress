@@ -224,6 +224,8 @@ func Test_HotFolderUploadSourceDirectory_ForcePropagation(t *testing.T) {
 			})).Return(newTestJob(t), nil)
 
 			fake.On("Uploader", mock.Anything).Return()
+			// startProfileUpload checks JobState at launch to set everKnown.
+			fake.On("JobState", mock.Anything).Return(jobmanagertypes.JobStatusCompleted, true)
 
 			HotFolderUploadSourceDirectory(hotFolder)
 
