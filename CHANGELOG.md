@@ -20,6 +20,7 @@ Adds support for the industry-standard ASC Media Hash List (ASC MHL) format: Fil
 
 ### Fixed
 
+* A job in which files failed to transfer could still report a clean green "Completed". A job's final status is now derived from its per-file outcomes: it shows "Error" when no file transferred and at least one failed, and amber "Completed with Errors" when some files failed while others succeeded. Webhook notifications agree with this, so a destination set to notify only on failure now fires for an all-failed job. This matters most for unattended hot-folder ingestion, where a batch that failed (for example during a brief credential or network outage) must be visible to monitoring rather than reported as a success.
 * A job that failed ASC MHL verification could show as a clean green "Completed" instead of amber "Complete w/ Warnings". The failing status now travels with the job's completion so the outcome is shown honestly.
 * The jobs-table ASC MHL mark and the Advanced-details counts now update as soon as a job finishes, rather than only after the jobs list was refreshed.
 * The checksum progress log no longer reads "NaN% complete" when every file's checksum was already cached; it reports that there were no files to checksum.

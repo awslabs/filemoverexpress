@@ -24,6 +24,13 @@ export class JobStatusPipe implements PipeTransform {
                 return 'Unknown';
             }
         }
+        // A partial transfer failure (some files failed, some succeeded) now
+        // arrives as COMPLETED_WITH_WARNINGS from the daemon. Distinguish it from
+        // an ASC MHL verification warning, which shares that status, so an
+        // operator can tell a transfer failure from a hash warning.
+        if (job.status === JobStatus.CompletedWithWarnings && job.hasTaskErrors) {
+            return 'Completed with Errors';
+        }
         return jobStatusToDisplayString(job.status);
     }
 }
@@ -60,6 +67,13 @@ export class JobStatusClassPipe implements PipeTransform {
             case JobStatus.Paused:
                 return 'status-paused';
             case JobStatus.CompletedWithWarnings:
+                // A partial transfer failure and an ASC MHL verification warning
+                // share this status; give the transfer failure the same styling
+                // as "Completed with Errors" so it reads consistently with its
+                // label (see JobStatusPipe).
+                if (job.hasTaskErrors) {
+                    return 'status-completed-with-errors';
+                }
                 return 'status-completed-with-warnings';
             case JobStatus.NeedsReview:
                 return 'status-needs-review';

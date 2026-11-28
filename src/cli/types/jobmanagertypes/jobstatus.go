@@ -14,8 +14,10 @@ const (
 	JobStatusNeedsReview JobStatus = "NEEDS_REVIEW"
 	JobStatusCompleted   JobStatus = "COMPLETED"
 	// JobStatusCompletedWithWarnings is a terminal state: the transfer finished
-	// and the bytes were uploaded, but at least one file failed its supplied
-	// ASC MHL verification (hash mismatch or a listed file missing on disk).
+	// but something needs attention. Either some files failed to transfer while
+	// others succeeded (a partial failure), or a supplied ASC MHL manifest failed
+	// verification (a hash mismatch or a listed file missing on disk). A job in
+	// which every file failed is JobStatusError, not this.
 	JobStatusCompletedWithWarnings JobStatus = "COMPLETED_WITH_WARNINGS"
 	JobStatusError                 JobStatus = "ERROR"
 	JobStatusUnknown               JobStatus = "UNKNOWN"
@@ -85,10 +87,14 @@ func (j JobStatus) Is(other string) bool {
 	return other == string(j)
 }
 
-// IsCompleted reports whether a status is a successful terminal completion:
-// a clean COMPLETED or COMPLETED_WITH_WARNINGS (the transfer finished and the
-// bytes were written). Every place that used to test only for JobStatusCompleted
-// should use this so a new completion state is handled everywhere at once.
+// IsCompleted reports whether a status is a terminal completion that the
+// transfer reached under its own steam: a clean COMPLETED or
+// COMPLETED_WITH_WARNINGS. The latter now also covers a partial transfer failure
+// (some files failed while others succeeded), not only an ASC MHL verification
+// warning, so "completed" here means the job finished rather than that every
+// byte was written. It deliberately excludes ERROR. Every place that used to
+// test only for JobStatusCompleted should use this so a new completion state is
+// handled everywhere at once.
 func (j JobStatus) IsCompleted() bool {
 	return j == JobStatusCompleted || j == JobStatusCompletedWithWarnings
 }

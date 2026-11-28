@@ -45,6 +45,58 @@ func TestCompletionStatus_VerificationWarningsIsCompletedWithWarnings(t *testing
 	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
 }
 
+// A job in which every file failed to transfer (errors, no successes) must be
+// reported as ERROR, never COMPLETED. Regression test for issue #202/#111: a
+// hot-folder batch that fails entirely (e.g. a credential outage) used to report
+// a clean COMPLETED, hiding silent data loss from unattended monitoring.
+func TestCompletionStatus_AllTasksFailedIsError(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	assert.Equal(t, jobmanagertypes.JobStatusError, completionStatus(job))
+}
+
+// A job in which some files failed and some succeeded is a partial failure and
+// must complete amber (COMPLETED_WITH_WARNINGS) so monitoring can detect it,
+// rather than a clean COMPLETED.
+func TestCompletionStatus_PartialFailureIsCompletedWithWarnings(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	job.SetHasSuccessfulTasks(true)
+	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
+}
+
+// Transfer failures dominate the terminal status: an all-failed job is ERROR
+// even if a supplied ASC MHL manifest also reported verification warnings.
+func TestCompletionStatus_AllTasksFailedWithVerificationWarningsIsError(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	job.SetHasVerificationWarnings(true)
+	assert.Equal(t, jobmanagertypes.JobStatusError, completionStatus(job))
+}
+
+// A partial failure (some succeeded, some failed) combined with a verification
+// warning is COMPLETED_WITH_WARNINGS: both warning causes map to the same amber
+// terminal status, so their precedence does not matter once a file succeeded.
+func TestCompletionStatus_PartialFailureWithVerificationWarningsIsCompletedWithWarnings(t *testing.T) {
+	job := newCompletionTestJob(t)
+	job.SetHasTaskErrors(true)
+	job.SetHasSuccessfulTasks(true)
+	job.SetHasVerificationWarnings(true)
+	assert.Equal(t, jobmanagertypes.JobStatusCompletedWithWarnings, completionStatus(job))
+}
+
+// With no task errors and no successful tasks (the state completionStatus sees
+// for a job whose files were all skipped), the terminal status is a clean
+// COMPLETED. This pins the function's behavior on that input; the integration
+// path that registers skipped tasks and takes the no-filtered-tasks early exit
+// is exercised in the job_manager completion flow, not here.
+func TestCompletionStatus_NoErrorsNoSuccessesIsCompleted(t *testing.T) {
+	job := newCompletionTestJob(t)
+	assert.False(t, job.HasTaskErrors())
+	assert.False(t, job.HasSuccessfulTasks())
+	assert.Equal(t, jobmanagertypes.JobStatusCompleted, completionStatus(job))
+}
+
 // Proceeding at the verification gate parks the job in NEEDS_REVIEW and returns
 // true once the operator resolves it.
 func TestAwaitVerificationGate_Proceed(t *testing.T) {

@@ -773,13 +773,31 @@ func awaitVerificationGate(job *jobmanagertypes.Job, problems int) bool {
 	return false
 }
 
-// completionStatus is the terminal status for a finished job: amber
-// COMPLETED_WITH_WARNINGS when a supplied ASC MHL manifest failed verification
-// (a hash mismatch or a listed file missing on disk), otherwise COMPLETED.
+// completionStatus is the terminal status for a finished job, derived from the
+// per-file task outcomes so a job whose files failed to transfer is never
+// reported as a clean COMPLETED:
+//
+//   - ERROR when at least one file failed and not a single file transferred (no
+//     file succeeded). The whole job failed, and unattended monitoring must be
+//     able to detect it rather than seeing COMPLETED. Note a job of, say, 100
+//     skipped files plus 1 failed file also lands here: nothing transferred and
+//     one failed.
+//   - COMPLETED_WITH_WARNINGS (amber) when the job finished but something needs
+//     attention: some files failed to transfer while others succeeded (a partial
+//     failure), or a supplied ASC MHL manifest failed verification (a hash
+//     mismatch or a listed file missing on disk).
+//   - COMPLETED otherwise (every file transferred, or was cleanly skipped).
+//
 // Centralized so every completion path (the all-skipped early exits and the
 // normal transfer finish) agrees, and so the status carried on the
 // JobCompleteEvent always matches the job's own status.
 func completionStatus(job *jobmanagertypes.Job) jobmanagertypes.JobStatus {
+	if job.HasTaskErrors() {
+		if !job.HasSuccessfulTasks() {
+			return jobmanagertypes.JobStatusError
+		}
+		return jobmanagertypes.JobStatusCompletedWithWarnings
+	}
 	if job.HasVerificationWarnings() {
 		return jobmanagertypes.JobStatusCompletedWithWarnings
 	}

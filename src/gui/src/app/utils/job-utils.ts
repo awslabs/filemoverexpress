@@ -53,10 +53,13 @@ export function jobStatusToDisplayString(status: JobStatus): string {
 
 
 /**
- * Whether a status is a successful terminal completion: a clean Completed or
- * Completed-with-Warnings (an ASC MHL verification warning). Use this anywhere
- * that used to test only for JobStatus.Completed so a new completion state is
- * handled everywhere at once (clear/cancel guards, completion-event suppression,
+ * Whether a status is a terminal completion the transfer reached under its own
+ * steam: a clean Completed or Completed-with-Warnings. The latter now covers
+ * both a partial transfer failure (some files failed while others succeeded) and
+ * an ASC MHL verification warning, so "completed" here means the job finished,
+ * not that every file was delivered. It excludes Error. Use this anywhere that
+ * used to test only for JobStatus.Completed so a new completion state is handled
+ * everywhere at once (clear/cancel guards, completion-event suppression,
  * terminal timestamp, progress/ETA).
  */
 export function isCompletedStatus(status: JobStatus): boolean {
