@@ -175,7 +175,12 @@ code, commits, pull requests, issues, or comments.
 - Use clear, concise language
 - Include code examples where helpful
 - Follow existing markdown formatting
-- Update relevant wiki pages
+- Update the guides in `docs/` that your change affects. Every Markdown file in
+  `docs/` is published to the
+  [documentation website](https://awslabs.github.io/filemoverexpress/), so put
+  only user-facing guides there
+- Update the `README.md` of a component under `src/` when you change how it is
+  built, tested, or structured
 
 ## Types of Contributions
 
